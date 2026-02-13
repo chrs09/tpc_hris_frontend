@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Sidebar from '../../components/Sidebar'
 import { addMonths, subMonths, format, eachDayOfInterval, startOfMonth, endOfMonth, getDay } from 'date-fns'
+import { getEmployeeList } from './../../api/employee/index';
 
+//static data for testing purposes
 const attendanceData = [
   { name: 'Snowss', date: '2026-02-11', status: 'Present', type: 'ADMIN' },
   { name: 'Fluffy', date: '2026-02-11', status: 'Present', type: 'YARD' },
@@ -15,6 +17,7 @@ const attendanceData = [
 ]
 
 const AttendanceList = () => {
+  const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
   const [quincena, setQuincena] = useState('all')
   const [filter, setFilter] = useState('All')
   const [currentMonth, setCurrentMonth] = useState(new Date('2026-02-01'))
@@ -22,11 +25,24 @@ const AttendanceList = () => {
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
   const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
 
+    // Fetch employee list on component mount  
+    useEffect(()=> {
+        const getEmployees = async () => {
+          const emp_data = await getEmployeeList();
+          setEmployeesFromAPI(emp_data);
+        }
+        getEmployees();
+    }, []);
+
+    // Extract employee names for easier access in attendance grid
+    const employeeNamesFromAPI = employeesFromAPI.map(emp => `${emp.first_name} ${emp.last_name}`);
+
     const allDaysInMonth = eachDayOfInterval({
     start: startOfMonth(currentMonth),
     end: endOfMonth(currentMonth),
     })
 
+    //filter mothly days based on quincena selection
     const daysInMonth = allDaysInMonth.filter(day => {
     const dayNumber = day.getDate()
 
@@ -63,7 +79,12 @@ const AttendanceList = () => {
     return sameMonth && matchesRole && matchesQuincena
     })
 
-    const employees = Array.from(new Set(filteredAttendance.map(emp => emp.name)))
+    // const employees = Array.from(new Set(filteredAttendance.map(emp => emp.name)))
+    const employees = employeesFromAPI.map(emp => ({
+      id: emp.id,
+      name: `${emp.first_name} ${emp.last_name}`,
+      role: emp.position
+    }));
 
   const getStatus = (employee, date) => {
     const record = attendanceData.find(
@@ -157,6 +178,30 @@ const AttendanceList = () => {
             </thead>
             <tbody>
               {employees.map(emp => (
+                <tr key={emp.id} className="border-b border-gray-300">
+                  <td className="py-1 md:py-2 px-2 md:px-4 font-medium sticky left-0 bg-white z-10 border-r border-gray-300 w-32 md:w-40">
+                    {emp.name}
+                  </td>
+                  {daysInMonth.map(day => (
+                    <td
+                      key={day}
+                      className={`py-1 md:py-2 px-1 md:px-2 text-center border-r border-gray-300 w-8 md:w-12 ${
+                        getDay(day) === 0 ? 'bg-yellow-100' : ''
+                      }`}
+                    >
+                      {getStatus(emp, day)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+              {employees.length === 0 && (
+                <tr>
+                  <td colSpan={daysInMonth.length + 1} className="py-4 text-center text-gray-500">
+                    No records found.
+                  </td>
+                </tr>
+              )}
+              {/* {employees.map(emp => (
                 <tr key={emp} className="border-b border-gray-300">
                   <td className="py-1 md:py-2 px-2 md:px-4 font-medium sticky left-0 bg-white z-10 border-r border-gray-300 w-32 md:w-40">
                     {emp}
@@ -179,7 +224,7 @@ const AttendanceList = () => {
                     No records found.
                   </td>
                 </tr>
-              )}
+              )} */}
             </tbody>
           </table>
         </div>

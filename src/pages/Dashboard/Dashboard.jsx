@@ -5,8 +5,6 @@ import Sidebar from "../../components/Sidebar";
 // Import pages
 import DashboardHome from "./DashboardHome";
 import AttendanceList from "../Attendance/AttendanceList";
-// import Employees from "./Employees"; // create simple component
-// import Settings from "./Settings"; // create simple component
 
 const Dashboard = () => {
   return (

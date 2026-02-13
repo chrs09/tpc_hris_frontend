@@ -20,24 +20,10 @@
       e.preventDefault();
       setLoading(true);
       setErrorMessage("");
-      // const result = await userLogin(username, password);
-      // setLoading(false);
-      // if (result) {
-      //   // Handle successful login (e.g., store token, redirect)
-      //   console.log("Login successful:", result);
-      //   alert("Login successful!");
-
-      // } else {
-      //   setErrorMessage("Invalid username or password");
-      // }
       try {
           const result = await userLogin(username, password);
           setLoading(false);
           if (result) {
-            // Handle successful login (e.g., store token, redirect)
-            console.table("Login successful:", result);
-            // alert("Login successful!");
-
             localStorage.setItem("access_token", result.access_token);
             localStorage.setItem("token_type", result.token_type);
 

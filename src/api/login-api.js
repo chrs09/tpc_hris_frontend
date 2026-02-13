@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_URL } from "./config";
 
-const API_URL = "http://127.0.0.1:8000/api";
+// const API_URL = "http://127.0.0.1:8000/api";
 
 // user login
 export const userLogin = async (username, password) => {
