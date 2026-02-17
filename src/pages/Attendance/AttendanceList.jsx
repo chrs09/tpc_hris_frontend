@@ -1,236 +1,580 @@
-import React, { useEffect, useState } from 'react'
-import Sidebar from '../../components/Sidebar'
-import { addMonths, subMonths, format, eachDayOfInterval, startOfMonth, endOfMonth, getDay } from 'date-fns'
-import { getEmployeeList } from './../../api/employee/index';
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  addMonths,
+  subMonths,
+  format,
+  eachDayOfInterval,
+  startOfMonth,
+  endOfMonth,
+  getDay
+} from 'date-fns';
 
-//static data for testing purposes
-const attendanceData = [
-  { name: 'Snowss', date: '2026-02-11', status: 'Present', type: 'ADMIN' },
-  { name: 'Fluffy', date: '2026-02-11', status: 'Present', type: 'YARD' },
-  { name: 'Buddy', date: '2026-02-10', status: 'On Leave', type: 'LABOR' },
-  { name: 'Mittens', date: '2026-02-09', status: 'Absent', type: 'CPDC DRIVER' },
-  { name: 'Mittenskwe', date: '2026-02-09', status: 'Absent', type: 'CPDC DRIVER' },
-  { name: 'Mittens', date: '2026-02-09', status: 'Absent', type: 'CPDC DRIVER' },
-  { name: 'Mittenskwe', date: '2026-02-07', status: 'Present', type: 'CPDC DRIVER' },
-  { name: 'Mittenssssss', date: '2026-02-09', status: 'Absent', type: 'CPDC DRIVER' },
-  { name: 'Snow', date: '2026-02-25', status: 'Absent', type: 'CPDC DRIVER' },
-]
+import { getEmployeeList } from './../../api/employee';
+import {
+  attendanceRecord,
+  bulkAttendanceCheck,
+  updateAttendance
+} from './../../api/attendance';
+
+import { employeeRoles } from '../../constants/employeeRole';
+import { attendanceStatus } from '../../constants/attendanceStatus';
+import { statusColors } from '../../constants/statusColors';
+import { departmentColors } from '../../constants/departmentColors';
+import { Button } from '../../components/ui/button/Button';
+import Alert from '../../components/ui/modals/Alert';
+import ConfirmModal from '../../components/ui/modals/ConfirmModal';
 
 const AttendanceList = () => {
+
+  const getCurrentQuincena = () => {
+    const today = new Date();
+    return today.getDate() <= 15 ? 'first' : 'second';
+  };
+  const today = format(new Date(), 'yyyy-MM-dd');
+  /* ------------------- STATE ------------------- */
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
-  const [quincena, setQuincena] = useState('all')
-  const [filter, setFilter] = useState('All')
-  const [currentMonth, setCurrentMonth] = useState(new Date('2026-02-01'))
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [quincena, setQuincena] = useState(getCurrentQuincena());
+  const [filter, setFilter] = useState('All');
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [showModal, setShowModal] = useState(false);
+  const [modalRoleFilter, setModalRoleFilter] = useState('All');
+  const [modalSelections, setModalSelections] = useState({});
+  const [editModal, setEditModal] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [alert, setAlert] = useState(null);
+  const employeesPerPage = 10;
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    loading: false
+  });
 
-  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1))
-  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1))
+  /* ------------------- EFFECTS ------------------- */
 
-    // Fetch employee list on component mount  
-    useEffect(()=> {
-        const getEmployees = async () => {
-          const emp_data = await getEmployeeList();
-          setEmployeesFromAPI(emp_data);
-        }
-        getEmployees();
-    }, []);
+  // Lock scroll when ANY modal is open
+  useEffect(() => {
+    document.body.style.overflow = (showModal || editModal) ? 'hidden' : 'auto';
+    return () => { document.body.style.overflow = 'auto'; };
+  }, [showModal, editModal]);
 
-    // Extract employee names for easier access in attendance grid
-    const employeeNamesFromAPI = employeesFromAPI.map(emp => `${emp.first_name} ${emp.last_name}`);
+  useEffect(() => {
+    const fetchData = async () => {
+      const empData = await getEmployeeList();
+      const attendance = await attendanceRecord();
+      setEmployeesFromAPI(empData);
+      setAttendanceData(attendance);
+    };
+    fetchData();
+  }, []);
 
-    const allDaysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth),
-    })
+  const handleFilterChange = (newFilter) => {
+  setFilter(newFilter);
+  setCurrentPage(1);
+};
+  /* ------------------- COMPUTED ------------------- */
 
-    //filter mothly days based on quincena selection
-    const daysInMonth = allDaysInMonth.filter(day => {
-    const dayNumber = day.getDate()
+  const employees = useMemo(() => {
+    return employeesFromAPI
+      .map(emp => ({
+        id: emp.id,
+        name: `${emp.first_name} ${emp.last_name}`,
+        role: emp.department
+      }))
+      .filter(emp => filter === 'All' || emp.role === filter);
+  }, [employeesFromAPI, filter]);
 
-    if (quincena === 'first') {
-        return dayNumber >= 1 && dayNumber <= 15
-    }
+  const totalPages = Math.ceil(employees.length / employeesPerPage);
+  const currentEmployees = employees.slice(
+    (currentPage - 1) * employeesPerPage,
+    currentPage * employeesPerPage
+  );
 
-    if (quincena === 'second') {
-        return dayNumber >= 16
-    }
+  const daysInMonth = useMemo(() => {
+    const allDays = eachDayOfInterval({
+      start: startOfMonth(currentMonth),
+      end: endOfMonth(currentMonth)
+    });
 
-    return true
-    })
+    return allDays.filter(day => {
+      if (quincena === 'first') return day.getDate() <= 15;
+      if (quincena === 'second') return day.getDate() >= 16;
+      return true;
+    });
+  }, [currentMonth, quincena]);
 
-// FILTERING OF ATTENDANCE DATA BASED ON MONTH, ROLE, AND QUINCENA
-    const filteredAttendance = attendanceData.filter(item => {
-    const recordDate = new Date(item.date)
+  const attendanceMap = useMemo(() => {
+    const map = {};
+    attendanceData.forEach(item => {
+      const dateKey = format(new Date(item.check_in_time), 'yyyy-MM-dd');
+      map[`${item.employee_id}-${dateKey}`] = item.status;
+    });
+    return map;
+  }, [attendanceData]);
 
-    const sameMonth =
-        recordDate.getMonth() === currentMonth.getMonth() &&
-        recordDate.getFullYear() === currentMonth.getFullYear()
+  const getStatusSymbol = (status) => {
+    const map = {
+      Present: 'P',
+      'On Leave': 'OL',
+      Absent: 'X',
+      Delay: 'D',
+      Halfday: 'U',
+      'No Trip': 'NT',
+      'Rest Day': 'RD',
+    };
+    return map[status] || '';
+  };
 
-    const matchesRole = filter === 'All' || item.type === filter
+  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
+  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
 
-    let matchesQuincena = true
-    const day = recordDate.getDate()
+  useEffect(() => {
+    if (!alert) return;
 
-    if (quincena === 'first') {
-        matchesQuincena = day >= 1 && day <= 15
-    } else if (quincena === 'second') {
-        matchesQuincena = day >= 16
-    }
+    const timer = setTimeout(() => {
+      setAlert(null);
+    }, 3000);
 
-    return sameMonth && matchesRole && matchesQuincena
-    })
+    return () => clearTimeout(timer);
+  }, [alert]);
 
-    // const employees = Array.from(new Set(filteredAttendance.map(emp => emp.name)))
-    const employees = employeesFromAPI.map(emp => ({
-      id: emp.id,
-      name: `${emp.first_name} ${emp.last_name}`,
-      role: emp.position
-    }));
-
-  const getStatus = (employee, date) => {
-    const record = attendanceData.find(
-      item => item.name === employee && item.date === format(date, 'yyyy-MM-dd')
-    )
-    if (!record) return ''
-    if (record.status === 'Present') return '✅'
-    if (record.status === 'On Leave') return '🟡'
-    if (record.status === 'Absent') return '❌'
-    return record.status
-  }
+  /* ======================= UI ======================= */
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar active="Attendance" />
+    <>
+      <h1 className="text-2xl font-bold mb-6">Attendance</h1>
 
-      <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Attendance</h1>
-
-        {/* Filter & Month Navigation */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 space-y-2 md:space-y-0">
-          <div>
-            <label className="mr-2 font-medium">Filter by Role:</label>
-            <select
-              className="border border-gray-300 rounded px-3 py-2"
-              value={filter}
-              onChange={e => setFilter(e.target.value)}
-            >
-              <option value="All">All</option>
-              <option value="ADMIN">ADMIN</option>
-              <option value="YARD">YARD</option>
-              <option value="MOTORPOL">MOTORPOL</option>
-              <option value="DUMPTRACK">DUMPTRACK</option>
-              <option value="LABOR">LABOR</option>
-              <option value="CDC DRIVER">CDC DRIVER</option>
-              <option value="CDC HELPER">CDC HELPER</option>
-              <option value="CPDC DRIVER">CPDC DRIVER</option>
-              <option value="CPDC HELPER">CPDC HELPER</option>
-            </select>
-          </div>
-          <div>
-            <label className="mr-2 font-medium">Filter by Quincena:</label>
-            <select
-            value={quincena}
-            onChange={(e) => setQuincena(e.target.value)}
-            className="border px-3 py-2 rounded-md"
-            >
-                <option value="all">All Dates</option>
-                <option value="first">First Quincena (1–15)</option>
-                <option value="second">Second Quincena (16–end)</option>
-            </select>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              className="px-3 md:px-4 py-1 md:py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm md:text-base"
-              onClick={handlePrevMonth}
-            >
-              Prev
-            </button>
-            <span className="font-semibold text-sm md:text-base">{format(currentMonth, 'MMMM yyyy')}</span>
-            <button
-              className="px-3 md:px-4 py-1 md:py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm md:text-base"
-              onClick={handleNextMonth}
-            >
-              Next
-            </button>
-          </div>
+      {/* Alert */}
+      {alert && (
+        <div className="mb-4">
+          <Alert
+            type={alert.type}
+            message={alert.message}
+            onClose={() => setAlert(null)}
+          />
         </div>
+      )}
 
-        {/* Attendance Grid */}
-        <div className="bg-white h-[70vh] p-2 md:p-4 rounded-xl shadow-md border border-gray-300 overflow-x-auto">
-          <table className="min-w-[700px] md:min-w-full border border-gray-300 border-collapse">
-            <thead>
-              <tr className="border-b border-gray-300">
-                <th className="py-2 px-2 md:px-4 sticky left-0 bg-white z-10 border-r border-gray-300 w-32 md:w-40">
-                  Employee
-                </th>
-                {daysInMonth.map(day => (
+      {/* FILTERS */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        <Button onClick={() => setShowModal(true)}>Check Attendance</Button>
+
+        <select
+          className="border rounded px-3 h-10"
+          value={filter}
+          onChange={e => handleFilterChange(e.target.value)}
+        >
+          {Object.values(employeeRoles).map(role => (
+            <option key={role} value={role}>{role}</option>
+          ))}
+        </select>
+
+        <select
+          value={quincena}
+          onChange={e => setQuincena(e.target.value)}
+          className="border rounded px-3 h-10"
+        >
+          <option value="all">All Dates</option>
+          <option value="first">First Quincena</option>
+          <option value="second">Second Quincena</option>
+        </select>
+
+        <Button size="sm" onClick={handlePrevMonth}>Prev</Button>
+        <span className="font-semibold">{format(currentMonth, 'MMMM yyyy')}</span>
+        <Button size="sm" onClick={handleNextMonth}>Next</Button>
+      </div>
+
+      {/* TABLE */}
+      <div className="overflow-x-auto border rounded shadow">
+        <table className="min-w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="sticky left-0 bg-white border px-4 py-2">
+                Employee
+              </th>
+
+              {daysInMonth.map(day => {
+                const dateKey = format(day, 'yyyy-MM-dd');
+                return (
                   <th
-                    key={day}
-                    className={`py-1 md:py-2 px-1 md:px-2 text-center border-r border-gray-300 w-8 md:w-12 ${
-                      getDay(day) === 0 ? 'bg-yellow-200' : ''
+                    key={dateKey}
+                    className={`border px-2 py-1 text-center ${
+                      dateKey === today
+                        ? 'bg-blue-300'
+                        : getDay(day) === 0
+                        ? 'bg-yellow-200'
+                        : 'bg-white'
                     }`}
                   >
                     {format(day, 'dd')}
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map(emp => (
-                <tr key={emp.id} className="border-b border-gray-300">
-                  <td className="py-1 md:py-2 px-2 md:px-4 font-medium sticky left-0 bg-white z-10 border-r border-gray-300 w-32 md:w-40">
-                    {emp.name}
-                  </td>
-                  {daysInMonth.map(day => (
-                    <td
-                      key={day}
-                      className={`py-1 md:py-2 px-1 md:px-2 text-center border-r border-gray-300 w-8 md:w-12 ${
-                        getDay(day) === 0 ? 'bg-yellow-100' : ''
-                      }`}
-                    >
-                      {getStatus(emp, day)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {employees.length === 0 && (
-                <tr>
-                  <td colSpan={daysInMonth.length + 1} className="py-4 text-center text-gray-500">
-                    No records found.
-                  </td>
-                </tr>
-              )}
-              {/* {employees.map(emp => (
-                <tr key={emp} className="border-b border-gray-300">
-                  <td className="py-1 md:py-2 px-2 md:px-4 font-medium sticky left-0 bg-white z-10 border-r border-gray-300 w-32 md:w-40">
-                    {emp}
-                  </td>
-                  {daysInMonth.map(day => (
-                    <td
-                      key={day}
-                      className={`py-1 md:py-2 px-1 md:px-2 text-center border-r border-gray-300 w-8 md:w-12 ${
-                        getDay(day) === 0 ? 'bg-yellow-100' : ''
-                      }`}
-                    >
-                      {getStatus(emp, day)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              {employees.length === 0 && (
-                <tr>
-                  <td colSpan={daysInMonth.length + 1} className="py-4 text-center text-gray-500">
-                    No records found.
-                  </td>
-                </tr>
-              )} */}
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
-  )
-}
+                );
+              })}
+            </tr>
+          </thead>
 
-export default AttendanceList
+          <tbody>
+            {currentEmployees.map(emp => (
+              <tr key={emp.id}>
+                <td
+                  className={`sticky left-0 border px-4 py-2 font-medium ${
+                    departmentColors[emp.role] || 'bg-white'
+                  }`}
+                >
+                  {emp.name}
+                </td>
+
+                {daysInMonth.map(day => {
+                  const dateKey = format(day, 'yyyy-MM-dd');
+                  const status = attendanceMap[`${emp.id}-${dateKey}`];
+                  const isToday = dateKey === today;
+
+                  const bg =
+                    statusColors[status] ||
+                    (getDay(day) === 0 ? 'bg-yellow-100' : 'bg-white');
+
+                  return (
+                    <td
+                      key={dateKey}
+                      className={`border text-center font-bold ${bg} ${
+                        isToday ? 'cursor-pointer hover:brightness-95' : ''
+                      }`}
+                      onClick={() => {
+                        if (!isToday) return;
+
+                        setEditModal({
+                          employeeId: emp.id,
+                          employeeName: emp.name,
+                          date: dateKey,
+                          status: status || 'Present'
+                        });
+                      }}
+                    >
+                      {status ? getStatusSymbol(status) : ''}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* PAGINATION */}
+      {employees.length > 0 && (
+        <div className="flex justify-center items-center gap-4 mt-6">
+          <Button
+            size="sm"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(prev => prev - 1)}
+          >
+            Prev
+          </Button>
+
+          <span className="text-sm font-semibold">
+            Page {currentPage} of {totalPages}
+          </span>
+
+          <Button
+            size="sm"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(prev => prev + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      )}
+
+      {/* ================= BULK MODAL ================= */}
+      {showModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="relative bg-[#023047] rounded-2xl p-6 w-11/12 md:w-2/3 max-h-[85vh] overflow-y-auto border-2 border-[#fba919] shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 text-white text-xl font-bold hover:text-[#fba919]"
+            >
+              ✕
+            </button>
+
+            <h2 className="text-xl font-bold mb-6 text-[#fba919]">
+              Bulk Check Attendance
+            </h2>
+
+            <div className="mb-4">
+              <label className="mr-2 font-medium text-white">
+                Filter by Role:
+              </label>
+              <select
+                value={modalRoleFilter}
+                onChange={(e) => setModalRoleFilter(e.target.value)}
+                className="border border-gray-400 rounded h-9 px-3 bg-[#023047] text-white"
+              >
+                {Object.values(employeeRoles).map(role => (
+                  <option key={role} value={role} className="text-black bg-[#fba919]">
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <table className="w-full border border-gray-400 text-sm">
+              <thead>
+                <tr className="bg-[#0b3d5c] text-white">
+                  <th className="border p-2 w-1/3">Employee</th>
+                  <th className="border p-2">Department</th>
+                  <th className="border p-2">Check</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {employeesFromAPI
+                  .map(emp => ({
+                    id: emp.id,
+                    name: `${emp.first_name} ${emp.last_name}`,
+                    role: emp.department
+                  }))
+                  .filter(emp =>
+                    modalRoleFilter === 'All' || emp.role === modalRoleFilter
+                  )
+                  .map(emp => {
+                    const existingRecord =
+                      attendanceMap[`${emp.id}-${today}`];
+
+                    const isDisabled = !!existingRecord;
+
+                    return (
+                      <tr key={emp.id} className="text-white">
+                        <td className="border p-2 text-center">{emp.name}</td>
+                        <td className="border p-2 text-center">{emp.role}</td>
+                        <td className="border p-2 text-center">
+                          <select
+                            className={`border rounded h-8 px-2 w-full ${
+                              isDisabled
+                                ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                                : 'bg-[#0b3d5c] text-white border-gray-400'
+                            }`}
+                            value={
+                              isDisabled
+                                ? existingRecord
+                                : modalSelections[emp.id] || 'Present'
+                            }
+                            onChange={(e) =>
+                              setModalSelections(prev => ({
+                                ...prev,
+                                [emp.id]: e.target.value
+                              }))
+                            }
+                            disabled={isDisabled}
+                          >
+                            {Object.values(attendanceStatus).map(status => (
+                              <option
+                                key={status}
+                                value={status}
+                                className="text-black bg-[#fba919]"
+                              >
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+
+            <div className="mt-6 flex justify-end gap-3 text-white">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>
+                Cancel
+              </Button>
+
+              <Button
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: "Confirm Bulk Save",
+                    message: "Are you sure you want to save attendance for selected employees?",
+                    loading: false,
+                    onConfirm: async () => {
+                      try {
+                        setConfirmModal(prev => ({ ...prev, loading: true }));
+
+                        const recordSave = {
+                          attendances: employeesFromAPI
+                            .filter(emp =>
+                              modalRoleFilter === 'All' ||
+                              emp.department === modalRoleFilter
+                            )
+                            .map(emp => ({
+                              employee_id: emp.id,
+                              check_in_time: new Date().toISOString(),
+                              status: modalSelections[emp.id] || 'Present'
+                            }))
+                        };
+
+                        await bulkAttendanceCheck(recordSave);
+
+                        const refreshed = await attendanceRecord();
+                        setAttendanceData(refreshed);
+
+                        setAlert({
+                          type: "success",
+                          message: "Bulk attendance saved successfully!"
+                        });
+
+                        setModalSelections({});
+                        setShowModal(false);
+
+                        setConfirmModal(prev => ({
+                          ...prev,
+                          isOpen: false,
+                          loading: false
+                        }));
+
+                      } catch {
+                        setAlert({
+                          type: "error",
+                          message: "Failed to save attendance."
+                        });
+
+                        setConfirmModal(prev => ({
+                          ...prev,
+                          loading: false
+                        }));
+                      }
+                    }
+                  });
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= EDIT MODAL ================= */}
+      {editModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center bg-black/40 z-50"
+          onClick={() => setEditModal(null)}
+        >
+          <div
+            className="bg-[#0b3d5c] rounded-xl p-6 w-80 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold mb-3 text-white">
+              Edit Attendance
+            </h3>
+
+            <p className="text-sm mb-2 text-white">
+              <strong>Employee:</strong> {editModal.employeeName}
+            </p>
+
+            <p className="text-sm mb-4 text-white">
+              <strong>Date:</strong> {editModal.date}
+            </p>
+
+            <select
+              value={editModal.status}
+              onChange={(e) =>
+                setEditModal(prev => ({
+                  ...prev,
+                  status: e.target.value
+                }))
+              }
+              className="w-full border rounded h-10 px-3 mb-4 text-white"
+            >
+              {Object.values(attendanceStatus).map(status => (
+                <option
+                  key={status}
+                  value={status}
+                  className="bg-[#fba919] text-black"
+                >
+                  {status}
+                </option>
+              ))}
+            </select>
+
+            <div className="flex justify-end gap-3 text-white">
+              <Button variant="secondary" onClick={() => setEditModal(null)}>
+                Cancel
+              </Button>
+
+              <Button
+                onClick={() => {
+                  setConfirmModal({
+                    isOpen: true,
+                    title: "Confirm Update",
+                    message: "Are you sure you want to update this attendance?",
+                    loading: false,
+                    onConfirm: async () => {
+                      try {
+                        setConfirmModal(prev => ({ ...prev, loading: true }));
+
+                        await updateAttendance({
+                          employee_id: editModal.employeeId,
+                          date: editModal.date,
+                          status: editModal.status
+                        });
+
+                        const refreshed = await attendanceRecord();
+                        setAttendanceData(refreshed);
+
+                        setAlert({
+                          type: "success",
+                          message: "Attendance updated successfully!"
+                        });
+
+                        setEditModal(null);
+
+                        setConfirmModal(prev => ({
+                          ...prev,
+                          isOpen: false,
+                          loading: false
+                        }));
+
+                      } catch {
+                        setAlert({
+                          type: "error",
+                          message: "Failed to update attendance."
+                        });
+
+                        setConfirmModal(prev => ({
+                          ...prev,
+                          loading: false
+                        }));
+                      }
+                    }
+                  });
+                }}
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        loading={confirmModal.loading}
+        onCancel={() =>
+          setConfirmModal(prev => ({ ...prev, isOpen: false }))
+        }
+        onConfirm={confirmModal.onConfirm}
+      />
+    </>
+  );
+};
+
+export default AttendanceList;

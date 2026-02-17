@@ -1,32 +1,35 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
-
-// Import pages
 import DashboardHome from "./DashboardHome";
 import AttendanceList from "../Attendance/AttendanceList";
 
 const Dashboard = () => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="bg-gray-50 min-h-screen">
       <Sidebar
-        items={[
-          { label: "Dashboard", path: "/dashboard" },
-          { label: "Attendance", path: "/dashboard/attendance" },
-          { label: "Employees", path: "/dashboard/employees" },
-          { label: "Settings", path: "/dashboard/settings" },
-        ]}
+        isCollapsed={isCollapsed}
+        setIsCollapsed={setIsCollapsed}
       />
 
-      <main className="flex-1 transition-all duration-300">
+      {/* Content */}
+      <div
+        className={`
+          transition-all duration-300
+          ${isCollapsed ? "md:ml-20" : "md:ml-64"}
+          pt-20 md:pt-6
+          p-6
+        `}
+      >
         <Routes>
-          <Route path="/" element={<DashboardHome />} />
-          <Route path="/dashboard/attendance" element={<AttendanceList />} />
-          {/* <Route path="employees" element={<Employees />} />
-          <Route path="settings" element={<Settings />} /> */}
-          <Route path="*" element={<Navigate to="" />} />
+          <Route index element={<DashboardHome />} />
+          <Route path="attendance" element={<AttendanceList />} />
+          <Route path="employees" element={<div>Employees</div>} />
+          <Route path="settings" element={<div>Settings</div>} />
         </Routes>
-      </main>
+      </div>
     </div>
   );
 };
