@@ -1,49 +1,32 @@
-import axios from "axios";
-import { API_URL, getAuthHeader } from "../config";
+import api from "../../api/services/api";
+import { getAuthHeader } from "../config";
 
-//get attendance records for an employee
+// Get attendance records
 export const attendanceRecord = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/attendance/list`, {
-      headers: getAuthHeader(),
-    });
-    console.log("Attendance data fetched:", res.data);
-    return res.data;
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    return [];
-  }
+  const res = await api.get("/attendance/list", {
+    headers: getAuthHeader(),
+  });
+
+  console.log("Attendance data fetched:", res.data);
+  return res.data;
 };
 
-//attendance bulk checking api
+// Bulk attendance check
 export const bulkAttendanceCheck = async (records) => {
-  try {
-    const res = await axios.post(`${API_URL}/attendance/bulk-mixed/`, records, {
-      headers: {
-        ...getAuthHeader(),
-      },
-    });
-    console.log("Bulk attendance check successful:", res.data);
-    return res.data;
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    return null;
-  }
+  const res = await api.post("/attendance/bulk-mixed/", records, {
+    headers: getAuthHeader(),
+  });
+
+  console.log("Bulk attendance check successful:", res.data);
+  return res.data;
 };
 
-// update single attendance (PATCH)
+// Update single attendance
 export const updateAttendance = async (payload) => {
-  try {
-    const res = await axios.patch(`${API_URL}/attendance/update`, payload, {
-      headers: {
-        ...getAuthHeader(),
-      },
-    });
+  const res = await api.patch("/attendance/update", payload, {
+    headers: getAuthHeader(),
+  });
 
-    console.log("Attendance updated:", res.data);
-    return res.data;
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    return null;
-  }
+  console.log("Attendance updated:", res.data);
+  return res.data;
 };

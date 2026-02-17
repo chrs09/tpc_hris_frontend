@@ -1,41 +1,29 @@
-import axios from "axios";
-import { API_URL, getAuthHeader } from "../config";
-//get employee list
+import api from "../services/api";
+import { getAuthHeader } from "../config";
+
+// Get employee list
 export const getEmployeeList = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/employees/`, {
-      headers: {
-        ...getAuthHeader(),
-      },
-    });
-    return res.data;
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    return [];
-  }
+  const res = await api.get("/employees/", {
+    headers: getAuthHeader(),
+  });
+
+  return res.data;
 };
 
-//get employee details
+// Get employee details
 export const getEmployeeDetails = async (employeeId) => {
-  try {
-    const res = await axios.get(`${API_URL}/employees/${employeeId}/`);
-    return res.data;
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    return null;
-  }
+  const res = await api.get(`/employees/${employeeId}/`, {
+    headers: getAuthHeader(),
+  });
+
+  return res.data;
 };
 
-//update employee details
+// Update employee details
 export const updateEmployeeDetails = async (employeeId, updatedData) => {
-  try {
-    const res = await axios.put(
-      `${API_URL}/employees/${employeeId}/`,
-      updatedData,
-    );
-    return res.data;
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    return null;
-  }
+  const res = await api.put(`/employees/${employeeId}/`, updatedData, {
+    headers: getAuthHeader(),
+  });
+
+  return res.data;
 };

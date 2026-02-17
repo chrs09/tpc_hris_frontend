@@ -23,21 +23,17 @@ export default function Login({ setIsAuthenticated }) {
     try {
       const result = await userLogin(username, password);
 
-      if (result?.access_token) {
-        // Store token
-        localStorage.setItem("access_token", result.access_token);
-        localStorage.setItem("token_type", result.token_type);
+      localStorage.setItem("access_token", result.access_token);
+      localStorage.setItem("token_type", result.token_type);
 
-        // Update global auth state
-        setIsAuthenticated(true);
-
-        // Redirect properly
-        navigate("/dashboard", { replace: true });
-      } else {
+      setIsAuthenticated(true);
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      if (error.response?.status === 401) {
         setErrorMessage("Invalid username or password");
+      } else {
+        setErrorMessage("Server error. Please try again.");
       }
-    } catch {
-      setErrorMessage("Invalid username or password");
     } finally {
       setLoading(false);
     }
