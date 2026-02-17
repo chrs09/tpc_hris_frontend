@@ -1,4 +1,4 @@
-import React from 'react'
+import React from "react";
 
 const DashboardHome = () => {
   return (
@@ -36,15 +36,13 @@ const DashboardHome = () => {
             <tr className="border-b border-gray-100">
               <td className="py-2">Fluffy</td>
               <td className="py-2">2026-02-11</td>
-              <td className="py-2 text-green-600 font-semibold">
-                First Load
-              </td>
+              <td className="py-2 text-green-600 font-semibold">First Load</td>
             </tr>
           </tbody>
         </table>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default DashboardHome
+export default DashboardHome;

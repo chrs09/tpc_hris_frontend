@@ -9,10 +9,7 @@ const Dashboard = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <Sidebar
-        isCollapsed={isCollapsed}
-        setIsCollapsed={setIsCollapsed}
-      />
+      <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
       {/* Content */}
       <div

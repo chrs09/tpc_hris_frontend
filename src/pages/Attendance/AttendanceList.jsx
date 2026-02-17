@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from "react";
 import {
   addMonths,
   subMonths,
@@ -6,39 +6,38 @@ import {
   eachDayOfInterval,
   startOfMonth,
   endOfMonth,
-  getDay
-} from 'date-fns';
+  getDay,
+} from "date-fns";
 
-import { getEmployeeList } from './../../api/employee';
+import { getEmployeeList } from "./../../api/employee";
 import {
   attendanceRecord,
   bulkAttendanceCheck,
-  updateAttendance
-} from './../../api/attendance';
+  updateAttendance,
+} from "./../../api/attendance";
 
-import { employeeRoles } from '../../constants/employeeRole';
-import { attendanceStatus } from '../../constants/attendanceStatus';
-import { statusColors } from '../../constants/statusColors';
-import { departmentColors } from '../../constants/departmentColors';
-import { Button } from '../../components/ui/button/Button';
-import Alert from '../../components/ui/modals/Alert';
-import ConfirmModal from '../../components/ui/modals/ConfirmModal';
+import { employeeRoles } from "../../constants/employeeRole";
+import { attendanceStatus } from "../../constants/attendanceStatus";
+import { statusColors } from "../../constants/statusColors";
+import { departmentColors } from "../../constants/departmentColors";
+import { Button } from "../../components/ui/button/Button";
+import Alert from "../../components/ui/modals/Alert";
+import ConfirmModal from "../../components/ui/modals/ConfirmModal";
 
 const AttendanceList = () => {
-
   const getCurrentQuincena = () => {
     const today = new Date();
-    return today.getDate() <= 15 ? 'first' : 'second';
+    return today.getDate() <= 15 ? "first" : "second";
   };
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = format(new Date(), "yyyy-MM-dd");
   /* ------------------- STATE ------------------- */
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [quincena, setQuincena] = useState(getCurrentQuincena());
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState("All");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
-  const [modalRoleFilter, setModalRoleFilter] = useState('All');
+  const [modalRoleFilter, setModalRoleFilter] = useState("All");
   const [modalSelections, setModalSelections] = useState({});
   const [editModal, setEditModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,15 +48,17 @@ const AttendanceList = () => {
     title: "",
     message: "",
     onConfirm: null,
-    loading: false
+    loading: false,
   });
 
   /* ------------------- EFFECTS ------------------- */
 
   // Lock scroll when ANY modal is open
   useEffect(() => {
-    document.body.style.overflow = (showModal || editModal) ? 'hidden' : 'auto';
-    return () => { document.body.style.overflow = 'auto'; };
+    document.body.style.overflow = showModal || editModal ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = "auto";
+    };
   }, [showModal, editModal]);
 
   useEffect(() => {
@@ -71,44 +72,44 @@ const AttendanceList = () => {
   }, []);
 
   const handleFilterChange = (newFilter) => {
-  setFilter(newFilter);
-  setCurrentPage(1);
-};
+    setFilter(newFilter);
+    setCurrentPage(1);
+  };
   /* ------------------- COMPUTED ------------------- */
 
   const employees = useMemo(() => {
     return employeesFromAPI
-      .map(emp => ({
+      .map((emp) => ({
         id: emp.id,
         name: `${emp.first_name} ${emp.last_name}`,
-        role: emp.department
+        role: emp.department,
       }))
-      .filter(emp => filter === 'All' || emp.role === filter);
+      .filter((emp) => filter === "All" || emp.role === filter);
   }, [employeesFromAPI, filter]);
 
   const totalPages = Math.ceil(employees.length / employeesPerPage);
   const currentEmployees = employees.slice(
     (currentPage - 1) * employeesPerPage,
-    currentPage * employeesPerPage
+    currentPage * employeesPerPage,
   );
 
   const daysInMonth = useMemo(() => {
     const allDays = eachDayOfInterval({
       start: startOfMonth(currentMonth),
-      end: endOfMonth(currentMonth)
+      end: endOfMonth(currentMonth),
     });
 
-    return allDays.filter(day => {
-      if (quincena === 'first') return day.getDate() <= 15;
-      if (quincena === 'second') return day.getDate() >= 16;
+    return allDays.filter((day) => {
+      if (quincena === "first") return day.getDate() <= 15;
+      if (quincena === "second") return day.getDate() >= 16;
       return true;
     });
   }, [currentMonth, quincena]);
 
   const attendanceMap = useMemo(() => {
     const map = {};
-    attendanceData.forEach(item => {
-      const dateKey = format(new Date(item.check_in_time), 'yyyy-MM-dd');
+    attendanceData.forEach((item) => {
+      const dateKey = format(new Date(item.check_in_time), "yyyy-MM-dd");
       map[`${item.employee_id}-${dateKey}`] = item.status;
     });
     return map;
@@ -116,15 +117,15 @@ const AttendanceList = () => {
 
   const getStatusSymbol = (status) => {
     const map = {
-      Present: 'P',
-      'On Leave': 'OL',
-      Absent: 'X',
-      Delay: 'D',
-      Halfday: 'U',
-      'No Trip': 'NT',
-      'Rest Day': 'RD',
+      Present: "P",
+      "On Leave": "OL",
+      Absent: "X",
+      Delay: "D",
+      Halfday: "U",
+      "No Trip": "NT",
+      "Rest Day": "RD",
     };
-    return map[status] || '';
+    return map[status] || "";
   };
 
   const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
@@ -164,16 +165,18 @@ const AttendanceList = () => {
         <select
           className="border rounded px-3 h-10"
           value={filter}
-          onChange={e => handleFilterChange(e.target.value)}
+          onChange={(e) => handleFilterChange(e.target.value)}
         >
-          {Object.values(employeeRoles).map(role => (
-            <option key={role} value={role}>{role}</option>
+          {Object.values(employeeRoles).map((role) => (
+            <option key={role} value={role}>
+              {role}
+            </option>
           ))}
         </select>
 
         <select
           value={quincena}
-          onChange={e => setQuincena(e.target.value)}
+          onChange={(e) => setQuincena(e.target.value)}
           className="border rounded px-3 h-10"
         >
           <option value="all">All Dates</option>
@@ -181,9 +184,15 @@ const AttendanceList = () => {
           <option value="second">Second Quincena</option>
         </select>
 
-        <Button size="sm" onClick={handlePrevMonth}>Prev</Button>
-        <span className="font-semibold">{format(currentMonth, 'MMMM yyyy')}</span>
-        <Button size="sm" onClick={handleNextMonth}>Next</Button>
+        <Button size="sm" onClick={handlePrevMonth}>
+          Prev
+        </Button>
+        <span className="font-semibold">
+          {format(currentMonth, "MMMM yyyy")}
+        </span>
+        <Button size="sm" onClick={handleNextMonth}>
+          Next
+        </Button>
       </div>
 
       {/* TABLE */}
@@ -195,20 +204,20 @@ const AttendanceList = () => {
                 Employee
               </th>
 
-              {daysInMonth.map(day => {
-                const dateKey = format(day, 'yyyy-MM-dd');
+              {daysInMonth.map((day) => {
+                const dateKey = format(day, "yyyy-MM-dd");
                 return (
                   <th
                     key={dateKey}
                     className={`border px-2 py-1 text-center ${
                       dateKey === today
-                        ? 'bg-blue-300'
+                        ? "bg-blue-300"
                         : getDay(day) === 0
-                        ? 'bg-yellow-200'
-                        : 'bg-white'
+                          ? "bg-yellow-200"
+                          : "bg-white"
                     }`}
                   >
-                    {format(day, 'dd')}
+                    {format(day, "dd")}
                   </th>
                 );
               })}
@@ -216,30 +225,30 @@ const AttendanceList = () => {
           </thead>
 
           <tbody>
-            {currentEmployees.map(emp => (
+            {currentEmployees.map((emp) => (
               <tr key={emp.id}>
                 <td
                   className={`sticky left-0 border px-4 py-2 font-medium ${
-                    departmentColors[emp.role] || 'bg-white'
+                    departmentColors[emp.role] || "bg-white"
                   }`}
                 >
                   {emp.name}
                 </td>
 
-                {daysInMonth.map(day => {
-                  const dateKey = format(day, 'yyyy-MM-dd');
+                {daysInMonth.map((day) => {
+                  const dateKey = format(day, "yyyy-MM-dd");
                   const status = attendanceMap[`${emp.id}-${dateKey}`];
                   const isToday = dateKey === today;
 
                   const bg =
                     statusColors[status] ||
-                    (getDay(day) === 0 ? 'bg-yellow-100' : 'bg-white');
+                    (getDay(day) === 0 ? "bg-yellow-100" : "bg-white");
 
                   return (
                     <td
                       key={dateKey}
                       className={`border text-center font-bold ${bg} ${
-                        isToday ? 'cursor-pointer hover:brightness-95' : ''
+                        isToday ? "cursor-pointer hover:brightness-95" : ""
                       }`}
                       onClick={() => {
                         if (!isToday) return;
@@ -248,11 +257,11 @@ const AttendanceList = () => {
                           employeeId: emp.id,
                           employeeName: emp.name,
                           date: dateKey,
-                          status: status || 'Present'
+                          status: status || "Present",
                         });
                       }}
                     >
-                      {status ? getStatusSymbol(status) : ''}
+                      {status ? getStatusSymbol(status) : ""}
                     </td>
                   );
                 })}
@@ -268,7 +277,7 @@ const AttendanceList = () => {
           <Button
             size="sm"
             disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => prev - 1)}
+            onClick={() => setCurrentPage((prev) => prev - 1)}
           >
             Prev
           </Button>
@@ -280,7 +289,7 @@ const AttendanceList = () => {
           <Button
             size="sm"
             disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => prev + 1)}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
           >
             Next
           </Button>
@@ -317,8 +326,12 @@ const AttendanceList = () => {
                 onChange={(e) => setModalRoleFilter(e.target.value)}
                 className="border border-gray-400 rounded h-9 px-3 bg-[#023047] text-white"
               >
-                {Object.values(employeeRoles).map(role => (
-                  <option key={role} value={role} className="text-black bg-[#fba919]">
+                {Object.values(employeeRoles).map((role) => (
+                  <option
+                    key={role}
+                    value={role}
+                    className="text-black bg-[#fba919]"
+                  >
                     {role}
                   </option>
                 ))}
@@ -336,17 +349,17 @@ const AttendanceList = () => {
 
               <tbody>
                 {employeesFromAPI
-                  .map(emp => ({
+                  .map((emp) => ({
                     id: emp.id,
                     name: `${emp.first_name} ${emp.last_name}`,
-                    role: emp.department
+                    role: emp.department,
                   }))
-                  .filter(emp =>
-                    modalRoleFilter === 'All' || emp.role === modalRoleFilter
+                  .filter(
+                    (emp) =>
+                      modalRoleFilter === "All" || emp.role === modalRoleFilter,
                   )
-                  .map(emp => {
-                    const existingRecord =
-                      attendanceMap[`${emp.id}-${today}`];
+                  .map((emp) => {
+                    const existingRecord = attendanceMap[`${emp.id}-${today}`];
 
                     const isDisabled = !!existingRecord;
 
@@ -358,23 +371,23 @@ const AttendanceList = () => {
                           <select
                             className={`border rounded h-8 px-2 w-full ${
                               isDisabled
-                                ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                                : 'bg-[#0b3d5c] text-white border-gray-400'
+                                ? "bg-gray-600 text-gray-300 cursor-not-allowed"
+                                : "bg-[#0b3d5c] text-white border-gray-400"
                             }`}
                             value={
                               isDisabled
                                 ? existingRecord
-                                : modalSelections[emp.id] || 'Present'
+                                : modalSelections[emp.id] || "Present"
                             }
                             onChange={(e) =>
-                              setModalSelections(prev => ({
+                              setModalSelections((prev) => ({
                                 ...prev,
-                                [emp.id]: e.target.value
+                                [emp.id]: e.target.value,
                               }))
                             }
                             disabled={isDisabled}
                           >
-                            {Object.values(attendanceStatus).map(status => (
+                            {Object.values(attendanceStatus).map((status) => (
                               <option
                                 key={status}
                                 value={status}
@@ -401,23 +414,25 @@ const AttendanceList = () => {
                   setConfirmModal({
                     isOpen: true,
                     title: "Confirm Bulk Save",
-                    message: "Are you sure you want to save attendance for selected employees?",
+                    message:
+                      "Are you sure you want to save attendance for selected employees?",
                     loading: false,
                     onConfirm: async () => {
                       try {
-                        setConfirmModal(prev => ({ ...prev, loading: true }));
+                        setConfirmModal((prev) => ({ ...prev, loading: true }));
 
                         const recordSave = {
                           attendances: employeesFromAPI
-                            .filter(emp =>
-                              modalRoleFilter === 'All' ||
-                              emp.department === modalRoleFilter
+                            .filter(
+                              (emp) =>
+                                modalRoleFilter === "All" ||
+                                emp.department === modalRoleFilter,
                             )
-                            .map(emp => ({
+                            .map((emp) => ({
                               employee_id: emp.id,
                               check_in_time: new Date().toISOString(),
-                              status: modalSelections[emp.id] || 'Present'
-                            }))
+                              status: modalSelections[emp.id] || "Present",
+                            })),
                         };
 
                         await bulkAttendanceCheck(recordSave);
@@ -427,30 +442,29 @@ const AttendanceList = () => {
 
                         setAlert({
                           type: "success",
-                          message: "Bulk attendance saved successfully!"
+                          message: "Bulk attendance saved successfully!",
                         });
 
                         setModalSelections({});
                         setShowModal(false);
 
-                        setConfirmModal(prev => ({
+                        setConfirmModal((prev) => ({
                           ...prev,
                           isOpen: false,
-                          loading: false
+                          loading: false,
                         }));
-
                       } catch {
                         setAlert({
                           type: "error",
-                          message: "Failed to save attendance."
+                          message: "Failed to save attendance.",
                         });
 
-                        setConfirmModal(prev => ({
+                        setConfirmModal((prev) => ({
                           ...prev,
-                          loading: false
+                          loading: false,
                         }));
                       }
-                    }
+                    },
                   });
                 }}
               >
@@ -486,14 +500,14 @@ const AttendanceList = () => {
             <select
               value={editModal.status}
               onChange={(e) =>
-                setEditModal(prev => ({
+                setEditModal((prev) => ({
                   ...prev,
-                  status: e.target.value
+                  status: e.target.value,
                 }))
               }
               className="w-full border rounded h-10 px-3 mb-4 text-white"
             >
-              {Object.values(attendanceStatus).map(status => (
+              {Object.values(attendanceStatus).map((status) => (
                 <option
                   key={status}
                   value={status}
@@ -518,12 +532,12 @@ const AttendanceList = () => {
                     loading: false,
                     onConfirm: async () => {
                       try {
-                        setConfirmModal(prev => ({ ...prev, loading: true }));
+                        setConfirmModal((prev) => ({ ...prev, loading: true }));
 
                         await updateAttendance({
                           employee_id: editModal.employeeId,
                           date: editModal.date,
-                          status: editModal.status
+                          status: editModal.status,
                         });
 
                         const refreshed = await attendanceRecord();
@@ -531,29 +545,28 @@ const AttendanceList = () => {
 
                         setAlert({
                           type: "success",
-                          message: "Attendance updated successfully!"
+                          message: "Attendance updated successfully!",
                         });
 
                         setEditModal(null);
 
-                        setConfirmModal(prev => ({
+                        setConfirmModal((prev) => ({
                           ...prev,
                           isOpen: false,
-                          loading: false
+                          loading: false,
                         }));
-
                       } catch {
                         setAlert({
                           type: "error",
-                          message: "Failed to update attendance."
+                          message: "Failed to update attendance.",
                         });
 
-                        setConfirmModal(prev => ({
+                        setConfirmModal((prev) => ({
                           ...prev,
-                          loading: false
+                          loading: false,
                         }));
                       }
-                    }
+                    },
                   });
                 }}
               >
@@ -568,9 +581,7 @@ const AttendanceList = () => {
         title={confirmModal.title}
         message={confirmModal.message}
         loading={confirmModal.loading}
-        onCancel={() =>
-          setConfirmModal(prev => ({ ...prev, isOpen: false }))
-        }
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
         onConfirm={confirmModal.onConfirm}
       />
     </>

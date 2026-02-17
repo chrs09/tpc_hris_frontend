@@ -6,7 +6,7 @@ export const tokenType = () => localStorage.getItem("tokenType");
 
 //helper to get full authorization header
 export const getAuthHeader = () => {
-    const token = localStorage.getItem("access_token");
-    const type = localStorage.getItem("token_type");
-    return token && type ? { Authorization: `${type} ${token}` } : {};
+  const token = localStorage.getItem("access_token");
+  const type = localStorage.getItem("token_type");
+  return token && type ? { Authorization: `${type} ${token}` } : {};
 };

@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, Menu, X } from "lucide-react";
+import {
+  ArrowBigLeft,
+  ArrowBigLeftDash,
+  ArrowBigRight,
+  Menu,
+  X,
+} from "lucide-react";
 import { logout } from "../utils/auth";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
@@ -55,9 +61,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
         {/* Title */}
         {!isCollapsed && (
-          <div className="text-xl font-extrabold mb-8">
-            Tytan HRIS
-          </div>
+          <div className="text-xl font-extrabold mb-8">Tytan HRIS</div>
         )}
 
         {/* Navigation */}
@@ -76,9 +80,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 }
               `}
             >
-              {isCollapsed
-                ? item.label.charAt(0)
-                : item.label}
+              {isCollapsed ? item.label.charAt(0) : item.label}
             </Link>
           ))}
         </nav>

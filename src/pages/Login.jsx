@@ -112,9 +112,7 @@ export default function Login({ setIsAuthenticated }) {
 
             {/* Error message OUTSIDE button */}
             {errorMessage && (
-              <p className="text-sm text-red-500 text-center">
-                {errorMessage}
-              </p>
+              <p className="text-sm text-red-500 text-center">{errorMessage}</p>
             )}
           </form>
 

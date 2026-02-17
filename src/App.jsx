@@ -9,9 +9,6 @@ const App = () => {
     return !!token;
   });
 
-
-
-
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
@@ -30,11 +27,7 @@ const App = () => {
       <Route
         path="/dashboard/*"
         element={
-          isAuthenticated ? (
-            <Dashboard />
-          ) : (
-            <Navigate to="/login" replace />
-          )
+          isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
         }
       />
 

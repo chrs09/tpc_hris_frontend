@@ -5,31 +5,29 @@ import { API_URL } from "./config";
 
 // user login
 export const userLogin = async (username, password) => {
-    try {
-        const res = await axios.post(`${API_URL}/auth/login`, {
-            username: username,
-            password: password
-        });
-        return res.data;
-    }
-    catch (err) {
-        console.eror(err.response?.data || err.message);
-        return null;
-    }
-}
+  try {
+    const res = await axios.post(`${API_URL}/auth/login`, {
+      username: username,
+      password: password,
+    });
+    return res.data;
+  } catch (err) {
+    console.eror(err.response?.data || err.message);
+    return null;
+  }
+};
 
 //user registration
 export const userRegister = async (uername, email, password) => {
-    try {
-        const res = await axios.post(`${API_URL}/register`, {
-            username: uername,
-            email: email,
-            password: password
-        });
-        return res.data;
-    }
-    catch (err) {
-        console.error(err);
-        return null;
-    }
-}
+  try {
+    const res = await axios.post(`${API_URL}/register`, {
+      username: uername,
+      email: email,
+      password: password,
+    });
+    return res.data;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+};
