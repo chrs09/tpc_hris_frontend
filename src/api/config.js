@@ -1,8 +1,10 @@
-// export const API_URL = "http://127.0.0.1:8000/api";
-export const API_URL = "http://192.168.1.6:8000/api";
+// [ LOCAL ]
+// export const API_URL = "http://192.168.1.6:8000/api";
+// [ PRODUCTION ]
+export const API_URL = `${import.meta.env.VITE_API_URL}/api`;
 
 //storing of access key token in local storage
-export const getAccessToken = () => localStorage.getItem("accessToken");
+export const getAccessToken = () => localStorage.getItem("access_token");
 export const tokenType = () => localStorage.getItem("tokenType");
 
 //helper to get full authorization header
