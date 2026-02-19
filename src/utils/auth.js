@@ -5,5 +5,4 @@ export const logout = () => {
   localStorage.removeItem("token_type"); // if you're storing expiry separately
 
   window.location.href = "/login"; // force redirect
-  console.log("User logged out, tokens cleared.");
 };
