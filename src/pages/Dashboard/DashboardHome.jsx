@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { getDashboardSummary } from "../../api/dashboard";
 
+const username = localStorage.getItem("username");
+
 const StatCard = ({ title, value, color }) => {
   return (
     <div className="bg-[#023047] rounded-2xl p-6 shadow-md border border-white/10 hover:shadow-lg transition hover:border-amber-500 hover:border-2">
@@ -48,8 +50,8 @@ const DashboardHome = () => {
   // Greeting logic
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
+    if (hour < 12) return `Good Morning ${username}`;
+    if (hour < 18) return `Good Afternoon ${username}`;
     return "Good Evening";
   };
 
@@ -129,18 +131,18 @@ const DashboardHome = () => {
       <div className="rounded-3xl p-8 mb-10 text-white bg-[#023047] shadow-lg border border-white/10">
         <div className="flex justify-between flex-wrap gap-6">
           <div className="max-w-2xl">
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-3xl font-bold mb-2 capitalize">
               {getGreeting()} 👋
             </h1>
 
             <p className="text-blue-100">{today}</p>
-
+k
             <p className="mt-3 text-blue-100 text-sm">
               Monitor workforce activity and attendance in real-time.
             </p>
 
             {/* Divider */}
-            <div className="w-16 h-[2px] bg-white/30 my-6"></div>
+            <div className="w-16 h-0.5 bg-white/30 my-6"></div>
 
             {/* Bible Verse */}
             <div>

@@ -6,61 +6,58 @@ import {
   eachDayOfInterval,
   startOfMonth,
   endOfMonth,
-  getDay,
 } from "date-fns";
 
-import { getEmployeeList } from "./../../api/employee";
+import { getEmployeeList } from "../../api/employee";
 import {
   attendanceRecord,
-  bulkAttendanceCheck,
   updateAttendance,
-} from "./../../api/attendance";
+  bulkAttendanceCheck,
+  markAttendance,
+} from "../../api/attendance";
 
 import { employeeRoles } from "../../constants/employeeRole";
-import { attendanceStatus } from "../../constants/attendanceStatus";
-import { statusColors } from "../../constants/statusColors";
 import { departmentColors } from "../../constants/departmentColors";
-import { Button } from "../../components/ui/button/Button";
+import { statusColors } from "../../constants/statusColors";
+
+import AttendanceTable from "../../components/attendance/AttendanceTable";
+import EditAttendanceModal from "../../components/attendance/EditAttendanceModal";
+import BulkAttendanceModal from "../../components/attendance/BulkAttendanceModal";
 import Alert from "../../components/ui/modals/Alert";
-import ConfirmModal from "../../components/ui/modals/ConfirmModal";
+import { useAttendanceWeek } from "../../hooks/useAttendanceWeek";
+import { Button } from "../../components/ui/button/Button";
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers";
+import dayjs from "dayjs";
 
 const AttendanceList = () => {
-  const getCurrentQuincena = () => {
-    const today = new Date();
-    return today.getDate() <= 15 ? "first" : "second";
-  };
+  const { isEditableDate, formattedRange } = useAttendanceWeek();
+
   const today = format(new Date(), "yyyy-MM-dd");
-  /* ------------------- STATE ------------------- */
+  const role = localStorage.getItem("role");
+  const isSuperAdmin = role === "superadmin";
+
+  /* ---------------- STATE ---------------- */
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
-  const [quincena, setQuincena] = useState(getCurrentQuincena());
   const [filter, setFilter] = useState("All");
+  // const [quincena, setQuincena] = useState("second");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [showModal, setShowModal] = useState(false);
-  const [modalRoleFilter, setModalRoleFilter] = useState("All");
-  const [modalSelections, setModalSelections] = useState({});
   const [editModal, setEditModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showBulkModal, setShowBulkModal] = useState(false);
   const [alert, setAlert] = useState(null);
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [dateRange, setDateRange] = useState([null, null]);
+  const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
+  const toDate = dateRange[1] ? dateRange[1].toDate() : null;
+
   const employeesPerPage = 10;
-  const [confirmModal, setConfirmModal] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    onConfirm: null,
-    loading: false,
-  });
 
-  /* ------------------- EFFECTS ------------------- */
-
-  // Lock scroll when ANY modal is open
-  useEffect(() => {
-    document.body.style.overflow = showModal || editModal ? "hidden" : "auto";
-    return () => {
-      document.body.style.overflow = "auto";
-    };
-  }, [showModal, editModal]);
-
+  /* ---------------- FETCH ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       const empData = await getEmployeeList();
@@ -71,12 +68,17 @@ const AttendanceList = () => {
     fetchData();
   }, []);
 
-  const handleFilterChange = (newFilter) => {
-    setFilter(newFilter);
-    setCurrentPage(1);
-  };
-  /* ------------------- COMPUTED ------------------- */
+  useEffect(() => {
+    if (!alert) return;
 
+    const timer = setTimeout(() => {
+      setAlert(null);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [alert]);
+
+  /* ---------------- FILTERED EMPLOYEES ---------------- */
   const employees = useMemo(() => {
     return employeesFromAPI
       .map((emp) => ({
@@ -87,33 +89,39 @@ const AttendanceList = () => {
       .filter((emp) => filter === "All" || emp.role === filter);
   }, [employeesFromAPI, filter]);
 
+  /* ---------------- PAGINATION ---------------- */
   const totalPages = Math.ceil(employees.length / employeesPerPage);
+
   const currentEmployees = employees.slice(
     (currentPage - 1) * employeesPerPage,
-    currentPage * employeesPerPage,
+    currentPage * employeesPerPage
   );
 
+  /* ---------------- DAYS IN MONTH ---------------- */
   const daysInMonth = useMemo(() => {
     const allDays = eachDayOfInterval({
       start: startOfMonth(currentMonth),
       end: endOfMonth(currentMonth),
     });
 
-    return allDays.filter((day) => {
-      if (quincena === "first") return day.getDate() <= 15;
-      if (quincena === "second") return day.getDate() >= 16;
-      return true;
-    });
-  }, [currentMonth, quincena]);
+    if (!fromDate || !toDate) return allDays;
 
+    return allDays.filter(
+      (day) => day >= fromDate && day <= toDate
+    );
+  }, [currentMonth, fromDate, toDate]);
+
+  /* ---------------- ATTENDANCE MAP ---------------- */
   const attendanceMap = useMemo(() => {
     const map = {};
     attendanceData.forEach((item) => {
-      const dateKey = format(new Date(item.check_in_time), "yyyy-MM-dd");
+      const dateKey = item.attendance_date; 
       map[`${item.employee_id}-${dateKey}`] = item.status;
     });
+    
     return map;
   }, [attendanceData]);
+
 
   const getStatusSymbol = (status) => {
     const map = {
@@ -128,26 +136,87 @@ const AttendanceList = () => {
     return map[status] || "";
   };
 
-  const handlePrevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-  const handleNextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+  /* ---------------- MONTH NAVIGATION ---------------- */
+  const handlePrevMonth = () =>
+    setCurrentMonth((prev) => subMonths(prev, 1));
 
-  useEffect(() => {
-    if (!alert) return;
+  const handleNextMonth = () =>
+    setCurrentMonth((prev) => addMonths(prev, 1));
 
-    const timer = setTimeout(() => {
-      setAlert(null);
-    }, 3000);
+  /* ---------------- SAVE LOGIC ---------------- */
+  const handleSave = async () => {
+    const existing =
+      attendanceMap[
+        `${editModal.employeeId}-${editModal.date}`
+      ];
 
-    return () => clearTimeout(timer);
-  }, [alert]);
+    try {
+      if (existing) {
+        await updateAttendance({
+          employee_id: editModal.employeeId,
+          attendance_date: editModal.date,
+          status: editModal.status,
+        });
 
-  /* ======================= UI ======================= */
+        setAlert({
+          type: "success",
+          message: "Attendance updated successfully!",
+        });
 
+      } else {
+        await markAttendance({
+          employee_id: editModal.employeeId,
+          attendance_date: editModal.date,
+          status: editModal.status,
+        });
+
+        setAlert({
+          type: "success",
+          message: "Attendance created successfully!",
+        });
+      }
+
+      const refreshed = await attendanceRecord();
+      setAttendanceData(refreshed);
+      setEditModal(null);
+
+    } catch (err) {
+      setAlert({
+        type: "error",
+        message:
+          err.response?.data?.detail ||
+          "Operation failed.",
+      });
+    }
+  };
+
+  const handleBulkSave = async (records) => {
+    try {
+      await bulkAttendanceCheck({ attendances: records });
+
+      const refreshed = await attendanceRecord();
+      setAttendanceData(refreshed);
+
+      setAlert({
+        type: "success",
+        message: "Bulk attendance saved successfully!",
+      });
+
+    } catch (err) {
+      setAlert({
+        type: "error",
+        message:
+          err.response?.data?.detail ||
+          "Failed to save attendance.",
+      });
+    }
+  };
+  /* ================= Cutoff Filter Function ================= */
+    
+  /* ================= UI ================= */
   return (
     <>
-      <h1 className="text-2xl font-bold mb-6">Attendance</h1>
-
-      {/* Alert */}
+      <h1 className="text-2xl font-bold mb-4">Attendance</h1>
       {alert && (
         <div className="mb-4">
           <Alert
@@ -157,15 +226,21 @@ const AttendanceList = () => {
           />
         </div>
       )}
+      {/* Editable Week Indicator */}
+      <div className="mb-4 text-sm font-semibold text-green-600">
+        Editable Week: {formattedRange} (Mon–Sat)
+      </div>
 
-      {/* FILTERS */}
+      {/* CONTROLS */}
       <div className="flex flex-wrap gap-4 mb-6 items-center">
-        <Button onClick={() => setShowModal(true)}>Check Attendance</Button>
+        <Button onClick={() => setShowBulkModal(true)}>
+          Check Attendance
+        </Button>
 
         <select
           className="border rounded px-3 h-10"
           value={filter}
-          onChange={(e) => handleFilterChange(e.target.value)}
+          onChange={(e) => setFilter(e.target.value)}
         >
           {Object.values(employeeRoles).map((role) => (
             <option key={role} value={role}>
@@ -174,416 +249,126 @@ const AttendanceList = () => {
           ))}
         </select>
 
-        <select
-          value={quincena}
-          onChange={(e) => setQuincena(e.target.value)}
-          className="border rounded px-3 h-10"
+        <Button
+          className="h-10"
+          onClick={() => setShowDateModal(true)}
         >
-          <option value="all">All Dates</option>
-          <option value="first">First Quincena</option>
-          <option value="second">Second Quincena</option>
-        </select>
+          {dateFrom && dateTo
+            ? `${dateFrom} → ${dateTo}`
+            : "Pick Date"}
+        </Button>
 
         <Button size="sm" onClick={handlePrevMonth}>
           Prev
         </Button>
+
         <span className="font-semibold">
           {format(currentMonth, "MMMM yyyy")}
         </span>
+
         <Button size="sm" onClick={handleNextMonth}>
           Next
         </Button>
       </div>
 
-      {/* TABLE */}
-      <div className="overflow-x-auto border rounded shadow">
-        <table className="min-w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="sticky left-0 bg-white border px-4 py-2">
-                Employee
-              </th>
-
-              {daysInMonth.map((day) => {
-                const dateKey = format(day, "yyyy-MM-dd");
-                return (
-                  <th
-                    key={dateKey}
-                    className={`border px-2 py-1 text-center ${
-                      dateKey === today
-                        ? "bg-blue-300"
-                        : getDay(day) === 0
-                          ? "bg-yellow-200"
-                          : "bg-white"
-                    }`}
-                  >
-                    {format(day, "dd")}
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-
-          <tbody>
-            {currentEmployees.map((emp) => (
-              <tr key={emp.id}>
-                <td
-                  className={`sticky left-0 border px-4 py-2 font-medium ${
-                    departmentColors[emp.role] || "bg-white"
-                  }`}
-                >
-                  {emp.name}
-                </td>
-
-                {daysInMonth.map((day) => {
-                  const dateKey = format(day, "yyyy-MM-dd");
-                  const status = attendanceMap[`${emp.id}-${dateKey}`];
-                  const isToday = dateKey === today;
-
-                  const bg =
-                    statusColors[status] ||
-                    (getDay(day) === 0 ? "bg-yellow-100" : "bg-white");
-
-                  return (
-                    <td
-                      key={dateKey}
-                      className={`border text-center font-bold ${bg} ${
-                        isToday ? "cursor-pointer hover:brightness-95" : ""
-                      }`}
-                      onClick={() => {
-                        if (!isToday) return;
-
-                        setEditModal({
-                          employeeId: emp.id,
-                          employeeName: emp.name,
-                          date: dateKey,
-                          status: status || "Present",
-                        });
-                      }}
-                    >
-                      {status ? getStatusSymbol(status) : ""}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AttendanceTable
+        employees={currentEmployees}
+        daysInMonth={daysInMonth}
+        attendanceMap={attendanceMap}
+        departmentColors={departmentColors}
+        statusColors={statusColors}
+        getStatusSymbol={getStatusSymbol}
+        isEditableDate={isEditableDate}
+        isSuperAdmin={isSuperAdmin}   // ✅ ADD THIS
+        today={today}
+        onCellClick={(emp, date, status) =>
+          setEditModal({
+            employeeId: emp.id,
+            employeeName: emp.name,
+            date,
+            status,
+          })
+        }
+      />
 
       {/* PAGINATION */}
-      {employees.length > 0 && (
-        <div className="flex justify-center items-center gap-4 mt-6">
-          <Button
-            size="sm"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((prev) => prev - 1)}
-          >
-            Prev
-          </Button>
-
-          <span className="text-sm font-semibold">
-            Page {currentPage} of {totalPages}
-          </span>
-
-          <Button
-            size="sm"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((prev) => prev + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      )}
-
-      {/* ================= BULK MODAL ================= */}
-      {showModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/50 z-50"
-          onClick={() => setShowModal(false)}
+      <div className="flex justify-center items-center gap-4 mt-6">
+        <Button
+          size="sm"
+          disabled={currentPage === 1}
+          onClick={() => setCurrentPage((prev) => prev - 1)}
         >
-          <div
-            className="relative bg-[#023047] rounded-2xl p-6 w-11/12 md:w-2/3 max-h-[85vh] overflow-y-auto border-2 border-[#fba919] shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-white text-xl font-bold hover:text-[#fba919]"
-            >
-              ✕
-            </button>
+          Prev
+        </Button>
 
-            <h2 className="text-xl font-bold mb-6 text-[#fba919]">
-              Bulk Check Attendance
+        <span>
+          Page {currentPage} of {totalPages}
+        </span>
+
+        <Button
+          size="sm"
+          disabled={currentPage === totalPages}
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+        >
+          Next
+        </Button>
+      </div>
+      <BulkAttendanceModal
+        isOpen={showBulkModal}
+        onClose={() => setShowBulkModal(false)}
+        employees={employees}
+        attendanceMap={attendanceMap}
+        today={today}
+        onSave={handleBulkSave}
+      />
+      <EditAttendanceModal
+        editModal={editModal}
+        setEditModal={setEditModal}
+        onSave={handleSave}
+        attendanceMap={attendanceMap}
+      />
+      {showDateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-[350px]">
+            <h2 className="text-lg font-semibold mb-4">
+              Select Date Range
             </h2>
 
-            <div className="mb-4">
-              <label className="mr-2 font-medium text-white">
-                Filter by Role:
-              </label>
-              <select
-                value={modalRoleFilter}
-                onChange={(e) => setModalRoleFilter(e.target.value)}
-                className="border border-gray-400 rounded h-9 px-3 bg-[#023047] text-white"
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <div className="flex flex-col gap-3">
+                <DatePicker
+                  label="From"
+                  value={dateRange[0]}
+                  onChange={(newValue) =>
+                    setDateRange([newValue, dateRange[1]])
+                  }
+                />
+
+                <DatePicker
+                  label="To"
+                  value={dateRange[1]}
+                  onChange={(newValue) =>
+                    setDateRange([dateRange[0], newValue])
+                  }
+                />
+              </div>
+            </LocalizationProvider>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <Button
+                variant="secondary"
+                onClick={() => setShowDateModal(false)}
               >
-                {Object.values(employeeRoles).map((role) => (
-                  <option
-                    key={role}
-                    value={role}
-                    className="text-black bg-[#fba919]"
-                  >
-                    {role}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <table className="w-full border border-gray-400 text-sm">
-              <thead>
-                <tr className="bg-[#0b3d5c] text-white">
-                  <th className="border p-2 w-1/3">Employee</th>
-                  <th className="border p-2">Department</th>
-                  <th className="border p-2">Check</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {employeesFromAPI
-                  .map((emp) => ({
-                    id: emp.id,
-                    name: `${emp.first_name} ${emp.last_name}`,
-                    role: emp.department,
-                  }))
-                  .filter(
-                    (emp) =>
-                      modalRoleFilter === "All" || emp.role === modalRoleFilter,
-                  )
-                  .map((emp) => {
-                    const existingRecord = attendanceMap[`${emp.id}-${today}`];
-
-                    const isDisabled = !!existingRecord;
-
-                    return (
-                      <tr key={emp.id} className="text-white">
-                        <td className="border p-2 text-center">{emp.name}</td>
-                        <td className="border p-2 text-center">{emp.role}</td>
-                        <td className="border p-2 text-center">
-                          <select
-                            className={`border rounded h-8 px-2 w-full ${
-                              isDisabled
-                                ? "bg-gray-600 text-gray-300 cursor-not-allowed"
-                                : "bg-[#0b3d5c] text-white border-gray-400"
-                            }`}
-                            value={
-                              isDisabled
-                                ? existingRecord
-                                : modalSelections[emp.id] || "Present"
-                            }
-                            onChange={(e) =>
-                              setModalSelections((prev) => ({
-                                ...prev,
-                                [emp.id]: e.target.value,
-                              }))
-                            }
-                            disabled={isDisabled}
-                          >
-                            {Object.values(attendanceStatus).map((status) => (
-                              <option
-                                key={status}
-                                value={status}
-                                className="text-black bg-[#fba919]"
-                              >
-                                {status}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </tbody>
-            </table>
-
-            <div className="mt-6 flex justify-end gap-3 text-white">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>
                 Cancel
               </Button>
 
-              <Button
-                onClick={() => {
-                  setConfirmModal({
-                    isOpen: true,
-                    title: "Confirm Bulk Save",
-                    message:
-                      "Are you sure you want to save attendance for selected employees?",
-                    loading: false,
-                    onConfirm: async () => {
-                      try {
-                        setConfirmModal((prev) => ({ ...prev, loading: true }));
-
-                        const recordSave = {
-                          attendances: employeesFromAPI
-                            .filter(
-                              (emp) =>
-                                modalRoleFilter === "All" ||
-                                emp.department === modalRoleFilter,
-                            )
-                            .map((emp) => ({
-                              employee_id: emp.id,
-                              check_in_time: new Date().toISOString(),
-                              status: modalSelections[emp.id] || "Present",
-                            })),
-                        };
-
-                        await bulkAttendanceCheck(recordSave);
-
-                        const refreshed = await attendanceRecord();
-                        setAttendanceData(refreshed);
-
-                        setAlert({
-                          type: "success",
-                          message: "Bulk attendance saved successfully!",
-                        });
-
-                        setModalSelections({});
-                        setShowModal(false);
-
-                        setConfirmModal((prev) => ({
-                          ...prev,
-                          isOpen: false,
-                          loading: false,
-                        }));
-                      } catch {
-                        setAlert({
-                          type: "error",
-                          message: "Failed to save attendance.",
-                        });
-
-                        setConfirmModal((prev) => ({
-                          ...prev,
-                          loading: false,
-                        }));
-                      }
-                    },
-                  });
-                }}
-              >
-                Save
+              <Button onClick={() => setShowDateModal(false)}>
+                Apply
               </Button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ================= EDIT MODAL ================= */}
-      {editModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black/40 z-50"
-          onClick={() => setEditModal(null)}
-        >
-          <div
-            className="bg-[#0b3d5c] rounded-xl p-6 w-80 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold mb-3 text-white">
-              Edit Attendance
-            </h3>
-
-            <p className="text-sm mb-2 text-white">
-              <strong>Employee:</strong> {editModal.employeeName}
-            </p>
-
-            <p className="text-sm mb-4 text-white">
-              <strong>Date:</strong> {editModal.date}
-            </p>
-
-            <select
-              value={editModal.status}
-              onChange={(e) =>
-                setEditModal((prev) => ({
-                  ...prev,
-                  status: e.target.value,
-                }))
-              }
-              className="w-full border rounded h-10 px-3 mb-4 text-white"
-            >
-              {Object.values(attendanceStatus).map((status) => (
-                <option
-                  key={status}
-                  value={status}
-                  className="bg-[#fba919] text-black"
-                >
-                  {status}
-                </option>
-              ))}
-            </select>
-
-            <div className="flex justify-end gap-3 text-white">
-              <Button variant="secondary" onClick={() => setEditModal(null)}>
-                Cancel
-              </Button>
-
-              <Button
-                onClick={() => {
-                  setConfirmModal({
-                    isOpen: true,
-                    title: "Confirm Update",
-                    message: "Are you sure you want to update this attendance?",
-                    loading: false,
-                    onConfirm: async () => {
-                      try {
-                        setConfirmModal((prev) => ({ ...prev, loading: true }));
-
-                        await updateAttendance({
-                          employee_id: editModal.employeeId,
-                          date: editModal.date,
-                          status: editModal.status,
-                        });
-
-                        const refreshed = await attendanceRecord();
-                        setAttendanceData(refreshed);
-
-                        setAlert({
-                          type: "success",
-                          message: "Attendance updated successfully!",
-                        });
-
-                        setEditModal(null);
-
-                        setConfirmModal((prev) => ({
-                          ...prev,
-                          isOpen: false,
-                          loading: false,
-                        }));
-                      } catch {
-                        setAlert({
-                          type: "error",
-                          message: "Failed to update attendance.",
-                        });
-
-                        setConfirmModal((prev) => ({
-                          ...prev,
-                          loading: false,
-                        }));
-                      }
-                    },
-                  });
-                }}
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-      <ConfirmModal
-        isOpen={confirmModal.isOpen}
-        title={confirmModal.title}
-        message={confirmModal.message}
-        loading={confirmModal.loading}
-        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmModal.onConfirm}
-      />
     </>
   );
 };

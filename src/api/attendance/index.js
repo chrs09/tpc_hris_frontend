@@ -1,26 +1,25 @@
 import api from "../../api/services/api";
-import { getAuthHeader } from "../config";
+
+// single create attendance
+export const markAttendance = async (payload) => {
+  const res = await api.post("/attendance/", payload);
+  return res.data;
+};
 
 // Get attendance records
 export const attendanceRecord = async () => {
-  const res = await api.get("/attendance/list", {
-    headers: getAuthHeader(),
-  });
+  const res = await api.get("/attendance/list");
   return res.data;
 };
 
 // Bulk attendance check
 export const bulkAttendanceCheck = async (records) => {
-  const res = await api.post("/attendance/bulk-mixed/", records, {
-    headers: getAuthHeader(),
-  });
+  const res = await api.post("/attendance/bulk-mixed/", records);
   return res.data;
 };
 
 // Update single attendance
 export const updateAttendance = async (payload) => {
-  const res = await api.patch("/attendance/update", payload, {
-    headers: getAuthHeader(),
-  });
+  const res = await api.patch("/attendance/update", payload);
   return res.data;
 };
