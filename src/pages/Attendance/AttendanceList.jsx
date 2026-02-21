@@ -29,7 +29,7 @@ import { Button } from "../../components/ui/button/Button";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers";
-import dayjs from "dayjs";
+// import dayjs from "dayjs";
 
 const AttendanceList = () => {
   const { isEditableDate, formattedRange } = useAttendanceWeek();
@@ -49,8 +49,6 @@ const AttendanceList = () => {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [alert, setAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
   const [dateRange, setDateRange] = useState([null, null]);
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
@@ -253,8 +251,8 @@ const AttendanceList = () => {
           className="h-10"
           onClick={() => setShowDateModal(true)}
         >
-          {dateFrom && dateTo
-            ? `${dateFrom} → ${dateTo}`
+          {dateRange[0] && dateRange[1]
+            ? `${dateRange[0].format("YYYY-MM-DD")} → ${dateRange[1].format("YYYY-MM-DD")}`
             : "Pick Date"}
         </Button>
 
