@@ -1,28 +1,77 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import {
-  ArrowBigLeft,
-  ArrowBigLeftDash,
-  ArrowBigRight,
-  Menu,
-  X,
-} from "lucide-react";
+import { ArrowBigLeftDash, Menu } from "lucide-react";
 import { logout } from "../utils/auth";
-import { getReminders, createReminder, resolveReminder } from "../api/reminder/index";
-
-
-const username = localStorage.getItem("username");
+import {
+  getReminders,
+  createReminder,
+  resolveReminder,
+} from "../api/reminder/index";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
   const role = localStorage.getItem("role");
+  const username = localStorage.getItem("username");
   const isSuperAdmin = role === "superadmin";
 
   const [reminders, setReminders] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
+  // ----------------------------
+  // Load reminders
+  // ----------------------------
+  const loadReminders = async () => {
+    try {
+      const data = await getReminders();
+      setReminders(data);
+    } catch (error) {
+      console.error("Failed to load reminders:", error);
+    }
+  };
+
+  // ----------------------------
+  // Fetch on mount (superadmin only)
+  // ----------------------------
+  useEffect(() => {
+    if (isSuperAdmin) {
+      loadReminders();
+    }
+  }, [isSuperAdmin]);
+
+  // ----------------------------
+  // Create Reminder
+  // ----------------------------
+  const handleCreateReminder = async () => {
+    if (!newMessage.trim()) return;
+
+    try {
+      setLoading(true);
+      await createReminder(newMessage);
+      setNewMessage("");
+      setShowModal(false);
+      await loadReminders();
+    } catch (error) {
+      console.error("Failed to create reminder:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ----------------------------
+  // Resolve Reminder
+  // ----------------------------
+  const handleResolve = async (id) => {
+    try {
+      await resolveReminder(id);
+      await loadReminders();
+    } catch (error) {
+      console.error("Failed to resolve reminder:", error);
+    }
+  };
 
   const navItems = [
     { label: "Dashboard", path: "/dashboard" },
@@ -30,25 +79,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     { label: "Employees", path: "/dashboard/employees" },
     { label: "Settings", path: "/dashboard/settings" },
   ];
-
-  const handleCreateReminder = async () => {
-    if (!newMessage.trim()) return;
-
-    await createReminder(newMessage);
-    setNewMessage("");
-    setShowModal(false);
-
-    const updated = await getReminders();
-    setReminders(updated);
-  };
-
-  const handleResolve = async (id) => {
-    await resolveReminder(id);
-    const updated = await getReminders();
-    setReminders(updated);
-  };
-
-
 
   return (
     <>
@@ -72,14 +102,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       <aside
         className={`
           fixed top-0 left-0 h-screen bg-[#023047] text-white
-          flex flex-col p-6 shadow-lg
-          transition-all duration-300 transform z-50
+          flex flex-col p-6 shadow-lg transition-all duration-300
           ${isCollapsed ? "w-20" : "w-64"}
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0
+          md:translate-x-0 z-50
         `}
       >
-        {/* Desktop Collapse Button */}
+        {/* Collapse Button */}
         <div className="hidden md:flex justify-end mb-4">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
@@ -89,11 +118,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           </button>
         </div>
 
-        {/* Title */}
+        {/* Greeting */}
         {!isCollapsed && (
-          // <div className="text-xl font-extrabold mb-8">Tytan HRIS</div>
           <div className="text-xl font-extrabold mb-8 capitalize">
-            Hello!   {username}
+            Hello! {username}
           </div>
         )}
 
@@ -117,6 +145,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             </Link>
           ))}
         </nav>
+
+        {/* Reminders Section */}
         {isSuperAdmin && !isCollapsed && (
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -150,44 +180,44 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           </div>
         )}
 
+        {/* Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-[#023047] rounded-xl p-6 w-80 shadow-lg">
+              <h2 className="text-lg font-semibold mb-4">Create Reminder</h2>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-[#023047] rounded-xl p-6 w-80 shadow-lg">
-            <h2 className="text-lg font-semibold mb-4">
-              Create Reminder
-            </h2>
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                className="w-full border rounded p-2 text-sm mb-4 text-white"
+                rows="3"
+                placeholder="Enter reminder..."
+              />
 
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="w-full border rounded p-2 text-sm mb-4"
-              rows="3"
-              placeholder="Enter reminder..."
-            />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-3 py-1 rounded"
+                >
+                  Cancel
+                </button>
 
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-3 py-1  rounded"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleCreateReminder}
-                className="px-3 py-1 bg-[#ffa903] text-white rounded"
-              >
-                Save
-              </button>
+                <button
+                  onClick={handleCreateReminder}
+                  disabled={loading}
+                  className="px-3 py-1 bg-[#ffa903] text-white rounded"
+                >
+                  {loading ? "Saving..." : "Save"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
         {/* Logout */}
         <button
           onClick={logout}
-          className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition place-content-center"
+          className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 transition mt-auto"
         >
           {isCollapsed ? "⎋" : "Logout"}
         </button>

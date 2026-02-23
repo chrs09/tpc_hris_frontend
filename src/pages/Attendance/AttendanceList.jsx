@@ -32,11 +32,13 @@ import { DatePicker } from "@mui/x-date-pickers";
 // import dayjs from "dayjs";
 
 const AttendanceList = () => {
-  const { isEditableDate, formattedRange } = useAttendanceWeek();
+
 
   const today = format(new Date(), "yyyy-MM-dd");
   const role = localStorage.getItem("role");
   const isSuperAdmin = role === "superadmin";
+
+  const { isEditableDate, formattedRange } = useAttendanceWeek(isSuperAdmin);
 
   /* ---------------- STATE ---------------- */
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
@@ -142,7 +144,16 @@ const AttendanceList = () => {
     setCurrentMonth((prev) => addMonths(prev, 1));
 
   /* ---------------- SAVE LOGIC ---------------- */
-  const handleSave = async () => {
+ const handleSave = async () => {
+    // 🚫 Prevent future save (extra safety)
+    if (new Date(editModal.date) > new Date()) {
+      setAlert({
+        type: "error",
+        message: "Cannot save attendance for future dates.",
+      });
+      return;
+    }
+
     const existing =
       attendanceMap[
         `${editModal.employeeId}-${editModal.date}`
@@ -160,7 +171,6 @@ const AttendanceList = () => {
           type: "success",
           message: "Attendance updated successfully!",
         });
-
       } else {
         await markAttendance({
           employee_id: editModal.employeeId,
@@ -327,7 +337,7 @@ const AttendanceList = () => {
       />
       {showDateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-[350px]">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-87.5">
             <h2 className="text-lg font-semibold mb-4">
               Select Date Range
             </h2>
