@@ -18,9 +18,7 @@ const DashboardHome = () => {
       {(role === "admin" || role === "superadmin") && <AdminDashboard />}
 
       {!role && (
-        <div className="p-8 text-red-500 font-semibold">
-          Unauthorized role.
-        </div>
+        <div className="p-8 text-red-500 font-semibold">Unauthorized role.</div>
       )}
     </div>
   );
