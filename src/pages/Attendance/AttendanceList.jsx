@@ -32,8 +32,6 @@ import { DatePicker } from "@mui/x-date-pickers";
 // import dayjs from "dayjs";
 
 const AttendanceList = () => {
-
-
   const today = format(new Date(), "yyyy-MM-dd");
   const role = localStorage.getItem("role");
   const isSuperAdmin = role === "superadmin";
@@ -94,7 +92,7 @@ const AttendanceList = () => {
 
   const currentEmployees = employees.slice(
     (currentPage - 1) * employeesPerPage,
-    currentPage * employeesPerPage
+    currentPage * employeesPerPage,
   );
 
   /* ---------------- DAYS IN MONTH ---------------- */
@@ -106,22 +104,19 @@ const AttendanceList = () => {
 
     if (!fromDate || !toDate) return allDays;
 
-    return allDays.filter(
-      (day) => day >= fromDate && day <= toDate
-    );
+    return allDays.filter((day) => day >= fromDate && day <= toDate);
   }, [currentMonth, fromDate, toDate]);
 
   /* ---------------- ATTENDANCE MAP ---------------- */
   const attendanceMap = useMemo(() => {
     const map = {};
     attendanceData.forEach((item) => {
-      const dateKey = item.attendance_date; 
+      const dateKey = item.attendance_date;
       map[`${item.employee_id}-${dateKey}`] = item.status;
     });
-    
+
     return map;
   }, [attendanceData]);
-
 
   const getStatusSymbol = (status) => {
     const map = {
@@ -137,14 +132,12 @@ const AttendanceList = () => {
   };
 
   /* ---------------- MONTH NAVIGATION ---------------- */
-  const handlePrevMonth = () =>
-    setCurrentMonth((prev) => subMonths(prev, 1));
+  const handlePrevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
 
-  const handleNextMonth = () =>
-    setCurrentMonth((prev) => addMonths(prev, 1));
+  const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
 
   /* ---------------- SAVE LOGIC ---------------- */
- const handleSave = async () => {
+  const handleSave = async () => {
     // 🚫 Prevent future save (extra safety)
     if (new Date(editModal.date) > new Date()) {
       setAlert({
@@ -154,10 +147,7 @@ const AttendanceList = () => {
       return;
     }
 
-    const existing =
-      attendanceMap[
-        `${editModal.employeeId}-${editModal.date}`
-      ];
+    const existing = attendanceMap[`${editModal.employeeId}-${editModal.date}`];
 
     try {
       if (existing) {
@@ -187,13 +177,10 @@ const AttendanceList = () => {
       const refreshed = await attendanceRecord();
       setAttendanceData(refreshed);
       setEditModal(null);
-
     } catch (err) {
       setAlert({
         type: "error",
-        message:
-          err.response?.data?.detail ||
-          "Operation failed.",
+        message: err.response?.data?.detail || "Operation failed.",
       });
     }
   };
@@ -209,18 +196,15 @@ const AttendanceList = () => {
         type: "success",
         message: "Bulk attendance saved successfully!",
       });
-
     } catch (err) {
       setAlert({
         type: "error",
-        message:
-          err.response?.data?.detail ||
-          "Failed to save attendance.",
+        message: err.response?.data?.detail || "Failed to save attendance.",
       });
     }
   };
   /* ================= Cutoff Filter Function ================= */
-    
+
   /* ================= UI ================= */
   return (
     <>
@@ -241,9 +225,7 @@ const AttendanceList = () => {
 
       {/* CONTROLS */}
       <div className="flex flex-wrap gap-4 mb-6 items-center">
-        <Button onClick={() => setShowBulkModal(true)}>
-          Check Attendance
-        </Button>
+        <Button onClick={() => setShowBulkModal(true)}>Check Attendance</Button>
 
         <select
           className="border rounded px-3 h-10"
@@ -257,10 +239,7 @@ const AttendanceList = () => {
           ))}
         </select>
 
-        <Button
-          className="h-10"
-          onClick={() => setShowDateModal(true)}
-        >
+        <Button className="h-10" onClick={() => setShowDateModal(true)}>
           {dateRange[0] && dateRange[1]
             ? `${dateRange[0].format("YYYY-MM-DD")} → ${dateRange[1].format("YYYY-MM-DD")}`
             : "Pick Date"}
@@ -287,7 +266,7 @@ const AttendanceList = () => {
         statusColors={statusColors}
         getStatusSymbol={getStatusSymbol}
         isEditableDate={isEditableDate}
-        isSuperAdmin={isSuperAdmin}   // ✅ ADD THIS
+        isSuperAdmin={isSuperAdmin} // ✅ ADD THIS
         today={today}
         onCellClick={(emp, date, status) =>
           setEditModal({
@@ -338,9 +317,7 @@ const AttendanceList = () => {
       {showDateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl w-87.5">
-            <h2 className="text-lg font-semibold mb-4">
-              Select Date Range
-            </h2>
+            <h2 className="text-lg font-semibold mb-4">Select Date Range</h2>
 
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <div className="flex flex-col gap-3">
@@ -370,9 +347,7 @@ const AttendanceList = () => {
                 Cancel
               </Button>
 
-              <Button onClick={() => setShowDateModal(false)}>
-                Apply
-              </Button>
+              <Button onClick={() => setShowDateModal(false)}>Apply</Button>
             </div>
           </div>
         </div>

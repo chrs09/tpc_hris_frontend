@@ -1,11 +1,16 @@
 import React, { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import DashboardHome from "./DashboardHome";
 import AttendanceList from "../Attendance/AttendanceList";
+import UsersPage from "../Users/UsersPage";
+import AdminTrips from "../Admin/AdminTrips";
+import DriverTrips from "../Driver/DriverTrips";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const location = useLocation();
+  const passwordChanged = location.state?.passwordChanged || false;
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -17,13 +22,28 @@ const Dashboard = () => {
           transition-all duration-300
           ${isCollapsed ? "md:ml-20" : "md:ml-64"}
           pt-20 md:pt-6
-          p-6
+          p-4 md:p-6
+          overflow-x-auto
         `}
       >
+        {passwordChanged && (
+          <div className="mb-6 bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl">
+            <div className="font-semibold">
+              Password updated successfully 🎉
+            </div>
+            <div className="text-sm">
+              Your account is now secured with your new password.
+            </div>
+          </div>
+        )}
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="attendance" element={<AttendanceList />} />
           <Route path="employees" element={<div>Employees</div>} />
+          <Route path="users" element={<UsersPage />} />
+          <Route path="admin/trips" element={<AdminTrips />} />
+          {/* DRIVER */}
+          <Route path="driver/trips" element={<DriverTrips />} />
           <Route path="settings" element={<div>Settings</div>} />
         </Routes>
       </div>

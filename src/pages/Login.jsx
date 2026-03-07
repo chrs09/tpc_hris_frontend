@@ -29,9 +29,14 @@ export default function Login({ setIsAuthenticated }) {
       localStorage.setItem("role", result.role);
       localStorage.setItem("user_id", result.user_id);
       localStorage.setItem("username", result.username);
+      localStorage.setItem("must_change_password", result.must_change_password);
 
       setIsAuthenticated(true);
-      navigate("/dashboard", { replace: true });
+      if (result.must_change_password === true) {
+        navigate("/change-password", { replace: true });
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (error) {
       if (error.response?.status === 401) {
         setErrorMessage("Invalid username or password");

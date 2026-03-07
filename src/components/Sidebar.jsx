@@ -74,10 +74,39 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   };
 
   const navItems = [
-    { label: "Dashboard", path: "/dashboard" },
-    { label: "Attendance", path: "/dashboard/attendance" },
-    { label: "Employees", path: "/dashboard/employees" },
-    { label: "Settings", path: "/dashboard/settings" },
+    {
+      label: "Dashboard",
+      path: "/dashboard",
+      roles: ["superadmin", "admin", "driver", "helper"],
+    },
+    {
+      label: "Attendance",
+      path: "/dashboard/attendance",
+      roles: ["superadmin", "admin"],
+    },
+    {
+      label: "Employees",
+      path: "/dashboard/employees",
+      roles: ["superadmin", "admin"],
+    },
+    {
+      label: "Users",
+      path: "/dashboard/users",
+      roles: ["superadmin"],
+    },
+    {
+      label: "Trips",
+      path:
+        role === "driver"
+          ? "/dashboard/driver/trips"
+          : "/dashboard/admin/trips",
+      roles: ["superadmin", "admin", "driver"],
+    },
+    {
+      label: "Settings",
+      path: "/dashboard/settings",
+      roles: ["superadmin"],
+    },
   ];
 
   return (
@@ -121,18 +150,20 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {/* Greeting */}
         {!isCollapsed && (
           <div className="text-xl font-extrabold mb-8 capitalize">
-            Hello! {username}
+            Hello! {username} ({role})
           </div>
         )}
 
         {/* Navigation */}
         <nav className="flex flex-col gap-3 flex-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setIsMobileOpen(false)}
-              className={`
+          {navItems
+            .filter((item) => item.roles.includes(role))
+            .map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setIsMobileOpen(false)}
+                className={`
                 px-3 py-2 rounded-lg transition
                 ${
                   location.pathname === item.path
@@ -140,10 +171,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                     : "hover:bg-[#ffa903]"
                 }
               `}
-            >
-              {isCollapsed ? item.label.charAt(0) : item.label}
-            </Link>
-          ))}
+              >
+                {isCollapsed ? item.label.charAt(0) : item.label}
+              </Link>
+            ))}
         </nav>
 
         {/* Reminders Section */}

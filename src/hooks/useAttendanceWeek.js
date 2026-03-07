@@ -39,7 +39,7 @@ export const useAttendanceWeek = (isSuperAdmin) => {
     isEditableDate,
     formattedRange: `${format(weekStart, "MMM dd")} - ${format(
       weekEnd,
-      "MMM dd"
+      "MMM dd",
     )}`,
   };
 };

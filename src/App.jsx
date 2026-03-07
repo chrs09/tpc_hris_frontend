@@ -3,6 +3,7 @@ import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SessionExpiredModal from "./components/ui/SessionExpiredModal";
+import ChangePassword from "./pages/ChangePassword";
 
 const App = () => {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ const App = () => {
   });
 
   const [sessionExpired, setSessionExpired] = useState(false);
+  const mustChangePassword =
+    localStorage.getItem("must_change_password") === "true";
 
   // 🔥 Listen for 401 global event
   useEffect(() => {
@@ -45,7 +48,11 @@ const App = () => {
           path="/login"
           element={
             isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
+              mustChangePassword ? (
+                <Navigate to="/change-password" replace />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
             ) : (
               <Login setIsAuthenticated={setIsAuthenticated} />
             )
@@ -53,9 +60,28 @@ const App = () => {
         />
 
         <Route
+          path="/change-password"
+          element={
+            isAuthenticated ? (
+              <ChangePassword />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
+        <Route
           path="/dashboard/*"
           element={
-            isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />
+            isAuthenticated ? (
+              mustChangePassword ? (
+                <Navigate to="/change-password" replace />
+              ) : (
+                <Dashboard />
+              )
+            ) : (
+              <Navigate to="/login" replace />
+            )
           }
         />
 

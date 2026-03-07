@@ -1,6 +1,5 @@
 import api from "../services/api";
 
-
 // Get employee list
 export const getEmployeeList = async () => {
   const res = await api.get("/employees/");

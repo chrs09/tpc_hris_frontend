@@ -15,19 +15,17 @@ const EditAttendanceModal = ({
   if (!editModal) return null;
 
   const existingRecord =
-    attendanceMap?.[
-      `${editModal.employeeId}-${editModal.date}`
-    ] || null;
+    attendanceMap?.[`${editModal.employeeId}-${editModal.date}`] || null;
 
   const isUpdate = !!existingRecord;
 
   const handleConfirmSave = async () => {
     try {
       setLoading(true);
-      await onSave();        // parent handles alert
+      await onSave(); // parent handles alert
       setShowConfirm(false);
-      setEditModal(null);    // close main modal
-    } catch{
+      setEditModal(null); // close main modal
+    } catch {
       // do nothing here
       // parent (AttendanceList) handles errors
     } finally {
@@ -40,7 +38,6 @@ const EditAttendanceModal = ({
       {/* MAIN MODAL */}
       <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-60">
         <div className="bg-[#0b3d5c] rounded-xl p-6 w-80 shadow-xl">
-
           <h3 className="text-lg font-bold mb-3 text-white">
             {isUpdate ? "Update Attendance" : "Create Attendance"}
           </h3>
@@ -49,9 +46,7 @@ const EditAttendanceModal = ({
             <strong>{editModal.employeeName}</strong>
           </p>
 
-          <p className="text-sm mb-4 text-white">
-            {editModal.date}
-          </p>
+          <p className="text-sm mb-4 text-white">{editModal.date}</p>
 
           <select
             value={editModal.status}
@@ -71,10 +66,7 @@ const EditAttendanceModal = ({
           </select>
 
           <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => setEditModal(null)}
-            >
+            <Button variant="secondary" onClick={() => setEditModal(null)}>
               Cancel
             </Button>
 

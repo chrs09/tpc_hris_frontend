@@ -23,12 +23,12 @@ const BulkAttendanceModal = ({
   if (!isOpen) return null;
 
   const filteredEmployees = employees.filter(
-    (emp) => roleFilter === "All" || emp.role === roleFilter
+    (emp) => roleFilter === "All" || emp.role === roleFilter,
   );
 
   const handleSubmit = () => {
     const employeesToSave = filteredEmployees.filter(
-      (emp) => !attendanceMap[`${emp.id}-${today}`]
+      (emp) => !attendanceMap[`${emp.id}-${today}`],
     );
 
     // 🚫 If ALL already recorded
@@ -57,8 +57,8 @@ const BulkAttendanceModal = ({
       setShowConfirm(false);
       setSelections({});
       onClose();
-    } catch{
-    // 
+    } catch {
+      //
     } finally {
       setLoading(false);
     }
@@ -69,8 +69,6 @@ const BulkAttendanceModal = ({
       {/* MAIN BULK MODAL */}
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-60">
         <div className="bg-[#023047] rounded-2xl p-6 w-2/3 max-h-[85vh] overflow-y-auto border-2 border-[#fba919] shadow-xl relative">
-
-
           <h2 className="text-xl font-bold mb-6 text-[#fba919]">
             Bulk Check Attendance
           </h2>
@@ -105,17 +103,12 @@ const BulkAttendanceModal = ({
 
             <tbody>
               {filteredEmployees.map((emp) => {
-                const alreadyRecorded =
-                  attendanceMap[`${emp.id}-${today}`];
+                const alreadyRecorded = attendanceMap[`${emp.id}-${today}`];
 
                 return (
                   <tr key={emp.id}>
-                    <td className="border p-2 text-center">
-                      {emp.name}
-                    </td>
-                    <td className="border p-2 text-center">
-                      {emp.role}
-                    </td>
+                    <td className="border p-2 text-center">{emp.name}</td>
+                    <td className="border p-2 text-center">{emp.role}</td>
                     <td className="border p-2 text-center">
                       <select
                         disabled={alreadyRecorded}
@@ -154,9 +147,7 @@ const BulkAttendanceModal = ({
             <Button variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
-              Save
-            </Button>
+            <Button onClick={handleSubmit}>Save</Button>
           </div>
         </div>
       </div>
