@@ -2,20 +2,27 @@
 
 import AdminDashboard from "./AdminDashboard";
 import DriverDashboard from "./DriverDashboard";
+import PWAInstallButton from "../../components/PWAInstallButton";
 
 const DashboardHome = () => {
   const role = localStorage.getItem("role");
 
-  if (role === "driver") {
-    return <DriverDashboard />;
-  }
-
-  if (role === "admin" || role === "superadmin") {
-    return <AdminDashboard />;
-  }
-
   return (
-    <div className="p-8 text-red-500 font-semibold">Unauthorized role.</div>
+    <div className="p-4">
+      <div className="flex justify-end mb-4">
+        <PWAInstallButton />
+      </div>
+
+      {role === "driver" && <DriverDashboard />}
+
+      {(role === "admin" || role === "superadmin") && <AdminDashboard />}
+
+      {!role && (
+        <div className="p-8 text-red-500 font-semibold">
+          Unauthorized role.
+        </div>
+      )}
+    </div>
   );
 };
 
