@@ -396,7 +396,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded-xl max-w-lg w-full">
             <img
-              src={`http://127.0.0.1:8000/${selectedTrip.start_photo}`}
+              src={selectedTrip.start_photo}
               alt="Trip Start"
               className="w-full rounded-lg"
             />
