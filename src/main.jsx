@@ -5,6 +5,14 @@ import "./index.css";
 import "leaflet/dist/leaflet.css";
 import App from "./App.jsx";
 
+/* Remove old service workers */
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => registration.unregister());
+  });
+}
+
+/* Register new service worker */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
