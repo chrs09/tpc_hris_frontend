@@ -56,6 +56,8 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
 
   const handleReview = async (tripId) => {
     const res = await reviewTrip(tripId);
+    console.log("Trip data:", res.data);
+    console.log("Start photo:", res.data.start_photo);  
     setSelectedTrip(res.data);
     setShowModal(true);
   };
@@ -341,7 +343,10 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
 
                     {selectedTrip.start_photo ? (
                       <button
-                        onClick={() => setShowPhoto(true)}
+                        onClick={() => {
+                          console.log("Start Photo URL:", selectedTrip.start_photo);
+                          setShowPhoto(true);
+                        }}
                         className="text-yellow-400 underline text-sm"
                       >
                         See Attached Photo
@@ -399,6 +404,9 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
               src={selectedTrip.start_photo}
               alt="Trip Start"
               className="w-full rounded-lg"
+              onError={() => {
+                console.log("Image failed to load:", selectedTrip.start_photo);
+              }}
             />
 
             <button
