@@ -8,5 +8,10 @@ self.addEventListener("activate", () => {
 });
 
 self.addEventListener("fetch", (event) => {
-  event.respondWith(fetch(event.request));
+  const url = new URL(event.request.url);
+
+  // Only handle requests from your own domain
+  if (url.origin === location.origin) {
+    event.respondWith(fetch(event.request));
+  }
 });
