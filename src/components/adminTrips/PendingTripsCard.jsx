@@ -100,6 +100,10 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
     ? mapCoordinates[mapCoordinates.length - 1]
     : null;
 
+    const imageUrl = selectedTrip?.start_photo?.startsWith("http")
+      ? selectedTrip.start_photo
+      : `${import.meta.env.VITE_API_URL}/${selectedTrip?.start_photo}`;
+
   return (
     <>
       {/* ======================= DESKTOP TABLE ======================= */}
@@ -401,7 +405,8 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded-xl max-w-lg w-full">
             <img
-              src={selectedTrip.start_photo}
+              src={imageUrl}
+              // src={selectedTrip.start_photo}
               alt="Trip Start"
               className="w-full rounded-lg"
               onError={() => {
