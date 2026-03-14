@@ -100,9 +100,14 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
     ? mapCoordinates[mapCoordinates.length - 1]
     : null;
 
-    const imageUrl = selectedTrip?.start_photo?.startsWith("http")
-      ? selectedTrip.start_photo
-      : `${import.meta.env.VITE_API_URL}/${selectedTrip?.start_photo}`;
+  let imageUrl = selectedTrip?.start_photo || "";
+
+  // If a broken prefix like 127.0.0.1/...https:// appears, strip everything before https://
+  if (imageUrl.includes("https://")) {
+    imageUrl = imageUrl.substring(imageUrl.indexOf("https://"));
+  } else if (imageUrl && !imageUrl.startsWith("http")) {
+    imageUrl = `${import.meta.env.VITE_API_URL}/${imageUrl}`;
+  }
 
   return (
     <>
