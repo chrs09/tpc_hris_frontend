@@ -6,6 +6,8 @@ import AttendanceList from "../Attendance/AttendanceList";
 import UsersPage from "../Users/UsersPage";
 import AdminTrips from "../Admin/AdminTrips";
 import DriverTrips from "../Driver/DriverTrips";
+import EmployeeListPage from "../Employee/EmployeeListPage";
+
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -39,11 +41,16 @@ const Dashboard = () => {
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="attendance" element={<AttendanceList />} />
+<<<<<<< Updated upstream
           <Route path="employees" element={<div>Employees</div>} />
           <Route path="users" element={<UsersPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
+=======
+          <Route path="employees" element={<EmployeeListPage />} />
+          <Route path="applicants" element={<div>Applicants</div>} />
+>>>>>>> Stashed changes
           <Route path="settings" element={<div>Settings</div>} />
         </Routes>
       </div>
