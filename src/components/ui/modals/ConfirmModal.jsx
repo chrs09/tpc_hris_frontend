@@ -17,7 +17,7 @@ const ConfirmModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-100">
-      <div className="bg-[#0b3d5c] rounded-xl w-96 p-6 shadow-2xl border border-[#fba919]">
+      <div className="bg-[#2b2b2b] rounded-xl w-96 p-6 shadow-2xl border border-[#fba919]">
         <h3 className="text-lg font-bold text-[#fba919] mb-3">{title}</h3>
 
         <p className="text-sm text-white mb-6">{message}</p>

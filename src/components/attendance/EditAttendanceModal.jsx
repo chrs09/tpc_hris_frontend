@@ -37,7 +37,7 @@ const EditAttendanceModal = ({
     <>
       {/* MAIN MODAL */}
       <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-60">
-        <div className="bg-[#0b3d5c] rounded-xl p-6 w-80 shadow-xl">
+        <div className="bg-[#2b2b2b] rounded-xl p-6 w-80 shadow-xl">
           <h3 className="text-lg font-bold mb-3 text-white">
             {isUpdate ? "Update Attendance" : "Create Attendance"}
           </h3>
@@ -56,7 +56,7 @@ const EditAttendanceModal = ({
                 status: e.target.value,
               }))
             }
-            className="w-full border rounded h-10 px-3 mb-4"
+            className="w-full border rounded h-10 px-3 mb-4 text-white bg-[#1e1e1e] focus:outline-none focus:ring-2 focus:ring-[#d4d4d4]"
           >
             {Object.values(attendanceStatus).map((status) => (
               <option key={status} value={status}>
@@ -65,14 +65,22 @@ const EditAttendanceModal = ({
             ))}
           </select>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 text-white">
             <Button variant="secondary" onClick={() => setEditModal(null)}>
               Cancel
             </Button>
 
-            <Button onClick={() => setShowConfirm(true)}>
+            {/* <Button onClick={() => setShowConfirm(true)}
+              //background color change on hover is not working when disabled, so we handle disabled state with cursor and opacity
+            >
               {isUpdate ? "Update" : "Create"}
-            </Button>
+            </Button> */}
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-4 rounded-lg"
+            >
+              {isUpdate ? "Update" : "Create"}
+            </button>
           </div>
         </div>
       </div>

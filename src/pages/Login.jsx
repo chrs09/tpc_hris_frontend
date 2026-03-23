@@ -49,7 +49,7 @@ export default function Login({ setIsAuthenticated }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#023047] p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#2b2b2b] p-4">
       <Card className="w-full max-w-md shadow-xl rounded-2xl">
         {/* Logo */}
         <div className="flex justify-center m-6 space-x-3 items-center">

@@ -112,7 +112,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
   return (
     <>
       {/* ======================= DESKTOP TABLE ======================= */}
-      <div className="hidden md:block bg-[#023047] rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-[#2b2b2b] rounded-xl overflow-hidden">
         <table className="w-full text-sm text-white">
           <thead>
             <tr>
@@ -127,7 +127,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
 
           <tbody>
             {paginatedTrips.map((trip) => (
-              <tr key={trip.id} className="hover:bg-[#044a6d]">
+              <tr key={trip.id} className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black">
                 <td className="px-6 py-4">{trip.id}</td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
                 <td className="px-6 py-4 uppercase">{trip.ticket_no}</td>
@@ -137,7 +137,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => handleReview(trip.id)}
-                    className="bg-yellow-400 text-black px-4 py-2 rounded-lg cursor-pointer"
+                    className="bg-[#2b2b2b] text-white px-4 py-2 rounded-lg cursor-pointer"
                   >
                     Review
                   </button>
@@ -151,7 +151,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
       {/* ======================= MOBILE CARDS ======================= */}
       <div className="md:hidden flex flex-col gap-3">
         {paginatedTrips.map((trip) => (
-          <div key={trip.id} className="bg-[#023047] text-white p-4 rounded-xl">
+          <div key={trip.id} className="bg-[#2b2b2b] text-white p-4 rounded-xl">
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-xs opacity-70">Driver</p>
@@ -214,7 +214,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
       {/* ======================= REVIEW MODAL ======================= */}
       {showModal && selectedTrip && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center p-4 z-50 text-white">
-          <div className="bg-[#023047] w-full max-w-6xl max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+          <div className="bg-[#2b2b2b] w-full max-w-6xl max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             {/* HEADER */}
             <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-bold flex items-center gap-3">

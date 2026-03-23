@@ -1,7 +1,7 @@
 const SummaryCard = ({ label, value }) => (
   <div
     className="
-    bg-[#023047]
+    bg-[#2b2b2b]
     rounded-xl
     px-4 py-4
     sm:px-5 sm:py-5

@@ -5,7 +5,7 @@ import { getDashboardSummary } from "../../api/dashboard";
 
 const StatCard = ({ title, value, color }) => {
   return (
-    <div className="bg-[#023047] rounded-2xl p-6 shadow-md border border-white/10 hover:shadow-lg transition hover:border-amber-500 hover:border-2">
+    <div className="bg-[#2b2b2b] rounded-2xl p-6 shadow-md border border-white/10 hover:shadow-lg transition hover:border-amber-500 hover:border-2">
       <div className="flex items-center justify-between mb-3">
         <p className="text-sm text-blue-100">{title}</p>
         <div className={`w-3 h-3 rounded-full ${color}`}></div>
@@ -125,7 +125,7 @@ const AdminDashboard = () => {
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       {/* HERO SECTION */}
-      <div className="rounded-3xl p-8 mb-10 text-white bg-[#023047] shadow-lg border border-white/10">
+      <div className="rounded-3xl p-8 mb-10 text-white bg-[#2b2b2b] shadow-lg border border-white/10">
         <div className="flex justify-between flex-wrap gap-6">
           <div className="max-w-2xl">
             <h1 className="text-3xl font-bold mb-2">{getGreeting()} 👋</h1>
@@ -175,7 +175,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* ATTENDANCE PERFORMANCE */}
-      <div className="bg-[#023047] rounded-3xl p-8 shadow-md border border-white/10 mb-10">
+      <div className="bg-[#2b2b2b] rounded-3xl p-8 shadow-md border border-white/10 mb-10">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-white">
             Attendance Performance
@@ -201,7 +201,7 @@ const AdminDashboard = () => {
 
       {/* QUICK INSIGHTS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#023047] rounded-3xl p-6 shadow-md border border-white/10">
+        <div className="bg-[#2b2b2b] rounded-3xl p-6 shadow-md border border-white/10">
           <h4 className="text-lg font-semibold text-white mb-4">
             Daily Snapshot
           </h4>
@@ -212,7 +212,7 @@ const AdminDashboard = () => {
           </ul>
         </div>
 
-        <div className="bg-[#023047] rounded-3xl p-6 shadow-md border border-white/10">
+        <div className="bg-[#2b2b2b] rounded-3xl p-6 shadow-md border border-white/10">
           <h4 className="text-lg font-semibold text-white mb-4">
             System Status
           </h4>

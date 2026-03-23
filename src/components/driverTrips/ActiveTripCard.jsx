@@ -31,7 +31,7 @@ const ActiveTripCard = ({ activeTrip }) => {
 
   if (!activeTrip) {
     return (
-      <div className="bg-[#023047] border p-6 rounded-2xl text-gray-300">
+      <div className="bg-[#2b2b2b] border p-6 rounded-2xl text-gray-300">
         You currently have no active trip.
       </div>
     );
@@ -40,7 +40,7 @@ const ActiveTripCard = ({ activeTrip }) => {
   const duration = calculateDuration(activeTrip.start_time);
 
   return (
-    <div className="bg-[#023047] text-white p-6 rounded-2xl shadow-lg">
+    <div className="bg-[#2b2b2b] text-white p-6 rounded-2xl shadow-lg">
       <div className="flex flex-col md:flex-row md:justify-between gap-4">
         <div>
           <p className="text-sm opacity-80">Ticket</p>

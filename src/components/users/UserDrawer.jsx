@@ -169,7 +169,7 @@ const UserDrawer = ({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-yellow-500 text-black"
+              className="bg-[#2b2b2b] text-white"
             >
               {loading ? "Saving..." : isEditMode ? "Update" : "Create"}
             </Button>

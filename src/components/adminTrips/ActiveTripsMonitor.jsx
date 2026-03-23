@@ -4,7 +4,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
   return (
     <>
       {/* DESKTOP TABLE */}
-      <div className="hidden md:block bg-[#023047] rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-[#2b2b2b] rounded-xl overflow-hidden">
         <table className="w-full text-white text-sm">
           <thead>
             <tr>
@@ -25,7 +25,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               </tr>
             ) : (
               trips.map((trip) => (
-                <tr key={trip.id} className="hover:bg-[#044a6d]">
+                <tr key={trip.id} className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black">
                   <td className="px-4 py-4 capitalize">{trip.username}</td>
                   <td className="px-4 py-4 capitalize">{trip.ticket_no}</td>
                   <td className="px-4 py-4">
@@ -50,7 +50,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
           trips.map((trip) => (
             <div
               key={trip.id}
-              className="bg-[#023047] text-white p-4 rounded-xl"
+              className="bg-[#2b2b2b] text-white p-4 rounded-xl"
             >
               <p className="font-semibold capitalize">{trip.username}</p>
 

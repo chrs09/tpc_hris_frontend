@@ -21,8 +21,7 @@ export const getEmployeeDetails = async (employeeId) => {
 
 // Update employee details
 export const updateEmployeeDetails = async (employeeId, updatedData) => {
-  const res = await api.put(`/employees/${employeeId}/`, updatedData);
-
+  const res = await api.patch(`/employees/${employeeId}`, updatedData);
   return res.data;
 };
 

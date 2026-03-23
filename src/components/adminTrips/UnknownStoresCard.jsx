@@ -54,7 +54,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
   return (
     <>
       {/* ================= DESKTOP TABLE ================= */}
-      <div className="hidden md:block bg-[#023047] rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-[#2b2b2b] rounded-xl overflow-hidden">
         <table className="w-full table-fixed text-sm text-white">
           <thead>
             <tr>
@@ -68,7 +68,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-600">
+          <tbody className="divide-y divide-gray-600 bg-[#b3b3b3] text-black">
             {stops.length === 0 ? (
               <tr>
                 <td colSpan="4" className="text-center py-8 text-gray-300">
@@ -77,7 +77,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
               </tr>
             ) : (
               stops.map((stop) => (
-                <tr key={stop.stop_id} className="hover:bg-[#044a6d]">
+                <tr key={stop.stop_id} className="hover:bg-[#a09f9f]">
                   <td className="px-6 py-4 capitalize">{stop.username}</td>
 
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -89,7 +89,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
                   <td className="px-6 py-4 text-right">
                     <button
                       onClick={() => openModal(stop)}
-                      className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm transition"
+                      className="bg-[#2b2b2b] hover:bg-[#333333] px-4 py-2 rounded-lg text-white text-sm transition cursor-pointer"
                     >
                       Approve
                     </button>
@@ -111,7 +111,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
           stops.map((stop) => (
             <div
               key={stop.stop_id}
-              className="bg-[#023047] text-white p-4 rounded-xl shadow"
+              className="bg-[#2b2b2b] text-white p-4 rounded-xl shadow"
             >
               <div className="flex justify-between items-start">
                 <div>
@@ -141,7 +141,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
       {/* ================= MODAL ================= */}
       {selectedStop && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-[#023047] rounded-xl w-full max-w-md p-6 shadow-lg">
+          <div className="bg-[#2b2b2b] rounded-xl w-full max-w-md p-6 shadow-lg">
             <h3 className="text-lg font-semibold mb-4 text-white">
               Approve Unknown Store
             </h3>
@@ -192,7 +192,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
               <button
                 onClick={handleApprove}
                 disabled={loading}
-                className="px-4 py-2 bg-[#ffa903] hover:bg-[#d18f0c] text-black rounded-lg text-sm cursor-pointer"
+                className="px-4 py-2 bg-yellow-400 hover:bg-[#d18f0c] text-black rounded-lg text-sm cursor-pointer"
               >
                 {loading ? "Saving..." : "Approve & Save"}
               </button>

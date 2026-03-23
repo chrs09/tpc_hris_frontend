@@ -15,7 +15,7 @@ const Dashboard = () => {
   const passwordChanged = location.state?.passwordChanged || false;
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-[#F5F7FA] min-h-screen">
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
       {/* Content */}
@@ -41,16 +41,11 @@ const Dashboard = () => {
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="attendance" element={<AttendanceList />} />
-<<<<<<< Updated upstream
-          <Route path="employees" element={<div>Employees</div>} />
+          <Route path="employees" element={<EmployeeListPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
-=======
-          <Route path="employees" element={<EmployeeListPage />} />
-          <Route path="applicants" element={<div>Applicants</div>} />
->>>>>>> Stashed changes
           <Route path="settings" element={<div>Settings</div>} />
         </Routes>
       </div>

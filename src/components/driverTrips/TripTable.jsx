@@ -29,7 +29,7 @@ const TripTable = ({ trips = [], title }) => {
       {/* ================= DESKTOP TABLE ================= */}
       <div className="hidden md:block overflow-hidden border rounded-xl">
         <table className="w-full text-sm">
-          <thead className="bg-[#023047] text-white">
+          <thead className="bg-[#2b2b2b] text-white">
             <tr>
               <th className="p-3 text-left">Ticket</th>
               <th className="p-3 text-left">Start</th>
@@ -41,7 +41,7 @@ const TripTable = ({ trips = [], title }) => {
 
           <tbody>
             {paginatedTrips.map((trip) => (
-              <tr key={trip.id} className="border-t bg-[#023047]">
+              <tr key={trip.id} className="border-t bg-[#2b2b2b]">
                 <td className="p-3 text-white">{trip.ticket_no}</td>
                 <td className="p-3 text-white">{trip.start_time}</td>
                 <td className="p-3 text-white">{trip.end_time || "-"}</td>
@@ -71,7 +71,7 @@ const TripTable = ({ trips = [], title }) => {
         {paginatedTrips.map((trip) => (
           <div
             key={trip.id}
-            className="bg-[#023047] text-white rounded-xl p-4 shadow"
+            className="bg-[#2b2b2b] text-white rounded-xl p-4 shadow"
           >
             <div className="text-sm mb-2">
               <span className="opacity-70">Ticket</span>
@@ -112,7 +112,7 @@ const TripTable = ({ trips = [], title }) => {
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className="px-3 py-1 bg-[#ffa903] rounded disabled:opacity-40"
+            className="px-3 py-1 bg-[#2b2b2b] rounded disabled:opacity-40"
           >
             Prev
           </button>
@@ -124,7 +124,7 @@ const TripTable = ({ trips = [], title }) => {
           <button
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
-            className="px-3 py-1 bg-[#ffa903] rounded disabled:opacity-40"
+            className="px-3 py-1 bg-[#2b2b2b] rounded disabled:opacity-40"
           >
             Next
           </button>

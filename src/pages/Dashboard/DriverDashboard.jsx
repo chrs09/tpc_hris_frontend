@@ -178,7 +178,7 @@ const DriverDashboard = () => {
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       {/* HEADER CARD */}
-      <div className="bg-[#023047] text-white rounded-3xl p-5 sm:p-6 lg:p-8 shadow-lg mb-8">
+      <div className="bg-[#2b2b2b] text-white rounded-3xl p-5 sm:p-6 lg:p-8 shadow-lg mb-8">
         {/* HEADER */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
           <div>
@@ -288,7 +288,7 @@ const DriverDashboard = () => {
                   <button
                     onClick={handleCheckIn}
                     disabled={actionLoading}
-                    className="bg-[#023047] text-white px-6 py-3 rounded-xl w-full sm:w-auto"
+                    className="bg-[#2b2b2b] text-white px-6 py-3 rounded-xl w-full sm:w-auto"
                   >
                     Check-In
                   </button>
