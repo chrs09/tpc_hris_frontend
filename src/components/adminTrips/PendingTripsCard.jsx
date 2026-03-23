@@ -57,7 +57,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
   const handleReview = async (tripId) => {
     const res = await reviewTrip(tripId);
     console.log("Trip data:", res.data);
-    console.log("Start photo:", res.data.start_photo);  
+    console.log("Start photo:", res.data.start_photo);
     setSelectedTrip(res.data);
     setShowModal(true);
   };
@@ -127,7 +127,10 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
 
           <tbody>
             {paginatedTrips.map((trip) => (
-              <tr key={trip.id} className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black">
+              <tr
+                key={trip.id}
+                className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black"
+              >
                 <td className="px-6 py-4">{trip.id}</td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
                 <td className="px-6 py-4 uppercase">{trip.ticket_no}</td>
@@ -353,7 +356,10 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
                     {selectedTrip.start_photo ? (
                       <button
                         onClick={() => {
-                          console.log("Start Photo URL:", selectedTrip.start_photo);
+                          console.log(
+                            "Start Photo URL:",
+                            selectedTrip.start_photo,
+                          );
                           setShowPhoto(true);
                         }}
                         className="text-yellow-400 underline text-sm"

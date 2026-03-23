@@ -25,7 +25,10 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               </tr>
             ) : (
               trips.map((trip) => (
-                <tr key={trip.id} className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black">
+                <tr
+                  key={trip.id}
+                  className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black"
+                >
                   <td className="px-4 py-4 capitalize">{trip.username}</td>
                   <td className="px-4 py-4 capitalize">{trip.ticket_no}</td>
                   <td className="px-4 py-4">

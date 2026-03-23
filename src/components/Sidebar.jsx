@@ -10,11 +10,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { logout } from "../utils/auth";
-import {
-  getReminders,
-  createReminder,
-  resolveReminder,
-} from "../api/reminder";
+import { getReminders, createReminder, resolveReminder } from "../api/reminder";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
@@ -34,12 +30,15 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   // =========================
   // ✅ ROUTE MATCH HELPER (CLEAN FIX)
   // =========================
-  const isRouteActive = useCallback((path) => {
-    if (path === "/dashboard") {
-      return location.pathname === path;
-    }
-    return location.pathname.startsWith(path);
-  }, [location.pathname]);
+  const isRouteActive = useCallback(
+    (path) => {
+      if (path === "/dashboard") {
+        return location.pathname === path;
+      }
+      return location.pathname.startsWith(path);
+    },
+    [location.pathname],
+  );
 
   // =========================
   // NAV GROUPS
@@ -109,7 +108,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         ],
       },
     ],
-    [role]
+    [role],
   );
 
   // =========================
@@ -211,13 +210,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         <nav className="flex flex-col gap-4 flex-1">
           {navGroups.map((group) => {
             const visibleChildren = group.children.filter((item) =>
-              item.roles.includes(role)
+              item.roles.includes(role),
             );
 
             if (!visibleChildren.length) return null;
 
             const isGroupActive = visibleChildren.some((item) =>
-              isRouteActive(item.path)
+              isRouteActive(item.path),
             );
 
             return (
@@ -310,9 +309,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {showModal && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-[#2b2b2b] rounded-xl p-6 w-80">
-              <h2 className="text-lg font-semibold mb-4">
-                Create Reminder
-              </h2>
+              <h2 className="text-lg font-semibold mb-4">Create Reminder</h2>
 
               <textarea
                 value={newMessage}

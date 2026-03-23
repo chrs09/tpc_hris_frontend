@@ -46,8 +46,10 @@ export const mapEmployeeToForm = (employee) => {
 
     // FILES
     profile_image:
-      employee.documents?.find(d => d.document_type === "profile_image")?.file_path || "",
+      employee.documents?.find((d) => d.document_type === "profile_image")
+        ?.file_path || "",
     resume:
-      employee.documents?.find(d => d.document_type === "resume")?.file_path || "",
+      employee.documents?.find((d) => d.document_type === "resume")
+        ?.file_path || "",
   };
 };

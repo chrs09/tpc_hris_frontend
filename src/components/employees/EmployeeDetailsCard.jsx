@@ -1,7 +1,6 @@
 export default function EmployeeDetailsCard({ employee }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 md:p-8 w-full">
-
       <div className="mb-8">
         <h2 className="text-2xl font-semibold">
           {employee.first_name} {employee.last_name}
@@ -12,11 +11,8 @@ export default function EmployeeDetailsCard({ employee }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
         <div>
-          <h3 className="text-lg font-semibold mb-4">
-            Personal Information
-          </h3>
+          <h3 className="text-lg font-semibold mb-4">Personal Information</h3>
 
           <div className="space-y-2 text-sm">
             <div>
@@ -32,9 +28,7 @@ export default function EmployeeDetailsCard({ employee }) {
         </div>
 
         <GovernmentBenefitsCard employee={employee} />
-
       </div>
-
     </div>
   );
 }

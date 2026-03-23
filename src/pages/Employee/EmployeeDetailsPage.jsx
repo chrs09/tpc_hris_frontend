@@ -11,18 +11,18 @@ export default function EmployeeDetailsPage() {
 
   useEffect(() => {
     const fetchEmployee = async () => {
-        try {
-          const data = await getEmployeeDetails(id);
-          setEmployee(data);
-        } catch {
-          setError("Failed to load employee.");
-        } finally {
-          setLoading(false);
-        }
-      };
+      try {
+        const data = await getEmployeeDetails(id);
+        setEmployee(data);
+      } catch {
+        setError("Failed to load employee.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      fetchEmployee();
-    }, [id]);
+    fetchEmployee();
+  }, [id]);
 
   if (loading) return <div className="p-8">Loading employee...</div>;
   if (!employee) return <div className="p-8">Employee not found</div>;

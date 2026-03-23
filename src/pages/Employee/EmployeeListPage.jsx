@@ -25,8 +25,7 @@ export default function EmployeeListPage() {
   // ================= FILTER =================
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
-      const fullName =
-        `${emp.first_name} ${emp.last_name}`.toLowerCase();
+      const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
 
       return (
         fullName.includes(search.toLowerCase()) ||
@@ -36,13 +35,11 @@ export default function EmployeeListPage() {
     });
   }, [employees, search]);
 
-  const totalPages = Math.ceil(
-    filteredEmployees.length / ITEMS_PER_PAGE
-  );
+  const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
 
   const paginatedEmployees = filteredEmployees.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
 
   // ================= VIEW =================
@@ -101,9 +98,7 @@ export default function EmployeeListPage() {
             </span>
 
             {/* MESSAGE */}
-            <span className="text-sm font-medium">
-              {toast.message}
-            </span>
+            <span className="text-sm font-medium">{toast.message}</span>
           </div>
         </div>
       )}
@@ -134,10 +129,7 @@ export default function EmployeeListPage() {
         </div>
 
         {/* TABLE */}
-        <EmployeeTable
-          employees={paginatedEmployees}
-          onView={handleView}
-        />
+        <EmployeeTable employees={paginatedEmployees} onView={handleView} />
 
         {/* MOBILE */}
         <div className="md:hidden space-y-4">

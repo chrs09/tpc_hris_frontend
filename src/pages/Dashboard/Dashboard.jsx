@@ -8,7 +8,6 @@ import AdminTrips from "../Admin/AdminTrips";
 import DriverTrips from "../Driver/DriverTrips";
 import EmployeeListPage from "../Employee/EmployeeListPage";
 
-
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();

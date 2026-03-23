@@ -150,11 +150,9 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
         console.log(pair[0], pair[1]);
       }
 
-
       await createEmployee(formDataUpload);
 
-       if (onSuccess) onSuccess();
-
+      if (onSuccess) onSuccess();
     } catch (error) {
       console.error("ERROR RESPONSE:", error.response?.data);
     }
@@ -165,12 +163,9 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
       <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
 
       <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
-
         {/* HEADER */}
         <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-black">
-            Add Employee
-          </h2>
+          <h2 className="text-xl font-semibold text-black">Add Employee</h2>
           <button onClick={handleClose}>✕</button>
         </div>
 
@@ -196,22 +191,22 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
         <EmployeeForm
           activeTab={activeTab}
           formData={formData}
-         onChange={handleChange}
-         onFileChange={handleFileChange}
-         handleChange={(field, value) =>
-           setFormData((prev) => ({ ...prev, [field]: value }))
-         }
-         handleFileChange={(field, file) => {
-           if (!file) return;
-        
-           const preview = URL.createObjectURL(file);
-        
-           setFormData((prev) => ({
-             ...prev,
-             [field]: preview,
-             [`${field}_file`]: file,
-           }));
-         }}
+          onChange={handleChange}
+          onFileChange={handleFileChange}
+          handleChange={(field, value) =>
+            setFormData((prev) => ({ ...prev, [field]: value }))
+          }
+          handleFileChange={(field, file) => {
+            if (!file) return;
+
+            const preview = URL.createObjectURL(file);
+
+            setFormData((prev) => ({
+              ...prev,
+              [field]: preview,
+              [`${field}_file`]: file,
+            }));
+          }}
           previewImage={previewImage}
           setPreviewImage={setPreviewImage}
           isEditing={true}
@@ -221,11 +216,13 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
           <button onClick={handleClose} className="px-4 py-2 border rounded">
             Cancel
           </button>
-          <button onClick={handleSubmit} className="px-6 py-2 bg-[#2b2b2b] text-white rounded">
+          <button
+            onClick={handleSubmit}
+            className="px-6 py-2 bg-[#2b2b2b] text-white rounded"
+          >
             Save Employee
           </button>
         </div>
-
       </div>
     </>
   );

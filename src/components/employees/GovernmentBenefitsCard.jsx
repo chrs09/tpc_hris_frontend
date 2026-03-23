@@ -3,9 +3,7 @@ import { maskNumber } from "../../utils/maskNumber";
 export default function GovernmentBenefitsCard({ employee }) {
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-4">
-        Government Benefits
-      </h3>
+      <h3 className="text-lg font-semibold mb-4">Government Benefits</h3>
 
       <p>
         <span className="font-medium">SSS:</span>{" "}

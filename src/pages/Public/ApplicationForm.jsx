@@ -48,7 +48,6 @@ export default function ApplicationForm() {
         position_applied: "",
       });
       setFile(null);
-
     } catch (err) {
       setMessage(err.message || "Something went wrong");
     } finally {
@@ -58,14 +57,10 @@ export default function ApplicationForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-6">
-      
       <div className="w-full max-w-xl bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 space-y-6 border border-gray-200">
-        
         {/* HEADER */}
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">
-            Join Our Team
-          </h2>
+          <h2 className="text-3xl font-bold text-gray-900">Join Our Team</h2>
           <p className="text-gray-500 text-sm mt-1">
             Fill out the form below and upload your resume
           </p>
@@ -79,7 +74,6 @@ export default function ApplicationForm() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
           {/* NAME ROW */}
           <div className="grid grid-cols-2 gap-3">
             <input
@@ -137,9 +131,7 @@ export default function ApplicationForm() {
             <label htmlFor="fileUpload" className="cursor-pointer">
               <p className="text-sm text-gray-600">
                 {file ? (
-                  <span className="font-medium text-black">
-                    📄 {file.name}
-                  </span>
+                  <span className="font-medium text-black">📄 {file.name}</span>
                 ) : (
                   "Click to upload CV (PDF or Image)"
                 )}
@@ -158,7 +150,6 @@ export default function ApplicationForm() {
             )}
             {loading ? "Submitting..." : "Submit Application"}
           </button>
-
         </form>
       </div>
     </div>

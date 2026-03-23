@@ -5,13 +5,9 @@ export default function EmployeeRow({ employee, onView }) {
         {employee.first_name} {employee.last_name}
       </td>
 
-      <td className="px-6 py-4 text-black">
-        {employee.department} 
-      </td>
+      <td className="px-6 py-4 text-black">{employee.department}</td>
 
-      <td className="px-6 py-4 text-black">
-        {employee.position}
-      </td>
+      <td className="px-6 py-4 text-black">{employee.position}</td>
 
       <td className="px-6 py-4 text-right">
         <button

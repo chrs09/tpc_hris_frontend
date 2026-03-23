@@ -22,12 +22,12 @@ const BulkAttendanceModal = ({
   if (!isOpen) return null;
 
   const filteredEmployees = employees.filter(
-    (emp) => roleFilter === "All" || emp.role === roleFilter
+    (emp) => roleFilter === "All" || emp.role === roleFilter,
   );
 
   const handleSubmit = () => {
     const employeesToSave = filteredEmployees.filter(
-      (emp) => !attendanceMap[`${emp.id}-${today}`]
+      (emp) => !attendanceMap[`${emp.id}-${today}`],
     );
 
     if (employeesToSave.length === 0) {
@@ -65,7 +65,6 @@ const BulkAttendanceModal = ({
       {/* MAIN MODAL */}
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-60 px-2">
         <div className="bg-[#2b2b2b] rounded-2xl w-full max-w-[95vw] md:max-w-4xl max-h-[90vh] flex flex-col border border-[#d4d4d4] shadow-xl">
-
           {/* HEADER */}
           <div className="p-4 sm:p-6 border-b border-[#444]">
             <h2 className="text-lg sm:text-xl font-bold text-[#fba919]">
@@ -73,9 +72,7 @@ const BulkAttendanceModal = ({
             </h2>
 
             <div className="mt-4 flex flex-col gap-2">
-              <label className="text-white font-medium">
-                Filter by Role:
-              </label>
+              <label className="text-white font-medium">Filter by Role:</label>
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
@@ -92,7 +89,6 @@ const BulkAttendanceModal = ({
 
           {/* CONTENT */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
-
             {/* ✅ MOBILE VIEW (CARDS) */}
             <div className="md:hidden space-y-3">
               {filteredEmployees.map((emp) => {
@@ -159,8 +155,7 @@ const BulkAttendanceModal = ({
 
                 <tbody>
                   {filteredEmployees.map((emp) => {
-                    const alreadyRecorded =
-                      attendanceMap[`${emp.id}-${today}`];
+                    const alreadyRecorded = attendanceMap[`${emp.id}-${today}`];
 
                     return (
                       <tr key={emp.id} className="hover:bg-[#1f1f1f]">
@@ -205,12 +200,15 @@ const BulkAttendanceModal = ({
                 </tbody>
               </table>
             </div>
-
           </div>
 
           {/* FOOTER */}
           <div className="p-4 border-t border-[#444] flex flex-col sm:flex-row gap-2 justify-end">
-            <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
+            <Button
+              variant="secondary"
+              onClick={onClose}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button onClick={handleSubmit} className="w-full sm:w-auto">

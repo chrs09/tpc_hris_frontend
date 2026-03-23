@@ -43,8 +43,7 @@ const UsersPage = () => {
       user.username.toLowerCase().includes(search.toLowerCase()) ||
       user.email.toLowerCase().includes(search.toLowerCase());
 
-    const matchesRole =
-      roleFilter === "all" || user.role === roleFilter;
+    const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
     const matchesStatus =
       statusFilter === "all" ||
@@ -54,11 +53,14 @@ const UsersPage = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / usersPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / usersPerPage),
+  );
 
   const paginatedUsers = filteredUsers.slice(
     (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage
+    currentPage * usersPerPage,
   );
 
   useEffect(() => {
@@ -77,12 +79,9 @@ const UsersPage = () => {
 
   return (
     <div className="bg-gray-50 min-h-screen p-6">
-
       {/* ================= HEADER ================= */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-        <h2 className="text-2xl font-bold text-[#2b2b2b]">
-          User Management
-        </h2>
+        <h2 className="text-2xl font-bold text-[#2b2b2b]">User Management</h2>
 
         <div className="flex flex-wrap gap-3">
           <input
@@ -138,9 +137,7 @@ const UsersPage = () => {
       {/* ================= SUCCESS BANNER ================= */}
       {generatedCredentials && (
         <div className="mb-6 bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl">
-          <div className="font-semibold mb-1">
-            User Created Successfully
-          </div>
+          <div className="font-semibold mb-1">User Created Successfully</div>
           <div className="text-sm">
             Username: <strong>{generatedCredentials.username}</strong>
           </div>
@@ -160,7 +157,6 @@ const UsersPage = () => {
 
       {/* ================= USERS CONTAINER ================= */}
       <div className="bg-white rounded-2xl shadow-sm border">
-
         {/* ================= MOBILE ================= */}
         <div className="sm:hidden p-4 space-y-4">
           {loading ? (
@@ -175,16 +171,12 @@ const UsersPage = () => {
                   <div className="font-semibold text-gray-800 ">
                     {user.username}
                   </div>
-                  <div className="text-xs text-gray-400">
-                    {user.email}
-                  </div>
+                  <div className="text-xs text-gray-400">{user.email}</div>
                 </div>
 
                 <div className="flex justify-between mb-2">
                   <span className="text-sm text-gray-500">Role:</span>
-                  <span className="capitalize font-medium">
-                    {user.role}
-                  </span>
+                  <span className="capitalize font-medium">{user.role}</span>
                 </div>
 
                 <div className="flex justify-between mb-4">
@@ -222,7 +214,6 @@ const UsersPage = () => {
           ) : (
             <div className="rounded-2xl border overflow-hidden">
               <table className="w-full text-sm">
-
                 <thead className="bg-gray-50">
                   <tr className="text-gray-500 text-xs uppercase tracking-wide">
                     <th className="py-4 px-6 text-left font-medium">User</th>
@@ -235,7 +226,10 @@ const UsersPage = () => {
                 <tbody>
                   {paginatedUsers.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="text-center py-10 text-gray-400">
+                      <td
+                        colSpan="4"
+                        className="text-center py-10 text-gray-400"
+                      >
                         No users found
                       </td>
                     </tr>

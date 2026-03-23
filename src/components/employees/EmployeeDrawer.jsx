@@ -4,10 +4,6 @@ import { updateEmployeeDetails } from "../../api/employee";
 import DefaultProfileImage from "./../../assets/logo/default/default-profile.jpg";
 import EmployeeForm from "./EmployeeForm";
 
-
-
-
-
 const tabs = [
   { key: "basic", label: "Basic Information" },
   { key: "personal", label: "Personal Details" },
@@ -15,15 +11,19 @@ const tabs = [
   { key: "files", label: "Employment Files" },
 ];
 
-export default function EmployeeDrawer({ employee, isOpen, onClose, onSuccess }) {
+export default function EmployeeDrawer({
+  employee,
+  isOpen,
+  onClose,
+  onSuccess,
+}) {
   const [activeTab, setActiveTab] = useState("basic");
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(() =>
-    employee ? mapEmployeeToForm(employee) : {}
+    employee ? mapEmployeeToForm(employee) : {},
   );
   const [previewImage, setPreviewImage] = useState(null);
   const [toast, setToast] = useState(null);
-
 
   if (!isOpen || !employee) return null;
 
@@ -91,8 +91,7 @@ export default function EmployeeDrawer({ employee, isOpen, onClose, onSuccess })
 
       await updateEmployeeDetails(employee.id, formDataUpload);
 
-       if (onSuccess) onSuccess();
-
+      if (onSuccess) onSuccess();
     } catch (err) {
       console.error("Update failed:", err);
 
@@ -117,7 +116,6 @@ export default function EmployeeDrawer({ employee, isOpen, onClose, onSuccess })
 
       {/* Drawer */}
       <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
-
         {/* HEADER */}
         <div className="p-6 border-b flex justify-between items-center">
           <h2 className="text-xl font-semibold">Employee Details</h2>
@@ -171,7 +169,7 @@ export default function EmployeeDrawer({ employee, isOpen, onClose, onSuccess })
           </div>
         </div>
 
-        <EmployeeForm 
+        <EmployeeForm
           employee={employee}
           formData={formData}
           isEditing={isEditing}
@@ -181,7 +179,6 @@ export default function EmployeeDrawer({ employee, isOpen, onClose, onSuccess })
           previewImage={previewImage}
           setPreviewImage={setPreviewImage}
         />
-
       </div>
 
       {/* IMAGE PREVIEW */}
@@ -224,6 +221,3 @@ export default function EmployeeDrawer({ employee, isOpen, onClose, onSuccess })
     </>
   );
 }
-
-
-
