@@ -54,8 +54,8 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
     prev_company: "",
     prev_position: "",
     prev_from: "",
-    prev_to: "",  
-    
+    prev_to: "",
+
     // NEW ARRAY FIELDS
     education_records: [],
     employment_history: [],

@@ -8,12 +8,7 @@ const getFileUrl = (filePath) => {
     ? filePath
     : `${import.meta.env.VITE_API_URL}/${filePath}`;
 };
-const genderOptions = [
-  "Male",
-  "Female",
-  "Other",
-  "Prefer not to say",
-];
+const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
 
 const emptyEducation = {
   level: "",
@@ -44,7 +39,6 @@ export default function EmployeeForm({
   const profileImageFromDB = employee?.files?.find(
     (f) => f.document_type === "PROFILE_IMAGE",
   )?.file_url;
-
 
   const educationRecords = formData.education_records || [];
   const employmentHistory = formData.employment_history || [];

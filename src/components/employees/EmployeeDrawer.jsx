@@ -138,10 +138,7 @@ export default function EmployeeDrawer({
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black/40 z-40"
-        onClick={handleClose}
-      />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
 
       <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
         <div className="p-6 border-b flex items-center justify-between">
