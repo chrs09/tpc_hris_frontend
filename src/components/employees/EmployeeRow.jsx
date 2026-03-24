@@ -1,13 +1,13 @@
 export default function EmployeeRow({ employee, onView }) {
   return (
     <tr className="hover:bg-[#b3b3b3] transition cursor-pointer">
-      <td className="px-6 py-4 font-medium text-black">
+      <td className="px-6 py-4 font-medium text-black capitalize">
         {employee.first_name} {employee.last_name}
       </td>
 
-      <td className="px-6 py-4 text-black">{employee.department}</td>
+      <td className="px-6 py-4 text-black capitalize">{employee.department}</td>
 
-      <td className="px-6 py-4 text-black">{employee.position}</td>
+      <td className="px-6 py-4 text-black capitalize">{employee.position}</td>
 
       <td className="px-6 py-4 text-right">
         <button

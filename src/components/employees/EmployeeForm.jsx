@@ -1,10 +1,34 @@
 import DefaultProfileImage from "./../../assets/logo/default/default-profile.jpg";
+import { civilStatusOptions } from "../../constants/civilStatus";
+import { employeeRoles } from "../../constants/employeeRole";
 
 const getFileUrl = (filePath) => {
   if (!filePath) return "";
   return filePath.startsWith("http")
     ? filePath
     : `${import.meta.env.VITE_API_URL}/${filePath}`;
+};
+const genderOptions = [
+  "Male",
+  "Female",
+  "Other",
+  "Prefer not to say",
+];
+
+const emptyEducation = {
+  level: "",
+  institution: "",
+  degree: "",
+  year_from: "",
+  year_to: "",
+  skills: "",
+};
+
+const emptyEmployment = {
+  company_name: "",
+  position: "",
+  date_from: "",
+  date_to: "",
 };
 
 export default function EmployeeForm({
@@ -21,6 +45,55 @@ export default function EmployeeForm({
     (f) => f.document_type === "PROFILE_IMAGE",
   )?.file_url;
 
+
+  const educationRecords = formData.education_records || [];
+  const employmentHistory = formData.employment_history || [];
+
+  const handleEducationChange = (index, field, value) => {
+    const updated = [...educationRecords];
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
+    handleChange("education_records", updated);
+  };
+
+  const addEducation = () => {
+    handleChange("education_records", [
+      ...educationRecords,
+      { ...emptyEducation },
+    ]);
+  };
+
+  const removeEducation = (index) => {
+    const updated = educationRecords.filter((_, i) => i !== index);
+    handleChange("education_records", updated);
+  };
+
+  const handleEmploymentChange = (index, field, value) => {
+    const updated = [...employmentHistory];
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
+    handleChange("employment_history", updated);
+  };
+
+  const addEmployment = () => {
+    handleChange("employment_history", [
+      ...employmentHistory,
+      { ...emptyEmployment },
+    ]);
+  };
+
+  const removeEmployment = (index) => {
+    const updated = employmentHistory.filter((_, i) => i !== index);
+    handleChange("employment_history", updated);
+  };
+
+  const departmentOptions = Object.values(employeeRoles).filter(
+    (option) => option !== "All",
+  );
   return (
     <div className="p-6 space-y-10">
       {/* ================= BASIC ================= */}
@@ -66,6 +139,7 @@ export default function EmployeeForm({
                   <span className="text-sm text-gray-600">Status</span>
 
                   <button
+                    type="button"
                     onClick={() =>
                       handleChange("is_active", formData.is_active ? 0 : 1)
                     }
@@ -116,6 +190,7 @@ export default function EmployeeForm({
               value={formData.department}
               isEditing={isEditing}
               onChange={handleChange}
+              options={departmentOptions}
             />
             <EditableField
               label="Position"
@@ -161,6 +236,7 @@ export default function EmployeeForm({
               value={formData.civil_status}
               isEditing={isEditing}
               onChange={handleChange}
+              options={civilStatusOptions}
             />
             <EditableField
               label="Gender"
@@ -168,6 +244,7 @@ export default function EmployeeForm({
               value={formData.gender}
               isEditing={isEditing}
               onChange={handleChange}
+              options={genderOptions}
             />
             <EditableField
               label="Citizenship"
@@ -275,76 +352,123 @@ export default function EmployeeForm({
             />
           </Section>
 
-          <Section title="Education">
-            <EditableField
-              label="Elementary"
-              field="elementary"
-              value={formData.elementary}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Highschool"
-              field="highschool"
-              value={formData.highschool}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="College"
-              field="college"
-              value={formData.college}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Degree"
-              field="degree"
-              value={formData.degree}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Skills"
-              field="skills"
-              value={formData.skills}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-          </Section>
+          <DynamicSection
+            title="Education"
+            buttonLabel="Add School"
+            isEditing={isEditing}
+            onAdd={addEducation}
+            emptyMessage="No education records yet."
+          >
+            {educationRecords.map((record, index) => (
+              <CardBlock
+                key={index}
+                title={`School ${index + 1}`}
+                isEditing={isEditing}
+                onRemove={() => removeEducation(index)}
+              >
+                <EditableArrayField
+                  label="Level"
+                  value={record.level}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEducationChange(index, "level", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Institution"
+                  value={record.institution}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEducationChange(index, "institution", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Degree / Course"
+                  value={record.degree}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEducationChange(index, "degree", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Year From"
+                  value={record.year_from}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEducationChange(index, "year_from", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Year To"
+                  value={record.year_to}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEducationChange(index, "year_to", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Skills"
+                  value={record.skills}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEducationChange(index, "skills", value)
+                  }
+                />
+              </CardBlock>
+            ))}
+          </DynamicSection>
 
-          <Section title="Previous Employment">
-            <EditableField
-              label="Company"
-              field="prev_company"
-              value={formData.prev_company}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Position"
-              field="prev_position"
-              value={formData.prev_position}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="From"
-              field="prev_from"
-              value={formData.prev_from}
-              type="date"
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="To"
-              field="prev_to"
-              value={formData.prev_to}
-              type="date"
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-          </Section>
+          <DynamicSection
+            title="Employment History"
+            buttonLabel="Add Employment"
+            isEditing={isEditing}
+            onAdd={addEmployment}
+            emptyMessage="No employment records yet."
+          >
+            {employmentHistory.map((record, index) => (
+              <CardBlock
+                key={index}
+                title={`Employment ${index + 1}`}
+                isEditing={isEditing}
+                onRemove={() => removeEmployment(index)}
+              >
+                <EditableArrayField
+                  label="Company Name"
+                  value={record.company_name}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEmploymentChange(index, "company_name", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Position"
+                  value={record.position}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEmploymentChange(index, "position", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Date From"
+                  type="date"
+                  value={record.date_from}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEmploymentChange(index, "date_from", value)
+                  }
+                />
+                <EditableArrayField
+                  label="Date To"
+                  type="date"
+                  value={record.date_to}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleEmploymentChange(index, "date_to", value)
+                  }
+                />
+              </CardBlock>
+            ))}
+          </DynamicSection>
 
           <Section title="Character Reference">
             <EditableField
@@ -512,6 +636,124 @@ function Section({ title, children }) {
   );
 }
 
+function EditableArrayField({
+  label,
+  value,
+  isEditing,
+  onChange,
+  type = "text",
+  options = null,
+}) {
+  const isSelect = Array.isArray(options) && options.length > 0;
+
+  return (
+    <div className="space-y-1">
+      <label className="text-sm text-black">{label}</label>
+
+      {isEditing ? (
+        isSelect ? (
+          <select
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+          >
+            <option value="">Select {label}</option>
+            {options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type}
+            value={value || ""}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+          />
+        )
+      ) : (
+        <p className="font-serif">{value || "-"}</p>
+      )}
+    </div>
+  );
+}
+
+function DynamicSection({
+  title,
+  buttonLabel,
+  isEditing,
+  onAdd,
+  emptyMessage,
+  children,
+}) {
+  const items = Array.isArray(children) ? children.filter(Boolean) : [];
+  const hasItems = items.length > 0;
+
+  return (
+    <div className="space-y-4">
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-[#2b2b2b]">{title}</h3>
+      </div>
+
+      {!hasItems ? (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-500">{emptyMessage}</p>
+
+          {isEditing && (
+            <div>
+              <button
+                type="button"
+                onClick={onAdd}
+                className="px-4 py-2 rounded-lg border border-[#2b2b2b] text-[#2b2b2b] text-sm hover:bg-gray-50"
+              >
+                {buttonLabel}
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="space-y-5">{items}</div>
+
+          {isEditing && (
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={onAdd}
+                className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#2b2b2b] text-[#2b2b2b] text-sm hover:bg-gray-50"
+              >
+                {buttonLabel}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CardBlock({ title, isEditing, onRemove, children }) {
+  return (
+    <div className="border rounded-xl p-4 bg-gray-50 space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-semibold text-[#2b2b2b]">{title}</h4>
+
+        {isEditing && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="text-sm text-red-600 hover:underline"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{children}</div>
+    </div>
+  );
+}
 /* EDITABLE FIELD */
 function EditableField({
   label,
@@ -520,18 +762,36 @@ function EditableField({
   isEditing,
   onChange,
   type = "text",
+  options = null,
 }) {
+  const isSelect = Array.isArray(options) && options.length > 0;
+
   return (
     <div className="space-y-1">
       <label className="text-sm text-black">{label}</label>
 
       {isEditing ? (
-        <input
-          type={type}
-          value={value || ""}
-          onChange={(e) => onChange(field, e.target.value)}
-          className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-1"
-        />
+        isSelect ? (
+          <select
+            value={value || ""}
+            onChange={(e) => onChange(field, e.target.value)}
+            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+          >
+            <option value="">Select {label}</option>
+            {options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={type}
+            value={value || ""}
+            onChange={(e) => onChange(field, e.target.value)}
+            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+          />
+        )
       ) : (
         <p className="font-serif">{value || "-"}</p>
       )}

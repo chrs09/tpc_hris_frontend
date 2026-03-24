@@ -214,8 +214,8 @@ const UsersPage = () => {
           ) : (
             <div className="rounded-2xl border overflow-hidden">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr className="text-gray-500 text-xs uppercase tracking-wide">
+                <thead className="bg-[#2b2b2b] text-white">
+                  <tr className="text-white text-xs uppercase tracking-wide">
                     <th className="py-4 px-6 text-left font-medium">User</th>
                     <th className="px-6 text-left font-medium">Role</th>
                     <th className="px-6 text-left font-medium">Status</th>
@@ -274,7 +274,7 @@ const UsersPage = () => {
 
                         <td className="px-6 text-right">
                           <button
-                            className="px-4 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-100 transition"
+                            className="px-4 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-300 transition cursor-pointer"
                             onClick={() => {
                               setEditingUser(user);
                               setDrawerOpen(true);
@@ -296,7 +296,7 @@ const UsersPage = () => {
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((prev) => prev - 1)}
-              className="px-4 py-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-100"
+              className="px-4 py-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-100 cursor-pointer"
             >
               Prev
             </button>
@@ -308,7 +308,7 @@ const UsersPage = () => {
             <button
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((prev) => prev + 1)}
-              className="px-4 py-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-100"
+              className="px-4 py-1.5 border rounded-lg disabled:opacity-40 hover:bg-gray-100 cursor-pointer"
             >
               Next
             </button>

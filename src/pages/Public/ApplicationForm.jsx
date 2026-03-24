@@ -56,7 +56,7 @@ export default function ApplicationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center p-6">
       <div className="w-full max-w-xl bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 space-y-6 border border-gray-200">
         {/* HEADER */}
         <div>

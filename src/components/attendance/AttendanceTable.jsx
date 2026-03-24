@@ -51,7 +51,7 @@ const AttendanceTable = ({
           {employees.map((emp) => (
             <tr key={emp.id}>
               <td
-                className={`sticky left-0 z-20 border px-4 py-2 font-medium ${
+                className={`sticky left-0 z-20 border px-4 py-2 font-medium capitalize ${
                   departmentColors[emp.role] || "bg-white"
                 }`}
               >

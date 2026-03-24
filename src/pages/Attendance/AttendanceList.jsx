@@ -53,7 +53,7 @@ const AttendanceList = () => {
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
 
-  const employeesPerPage = 10;
+  const employeesPerPage = 15;
 
   /* ---------------- FETCH ---------------- */
   useEffect(() => {
@@ -219,7 +219,8 @@ const AttendanceList = () => {
         </div>
       )}
       {/* Editable Week Indicator */}
-      <div className="mb-4 text-sm font-semibold text-green-600">
+      {/* display-none */}
+      <div className="mb-4 text-sm text-gray-600 hidden">
         Editable Week: {formattedRange} (Mon–Sat)
       </div>
 

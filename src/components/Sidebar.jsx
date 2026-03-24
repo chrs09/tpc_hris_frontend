@@ -293,6 +293,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   className="bg-[#3a3a3a] p-2 rounded text-xs flex justify-between"
                 >
                   <span>{r.message}</span>
+                  <span className="text-[10px] text-gray-300 capitalize font-bold">
+                    by {r.created_by_username || "Unknown"}
+                  </span>
                   <button
                     onClick={() => handleResolve(r.id)}
                     className="text-red-400"
@@ -314,7 +317,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                className="w-full p-2 rounded text-black mb-4"
+                className="w-full p-2 rounded text-white mb-4"
                 rows="3"
               />
 
