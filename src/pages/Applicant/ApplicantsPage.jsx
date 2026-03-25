@@ -136,7 +136,9 @@ function InfoCard({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900">{value || "-"}</p>
+      <p className="mt-2 wrap-break-word text-sm text-gray-900">
+        {value || "-"}
+      </p>
     </div>
   );
 }
@@ -165,7 +167,9 @@ function ApplicantDrawer({
       <div className="relative ml-auto h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Applicant Details</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Applicant Details
+            </h2>
             <p className="text-sm text-gray-500">
               Review applicant information, remarks, and status
             </p>
@@ -209,9 +213,18 @@ function ApplicantDrawer({
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InfoCard label="Email" value={applicant.email} />
-                <InfoCard label="Contact Number" value={applicant.contact_number} />
-                <InfoCard label="Status" value={prettifyStatus(applicant.status)} />
-                <InfoCard label="Submitted" value={formatDate(applicant.created_at)} />
+                <InfoCard
+                  label="Contact Number"
+                  value={applicant.contact_number}
+                />
+                <InfoCard
+                  label="Status"
+                  value={prettifyStatus(applicant.status)}
+                />
+                <InfoCard
+                  label="Submitted"
+                  value={formatDate(applicant.created_at)}
+                />
               </div>
 
               <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -255,7 +268,9 @@ function ApplicantDrawer({
 
                   <button
                     onClick={onSaveStatus}
-                    disabled={changingStatus || selectedStatus === applicant.status}
+                    disabled={
+                      changingStatus || selectedStatus === applicant.status
+                    }
                     className="rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {changingStatus ? "Updating..." : "Update Status"}
@@ -300,7 +315,9 @@ function ApplicantDrawer({
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
                           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            {remark.status ? prettifyStatus(remark.status) : "Remark"}
+                            {remark.status
+                              ? prettifyStatus(remark.status)
+                              : "Remark"}
                           </span>
                           <span className="text-xs text-gray-400">
                             {formatDate(remark.created_at)}
@@ -343,7 +360,9 @@ function ApplicantCard({
           <h3 className="text-sm font-semibold leading-tight text-gray-900">
             {applicant.first_name} {applicant.last_name}
           </h3>
-          <p className="mt-1 truncate text-xs text-gray-500">{applicant.email}</p>
+          <p className="mt-1 truncate text-xs text-gray-500">
+            {applicant.email}
+          </p>
         </div>
 
         <StatusBadge status={applicant.status} />
@@ -416,7 +435,9 @@ function ApplicantColumn({
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-          <p className="text-sm text-gray-500">{applicants.length} applicant(s)</p>
+          <p className="text-sm text-gray-500">
+            {applicants.length} applicant(s)
+          </p>
         </div>
       </div>
 
@@ -503,7 +524,7 @@ export default function ApplicantsPage() {
     const grouped = {};
     COLUMNS.forEach((column) => {
       grouped[column.key] = filteredApplicants.filter(
-        (a) => a.status === column.key
+        (a) => a.status === column.key,
       );
     });
     return grouped;
@@ -556,7 +577,9 @@ export default function ApplicantsPage() {
 
     try {
       setUpdatingStatus(true);
-      await updateApplicantStatus(draggedApplicant.id, { status: targetStatus });
+      await updateApplicantStatus(draggedApplicant.id, {
+        status: targetStatus,
+      });
       await loadApplicants();
 
       if (selectedApplicant?.id === draggedApplicant.id) {
@@ -567,7 +590,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to update status."
+          : "Failed to update status.",
       );
     } finally {
       setDraggedApplicant(null);
@@ -612,7 +635,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to save remark."
+          : "Failed to save remark.",
       );
     } finally {
       setSavingRemark(false);
@@ -625,7 +648,9 @@ export default function ApplicantsPage() {
 
     try {
       setChangingStatus(true);
-      await updateApplicantStatus(selectedApplicant.id, { status: selectedStatus });
+      await updateApplicantStatus(selectedApplicant.id, {
+        status: selectedStatus,
+      });
       await loadApplicants();
       await refreshSelectedApplicant(selectedApplicant.id);
     } catch (error) {
@@ -633,7 +658,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to update status."
+          : "Failed to update status.",
       );
     } finally {
       setChangingStatus(false);
@@ -699,7 +724,9 @@ export default function ApplicantsPage() {
           <div className="space-y-6">
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">Active Pipeline</h2>
+                <h2 className="text-lg font-bold text-gray-900">
+                  Active Pipeline
+                </h2>
                 <p className="text-sm text-gray-500">
                   New applicants and candidates in process
                 </p>
