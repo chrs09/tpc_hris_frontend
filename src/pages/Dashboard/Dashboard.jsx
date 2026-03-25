@@ -7,6 +7,7 @@ import UsersPage from "../Users/UsersPage";
 import AdminTrips from "../Admin/AdminTrips";
 import DriverTrips from "../Driver/DriverTrips";
 import EmployeeListPage from "../Employee/EmployeeListPage";
+import ApplicantsPage from "../Applicant/ApplicantsPage";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -43,6 +44,7 @@ const Dashboard = () => {
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
+          <Route path="applicants" element={<ApplicantsPage />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
           <Route path="settings" element={<div>Settings</div>} />

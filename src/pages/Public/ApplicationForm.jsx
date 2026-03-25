@@ -56,7 +56,7 @@ export default function ApplicationForm() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-100 to-gray-200 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#2b2b2b] flex items-center justify-center p-6">
       <div className="w-full max-w-xl bg-white/80 backdrop-blur-md rounded-2xl shadow-xl p-8 space-y-6 border border-gray-200">
         {/* HEADER */}
         <div>
@@ -80,7 +80,7 @@ export default function ApplicationForm() {
               placeholder="First Name"
               value={form.first_name}
               onChange={(e) => handleChange("first_name", e.target.value)}
-              className="w-full border border-gray-200 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
               required
             />
 
@@ -88,7 +88,7 @@ export default function ApplicationForm() {
               placeholder="Last Name"
               value={form.last_name}
               onChange={(e) => handleChange("last_name", e.target.value)}
-              className="w-full border border-gray-200 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
               required
             />
           </div>
@@ -98,7 +98,7 @@ export default function ApplicationForm() {
             placeholder="Email Address"
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
-            className="w-full border border-gray-200 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
             required
           />
 
@@ -106,7 +106,7 @@ export default function ApplicationForm() {
             placeholder="Contact Number"
             value={form.contact_number}
             onChange={(e) => handleChange("contact_number", e.target.value)}
-            className="w-full border border-gray-200 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
             required
           />
 
@@ -114,12 +114,12 @@ export default function ApplicationForm() {
             placeholder="Position Applied"
             value={form.position_applied}
             onChange={(e) => handleChange("position_applied", e.target.value)}
-            className="w-full border border-gray-200 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
             required
           />
 
           {/* FILE UPLOAD */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-black transition">
+          <div className="border-2 border-dashed border-gray-400rounded-lg p-4 text-center hover:border-black transition">
             <input
               type="file"
               accept=".pdf,image/*"
@@ -143,7 +143,7 @@ export default function ApplicationForm() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition flex items-center justify-center gap-2"
+            className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-[#a09f9f] transition flex items-center justify-center gap-2"
           >
             {loading && (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
