@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  getApplicants,
-  getApplicantDetail,
-  updateApplicantStatus,
   addApplicantRemark,
+  convertApplicantToEmployee,
+  getApplicantDetail,
+  getApplicants,
+  updateApplicantStatus,
 } from "../../api/adminApplicants";
+import { employeeRoleConvert } from "../../constants/employeeRole";
 
 const COLUMNS = [
   { key: "pending", label: "Pending" },
@@ -136,9 +138,107 @@ function InfoCard({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900">
-        {value || "-"}
-      </p>
+      <p className="mt-2 wrap-break-word text-sm text-gray-900">{value || "-"}</p>
+    </div>
+  );
+}
+
+function ConvertApplicantModal({
+  isOpen,
+  applicant,
+  department,
+  setDepartment,
+  position,
+  setPosition,
+  converting,
+  onClose,
+  onConfirm,
+}) {
+  if (!isOpen || !applicant) return null;
+
+  return (
+    <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Convert to Employee
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              This will create a new employee record from the hired applicant.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={converting}
+            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">Applicant:</span>{" "}
+              {applicant.first_name} {applicant.last_name}
+            </p>
+            <p className="mt-1 text-sm text-gray-700">
+              <span className="font-semibold">Applied Position:</span>{" "}
+              {applicant.position_applied || "-"}
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Department
+            </label>
+            <select
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+              className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+            >
+              <option value="">Select department</option>
+
+              {Object.entries(employeeRoleConvert).map(([key, label]) => (
+                <option key={key} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Position Override <span className="text-gray-400">(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              placeholder="Leave blank to use applied position"
+              className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={converting}
+            className="rounded-2xl border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={converting || !department.trim()}
+            className="rounded-2xl bg-green-600 px-5 py-3 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {converting ? "Converting..." : "Convert"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -157,6 +257,7 @@ function ApplicantDrawer({
   onSaveStatus,
   onClose,
   onPreviewCV,
+  onOpenConvert,
 }) {
   if (!isOpen) return null;
 
@@ -225,6 +326,14 @@ function ApplicantDrawer({
                   label="Submitted"
                   value={formatDate(applicant.created_at)}
                 />
+                <InfoCard
+                  label="Hired At"
+                  value={formatDate(applicant.hired_at)}
+                />
+                <InfoCard
+                  label="Converted At"
+                  value={formatDate(applicant.converted_at)}
+                />
               </div>
 
               <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -245,6 +354,22 @@ function ApplicantDrawer({
                       No CV Available
                     </span>
                   )}
+
+                  {applicant.status === "hired" &&
+                    !applicant.is_converted_to_employee && (
+                      <button
+                        onClick={() => onOpenConvert(applicant)}
+                        className="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                      >
+                        Convert to Employee
+                      </button>
+                    )}
+
+                  {applicant.is_converted_to_employee && (
+                    <span className="rounded-xl bg-green-100 px-4 py-2 text-sm font-medium text-green-700">
+                      Converted to Employee #{applicant.employee_id}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -257,7 +382,8 @@ function ApplicantDrawer({
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    disabled={applicant.is_converted_to_employee}
                   >
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -485,6 +611,11 @@ export default function ApplicantsPage() {
   const [selectedStatus, setSelectedStatus] = useState("pending");
   const [changingStatus, setChangingStatus] = useState(false);
 
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertDepartment, setConvertDepartment] = useState("");
+  const [convertPosition, setConvertPosition] = useState("");
+  const [convertingApplicant, setConvertingApplicant] = useState(false);
+
   const loadApplicants = async () => {
     try {
       setLoading(true);
@@ -524,7 +655,7 @@ export default function ApplicantsPage() {
     const grouped = {};
     COLUMNS.forEach((column) => {
       grouped[column.key] = filteredApplicants.filter(
-        (a) => a.status === column.key,
+        (a) => a.status === column.key
       );
     });
     return grouped;
@@ -590,7 +721,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to update status.",
+          : "Failed to update status."
       );
     } finally {
       setDraggedApplicant(null);
@@ -635,7 +766,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to save remark.",
+          : "Failed to save remark."
       );
     } finally {
       setSavingRemark(false);
@@ -658,10 +789,55 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to update status.",
+          : "Failed to update status."
       );
     } finally {
       setChangingStatus(false);
+    }
+  };
+
+  const handleOpenConvert = (applicant) => {
+    setConvertDepartment("");
+    setConvertPosition(applicant?.position_applied || "");
+    setConvertOpen(true);
+  };
+
+  const handleCloseConvert = () => {
+    if (convertingApplicant) return;
+    setConvertOpen(false);
+    setConvertDepartment("");
+    setConvertPosition("");
+  };
+
+  const handleConfirmConvert = async () => {
+    if (!selectedApplicant || !convertDepartment.trim() || convertingApplicant) {
+      return;
+    }
+
+    try {
+      setConvertingApplicant(true);
+
+      await convertApplicantToEmployee(selectedApplicant.id, {
+        department: convertDepartment.trim(),
+        position:
+          convertPosition.trim() === selectedApplicant.position_applied
+            ? ""
+            : convertPosition.trim(),
+      });
+
+      await loadApplicants();
+      await refreshSelectedApplicant(selectedApplicant.id);
+      setConvertOpen(false);
+      alert("Applicant converted to employee successfully.");
+    } catch (error) {
+      console.error("Failed to convert applicant:", error);
+      alert(
+        error?.response?.data?.detail
+          ? JSON.stringify(error.response.data.detail)
+          : "Failed to convert applicant."
+      );
+    } finally {
+      setConvertingApplicant(false);
     }
   };
 
@@ -673,7 +849,7 @@ export default function ApplicantsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-550 space-y-6">
+      <div className="mx-auto max-w-425 space-y-6">
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
@@ -801,6 +977,19 @@ export default function ApplicantsPage() {
         onSaveStatus={handleSaveStatusFromDrawer}
         onClose={closeDrawer}
         onPreviewCV={handlePreviewCV}
+        onOpenConvert={handleOpenConvert}
+      />
+
+      <ConvertApplicantModal
+        isOpen={convertOpen}
+        applicant={selectedApplicant}
+        department={convertDepartment}
+        setDepartment={setConvertDepartment}
+        position={convertPosition}
+        setPosition={setConvertPosition}
+        converting={convertingApplicant}
+        onClose={handleCloseConvert}
+        onConfirm={handleConfirmConvert}
       />
     </div>
   );

@@ -24,3 +24,11 @@ export const addApplicantRemark = async (id, payload) => {
   const res = await api.post(`/admin/applicants/${id}/remarks`, payload);
   return res.data;
 };
+
+export const convertApplicantToEmployee = async (applicantId, payload) => {
+  const response = await api.post(
+    `/admin/applicants/${applicantId}/convert-to-employee`,
+    payload
+  );
+  return response.data;
+};

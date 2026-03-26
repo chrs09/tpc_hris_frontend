@@ -10,3 +10,15 @@ export const employeeRoles = {
   CpdcDriver: "CpdcDriver",
   CpdcHelper: "CpdcHelper",
 };
+
+export const employeeRoleConvert = {
+  Admin: "Admin",
+  Yard: "Yard",
+  Motorpol: "Motorpool",
+  Dumptrack: "Dumptruck",
+  Labor: "Labor",
+  CdcDriver: "CdcDriver",
+  CdcHelper: "CdcHelper",
+  CpdcDriver: "CpdcDriver",
+  CpdcHelper: "CpdcHelper",
+}
