@@ -138,7 +138,9 @@ function InfoCard({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900">{value || "-"}</p>
+      <p className="mt-2 wrap-break-word text-sm text-gray-900">
+        {value || "-"}
+      </p>
     </div>
   );
 }
@@ -210,7 +212,8 @@ function ConvertApplicantModal({
 
           <div>
             <label className="mb-2 block text-sm font-semibold text-gray-700">
-              Position Override <span className="text-gray-400">(optional)</span>
+              Position Override{" "}
+              <span className="text-gray-400">(optional)</span>
             </label>
             <input
               type="text"
@@ -655,7 +658,7 @@ export default function ApplicantsPage() {
     const grouped = {};
     COLUMNS.forEach((column) => {
       grouped[column.key] = filteredApplicants.filter(
-        (a) => a.status === column.key
+        (a) => a.status === column.key,
       );
     });
     return grouped;
@@ -721,7 +724,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to update status."
+          : "Failed to update status.",
       );
     } finally {
       setDraggedApplicant(null);
@@ -766,7 +769,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to save remark."
+          : "Failed to save remark.",
       );
     } finally {
       setSavingRemark(false);
@@ -789,7 +792,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to update status."
+          : "Failed to update status.",
       );
     } finally {
       setChangingStatus(false);
@@ -810,7 +813,11 @@ export default function ApplicantsPage() {
   };
 
   const handleConfirmConvert = async () => {
-    if (!selectedApplicant || !convertDepartment.trim() || convertingApplicant) {
+    if (
+      !selectedApplicant ||
+      !convertDepartment.trim() ||
+      convertingApplicant
+    ) {
       return;
     }
 
@@ -834,7 +841,7 @@ export default function ApplicantsPage() {
       alert(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
-          : "Failed to convert applicant."
+          : "Failed to convert applicant.",
       );
     } finally {
       setConvertingApplicant(false);
