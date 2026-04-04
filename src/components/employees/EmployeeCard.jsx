@@ -16,7 +16,8 @@ export default function EmployeeCard({ employee, onView }) {
     ? getFileUrl(profileImage)
     : DefaultProfileImage;
 
-  const fullName = `${employee.first_name || ""} ${employee.last_name || ""}`.trim();
+  const fullName =
+    `${employee.first_name || ""} ${employee.last_name || ""}`.trim();
 
   const initials = `${employee.first_name?.[0] || ""}${
     employee.last_name?.[0] || ""

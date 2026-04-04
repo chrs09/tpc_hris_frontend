@@ -315,13 +315,37 @@ const AdminDashboard = () => {
       {/* KPI */}
       <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
         <StatCard title="Employees" value={stats.total_employees} />
-        <StatCard title="Present" value={stats.present} dotColor="bg-green-400" />
+        <StatCard
+          title="Present"
+          value={stats.present}
+          dotColor="bg-green-400"
+        />
         <StatCard title="Absent" value={stats.absent} dotColor="bg-red-400" />
-        <StatCard title="On Leave" value={stats.on_leave} dotColor="bg-yellow-300" />
-        <StatCard title="Applicants" value={stats.total_applicants} dotColor="bg-purple-400" />
-        <StatCard title="Hired %" value={`${applicantConversionRate}%`} dotColor="bg-pink-400" />
-        <StatCard title="Active Trips" value={stats.active_trips} dotColor="bg-cyan-400" />
-        <StatCard title="Pending" value={stats.pending_trip_approvals} dotColor="bg-orange-400" />
+        <StatCard
+          title="On Leave"
+          value={stats.on_leave}
+          dotColor="bg-yellow-300"
+        />
+        <StatCard
+          title="Applicants"
+          value={stats.total_applicants}
+          dotColor="bg-purple-400"
+        />
+        <StatCard
+          title="Hired %"
+          value={`${applicantConversionRate}%`}
+          dotColor="bg-pink-400"
+        />
+        <StatCard
+          title="Active Trips"
+          value={stats.active_trips}
+          dotColor="bg-cyan-400"
+        />
+        <StatCard
+          title="Pending"
+          value={stats.pending_trip_approvals}
+          dotColor="bg-orange-400"
+        />
       </div>
 
       {/* PROGRESS */}
@@ -424,7 +448,9 @@ const AdminDashboard = () => {
           </h3>
           <div className="space-y-2">
             <div className="bg-white/5 rounded-xl px-3 py-3 flex items-center justify-between">
-              <span className="text-xs text-blue-100/80">Applicants waiting</span>
+              <span className="text-xs text-blue-100/80">
+                Applicants waiting
+              </span>
               <span className="text-sm font-semibold text-white">
                 {stats.for_interview}
               </span>

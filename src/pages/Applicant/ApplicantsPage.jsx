@@ -179,7 +179,9 @@ function InfoCard({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900">{value || "-"}</p>
+      <p className="mt-2 wrap-break-word text-sm text-gray-900">
+        {value || "-"}
+      </p>
     </div>
   );
 }
@@ -524,28 +526,29 @@ function ApplicantDrawer({
                     </span>
                   )}
 
-                  {applicant.status === "interview" && (() => {
-                    const isSubmitted =
-                      applicant?.onboarding_is_submitted === true;
+                  {applicant.status === "interview" &&
+                    (() => {
+                      const isSubmitted =
+                        applicant?.onboarding_is_submitted === true;
 
-                    return (
-                      <button
-                        onClick={() => {
-                          if (!isSubmitted) onOpenGenerateForm(applicant);
-                        }}
-                        disabled={isSubmitted}
-                        className={`rounded-xl px-4 py-2 text-sm font-medium ${
-                          isSubmitted
-                            ? "cursor-not-allowed bg-gray-300 text-gray-600"
-                            : "bg-purple-600 text-white hover:bg-purple-700"
-                        }`}
-                      >
-                        {isSubmitted
-                          ? "Application Filled"
-                          : "Generate Employment Form"}
-                      </button>
-                    );
-                  })()}
+                      return (
+                        <button
+                          onClick={() => {
+                            if (!isSubmitted) onOpenGenerateForm(applicant);
+                          }}
+                          disabled={isSubmitted}
+                          className={`rounded-xl px-4 py-2 text-sm font-medium ${
+                            isSubmitted
+                              ? "cursor-not-allowed bg-gray-300 text-gray-600"
+                              : "bg-purple-600 text-white hover:bg-purple-700"
+                          }`}
+                        >
+                          {isSubmitted
+                            ? "Application Filled"
+                            : "Generate Employment Form"}
+                        </button>
+                      );
+                    })()}
 
                   {applicant.status === "hired" &&
                     !applicant.is_converted_to_employee && (
@@ -773,7 +776,9 @@ function ApplicantColumn({
 }) {
   const visibleApplicants = applicants.slice(0, visibleCount);
   const hasMore = applicants.length > visibleCount;
-  const canShowLess = applicants.length > COLUMN_INITIAL_LIMIT && visibleCount > COLUMN_INITIAL_LIMIT;
+  const canShowLess =
+    applicants.length > COLUMN_INITIAL_LIMIT &&
+    visibleCount > COLUMN_INITIAL_LIMIT;
 
   return (
     <div
@@ -821,7 +826,8 @@ function ApplicantColumn({
       {applicants.length > COLUMN_INITIAL_LIMIT && (
         <div className="mt-4 flex items-center justify-between gap-2">
           <p className="text-xs text-gray-500">
-            Showing {Math.min(visibleCount, applicants.length)} of {applicants.length}
+            Showing {Math.min(visibleCount, applicants.length)} of{" "}
+            {applicants.length}
           </p>
 
           <div className="flex gap-2">

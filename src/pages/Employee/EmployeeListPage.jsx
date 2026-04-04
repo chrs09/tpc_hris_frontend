@@ -33,7 +33,8 @@ export default function EmployeeListPage() {
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((emp) => {
-      const fullName = `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase();
+      const fullName =
+        `${emp.first_name || ""} ${emp.last_name || ""}`.toLowerCase();
       const department = emp.department?.toLowerCase() || "";
       const position = emp.position?.toLowerCase() || "";
       const searchValue = search.toLowerCase();
@@ -110,122 +111,117 @@ export default function EmployeeListPage() {
         </div>
       )}
 
-      
-        <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="space-y-4 flex-1">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#2b2b2b]">
-                Employees
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Browse employees by department and open any card to view full details.
-              </p>
-            </div>
+      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="space-y-4 flex-1">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#2b2b2b]">
+              Employees
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Browse employees by department and open any card to view full
+              details.
+            </p>
+          </div>
 
-            <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-              <input
-                type="text"
-                placeholder="Search employee, department, position..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border border-gray-300 bg-white rounded-xl px-4 h-11 w-full lg:max-w-sm focus:outline-none focus:ring-2 focus:ring-[#2b2b2b]/20"
-              />
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            <input
+              type="text"
+              placeholder="Search employee, department, position..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border border-gray-300 bg-white rounded-xl px-4 h-11 w-full lg:max-w-sm focus:outline-none focus:ring-2 focus:ring-[#2b2b2b]/20"
+            />
 
-              <div className="flex flex-wrap gap-2">
-                {departmentOptions.map((dept) => {
-                  const count =
-                    dept === "All"
-                      ? employees.length
-                      : employees.filter((emp) => emp.department === dept).length;
+            <div className="flex flex-wrap gap-2">
+              {departmentOptions.map((dept) => {
+                const count =
+                  dept === "All"
+                    ? employees.length
+                    : employees.filter((emp) => emp.department === dept).length;
 
-                  return (
-                    <button
-                      key={dept}
-                      type="button"
-                      onClick={() => setDepartmentFilter(dept)}
-                      className={`px-4 h-10 rounded-xl text-sm font-medium transition border
+                return (
+                  <button
+                    key={dept}
+                    type="button"
+                    onClick={() => setDepartmentFilter(dept)}
+                    className={`px-4 h-10 rounded-xl text-sm font-medium transition border
                         ${
                           departmentFilter === dept
                             ? "bg-[#2b2b2b] text-white border-[#2b2b2b]"
                             : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-100"
                         }`}
+                  >
+                    {dept}{" "}
+                    <span
+                      className={`ml-1 text-xs ${
+                        departmentFilter === dept
+                          ? "text-gray-200"
+                          : "text-gray-400"
+                      }`}
                     >
-                      {dept}{" "}
-                      <span
-                        className={`ml-1 text-xs ${
-                          departmentFilter === dept
-                            ? "text-gray-200"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        ({count})
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      ({count})
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
-
-          <div className="flex items-start">
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="h-11 px-5 bg-[#2b2b2b] text-white rounded-xl hover:bg-[#4e4e4e] transition shadow-sm"
-            >
-              + Add Employee
-            </button>
-          </div>
         </div>
 
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm text-gray-500">
-            Showing{" "}
-            <span className="font-semibold text-[#2b2b2b]">
-              {filteredEmployees.length}
-            </span>{" "}
-            employee{filteredEmployees.length !== 1 ? "s" : ""}
+        <div className="flex items-start">
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="h-11 px-5 bg-[#2b2b2b] text-white rounded-xl hover:bg-[#4e4e4e] transition shadow-sm"
+          >
+            + Add Employee
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Showing{" "}
+          <span className="font-semibold text-[#2b2b2b]">
+            {filteredEmployees.length}
+          </span>{" "}
+          employee{filteredEmployees.length !== 1 ? "s" : ""}
+        </p>
+      </div>
+
+      {filteredEmployees.length === 0 ? (
+        <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center shadow-sm">
+          <p className="text-lg font-semibold text-[#2b2b2b]">
+            No employees found
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Try changing your search or department filter.
           </p>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
+          {filteredEmployees.map((emp) => (
+            <EmployeeCard key={emp.id} employee={emp} onView={handleView} />
+          ))}
+        </div>
+      )}
 
-        {filteredEmployees.length === 0 ? (
-          <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center shadow-sm">
-            <p className="text-lg font-semibold text-[#2b2b2b]">
-              No employees found
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Try changing your search or department filter.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-            {filteredEmployees.map((emp) => (
-              <EmployeeCard
-                key={emp.id}
-                employee={emp}
-                onView={handleView}
-              />
-            ))}
-          </div>
-        )}
+      <EmployeeDrawer
+        key={selectedEmployee?.id}
+        isOpen={isViewOpen}
+        employee={selectedEmployee}
+        loading={drawerLoading}
+        onClose={() => {
+          setIsViewOpen(false);
+          setSelectedEmployee(null);
+        }}
+        onSuccess={handleUpdateSuccess}
+      />
 
-        <EmployeeDrawer
-          key={selectedEmployee?.id}
-          isOpen={isViewOpen}
-          employee={selectedEmployee}
-          loading={drawerLoading}
-          onClose={() => {
-            setIsViewOpen(false);
-            setSelectedEmployee(null);
-          }}
-          onSuccess={handleUpdateSuccess}
-        />
-
-        <AddEmployeeDrawer
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSuccess={handleCreateSuccess}
-        />
-      
+      <AddEmployeeDrawer
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={handleCreateSuccess}
+      />
 
       <style>
         {`

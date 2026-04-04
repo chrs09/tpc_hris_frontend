@@ -229,8 +229,7 @@ export default function OnBoardingForm() {
         email: onboarding.email || data.applicant?.email || "",
         contact_number:
           onboarding.contact_number || data.applicant?.contact_number || "",
-        position:
-          onboarding.position || data.applicant?.position_applied || "",
+        position: onboarding.position || data.applicant?.position_applied || "",
         education_records: data.education_records || [],
         employment_history: data.employment_history || [],
         references: data.references || [],
@@ -238,12 +237,11 @@ export default function OnBoardingForm() {
     } catch (err) {
       console.error("Failed to load onboarding form:", err);
 
-      const message =
-        err?.response?.data?.detail
-          ? typeof err.response.data.detail === "string"
-            ? err.response.data.detail
-            : JSON.stringify(err.response.data.detail)
-          : "Failed to load onboarding form.";
+      const message = err?.response?.data?.detail
+        ? typeof err.response.data.detail === "string"
+          ? err.response.data.detail
+          : JSON.stringify(err.response.data.detail)
+        : "Failed to load onboarding form.";
 
       setError(message);
       showToast(message, "error");
@@ -344,12 +342,11 @@ export default function OnBoardingForm() {
     } catch (err) {
       console.error("Failed to save onboarding form:", err);
 
-      const message =
-        err?.response?.data?.detail
-          ? typeof err.response.data.detail === "string"
-            ? err.response.data.detail
-            : JSON.stringify(err.response.data.detail)
-          : "Failed to save onboarding form.";
+      const message = err?.response?.data?.detail
+        ? typeof err.response.data.detail === "string"
+          ? err.response.data.detail
+          : JSON.stringify(err.response.data.detail)
+        : "Failed to save onboarding form.";
 
       setError(message);
       showToast(message, "error");
@@ -377,12 +374,11 @@ export default function OnBoardingForm() {
     } catch (err) {
       console.error("Failed to submit onboarding form:", err);
 
-      const message =
-        err?.response?.data?.detail
-          ? typeof err.response.data.detail === "string"
-            ? err.response.data.detail
-            : JSON.stringify(err.response.data.detail)
-          : "Failed to submit onboarding form.";
+      const message = err?.response?.data?.detail
+        ? typeof err.response.data.detail === "string"
+          ? err.response.data.detail
+          : JSON.stringify(err.response.data.detail)
+        : "Failed to submit onboarding form.";
 
       setError(message);
       showToast(message, "error");
@@ -446,38 +442,157 @@ export default function OnBoardingForm() {
         </div>
 
         <Section title="Basic Information">
-          <Field label="First Name" name="first_name" value={form.first_name} onChange={handleChange} />
-          <Field label="Last Name" name="last_name" value={form.last_name} onChange={handleChange} />
-          <Field label="Email" name="email" value={form.email} onChange={handleChange} type="email" />
-          <Field label="Department" name="department" value={form.department} onChange={handleChange} />
-          <Field label="Position" name="position" value={form.position} onChange={handleChange} />
+          <Field
+            label="First Name"
+            name="first_name"
+            value={form.first_name}
+            onChange={handleChange}
+          />
+          <Field
+            label="Last Name"
+            name="last_name"
+            value={form.last_name}
+            onChange={handleChange}
+          />
+          <Field
+            label="Email"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+            type="email"
+          />
+          <Field
+            label="Department"
+            name="department"
+            value={form.department}
+            onChange={handleChange}
+          />
+          <Field
+            label="Position"
+            name="position"
+            value={form.position}
+            onChange={handleChange}
+          />
         </Section>
 
         <Section title="Personal Information">
-          <Field label="Birthday" name="birthday" value={form.birthday} onChange={handleChange} type="date" />
-          <Field label="Birthplace" name="birthplace" value={form.birthplace} onChange={handleChange} />
-          <Field label="Gender" name="gender" value={form.gender} onChange={handleChange} options={genderOptions} />
-          <Field label="Civil Status" name="civil_status" value={form.civil_status} onChange={handleChange} options={civilStatusOptions} />
-          <Field label="Religion" name="religion" value={form.religion} onChange={handleChange} />
-          <Field label="Citizenship" name="citizenship" value={form.citizenship} onChange={handleChange} />
-          <Field label="Height" name="height" value={form.height} onChange={handleChange} />
-          <Field label="Weight" name="weight" value={form.weight} onChange={handleChange} />
-          <Field label="Language" name="language" value={form.language} onChange={handleChange} />
-          <Field label="Contact Number" name="contact_number" value={form.contact_number} onChange={handleChange} />
-          <Field label="Current Address" name="current_address" value={form.current_address} onChange={handleChange} />
-          <Field label="Provincial Address" name="provincial_address" value={form.provincial_address} onChange={handleChange} />
+          <Field
+            label="Birthday"
+            name="birthday"
+            value={form.birthday}
+            onChange={handleChange}
+            type="date"
+          />
+          <Field
+            label="Birthplace"
+            name="birthplace"
+            value={form.birthplace}
+            onChange={handleChange}
+          />
+          <Field
+            label="Gender"
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            options={genderOptions}
+          />
+          <Field
+            label="Civil Status"
+            name="civil_status"
+            value={form.civil_status}
+            onChange={handleChange}
+            options={civilStatusOptions}
+          />
+          <Field
+            label="Religion"
+            name="religion"
+            value={form.religion}
+            onChange={handleChange}
+          />
+          <Field
+            label="Citizenship"
+            name="citizenship"
+            value={form.citizenship}
+            onChange={handleChange}
+          />
+          <Field
+            label="Height"
+            name="height"
+            value={form.height}
+            onChange={handleChange}
+          />
+          <Field
+            label="Weight"
+            name="weight"
+            value={form.weight}
+            onChange={handleChange}
+          />
+          <Field
+            label="Language"
+            name="language"
+            value={form.language}
+            onChange={handleChange}
+          />
+          <Field
+            label="Contact Number"
+            name="contact_number"
+            value={form.contact_number}
+            onChange={handleChange}
+          />
+          <Field
+            label="Current Address"
+            name="current_address"
+            value={form.current_address}
+            onChange={handleChange}
+          />
+          <Field
+            label="Provincial Address"
+            name="provincial_address"
+            value={form.provincial_address}
+            onChange={handleChange}
+          />
         </Section>
 
         <Section title="Family Information">
-          <Field label="Spouse Name" name="spouse_name" value={form.spouse_name} onChange={handleChange} />
-          <Field label="Father Name" name="father_name" value={form.father_name} onChange={handleChange} />
-          <Field label="Mother Name" name="mother_name" value={form.mother_name} onChange={handleChange} />
+          <Field
+            label="Spouse Name"
+            name="spouse_name"
+            value={form.spouse_name}
+            onChange={handleChange}
+          />
+          <Field
+            label="Father Name"
+            name="father_name"
+            value={form.father_name}
+            onChange={handleChange}
+          />
+          <Field
+            label="Mother Name"
+            name="mother_name"
+            value={form.mother_name}
+            onChange={handleChange}
+          />
         </Section>
 
         <Section title="Emergency Contact">
-          <Field label="Emergency Contact Name" name="emergency_contact_name" value={form.emergency_contact_name} onChange={handleChange} />
-          <Field label="Emergency Contact Number" name="emergency_contact_number" value={form.emergency_contact_number} onChange={handleChange} />
-          <Field label="Relationship" name="emergency_relationship" value={form.emergency_relationship} onChange={handleChange} />
+          <Field
+            label="Emergency Contact Name"
+            name="emergency_contact_name"
+            value={form.emergency_contact_name}
+            onChange={handleChange}
+          />
+          <Field
+            label="Emergency Contact Number"
+            name="emergency_contact_number"
+            value={form.emergency_contact_number}
+            onChange={handleChange}
+          />
+          <Field
+            label="Relationship"
+            name="emergency_relationship"
+            value={form.emergency_relationship}
+            onChange={handleChange}
+          />
         </Section>
 
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -504,12 +619,58 @@ export default function OnBoardingForm() {
                   title={`Education ${index + 1}`}
                   onRemove={() => removeEducation(index)}
                 >
-                  <Field label="Level" value={record.level} onChange={(e) => handleEducationChange(index, "level", e.target.value)} name={`education_level_${index}`} />
-                  <Field label="Institution" value={record.institution} onChange={(e) => handleEducationChange(index, "institution", e.target.value)} name={`education_institution_${index}`} />
-                  <Field label="Degree / Course" value={record.degree} onChange={(e) => handleEducationChange(index, "degree", e.target.value)} name={`education_degree_${index}`} />
-                  <Field label="Year From" value={record.year_from} onChange={(e) => handleEducationChange(index, "year_from", e.target.value)} name={`education_year_from_${index}`} />
-                  <Field label="Year To" value={record.year_to} onChange={(e) => handleEducationChange(index, "year_to", e.target.value)} name={`education_year_to_${index}`} />
-                  <Field label="Skills" value={record.skills} onChange={(e) => handleEducationChange(index, "skills", e.target.value)} name={`education_skills_${index}`} />
+                  <Field
+                    label="Level"
+                    value={record.level}
+                    onChange={(e) =>
+                      handleEducationChange(index, "level", e.target.value)
+                    }
+                    name={`education_level_${index}`}
+                  />
+                  <Field
+                    label="Institution"
+                    value={record.institution}
+                    onChange={(e) =>
+                      handleEducationChange(
+                        index,
+                        "institution",
+                        e.target.value,
+                      )
+                    }
+                    name={`education_institution_${index}`}
+                  />
+                  <Field
+                    label="Degree / Course"
+                    value={record.degree}
+                    onChange={(e) =>
+                      handleEducationChange(index, "degree", e.target.value)
+                    }
+                    name={`education_degree_${index}`}
+                  />
+                  <Field
+                    label="Year From"
+                    value={record.year_from}
+                    onChange={(e) =>
+                      handleEducationChange(index, "year_from", e.target.value)
+                    }
+                    name={`education_year_from_${index}`}
+                  />
+                  <Field
+                    label="Year To"
+                    value={record.year_to}
+                    onChange={(e) =>
+                      handleEducationChange(index, "year_to", e.target.value)
+                    }
+                    name={`education_year_to_${index}`}
+                  />
+                  <Field
+                    label="Skills"
+                    value={record.skills}
+                    onChange={(e) =>
+                      handleEducationChange(index, "skills", e.target.value)
+                    }
+                    name={`education_skills_${index}`}
+                  />
                 </DynamicCard>
               ))
             )}
@@ -518,7 +679,9 @@ export default function OnBoardingForm() {
 
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-lg font-bold text-gray-900">Employment History</h2>
+            <h2 className="text-lg font-bold text-gray-900">
+              Employment History
+            </h2>
             <button
               type="button"
               onClick={addEmployment}
@@ -540,10 +703,44 @@ export default function OnBoardingForm() {
                   title={`Employment ${index + 1}`}
                   onRemove={() => removeEmployment(index)}
                 >
-                  <Field label="Company Name" value={record.company_name} onChange={(e) => handleEmploymentChange(index, "company_name", e.target.value)} name={`employment_company_${index}`} />
-                  <Field label="Position" value={record.position} onChange={(e) => handleEmploymentChange(index, "position", e.target.value)} name={`employment_position_${index}`} />
-                  <Field label="Date From" value={record.date_from} onChange={(e) => handleEmploymentChange(index, "date_from", e.target.value)} name={`employment_date_from_${index}`} type="date" />
-                  <Field label="Date To" value={record.date_to} onChange={(e) => handleEmploymentChange(index, "date_to", e.target.value)} name={`employment_date_to_${index}`} type="date" />
+                  <Field
+                    label="Company Name"
+                    value={record.company_name}
+                    onChange={(e) =>
+                      handleEmploymentChange(
+                        index,
+                        "company_name",
+                        e.target.value,
+                      )
+                    }
+                    name={`employment_company_${index}`}
+                  />
+                  <Field
+                    label="Position"
+                    value={record.position}
+                    onChange={(e) =>
+                      handleEmploymentChange(index, "position", e.target.value)
+                    }
+                    name={`employment_position_${index}`}
+                  />
+                  <Field
+                    label="Date From"
+                    value={record.date_from}
+                    onChange={(e) =>
+                      handleEmploymentChange(index, "date_from", e.target.value)
+                    }
+                    name={`employment_date_from_${index}`}
+                    type="date"
+                  />
+                  <Field
+                    label="Date To"
+                    value={record.date_to}
+                    onChange={(e) =>
+                      handleEmploymentChange(index, "date_to", e.target.value)
+                    }
+                    name={`employment_date_to_${index}`}
+                    type="date"
+                  />
                 </DynamicCard>
               ))
             )}
@@ -574,10 +771,38 @@ export default function OnBoardingForm() {
                   title={`Reference ${index + 1}`}
                   onRemove={() => removeReference(index)}
                 >
-                  <Field label="Name" value={record.name} onChange={(e) => handleReferenceChange(index, "name", e.target.value)} name={`reference_name_${index}`} />
-                  <Field label="Occupation" value={record.occupation} onChange={(e) => handleReferenceChange(index, "occupation", e.target.value)} name={`reference_occupation_${index}`} />
-                  <Field label="Address" value={record.address} onChange={(e) => handleReferenceChange(index, "address", e.target.value)} name={`reference_address_${index}`} />
-                  <Field label="Contact" value={record.contact} onChange={(e) => handleReferenceChange(index, "contact", e.target.value)} name={`reference_contact_${index}`} />
+                  <Field
+                    label="Name"
+                    value={record.name}
+                    onChange={(e) =>
+                      handleReferenceChange(index, "name", e.target.value)
+                    }
+                    name={`reference_name_${index}`}
+                  />
+                  <Field
+                    label="Occupation"
+                    value={record.occupation}
+                    onChange={(e) =>
+                      handleReferenceChange(index, "occupation", e.target.value)
+                    }
+                    name={`reference_occupation_${index}`}
+                  />
+                  <Field
+                    label="Address"
+                    value={record.address}
+                    onChange={(e) =>
+                      handleReferenceChange(index, "address", e.target.value)
+                    }
+                    name={`reference_address_${index}`}
+                  />
+                  <Field
+                    label="Contact"
+                    value={record.contact}
+                    onChange={(e) =>
+                      handleReferenceChange(index, "contact", e.target.value)
+                    }
+                    name={`reference_contact_${index}`}
+                  />
                 </DynamicCard>
               ))
             )}
@@ -585,10 +810,30 @@ export default function OnBoardingForm() {
         </div>
 
         <Section title="Government Information">
-          <Field label="SSS Number" name="sss" value={form.sss} onChange={handleChange} />
-          <Field label="PhilHealth Number" name="philhealth" value={form.philhealth} onChange={handleChange} />
-          <Field label="Pag-IBIG Number" name="pagibig" value={form.pagibig} onChange={handleChange} />
-          <Field label="TIN Number" name="tin" value={form.tin} onChange={handleChange} />
+          <Field
+            label="SSS Number"
+            name="sss"
+            value={form.sss}
+            onChange={handleChange}
+          />
+          <Field
+            label="PhilHealth Number"
+            name="philhealth"
+            value={form.philhealth}
+            onChange={handleChange}
+          />
+          <Field
+            label="Pag-IBIG Number"
+            name="pagibig"
+            value={form.pagibig}
+            onChange={handleChange}
+          />
+          <Field
+            label="TIN Number"
+            name="tin"
+            value={form.tin}
+            onChange={handleChange}
+          />
         </Section>
 
         <div className="flex flex-col justify-end gap-3 rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:flex-row">

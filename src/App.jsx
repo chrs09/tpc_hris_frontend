@@ -45,7 +45,10 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/tytan-application-form" element={<ApplicationForm />} />
-        <Route path="/tytan-onboarding-form/:token" element={<OnBoardingForm />} />
+        <Route
+          path="/tytan-onboarding-form/:token"
+          element={<OnBoardingForm />}
+        />
 
         <Route
           path="/login"
