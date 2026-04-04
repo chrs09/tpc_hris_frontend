@@ -5,7 +5,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import SessionExpiredModal from "./components/ui/SessionExpiredModal";
 import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
-
+import OnBoardingForm from "./pages/Public/OnBoardingForm";
 const App = () => {
   const navigate = useNavigate();
 
@@ -45,6 +45,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/tytan-application-form" element={<ApplicationForm />} />
+        <Route path="/tytan-onboarding-form/:token" element={<OnBoardingForm />} />
 
         <Route
           path="/login"

@@ -32,3 +32,10 @@ export const convertApplicantToEmployee = async (applicantId, payload) => {
   );
   return response.data;
 };
+
+export const generateEmploymentForm = async (applicantId) => {
+  const response = await api.post(
+    `/admin/applicants/${applicantId}/generate-employment-form`,
+  );
+  return response.data;
+};

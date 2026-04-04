@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   addApplicantRemark,
   convertApplicantToEmployee,
+  generateEmploymentForm,
   getApplicantDetail,
   getApplicants,
   updateApplicantStatus,
@@ -44,6 +45,8 @@ const STATUS_OPTIONS = [
   { value: "no_show", label: "No Show" },
 ];
 
+const COLUMN_INITIAL_LIMIT = 8;
+
 const columnStyles = {
   pending: "border-yellow-200 bg-yellow-50/70",
   reviewed: "border-blue-200 bg-blue-50/70",
@@ -85,6 +88,44 @@ function getFileUrl(filePath) {
 
 function prettifyStatus(status) {
   return status?.replaceAll("_", " ") || "-";
+}
+
+function prettifyFormStatus(status) {
+  const map = {
+    not_generated: "Not generated",
+    generated: "Generated",
+    in_progress: "In progress",
+    submitted: "Submitted",
+  };
+  return map[status] || "Not generated";
+}
+
+function getApplicantFormStatus(applicant) {
+  if (applicant?.onboarding_is_submitted === true) return "submitted";
+  if (applicant?.onboarding_link_sent_at) return "generated";
+  if (applicant?.onboarding_token) return "generated";
+  return "not_generated";
+}
+
+function FormStatusBadge({ applicant }) {
+  const status = getApplicantFormStatus(applicant);
+
+  const styles = {
+    not_generated: "bg-gray-100 text-gray-700 border-gray-200",
+    generated: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    in_progress: "bg-amber-100 text-amber-700 border-amber-200",
+    submitted: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold ${
+        styles[status]
+      }`}
+    >
+      {prettifyFormStatus(status)}
+    </span>
+  );
 }
 
 function StatusBadge({ status }) {
@@ -138,9 +179,128 @@ function InfoCard({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900">
-        {value || "-"}
-      </p>
+      <p className="mt-2 wrap-break-word text-sm text-gray-900">{value || "-"}</p>
+    </div>
+  );
+}
+
+function GenerateEmploymentFormModal({
+  isOpen,
+  applicant,
+  generating,
+  generatedLink,
+  onClose,
+  onGenerate,
+  onCopy,
+}) {
+  if (!isOpen || !applicant) return null;
+
+  const formStatus = getApplicantFormStatus(applicant);
+  const isSubmitted = applicant?.onboarding_is_submitted === true;
+
+  return (
+    <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">
+              Employment Form Access
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Generate a secure form link for the applicant to fill up the
+              employment details.
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            disabled={generating}
+            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm text-gray-700">
+              <span className="font-semibold">Applicant:</span>{" "}
+              {applicant.first_name} {applicant.last_name}
+            </p>
+            <p className="mt-1 text-sm text-gray-700">
+              <span className="font-semibold">Status:</span>{" "}
+              {prettifyStatus(applicant.status)}
+            </p>
+            <p className="mt-1 text-sm text-gray-700">
+              <span className="font-semibold">Form Status:</span>{" "}
+              {prettifyFormStatus(formStatus)}
+            </p>
+          </div>
+
+          {isSubmitted && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
+              This applicant already submitted the onboarding form.
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-dashed border-indigo-200 bg-indigo-50 p-4">
+            <p className="text-sm font-medium text-indigo-900">
+              What this will do
+            </p>
+            <ul className="mt-2 space-y-1 text-sm text-indigo-800">
+              <li>• Generate a secure applicant form link</li>
+              <li>• Applicant will fill the employment-style form</li>
+              <li>• HR can later convert the applicant once hired</li>
+            </ul>
+          </div>
+
+          {generatedLink && (
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-700">
+                Generated Link
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={generatedLink}
+                  className="w-full rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm outline-none"
+                />
+                <button
+                  onClick={onCopy}
+                  className="shrink-0 rounded-2xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={generating}
+            className="rounded-2xl border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Close
+          </button>
+
+          <button
+            onClick={onGenerate}
+            disabled={generating || isSubmitted}
+            className="rounded-2xl bg-purple-600 px-5 py-3 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitted
+              ? "Application Filled"
+              : generating
+                ? "Generating..."
+                : generatedLink
+                  ? "Regenerate Link"
+                  : "Generate Form Link"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -201,7 +361,6 @@ function ConvertApplicantModal({
               className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
             >
               <option value="">Select department</option>
-
               {Object.entries(employeeRoleConvert).map(([key, label]) => (
                 <option key={key} value={label}>
                   {label}
@@ -261,6 +420,7 @@ function ApplicantDrawer({
   onClose,
   onPreviewCV,
   onOpenConvert,
+  onOpenGenerateForm,
 }) {
   if (!isOpen) return null;
 
@@ -313,6 +473,12 @@ function ApplicantDrawer({
 
                   <StatusBadge status={applicant.status} />
                 </div>
+
+                {applicant.status === "interview" && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <FormStatusBadge applicant={applicant} />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -358,6 +524,29 @@ function ApplicantDrawer({
                     </span>
                   )}
 
+                  {applicant.status === "interview" && (() => {
+                    const isSubmitted =
+                      applicant?.onboarding_is_submitted === true;
+
+                    return (
+                      <button
+                        onClick={() => {
+                          if (!isSubmitted) onOpenGenerateForm(applicant);
+                        }}
+                        disabled={isSubmitted}
+                        className={`rounded-xl px-4 py-2 text-sm font-medium ${
+                          isSubmitted
+                            ? "cursor-not-allowed bg-gray-300 text-gray-600"
+                            : "bg-purple-600 text-white hover:bg-purple-700"
+                        }`}
+                      >
+                        {isSubmitted
+                          ? "Application Filled"
+                          : "Generate Employment Form"}
+                      </button>
+                    );
+                  })()}
+
                   {applicant.status === "hired" &&
                     !applicant.is_converted_to_employee && (
                       <button
@@ -385,7 +574,7 @@ function ApplicantDrawer({
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10 disabled:cursor-not-allowed disabled:bg-gray-300"
                     disabled={applicant.is_converted_to_employee}
                   >
                     {STATUS_OPTIONS.map((option) => (
@@ -476,8 +665,11 @@ function ApplicantCard({
   onPreviewCV,
   onDragStart,
   onView,
+  onOpenGenerateForm,
   draggingDisabled,
 }) {
+  const isSubmitted = applicant?.onboarding_is_submitted === true;
+
   return (
     <div
       draggable={!draggingDisabled}
@@ -497,6 +689,12 @@ function ApplicantCard({
         <StatusBadge status={applicant.status} />
       </div>
 
+      {applicant.status === "interview" && (
+        <div className="mt-3">
+          <FormStatusBadge applicant={applicant} />
+        </div>
+      )}
+
       <div className="mt-4 space-y-2 text-sm text-gray-700">
         <p>
           <span className="font-medium">Position:</span>{" "}
@@ -512,10 +710,14 @@ function ApplicantCard({
         </p>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div
+        className={`mt-4 grid gap-2 ${
+          applicant.status === "interview" ? "grid-cols-3" : "grid-cols-2"
+        }`}
+      >
         <button
           onClick={() => onView(applicant.id)}
-          className="flex-1 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
         >
           View
         </button>
@@ -523,14 +725,30 @@ function ApplicantCard({
         {applicant.cv_url ? (
           <button
             onClick={() => onPreviewCV(applicant.cv_url)}
-            className="flex-1 rounded-xl bg-black px-3 py-2 text-center text-sm font-medium text-white transition hover:bg-gray-800"
+            className="rounded-xl bg-black px-3 py-2 text-center text-sm font-medium text-white transition hover:bg-gray-800"
           >
             CV
           </button>
         ) : (
-          <span className="flex-1 rounded-xl bg-gray-100 px-3 py-2 text-center text-sm font-medium text-gray-400">
+          <span className="rounded-xl bg-gray-100 px-3 py-2 text-center text-sm font-medium text-gray-400">
             No CV
           </span>
+        )}
+
+        {applicant.status === "interview" && (
+          <button
+            onClick={() => {
+              if (!isSubmitted) onOpenGenerateForm(applicant);
+            }}
+            disabled={isSubmitted}
+            className={`rounded-xl px-3 py-2 text-center text-sm font-medium transition ${
+              isSubmitted
+                ? "cursor-not-allowed bg-gray-300 text-gray-600"
+                : "bg-purple-600 text-white hover:bg-purple-700"
+            }`}
+          >
+            {isSubmitted ? "Application Filled" : "Generate Form"}
+          </button>
         )}
       </div>
     </div>
@@ -547,8 +765,16 @@ function ApplicantColumn({
   activeDropColumn,
   setActiveDropColumn,
   onView,
+  onOpenGenerateForm,
   draggingDisabled,
+  visibleCount,
+  onShowMore,
+  onShowLess,
 }) {
+  const visibleApplicants = applicants.slice(0, visibleCount);
+  const hasMore = applicants.length > visibleCount;
+  const canShowLess = applicants.length > COLUMN_INITIAL_LIMIT && visibleCount > COLUMN_INITIAL_LIMIT;
+
   return (
     <div
       onDragOver={(e) => e.preventDefault()}
@@ -561,33 +787,64 @@ function ApplicantColumn({
         columnStyles[columnKey]
       } ${activeDropColumn === columnKey ? "ring-2 ring-black/20" : ""}`}
     >
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-          <p className="text-sm text-gray-500">
-            {applicants.length} applicant(s)
-          </p>
+      <div className="sticky top-0 z-10 mb-4 rounded-2xl bg-white/80 px-1 py-1 backdrop-blur-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+            <p className="text-sm text-gray-500">
+              {applicants.length} applicant(s)
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="min-h-55 space-y-3">
+      <div className="min-h-55 max-h-160 space-y-3 overflow-y-auto pr-1">
         {applicants.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 p-5 text-center text-sm text-gray-500">
-            Drop applicant here
+            No applicants here yet
           </div>
         ) : (
-          applicants.map((applicant) => (
+          visibleApplicants.map((applicant) => (
             <ApplicantCard
               key={applicant.id}
               applicant={applicant}
               onPreviewCV={onPreviewCV}
               onDragStart={onDragStart}
               onView={onView}
+              onOpenGenerateForm={onOpenGenerateForm}
               draggingDisabled={draggingDisabled}
             />
           ))
         )}
       </div>
+
+      {applicants.length > COLUMN_INITIAL_LIMIT && (
+        <div className="mt-4 flex items-center justify-between gap-2">
+          <p className="text-xs text-gray-500">
+            Showing {Math.min(visibleCount, applicants.length)} of {applicants.length}
+          </p>
+
+          <div className="flex gap-2">
+            {canShowLess && (
+              <button
+                onClick={onShowLess}
+                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Show Less
+              </button>
+            )}
+
+            {hasMore && (
+              <button
+                onClick={onShowMore}
+                className="rounded-xl bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
+              >
+                Show More
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -619,6 +876,18 @@ export default function ApplicantsPage() {
   const [convertPosition, setConvertPosition] = useState("");
   const [convertingApplicant, setConvertingApplicant] = useState(false);
 
+  const [generateFormOpen, setGenerateFormOpen] = useState(false);
+  const [generateFormApplicant, setGenerateFormApplicant] = useState(null);
+  const [generatingFormLink, setGeneratingFormLink] = useState(false);
+  const [generatedFormLink, setGeneratedFormLink] = useState("");
+
+  const [visibleCounts, setVisibleCounts] = useState(
+    COLUMNS.reduce((acc, column) => {
+      acc[column.key] = COLUMN_INITIAL_LIMIT;
+      return acc;
+    }, {}),
+  );
+
   const loadApplicants = async () => {
     try {
       setLoading(true);
@@ -635,6 +904,15 @@ export default function ApplicantsPage() {
   useEffect(() => {
     loadApplicants();
   }, []);
+
+  useEffect(() => {
+    setVisibleCounts(
+      COLUMNS.reduce((acc, column) => {
+        acc[column.key] = COLUMN_INITIAL_LIMIT;
+        return acc;
+      }, {}),
+    );
+  }, [search]);
 
   const filteredApplicants = useMemo(() => {
     const keyword = search.toLowerCase().trim();
@@ -677,6 +955,8 @@ export default function ApplicantsPage() {
       no_show: applicants.filter((a) => a.status === "no_show").length,
     };
   }, [applicants]);
+
+  const filteredTotal = filteredApplicants.length;
 
   const handlePreviewCV = (cvUrl) => {
     if (!cvUrl) return;
@@ -848,15 +1128,81 @@ export default function ApplicantsPage() {
     }
   };
 
+  const handleOpenGenerateForm = (applicant) => {
+    setGenerateFormApplicant(applicant);
+    setGeneratedFormLink("");
+    setGenerateFormOpen(true);
+  };
+
+  const handleCloseGenerateForm = () => {
+    if (generatingFormLink) return;
+    setGenerateFormOpen(false);
+    setGenerateFormApplicant(null);
+    setGeneratedFormLink("");
+  };
+
+  const handleGenerateFormLink = async () => {
+    if (!generateFormApplicant) return;
+    if (generateFormApplicant?.onboarding_is_submitted === true) return;
+
+    try {
+      setGeneratingFormLink(true);
+
+      const data = await generateEmploymentForm(generateFormApplicant.id);
+      setGeneratedFormLink(data.form_url);
+
+      await loadApplicants();
+
+      if (selectedApplicant?.id === generateFormApplicant.id) {
+        await refreshSelectedApplicant(generateFormApplicant.id);
+      }
+    } catch (error) {
+      console.error("Failed to generate employment form link:", error);
+      alert(
+        error?.response?.data?.detail
+          ? JSON.stringify(error.response.data.detail)
+          : "Failed to generate employment form link.",
+      );
+    } finally {
+      setGeneratingFormLink(false);
+    }
+  };
+
+  const handleCopyGeneratedLink = async () => {
+    if (!generatedFormLink) return;
+
+    try {
+      await navigator.clipboard.writeText(generatedFormLink);
+      alert("Employment form link copied.");
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      alert("Failed to copy link.");
+    }
+  };
+
   const closeDrawer = () => {
     setDrawerOpen(false);
     setSelectedApplicant(null);
     setRemarkText("");
   };
 
+  const handleShowMore = (columnKey) => {
+    setVisibleCounts((prev) => ({
+      ...prev,
+      [columnKey]: prev[columnKey] + COLUMN_INITIAL_LIMIT,
+    }));
+  };
+
+  const handleShowLess = (columnKey) => {
+    setVisibleCounts((prev) => ({
+      ...prev,
+      [columnKey]: COLUMN_INITIAL_LIMIT,
+    }));
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-425 space-y-6">
+    <div>
+      <div className="mx-auto max-w-450 space-y-6 px-4 py-4">
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
@@ -884,6 +1230,25 @@ export default function ApplicantsPage() {
                 Refresh
               </button>
             </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+            <span>
+              Total records:{" "}
+              <span className="font-semibold text-gray-900">{stats.total}</span>
+            </span>
+
+            {search.trim() && (
+              <>
+                <span>•</span>
+                <span>
+                  Search results:{" "}
+                  <span className="font-semibold text-gray-900">
+                    {filteredTotal}
+                  </span>
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -928,7 +1293,11 @@ export default function ApplicantsPage() {
                     activeDropColumn={activeDropColumn}
                     setActiveDropColumn={setActiveDropColumn}
                     onView={handleViewApplicant}
+                    onOpenGenerateForm={handleOpenGenerateForm}
                     draggingDisabled={updatingStatus}
+                    visibleCount={visibleCounts[column.key]}
+                    onShowMore={() => handleShowMore(column.key)}
+                    onShowLess={() => handleShowLess(column.key)}
                   />
                 ))}
               </div>
@@ -955,7 +1324,11 @@ export default function ApplicantsPage() {
                     activeDropColumn={activeDropColumn}
                     setActiveDropColumn={setActiveDropColumn}
                     onView={handleViewApplicant}
+                    onOpenGenerateForm={handleOpenGenerateForm}
                     draggingDisabled={updatingStatus}
+                    visibleCount={visibleCounts[column.key]}
+                    onShowMore={() => handleShowMore(column.key)}
+                    onShowLess={() => handleShowLess(column.key)}
                   />
                 ))}
               </div>
@@ -985,6 +1358,7 @@ export default function ApplicantsPage() {
         onClose={closeDrawer}
         onPreviewCV={handlePreviewCV}
         onOpenConvert={handleOpenConvert}
+        onOpenGenerateForm={handleOpenGenerateForm}
       />
 
       <ConvertApplicantModal
@@ -997,6 +1371,16 @@ export default function ApplicantsPage() {
         converting={convertingApplicant}
         onClose={handleCloseConvert}
         onConfirm={handleConfirmConvert}
+      />
+
+      <GenerateEmploymentFormModal
+        isOpen={generateFormOpen}
+        applicant={generateFormApplicant}
+        generating={generatingFormLink}
+        generatedLink={generatedFormLink}
+        onClose={handleCloseGenerateForm}
+        onGenerate={handleGenerateFormLink}
+        onCopy={handleCopyGeneratedLink}
       />
     </div>
   );
