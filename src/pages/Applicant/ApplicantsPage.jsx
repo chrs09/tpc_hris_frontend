@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import {
   addApplicantRemark,
   convertApplicantToEmployee,
@@ -1175,32 +1176,35 @@ export default function ApplicantsPage() {
   };
 
   const handleCopyGeneratedLink = async () => {
-  if (!generatedFormLink) return;
+    if (!generatedFormLink) return;
 
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(generatedFormLink);
-    } else {
-      // fallback for HTTP
-      const textArea = document.createElement("textarea");
-      textArea.value = generatedFormLink;
-      textArea.style.position = "fixed";
-      textArea.style.opacity = "0";
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(generatedFormLink);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = generatedFormLink;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
 
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
 
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
+        const copied = document.execCommand("copy");
+        document.body.removeChild(textArea);
+
+        if (!copied) {
+          throw new Error("Fallback copy failed");
+        }
+      }
+
+      toast.success("Link copied to clipboard");
+    } catch (error) {
+      console.error("Failed to copy link:", error);
+      toast.error("Failed to copy link");
     }
-
-    alert("Employment form link copied.");
-  } catch (error) {
-    console.error("Failed to copy link:", error);
-    alert("Failed to copy link.");
-  }
-};
+  };
 
   const closeDrawer = () => {
     setDrawerOpen(false);
