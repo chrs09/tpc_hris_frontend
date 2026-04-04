@@ -1175,16 +1175,32 @@ export default function ApplicantsPage() {
   };
 
   const handleCopyGeneratedLink = async () => {
-    if (!generatedFormLink) return;
+  if (!generatedFormLink) return;
 
-    try {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(generatedFormLink);
-      alert("Employment form link copied.");
-    } catch (error) {
-      console.error("Failed to copy link:", error);
-      alert("Failed to copy link.");
+    } else {
+      // fallback for HTTP
+      const textArea = document.createElement("textarea");
+      textArea.value = generatedFormLink;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
     }
-  };
+
+    alert("Employment form link copied.");
+  } catch (error) {
+    console.error("Failed to copy link:", error);
+    alert("Failed to copy link.");
+  }
+};
 
   const closeDrawer = () => {
     setDrawerOpen(false);
