@@ -31,10 +31,18 @@ export const mapEmployeeToForm = (employee) => {
     father_name: employee.family_details?.father_name || "",
     mother_name: employee.family_details?.mother_name || "",
 
+    // REFERENCE
+    ref_name: employee.character_reference?.name || "",
+    ref_contact: employee.character_reference?.contact || "",
+    ref_occupation: employee.character_reference?.occupation || "",
+    ref_address: employee.character_reference?.address || "",
+
+
     // GOVERNMENT
     sss: employee.government_details?.sss_number || "",
     philhealth: employee.government_details?.philhealth_number || "",
     pagibig: employee.government_details?.pagibig_number || "",
+    tin: employee.government_details?.tin_number || "",
 
     // EMERGENCY
     emergency_contact_name:

@@ -5,6 +5,7 @@ import {
   convertApplicantToEmployee,
   generateEmploymentForm,
   getApplicantDetail,
+  getApplicantOnboarding,
   getApplicants,
   updateApplicantStatus,
 } from "../../api/adminApplicants";
@@ -77,6 +78,8 @@ function formatDate(date) {
     year: "numeric",
     month: "short",
     day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
@@ -424,6 +427,7 @@ function ApplicantDrawer({
   onPreviewCV,
   onOpenConvert,
   onOpenGenerateForm,
+  onViewSubmittedForm,
 }) {
   if (!isOpen) return null;
 
@@ -529,24 +533,24 @@ function ApplicantDrawer({
 
                   {applicant.status === "interview" &&
                     (() => {
-                      const isSubmitted =
-                        applicant?.onboarding_is_submitted === true;
+                      const isSubmitted = applicant?.onboarding_is_submitted === true;
 
                       return (
                         <button
                           onClick={() => {
-                            if (!isSubmitted) onOpenGenerateForm(applicant);
+                            if (isSubmitted) {
+                              onViewSubmittedForm(applicant);
+                            } else {
+                              onOpenGenerateForm(applicant);
+                            }
                           }}
-                          disabled={isSubmitted}
                           className={`rounded-xl px-4 py-2 text-sm font-medium ${
                             isSubmitted
-                              ? "cursor-not-allowed bg-gray-300 text-gray-600"
+                              ? "bg-emerald-600 text-white hover:bg-emerald-700"
                               : "bg-purple-600 text-white hover:bg-purple-700"
                           }`}
                         >
-                          {isSubmitted
-                            ? "Application Filled"
-                            : "Generate Employment Form"}
+                          {isSubmitted ? "View Form" : "Generate Employment Form"}
                         </button>
                       );
                     })()}
@@ -670,6 +674,7 @@ function ApplicantCard({
   onDragStart,
   onView,
   onOpenGenerateForm,
+  onViewSubmittedForm,
   draggingDisabled,
 }) {
   const isSubmitted = applicant?.onboarding_is_submitted === true;
@@ -742,16 +747,19 @@ function ApplicantCard({
         {applicant.status === "interview" && (
           <button
             onClick={() => {
-              if (!isSubmitted) onOpenGenerateForm(applicant);
+              if (isSubmitted) {
+                onViewSubmittedForm(applicant);
+              } else {
+                onOpenGenerateForm(applicant);
+              }
             }}
-            disabled={isSubmitted}
             className={`rounded-xl px-3 py-2 text-center text-sm font-medium transition ${
               isSubmitted
-                ? "cursor-not-allowed bg-gray-300 text-gray-600"
+                ? "bg-emerald-600 text-white hover:bg-emerald-700"
                 : "bg-purple-600 text-white hover:bg-purple-700"
             }`}
           >
-            {isSubmitted ? "Application Filled" : "Generate Form"}
+            {isSubmitted ? "View Form" : "Generate Form"}
           </button>
         )}
       </div>
@@ -770,6 +778,7 @@ function ApplicantColumn({
   setActiveDropColumn,
   onView,
   onOpenGenerateForm,
+  onViewSubmittedForm,
   draggingDisabled,
   visibleCount,
   onShowMore,
@@ -818,6 +827,7 @@ function ApplicantColumn({
               onDragStart={onDragStart}
               onView={onView}
               onOpenGenerateForm={onOpenGenerateForm}
+              onViewSubmittedForm={onViewSubmittedForm}
               draggingDisabled={draggingDisabled}
             />
           ))
@@ -856,6 +866,326 @@ function ApplicantColumn({
   );
 }
 
+function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
+  if (!isOpen) return null;
+
+  const applicant = data?.applicant;
+  const onboarding = data?.onboarding;
+  const education = data?.education_records || [];
+  const employment = data?.employment_history || [];
+  const references = data?.references || [];
+  const questionResponses = data?.question_responses || [];
+  const questions = data?.questions || [];
+
+  const responseMap = Object.fromEntries(
+    questionResponses.map((item) => [item.question_key, item.answer_text]),
+  );
+
+  const renderValue = (value) => {
+    if (value === null || value === undefined || value === "") return "-";
+    return value;
+  };
+
+  return (
+    <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/50 p-4">
+      <div className="h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="sticky top-0 z-10 mb-6 flex items-center justify-between border-b bg-white pb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Onboarding Form Review
+            </h2>
+            <p className="text-sm text-gray-500">
+              {applicant?.first_name} {applicant?.last_name} •{" "}
+              {applicant?.position_applied || "-"}
+            </p>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+          >
+            ✕
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-gray-500">
+            Loading onboarding form...
+          </div>
+        ) : !data || !onboarding ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-600">
+            No onboarding form found.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Applicant Summary */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Applicant Summary
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoCard label="Applicant ID" value={renderValue(applicant?.id)} />
+                <InfoCard label="First Name" value={renderValue(applicant?.first_name)} />
+                <InfoCard label="Last Name" value={renderValue(applicant?.last_name)} />
+                <InfoCard label="Email" value={renderValue(applicant?.email)} />
+                <InfoCard
+                  label="Contact Number"
+                  value={renderValue(applicant?.contact_number)}
+                />
+                <InfoCard
+                  label="Position Applied"
+                  value={renderValue(applicant?.position_applied)}
+                />
+                <InfoCard label="Status" value={renderValue(applicant?.status)} />
+                <InfoCard
+                  label="Submitted At"
+                  value={formatDate(applicant?.onboarding_submitted_at)}
+                />
+                <InfoCard
+                  label="Form Submitted"
+                  value={applicant?.onboarding_is_submitted ? "Yes" : "No"}
+                />
+              </div>
+            </div>
+
+            {/* Basic / Personal */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Basic / Personal Information
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoCard label="Onboarding ID" value={renderValue(onboarding.id)} />
+                <InfoCard label="First Name" value={renderValue(onboarding.first_name)} />
+                <InfoCard label="Last Name" value={renderValue(onboarding.last_name)} />
+                <InfoCard label="Email" value={renderValue(onboarding.email)} />
+                <InfoCard label="Department" value={renderValue(onboarding.department)} />
+                <InfoCard label="Position" value={renderValue(onboarding.position)} />
+                <InfoCard label="Birthday" value={formatDate(onboarding.birthday)} />
+                <InfoCard label="Birthplace" value={renderValue(onboarding.birthplace)} />
+                <InfoCard label="Gender" value={renderValue(onboarding.gender)} />
+                <InfoCard label="Civil Status" value={renderValue(onboarding.civil_status)} />
+                <InfoCard label="Religion" value={renderValue(onboarding.religion)} />
+                <InfoCard label="Citizenship" value={renderValue(onboarding.citizenship)} />
+                <InfoCard label="Height" value={renderValue(onboarding.height)} />
+                <InfoCard label="Weight" value={renderValue(onboarding.weight)} />
+                <InfoCard label="Language" value={renderValue(onboarding.language)} />
+                <InfoCard
+                  label="Contact Number"
+                  value={renderValue(onboarding.contact_number)}
+                />
+                <InfoCard
+                  label="Current Address"
+                  value={renderValue(onboarding.current_address)}
+                />
+                <InfoCard
+                  label="Provincial Address"
+                  value={renderValue(onboarding.provincial_address)}
+                />
+              </div>
+            </div>
+
+            {/* Family */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Family Information
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoCard label="Spouse Name" value={renderValue(onboarding.spouse_name)} />
+                <InfoCard label="Father Name" value={renderValue(onboarding.father_name)} />
+                <InfoCard label="Mother Name" value={renderValue(onboarding.mother_name)} />
+              </div>
+            </div>
+
+            {/* Emergency */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Emergency Contact
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoCard
+                  label="Emergency Contact Name"
+                  value={renderValue(onboarding.emergency_contact_name)}
+                />
+                <InfoCard
+                  label="Emergency Contact Number"
+                  value={renderValue(onboarding.emergency_contact_number)}
+                />
+                <InfoCard
+                  label="Relationship"
+                  value={renderValue(onboarding.emergency_relationship)}
+                />
+              </div>
+            </div>
+            {/* Education */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">Education</h3>
+
+              <div className="space-y-3">
+                {education.length > 0 ? (
+                  education.map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                    >
+                      <div className="mb-3 text-sm font-semibold text-gray-900">
+                        Record #{index + 1}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <InfoCard label="Level" value={renderValue(item.level)} />
+                        <InfoCard
+                          label="Institution"
+                          value={renderValue(item.institution)}
+                        />
+                        <InfoCard label="Degree" value={renderValue(item.degree)} />
+                        <InfoCard label="Year From" value={renderValue(item.year_from)} />
+                        <InfoCard label="Year To" value={renderValue(item.year_to)} />
+                        <InfoCard label="Skills" value={renderValue(item.skills)} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                    No education records.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Employment */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Employment History
+              </h3>
+
+              <div className="space-y-3">
+                {employment.length > 0 ? (
+                  employment.map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                    >
+                      <div className="mb-3 text-sm font-semibold text-gray-900">
+                        Record #{index + 1}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <InfoCard
+                          label="Company Name"
+                          value={renderValue(item.company_name)}
+                        />
+                        <InfoCard label="Position" value={renderValue(item.position)} />
+                        <InfoCard
+                          label="Date From"
+                          value={formatDate(item.date_from)}
+                        />
+                        <InfoCard label="Date To" value={formatDate(item.date_to)} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                    No employment history.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Government */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Government Information
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <InfoCard label="SSS" value={renderValue(onboarding.sss)} />
+                <InfoCard
+                  label="PhilHealth"
+                  value={renderValue(onboarding.philhealth)}
+                />
+                <InfoCard label="Pag-IBIG" value={renderValue(onboarding.pagibig)} />
+                <InfoCard label="TIN" value={renderValue(onboarding.tin)} />
+              </div>
+            </div>
+
+            
+
+            
+
+            {/* References */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">References</h3>
+
+              <div className="space-y-3">
+                {references.length > 0 ? (
+                  references.map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                    >
+                      <div className="mb-3 text-sm font-semibold text-gray-900">
+                        Record #{index + 1}
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <InfoCard label="Name" value={renderValue(item.name)} />
+                        <InfoCard
+                          label="Occupation"
+                          value={renderValue(item.occupation)}
+                        />
+                        <InfoCard label="Contact" value={renderValue(item.contact)} />
+                        <InfoCard label="Address" value={renderValue(item.address)} />
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                    No references.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Additional Questions */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Additional Questions
+              </h3>
+
+              <div className="space-y-3">
+                {questions.length > 0 ? (
+                  questions.map((q, index) => (
+                    <div
+                      key={q.id || index}
+                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                    >
+                      <p className="text-sm font-semibold text-gray-900">
+                        {q.question_text}
+                      </p>
+                      <p className="mt-2 text-sm text-gray-700">
+                        <span className="font-medium">Answer:</span>{" "}
+                        {renderValue(responseMap[q.question_key])}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                    No additional questions.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ApplicantsPage() {
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -887,6 +1217,10 @@ export default function ApplicantsPage() {
   const [generateFormApplicant, setGenerateFormApplicant] = useState(null);
   const [generatingFormLink, setGeneratingFormLink] = useState(false);
   const [generatedFormLink, setGeneratedFormLink] = useState("");
+
+  const [onboardingViewOpen, setOnboardingViewOpen] = useState(false);
+  const [onboardingViewLoading, setOnboardingViewLoading] = useState(false);
+  const [onboardingViewData, setOnboardingViewData] = useState(null);
 
   const [visibleCounts, setVisibleCounts] = useState(
     COLUMNS.reduce((acc, column) => {
@@ -1226,6 +1560,30 @@ export default function ApplicantsPage() {
     }));
   };
 
+  const handleViewSubmittedForm = async (applicant) => {
+    if (!applicant?.id) return;
+
+    try {
+      setOnboardingViewLoading(true);
+      setOnboardingViewData(null);
+      setOnboardingViewOpen(true);
+
+      const data = await getApplicantOnboarding(applicant.id);
+      setOnboardingViewData(data);
+    } catch (error) {
+      console.error("Failed to load applicant onboarding:", error);
+      toast.error("Failed to load onboarding form");
+      setOnboardingViewOpen(false);
+    } finally {
+      setOnboardingViewLoading(false);
+    }
+  };
+
+const handleCloseOnboardingView = () => {
+  setOnboardingViewOpen(false);
+  setOnboardingViewData(null);
+};
+
   return (
     <div>
       <div className="mx-auto max-w-450 space-y-6 px-4 py-4">
@@ -1320,6 +1678,7 @@ export default function ApplicantsPage() {
                     setActiveDropColumn={setActiveDropColumn}
                     onView={handleViewApplicant}
                     onOpenGenerateForm={handleOpenGenerateForm}
+                    onViewSubmittedForm={handleViewSubmittedForm}
                     draggingDisabled={updatingStatus}
                     visibleCount={visibleCounts[column.key]}
                     onShowMore={() => handleShowMore(column.key)}
@@ -1351,6 +1710,7 @@ export default function ApplicantsPage() {
                     setActiveDropColumn={setActiveDropColumn}
                     onView={handleViewApplicant}
                     onOpenGenerateForm={handleOpenGenerateForm}
+                    onViewSubmittedForm={handleViewSubmittedForm}
                     draggingDisabled={updatingStatus}
                     visibleCount={visibleCounts[column.key]}
                     onShowMore={() => handleShowMore(column.key)}
@@ -1385,6 +1745,7 @@ export default function ApplicantsPage() {
         onPreviewCV={handlePreviewCV}
         onOpenConvert={handleOpenConvert}
         onOpenGenerateForm={handleOpenGenerateForm}
+        onViewSubmittedForm={handleViewSubmittedForm}
       />
 
       <ConvertApplicantModal
@@ -1407,6 +1768,12 @@ export default function ApplicantsPage() {
         onClose={handleCloseGenerateForm}
         onGenerate={handleGenerateFormLink}
         onCopy={handleCopyGeneratedLink}
+      />
+      <OnboardingReviewModal
+        isOpen={onboardingViewOpen}
+        loading={onboardingViewLoading}
+        data={onboardingViewData}
+        onClose={handleCloseOnboardingView}
       />
     </div>
   );

@@ -5,6 +5,11 @@ export const getApplicants = async () => {
   return res.data;
 };
 
+export const getApplicantOnboarding = async (id) => {
+  const res = await api.get(`/admin/applicants/${id}/onboarding`);
+  return res.data;
+};
+
 export const getApplicantDetail = async (id) => {
   const res = await api.get(`/admin/applicants/${id}`);
   return res.data;
