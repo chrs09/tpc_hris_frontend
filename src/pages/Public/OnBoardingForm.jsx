@@ -513,7 +513,9 @@ export default function OnBoardingForm() {
   }, [token, loadForm]);
 
   const role = useMemo(() => {
-    return inferRoleFromPosition(form.position || applicant?.position_applied || "");
+    return inferRoleFromPosition(
+      form.position || applicant?.position_applied || "",
+    );
   }, [form.position, applicant]);
 
   const applicableQuestions = useMemo(() => {
@@ -700,8 +702,10 @@ export default function OnBoardingForm() {
     let newQuestionErrors = {};
 
     if (currentStep === 1) {
-      if (!form.first_name.trim()) newErrors.first_name = "First name is required.";
-      if (!form.last_name.trim()) newErrors.last_name = "Last name is required.";
+      if (!form.first_name.trim())
+        newErrors.first_name = "First name is required.";
+      if (!form.last_name.trim())
+        newErrors.last_name = "Last name is required.";
 
       if (!form.email.trim()) {
         newErrors.email = "Email is required.";
@@ -716,11 +720,14 @@ export default function OnBoardingForm() {
 
     if (currentStep === 2) {
       if (!form.birthday) newErrors.birthday = "Birthday is required.";
-      if (!form.birthplace.trim()) newErrors.birthplace = "Birthplace is required.";
+      if (!form.birthplace.trim())
+        newErrors.birthplace = "Birthplace is required.";
       if (!form.gender.trim()) newErrors.gender = "Gender is required.";
-      if (!form.civil_status.trim()) newErrors.civil_status = "Civil status is required.";
+      if (!form.civil_status.trim())
+        newErrors.civil_status = "Civil status is required.";
       if (!form.religion.trim()) newErrors.religion = "Religion is required.";
-      if (!form.citizenship.trim()) newErrors.citizenship = "Citizenship is required.";
+      if (!form.citizenship.trim())
+        newErrors.citizenship = "Citizenship is required.";
       if (!form.height.trim()) newErrors.height = "Height is required.";
       if (!form.weight.trim()) newErrors.weight = "Weight is required.";
       if (!form.language.trim()) newErrors.language = "Language is required.";
@@ -741,10 +748,12 @@ export default function OnBoardingForm() {
 
     if (currentStep === 4) {
       if (!form.emergency_contact_name.trim()) {
-        newErrors.emergency_contact_name = "Emergency contact name is required.";
+        newErrors.emergency_contact_name =
+          "Emergency contact name is required.";
       }
       if (!form.emergency_contact_number.trim()) {
-        newErrors.emergency_contact_number = "Emergency contact number is required.";
+        newErrors.emergency_contact_number =
+          "Emergency contact number is required.";
       }
       if (!form.emergency_relationship.trim()) {
         newErrors.emergency_relationship = "Relationship is required.";
@@ -753,11 +762,13 @@ export default function OnBoardingForm() {
 
     if (currentStep === 5) {
       if (form.education_records.length === 0) {
-        newErrors.education_records = "At least one education record is required.";
+        newErrors.education_records =
+          "At least one education record is required.";
       } else {
         form.education_records.forEach((record, index) => {
           if (!`${record.level || ""}`.trim()) {
-            newErrors[`education_records.${index}.level`] = "Level is required.";
+            newErrors[`education_records.${index}.level`] =
+              "Level is required.";
           }
           if (!`${record.institution || ""}`.trim()) {
             newErrors[`education_records.${index}.institution`] =
@@ -781,7 +792,8 @@ export default function OnBoardingForm() {
 
     if (currentStep === 6) {
       if (form.employment_history.length === 0) {
-        newErrors.employment_history = "At least one employment history is required.";
+        newErrors.employment_history =
+          "At least one employment history is required.";
       } else {
         form.employment_history.forEach((record, index) => {
           if (!`${record.company_name || ""}`.trim()) {
@@ -851,8 +863,10 @@ export default function OnBoardingForm() {
       const tempErrors = {};
 
       if (i === 1) {
-        if (!form.first_name.trim()) tempErrors.first_name = "First name is required.";
-        if (!form.last_name.trim()) tempErrors.last_name = "Last name is required.";
+        if (!form.first_name.trim())
+          tempErrors.first_name = "First name is required.";
+        if (!form.last_name.trim())
+          tempErrors.last_name = "Last name is required.";
 
         if (!form.email.trim()) {
           tempErrors.email = "Email is required.";
@@ -860,19 +874,25 @@ export default function OnBoardingForm() {
           tempErrors.email = "Enter a valid email address.";
         }
 
-        if (!form.position.trim()) tempErrors.position = "Position is required.";
+        if (!form.position.trim())
+          tempErrors.position = "Position is required.";
       }
 
       if (i === 2) {
         if (!form.birthday) tempErrors.birthday = "Birthday is required.";
-        if (!form.birthplace.trim()) tempErrors.birthplace = "Birthplace is required.";
+        if (!form.birthplace.trim())
+          tempErrors.birthplace = "Birthplace is required.";
         if (!form.gender.trim()) tempErrors.gender = "Gender is required.";
-        if (!form.civil_status.trim()) tempErrors.civil_status = "Civil status is required.";
-        if (!form.religion.trim()) tempErrors.religion = "Religion is required.";
-        if (!form.citizenship.trim()) tempErrors.citizenship = "Citizenship is required.";
+        if (!form.civil_status.trim())
+          tempErrors.civil_status = "Civil status is required.";
+        if (!form.religion.trim())
+          tempErrors.religion = "Religion is required.";
+        if (!form.citizenship.trim())
+          tempErrors.citizenship = "Citizenship is required.";
         if (!form.height.trim()) tempErrors.height = "Height is required.";
         if (!form.weight.trim()) tempErrors.weight = "Weight is required.";
-        if (!form.language.trim()) tempErrors.language = "Language is required.";
+        if (!form.language.trim())
+          tempErrors.language = "Language is required.";
 
         if (!form.contact_number.trim()) {
           tempErrors.contact_number = "Contact number is required.";
@@ -890,7 +910,8 @@ export default function OnBoardingForm() {
 
       if (i === 4) {
         if (!form.emergency_contact_name.trim()) {
-          tempErrors.emergency_contact_name = "Emergency contact name is required.";
+          tempErrors.emergency_contact_name =
+            "Emergency contact name is required.";
         }
         if (!form.emergency_contact_number.trim()) {
           tempErrors.emergency_contact_number =
@@ -903,11 +924,13 @@ export default function OnBoardingForm() {
 
       if (i === 5) {
         if (form.education_records.length === 0) {
-          tempErrors.education_records = "At least one education record is required.";
+          tempErrors.education_records =
+            "At least one education record is required.";
         } else {
           form.education_records.forEach((record, index) => {
             if (!`${record.level || ""}`.trim()) {
-              tempErrors[`education_records.${index}.level`] = "Level is required.";
+              tempErrors[`education_records.${index}.level`] =
+                "Level is required.";
             }
             if (!`${record.institution || ""}`.trim()) {
               tempErrors[`education_records.${index}.institution`] =
@@ -931,7 +954,8 @@ export default function OnBoardingForm() {
 
       if (i === 6) {
         if (form.employment_history.length === 0) {
-          tempErrors.employment_history = "At least one employment history is required.";
+          tempErrors.employment_history =
+            "At least one employment history is required.";
         } else {
           form.employment_history.forEach((record, index) => {
             if (!`${record.company_name || ""}`.trim()) {
@@ -1096,7 +1120,9 @@ export default function OnBoardingForm() {
     return (
       <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
-          <h2 className="text-lg font-bold text-gray-900">Additional Questions</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            Additional Questions
+          </h2>
           <p className="mt-1 text-sm text-gray-500">
             Please answer the questions below before submitting your form.
           </p>
@@ -1389,7 +1415,11 @@ export default function OnBoardingForm() {
                       label="Institution"
                       value={record.institution}
                       onChange={(e) =>
-                        handleEducationChange(index, "institution", e.target.value)
+                        handleEducationChange(
+                          index,
+                          "institution",
+                          e.target.value,
+                        )
                       }
                       name={`education_institution_${index}`}
                       error={errors[`education_records.${index}.institution`]}
@@ -1409,7 +1439,11 @@ export default function OnBoardingForm() {
                       label="Year From"
                       value={record.year_from}
                       onChange={(e) =>
-                        handleEducationChange(index, "year_from", e.target.value)
+                        handleEducationChange(
+                          index,
+                          "year_from",
+                          e.target.value,
+                        )
                       }
                       name={`education_year_from_${index}`}
                       error={errors[`education_records.${index}.year_from`]}
@@ -1445,7 +1479,9 @@ export default function OnBoardingForm() {
         return (
           <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Employment History</h2>
+              <h2 className="text-lg font-bold text-gray-900">
+                Employment History
+              </h2>
               <button
                 type="button"
                 onClick={addEmployment}
@@ -1477,7 +1513,11 @@ export default function OnBoardingForm() {
                       label="Company Name"
                       value={record.company_name}
                       onChange={(e) =>
-                        handleEmploymentChange(index, "company_name", e.target.value)
+                        handleEmploymentChange(
+                          index,
+                          "company_name",
+                          e.target.value,
+                        )
                       }
                       name={`employment_company_${index}`}
                       error={errors[`employment_history.${index}.company_name`]}
@@ -1487,7 +1527,11 @@ export default function OnBoardingForm() {
                       label="Position"
                       value={record.position}
                       onChange={(e) =>
-                        handleEmploymentChange(index, "position", e.target.value)
+                        handleEmploymentChange(
+                          index,
+                          "position",
+                          e.target.value,
+                        )
                       }
                       name={`employment_position_${index}`}
                       error={errors[`employment_history.${index}.position`]}
@@ -1497,7 +1541,11 @@ export default function OnBoardingForm() {
                       label="Date From"
                       value={record.date_from}
                       onChange={(e) =>
-                        handleEmploymentChange(index, "date_from", e.target.value)
+                        handleEmploymentChange(
+                          index,
+                          "date_from",
+                          e.target.value,
+                        )
                       }
                       name={`employment_date_from_${index}`}
                       error={errors[`employment_history.${index}.date_from`]}
@@ -1560,7 +1608,11 @@ export default function OnBoardingForm() {
                       label="Occupation"
                       value={record.occupation}
                       onChange={(e) =>
-                        handleReferenceChange(index, "occupation", e.target.value)
+                        handleReferenceChange(
+                          index,
+                          "occupation",
+                          e.target.value,
+                        )
                       }
                       name={`reference_occupation_${index}`}
                     />

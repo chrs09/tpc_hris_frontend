@@ -37,7 +37,6 @@ export const mapEmployeeToForm = (employee) => {
     ref_occupation: employee.character_reference?.occupation || "",
     ref_address: employee.character_reference?.address || "",
 
-
     // GOVERNMENT
     sss: employee.government_details?.sss_number || "",
     philhealth: employee.government_details?.philhealth_number || "",

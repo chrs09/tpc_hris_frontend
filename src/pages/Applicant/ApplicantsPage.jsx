@@ -533,7 +533,8 @@ function ApplicantDrawer({
 
                   {applicant.status === "interview" &&
                     (() => {
-                      const isSubmitted = applicant?.onboarding_is_submitted === true;
+                      const isSubmitted =
+                        applicant?.onboarding_is_submitted === true;
 
                       return (
                         <button
@@ -550,7 +551,9 @@ function ApplicantDrawer({
                               : "bg-purple-600 text-white hover:bg-purple-700"
                           }`}
                         >
-                          {isSubmitted ? "View Form" : "Generate Employment Form"}
+                          {isSubmitted
+                            ? "View Form"
+                            : "Generate Employment Form"}
                         </button>
                       );
                     })()}
@@ -925,9 +928,18 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </h3>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <InfoCard label="Applicant ID" value={renderValue(applicant?.id)} />
-                <InfoCard label="First Name" value={renderValue(applicant?.first_name)} />
-                <InfoCard label="Last Name" value={renderValue(applicant?.last_name)} />
+                <InfoCard
+                  label="Applicant ID"
+                  value={renderValue(applicant?.id)}
+                />
+                <InfoCard
+                  label="First Name"
+                  value={renderValue(applicant?.first_name)}
+                />
+                <InfoCard
+                  label="Last Name"
+                  value={renderValue(applicant?.last_name)}
+                />
                 <InfoCard label="Email" value={renderValue(applicant?.email)} />
                 <InfoCard
                   label="Contact Number"
@@ -937,7 +949,10 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   label="Position Applied"
                   value={renderValue(applicant?.position_applied)}
                 />
-                <InfoCard label="Status" value={renderValue(applicant?.status)} />
+                <InfoCard
+                  label="Status"
+                  value={renderValue(applicant?.status)}
+                />
                 <InfoCard
                   label="Submitted At"
                   value={formatDate(applicant?.onboarding_submitted_at)}
@@ -956,21 +971,63 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </h3>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <InfoCard label="Onboarding ID" value={renderValue(onboarding.id)} />
-                <InfoCard label="First Name" value={renderValue(onboarding.first_name)} />
-                <InfoCard label="Last Name" value={renderValue(onboarding.last_name)} />
+                <InfoCard
+                  label="Onboarding ID"
+                  value={renderValue(onboarding.id)}
+                />
+                <InfoCard
+                  label="First Name"
+                  value={renderValue(onboarding.first_name)}
+                />
+                <InfoCard
+                  label="Last Name"
+                  value={renderValue(onboarding.last_name)}
+                />
                 <InfoCard label="Email" value={renderValue(onboarding.email)} />
-                <InfoCard label="Department" value={renderValue(onboarding.department)} />
-                <InfoCard label="Position" value={renderValue(onboarding.position)} />
-                <InfoCard label="Birthday" value={formatDate(onboarding.birthday)} />
-                <InfoCard label="Birthplace" value={renderValue(onboarding.birthplace)} />
-                <InfoCard label="Gender" value={renderValue(onboarding.gender)} />
-                <InfoCard label="Civil Status" value={renderValue(onboarding.civil_status)} />
-                <InfoCard label="Religion" value={renderValue(onboarding.religion)} />
-                <InfoCard label="Citizenship" value={renderValue(onboarding.citizenship)} />
-                <InfoCard label="Height" value={renderValue(onboarding.height)} />
-                <InfoCard label="Weight" value={renderValue(onboarding.weight)} />
-                <InfoCard label="Language" value={renderValue(onboarding.language)} />
+                <InfoCard
+                  label="Department"
+                  value={renderValue(onboarding.department)}
+                />
+                <InfoCard
+                  label="Position"
+                  value={renderValue(onboarding.position)}
+                />
+                <InfoCard
+                  label="Birthday"
+                  value={formatDate(onboarding.birthday)}
+                />
+                <InfoCard
+                  label="Birthplace"
+                  value={renderValue(onboarding.birthplace)}
+                />
+                <InfoCard
+                  label="Gender"
+                  value={renderValue(onboarding.gender)}
+                />
+                <InfoCard
+                  label="Civil Status"
+                  value={renderValue(onboarding.civil_status)}
+                />
+                <InfoCard
+                  label="Religion"
+                  value={renderValue(onboarding.religion)}
+                />
+                <InfoCard
+                  label="Citizenship"
+                  value={renderValue(onboarding.citizenship)}
+                />
+                <InfoCard
+                  label="Height"
+                  value={renderValue(onboarding.height)}
+                />
+                <InfoCard
+                  label="Weight"
+                  value={renderValue(onboarding.weight)}
+                />
+                <InfoCard
+                  label="Language"
+                  value={renderValue(onboarding.language)}
+                />
                 <InfoCard
                   label="Contact Number"
                   value={renderValue(onboarding.contact_number)}
@@ -993,9 +1050,18 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </h3>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <InfoCard label="Spouse Name" value={renderValue(onboarding.spouse_name)} />
-                <InfoCard label="Father Name" value={renderValue(onboarding.father_name)} />
-                <InfoCard label="Mother Name" value={renderValue(onboarding.mother_name)} />
+                <InfoCard
+                  label="Spouse Name"
+                  value={renderValue(onboarding.spouse_name)}
+                />
+                <InfoCard
+                  label="Father Name"
+                  value={renderValue(onboarding.father_name)}
+                />
+                <InfoCard
+                  label="Mother Name"
+                  value={renderValue(onboarding.mother_name)}
+                />
               </div>
             </div>
 
@@ -1022,7 +1088,9 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
             </div>
             {/* Education */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">Education</h3>
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Education
+              </h3>
 
               <div className="space-y-3">
                 {education.length > 0 ? (
@@ -1036,15 +1104,30 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                       </div>
 
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        <InfoCard label="Level" value={renderValue(item.level)} />
+                        <InfoCard
+                          label="Level"
+                          value={renderValue(item.level)}
+                        />
                         <InfoCard
                           label="Institution"
                           value={renderValue(item.institution)}
                         />
-                        <InfoCard label="Degree" value={renderValue(item.degree)} />
-                        <InfoCard label="Year From" value={renderValue(item.year_from)} />
-                        <InfoCard label="Year To" value={renderValue(item.year_to)} />
-                        <InfoCard label="Skills" value={renderValue(item.skills)} />
+                        <InfoCard
+                          label="Degree"
+                          value={renderValue(item.degree)}
+                        />
+                        <InfoCard
+                          label="Year From"
+                          value={renderValue(item.year_from)}
+                        />
+                        <InfoCard
+                          label="Year To"
+                          value={renderValue(item.year_to)}
+                        />
+                        <InfoCard
+                          label="Skills"
+                          value={renderValue(item.skills)}
+                        />
                       </div>
                     </div>
                   ))
@@ -1078,12 +1161,18 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                           label="Company Name"
                           value={renderValue(item.company_name)}
                         />
-                        <InfoCard label="Position" value={renderValue(item.position)} />
+                        <InfoCard
+                          label="Position"
+                          value={renderValue(item.position)}
+                        />
                         <InfoCard
                           label="Date From"
                           value={formatDate(item.date_from)}
                         />
-                        <InfoCard label="Date To" value={formatDate(item.date_to)} />
+                        <InfoCard
+                          label="Date To"
+                          value={formatDate(item.date_to)}
+                        />
                       </div>
                     </div>
                   ))
@@ -1107,18 +1196,19 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   label="PhilHealth"
                   value={renderValue(onboarding.philhealth)}
                 />
-                <InfoCard label="Pag-IBIG" value={renderValue(onboarding.pagibig)} />
+                <InfoCard
+                  label="Pag-IBIG"
+                  value={renderValue(onboarding.pagibig)}
+                />
                 <InfoCard label="TIN" value={renderValue(onboarding.tin)} />
               </div>
             </div>
 
-            
-
-            
-
             {/* References */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">References</h3>
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                References
+              </h3>
 
               <div className="space-y-3">
                 {references.length > 0 ? (
@@ -1137,8 +1227,14 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                           label="Occupation"
                           value={renderValue(item.occupation)}
                         />
-                        <InfoCard label="Contact" value={renderValue(item.contact)} />
-                        <InfoCard label="Address" value={renderValue(item.address)} />
+                        <InfoCard
+                          label="Contact"
+                          value={renderValue(item.contact)}
+                        />
+                        <InfoCard
+                          label="Address"
+                          value={renderValue(item.address)}
+                        />
                       </div>
                     </div>
                   ))
@@ -1579,10 +1675,10 @@ export default function ApplicantsPage() {
     }
   };
 
-const handleCloseOnboardingView = () => {
-  setOnboardingViewOpen(false);
-  setOnboardingViewData(null);
-};
+  const handleCloseOnboardingView = () => {
+    setOnboardingViewOpen(false);
+    setOnboardingViewData(null);
+  };
 
   return (
     <div>
