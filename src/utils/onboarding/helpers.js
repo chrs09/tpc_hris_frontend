@@ -15,7 +15,9 @@ import {
 export const normalizeEmptyToNull = (value) => (value === "" ? null : value);
 
 export function ensureAtLeastOneItem(items, fallbackItem) {
-  return Array.isArray(items) && items.length > 0 ? items : [{ ...fallbackItem }];
+  return Array.isArray(items) && items.length > 0
+    ? items
+    : [{ ...fallbackItem }];
 }
 
 export function formatBackendValidation(detail, backendFieldLabelMap) {

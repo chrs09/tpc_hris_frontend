@@ -434,7 +434,7 @@ function ApplicantDrawer({
   onOpenConvert,
   onOpenGenerateForm,
   onViewSubmittedForm,
-  onOpenRemarkPreview
+  onOpenRemarkPreview,
 }) {
   if (!isOpen) return null;
 
@@ -639,7 +639,8 @@ function ApplicantDrawer({
 
                   <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
                     <label className="mb-2 block text-sm font-medium text-gray-700">
-                      Upload Image <span className="text-gray-400">(optional)</span>
+                      Upload Image{" "}
+                      <span className="text-gray-400">(optional)</span>
                     </label>
 
                     <input
@@ -726,7 +727,9 @@ function ApplicantDrawer({
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
                           <span className="text-md font-extrabold underline uppercase tracking-wide text-black">
-                            {remark.status ? prettifyStatus(remark.status) : "Remark"}
+                            {remark.status
+                              ? prettifyStatus(remark.status)
+                              : "Remark"}
                           </span>
                           <span className="text-xs text-gray-400">
                             {formatDate(remark.created_at)}
@@ -734,14 +737,18 @@ function ApplicantDrawer({
                         </div>
 
                         {remark.remark && (
-                          <p className="text-sm text-gray-700">{remark.remark}</p>
+                          <p className="text-sm text-gray-700">
+                            {remark.remark}
+                          </p>
                         )}
 
                         {remark.image_url && (
                           <div className="mt-3">
                             <button
                               type="button"
-                              onClick={() => onOpenRemarkPreview(remark.image_url)}
+                              onClick={() =>
+                                onOpenRemarkPreview(remark.image_url)
+                              }
                               className="block"
                             >
                               <img
@@ -750,7 +757,9 @@ function ApplicantDrawer({
                                 className="max-h-72 rounded-2xl border border-gray-200 object-contain transition hover:opacity-90"
                               />
                             </button>
-                            <p className="mt-2 text-xs text-gray-500">Click image to preview</p>
+                            <p className="mt-2 text-xs text-gray-500">
+                              Click image to preview
+                            </p>
                           </div>
                         )}
                       </div>
@@ -1368,7 +1377,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   label="Salary Type "
                   value={renderValue(onboarding.salary_type)}
                 />
-                
               </div>
             </div>
 

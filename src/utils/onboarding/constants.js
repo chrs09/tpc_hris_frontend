@@ -78,12 +78,7 @@ export const stepConfig = [
 ];
 
 export const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
-export const civilStatusOptions = [
-  "Single",
-  "Married",
-  "Widowed",
-  "Separated",
-];
+export const civilStatusOptions = ["Single", "Married", "Widowed", "Separated"];
 export const salaryTypeOptions = ["Monthly", "Semi-monthly", "Weekly", "Daily"];
 
 export const backendFieldLabelMap = {

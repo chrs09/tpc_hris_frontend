@@ -377,7 +377,12 @@ export default function OnBoardingForm() {
             label="Level"
             value={form.education_records[index].level}
             onChange={(e) =>
-              updateArrayField("education_records", index, "level", e.target.value)
+              updateArrayField(
+                "education_records",
+                index,
+                "level",
+                e.target.value,
+              )
             }
             name={`education_level_${index}`}
             error={errors[`education_records.${index}.level`]}
@@ -402,7 +407,12 @@ export default function OnBoardingForm() {
             label="Degree / Course"
             value={form.education_records[index].degree}
             onChange={(e) =>
-              updateArrayField("education_records", index, "degree", e.target.value)
+              updateArrayField(
+                "education_records",
+                index,
+                "degree",
+                e.target.value,
+              )
             }
             name={`education_degree_${index}`}
             error={errors[`education_records.${index}.degree`]}
@@ -427,7 +437,12 @@ export default function OnBoardingForm() {
             label="Year To"
             value={form.education_records[index].year_to}
             onChange={(e) =>
-              updateArrayField("education_records", index, "year_to", e.target.value)
+              updateArrayField(
+                "education_records",
+                index,
+                "year_to",
+                e.target.value,
+              )
             }
             name={`education_year_to_${index}`}
             error={errors[`education_records.${index}.year_to`]}
@@ -437,7 +452,12 @@ export default function OnBoardingForm() {
             label="Skills"
             value={form.education_records[index].skills}
             onChange={(e) =>
-              updateArrayField("education_records", index, "skills", e.target.value)
+              updateArrayField(
+                "education_records",
+                index,
+                "skills",
+                e.target.value,
+              )
             }
             name={`education_skills_${index}`}
             error={errors[`education_records.${index}.skills`]}
@@ -540,7 +560,12 @@ export default function OnBoardingForm() {
             label="Occupation"
             value={form.references[index].occupation}
             onChange={(e) =>
-              updateArrayField("references", index, "occupation", e.target.value)
+              updateArrayField(
+                "references",
+                index,
+                "occupation",
+                e.target.value,
+              )
             }
             name={`reference_occupation_${index}`}
             error={errors[`references.${index}.occupation`]}
@@ -576,7 +601,9 @@ export default function OnBoardingForm() {
     return (
       <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
-          <h2 className="text-lg font-bold text-gray-900">Additional Questions</h2>
+          <h2 className="text-lg font-bold text-gray-900">
+            Additional Questions
+          </h2>
           <p className="mt-1 text-sm text-gray-500">
             Please answer the questions below before submitting your form.
           </p>
@@ -586,7 +613,8 @@ export default function OnBoardingForm() {
           {questions.map((q) => {
             const shouldHide =
               q.depends_on_question_key &&
-              questionResponses[q.depends_on_question_key] !== q.depends_on_value;
+              questionResponses[q.depends_on_question_key] !==
+                q.depends_on_value;
 
             if (shouldHide) return null;
 

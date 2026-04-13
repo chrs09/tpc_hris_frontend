@@ -28,9 +28,11 @@ export function validateStepData(step, form, questions, questionResponses) {
     if (!form.birthday) errors.birthday = "Birthday is required.";
     if (!form.birthplace.trim()) errors.birthplace = "Birthplace is required.";
     if (!form.gender.trim()) errors.gender = "Gender is required.";
-    if (!form.civil_status.trim()) errors.civil_status = "Civil status is required.";
+    if (!form.civil_status.trim())
+      errors.civil_status = "Civil status is required.";
     if (!form.religion.trim()) errors.religion = "Religion is required.";
-    if (!form.citizenship.trim()) errors.citizenship = "Citizenship is required.";
+    if (!form.citizenship.trim())
+      errors.citizenship = "Citizenship is required.";
     if (!form.height.trim()) errors.height = "Height is required.";
     if (!form.weight.trim()) errors.weight = "Weight is required.";
     if (!form.language.trim()) errors.language = "Language is required.";
@@ -92,7 +94,8 @@ export function validateStepData(step, form, questions, questionResponses) {
           "Company name is required.";
       }
       if (!`${record.position || ""}`.trim()) {
-        errors[`employment_history.${index}.position`] = "Position is required.";
+        errors[`employment_history.${index}.position`] =
+          "Position is required.";
       }
       if (!`${record.date_from || ""}`.trim()) {
         errors[`employment_history.${index}.date_from`] =

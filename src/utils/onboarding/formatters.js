@@ -62,7 +62,6 @@ export const formatTIN = (value = "") => {
 export const isValidSSS = (value = "") => /^\d{2}-\d{7}-\d{1}$/.test(value);
 export const isValidPhilHealth = (value = "") =>
   /^\d{2}-\d{9}-\d{1}$/.test(value);
-export const isValidPagibig = (value = "") =>
-  /^\d{4}-\d{4}-\d{4}$/.test(value);
+export const isValidPagibig = (value = "") => /^\d{4}-\d{4}-\d{4}$/.test(value);
 export const isValidTIN = (value = "") =>
   /^\d{3}-\d{3}-\d{3}(-\d{3})?$/.test(value);
