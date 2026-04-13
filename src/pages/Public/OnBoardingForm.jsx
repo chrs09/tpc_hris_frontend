@@ -1,398 +1,108 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
   getApplicantOnboarding,
   saveApplicantOnboarding,
   submitApplicantOnboarding,
 } from "../../api/applicantOnboarding";
 
-const emptyEducation = {
-  level: "",
-  institution: "",
-  degree: "",
-  year_from: "",
-  year_to: "",
-  skills: "",
-};
+import Field from "../../components/onboarding/Field";
+import SectionCard from "../../components/onboarding/SectionCard";
+import DynamicListSection from "../../components/onboarding/DynamicListSection";
+import ProgressSteps from "../../components/onboarding/ProgressSteps";
 
-const emptyEmployment = {
-  company_name: "",
-  position: "",
-  date_from: "",
-  date_to: "",
-};
+import {
+  backendFieldLabelMap,
+  civilStatusOptions,
+  emptyEducation,
+  emptyEmployment,
+  emptyReference,
+  genderOptions,
+  initialForm,
+  salaryTypeOptions,
+  stepConfig,
+} from "../../utils/onboarding/constants";
 
-const emptyReference = {
-  name: "",
-  occupation: "",
-  address: "",
-  contact: "",
-};
+import {
+  formatMoney,
+  formatPagibig,
+  formatPhilHealth,
+  formatSSS,
+  formatTIN,
+} from "../../utils/onboarding/formatters";
 
-const initialForm = {
-  first_name: "",
-  last_name: "",
-  email: "",
-  department: "",
-  position: "",
+import {
+  buildPayload,
+  buildQuestionResponseMap,
+  extractBackendFieldErrors,
+  formatBackendValidation,
+  mapApiDataToForm,
+} from "../../utils/onboarding/helpers";
 
-  birthday: "",
-  birthplace: "",
-  gender: "",
-  civil_status: "",
-  religion: "",
-  citizenship: "",
-  height: "",
-  weight: "",
-  language: "",
-  contact_number: "",
-  current_address: "",
-  provincial_address: "",
+import { validateStepData } from "../../utils/onboarding/validation";
 
-  spouse_name: "",
-  father_name: "",
-  mother_name: "",
-
-  emergency_contact_name: "",
-  emergency_contact_number: "",
-  emergency_relationship: "",
-
-  sss: "",
-  philhealth: "",
-  pagibig: "",
-  tin: "",
-
-  education_records: [],
-  employment_history: [],
-  references: [],
-};
-
-const stepConfig = [
-  { id: 1, title: "Basic Information" },
-  { id: 2, title: "Personal Information" },
-  { id: 3, title: "Family Information" },
-  { id: 4, title: "Emergency Contact" },
-  { id: 5, title: "Education" },
-  { id: 6, title: "Employment History" },
-  { id: 7, title: "References" },
-  { id: 8, title: "Government Information" },
-  { id: 9, title: "Additional Questions" },
-];
-
-function Section({ title, children }) {
+function SubmissionSuccessScreen({ applicant, submittedAt }) {
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-5 text-lg font-bold text-gray-900">{title}</h2>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">{children}</div>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  name,
-  type = "text",
-  options = null,
-  placeholder = "",
-  error = "",
-  required = false,
-}) {
-  const isSelect = Array.isArray(options) && options.length > 0;
-
-  const baseClass =
-    "w-full rounded-2xl px-4 py-3 outline-none focus:ring-2 transition";
-  const normalClass =
-    "border border-gray-300 focus:border-black focus:ring-black/10";
-  const errorClass =
-    "border border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200";
-
-  return (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </label>
-
-      {isSelect ? (
-        <select
-          name={name}
-          value={value || ""}
-          onChange={onChange}
-          className={`${baseClass} ${error ? errorClass : normalClass}`}
-        >
-          <option value="">Select {label}</option>
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-      ) : type === "textarea" ? (
-        <textarea
-          name={name}
-          value={value || ""}
-          onChange={onChange}
-          placeholder={placeholder}
-          rows={4}
-          className={`${baseClass} resize-none ${error ? errorClass : normalClass}`}
-        />
-      ) : (
-        <input
-          type={type}
-          name={name}
-          value={value || ""}
-          onChange={onChange}
-          placeholder={placeholder}
-          className={`${baseClass} ${error ? errorClass : normalClass}`}
-        />
-      )}
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </div>
-  );
-}
-
-function DynamicCard({ title, onRemove, children }) {
-  return (
-    <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="text-sm font-medium text-red-600 hover:underline"
-        >
-          Remove
-        </button>
-      </div>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">{children}</div>
-    </div>
-  );
-}
-
-function Toast({ toast, onClose }) {
-  if (!toast.show) return null;
-
-  const styles = {
-    success: "border-green-200 bg-green-50 text-green-700",
-    error: "border-red-200 bg-red-50 text-red-700",
-    info: "border-blue-200 bg-blue-50 text-blue-700",
-  };
-
-  return (
-    <div className="fixed right-4 top-4 z-9999 w-full max-w-sm">
-      <div
-        className={`rounded-2xl border px-4 py-3 shadow-lg ${styles[toast.type] || styles.info}`}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-sm font-medium">{toast.message}</p>
-          <button
-            type="button"
-            onClick={onClose}
-            className="shrink-0 text-lg leading-none opacity-70 hover:opacity-100"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProgressSteps({ currentStep }) {
-  return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">Progress</p>
-          <h2 className="text-lg font-bold text-gray-900">
-            Step {currentStep} of {stepConfig.length}
-          </h2>
-        </div>
-        <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
-          {stepConfig[currentStep - 1]?.title}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-3 gap-2 md:grid-cols-9">
-        {stepConfig.map((step) => {
-          const isActive = step.id === currentStep;
-          const isDone = step.id < currentStep;
-
-          return (
-            <div key={step.id} className="space-y-2">
-              <div
-                className={`h-2 rounded-full ${
-                  isDone || isActive ? "bg-black" : "bg-gray-200"
-                }`}
+    <div className="min-h-screen bg-gray-50 px-4 py-10">
+      <div className="mx-auto max-w-3xl">
+        <div className="rounded-3xl border border-gray-200 bg-white p-8 shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
+            <svg
+              className="h-8 w-8 text-green-600"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M5 13l4 4L19 7"
               />
-              <p
-                className={`text-[11px] leading-tight ${
-                  isActive ? "font-semibold text-black" : "text-gray-500"
-                }`}
-              >
-                {step.title}
-              </p>
-            </div>
-          );
-        })}
+            </svg>
+          </div>
+
+          <div className="mt-6 text-center">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Your Onboarding Form is Saved Successfully
+            </h1>
+            <p className="mt-3 text-base text-gray-600">
+              Thank you. Your onboarding form has already been submitted and is
+              now under review.
+            </p>
+          </div>
+
+          <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-5 text-sm text-gray-700">
+            <p>
+              <span className="font-semibold">Applicant:</span>{" "}
+              {applicant?.first_name} {applicant?.last_name}
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold">Applied Position:</span>{" "}
+              {applicant?.position_applied || "-"}
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold">Status:</span> Submitted
+            </p>
+            <p className="mt-2">
+              <span className="font-semibold">Submitted At:</span>{" "}
+              {submittedAt
+                ? new Date(submittedAt).toLocaleString()
+                : applicant?.onboarding_submitted_at
+                  ? new Date(applicant.onboarding_submitted_at).toLocaleString()
+                  : "-"}
+            </p>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+            You do not need to fill out this form again unless the HR team asks
+            you to update your details.
+          </div>
+        </div>
       </div>
     </div>
   );
-}
-
-const digitsOnly = (value = "") => value.replace(/\D/g, "");
-
-const formatSSS = (value = "") => {
-  const digits = digitsOnly(value).slice(0, 10);
-  const part1 = digits.slice(0, 2);
-  const part2 = digits.slice(2, 9);
-  const part3 = digits.slice(9, 10);
-
-  let formatted = part1;
-  if (part2) formatted += `-${part2}`;
-  if (part3) formatted += `-${part3}`;
-  return formatted;
-};
-
-const formatPhilHealth = (value = "") => {
-  const digits = digitsOnly(value).slice(0, 12);
-  const part1 = digits.slice(0, 2);
-  const part2 = digits.slice(2, 11);
-  const part3 = digits.slice(11, 12);
-
-  let formatted = part1;
-  if (part2) formatted += `-${part2}`;
-  if (part3) formatted += `-${part3}`;
-  return formatted;
-};
-
-const formatPagibig = (value = "") => {
-  const digits = digitsOnly(value).slice(0, 12);
-  const part1 = digits.slice(0, 4);
-  const part2 = digits.slice(4, 8);
-  const part3 = digits.slice(8, 12);
-
-  let formatted = part1;
-  if (part2) formatted += `-${part2}`;
-  if (part3) formatted += `-${part3}`;
-  return formatted;
-};
-
-const formatTIN = (value = "") => {
-  const digits = digitsOnly(value).slice(0, 12);
-  const part1 = digits.slice(0, 3);
-  const part2 = digits.slice(3, 6);
-  const part3 = digits.slice(6, 9);
-  const part4 = digits.slice(9, 12);
-
-  let formatted = part1;
-  if (part2) formatted += `-${part2}`;
-  if (part3) formatted += `-${part3}`;
-  if (part4) formatted += `-${part4}`;
-  return formatted;
-};
-
-const isValidSSS = (value = "") => /^\d{2}-\d{7}-\d{1}$/.test(value);
-const isValidPhilHealth = (value = "") => /^\d{2}-\d{9}-\d{1}$/.test(value);
-const isValidPagibig = (value = "") => /^\d{4}-\d{4}-\d{4}$/.test(value);
-const isValidTIN = (value = "") => /^\d{3}-\d{3}-\d{3}(-\d{3})?$/.test(value);
-
-const normalizeEmptyToNull = (value) => (value === "" ? null : value);
-
-const backendFieldLabelMap = {
-  first_name: "First name",
-  last_name: "Last name",
-  email: "Email",
-  department: "Department",
-  position: "Position",
-  birthday: "Birthday",
-  birthplace: "Birthplace",
-  gender: "Gender",
-  civil_status: "Civil status",
-  religion: "Religion",
-  citizenship: "Citizenship",
-  height: "Height",
-  weight: "Weight",
-  language: "Language",
-  contact_number: "Contact number",
-  current_address: "Current address",
-  provincial_address: "Provincial address",
-  spouse_name: "Spouse name",
-  father_name: "Father name",
-  mother_name: "Mother name",
-  emergency_contact_name: "Emergency contact name",
-  emergency_contact_number: "Emergency contact number",
-  emergency_relationship: "Emergency relationship",
-  sss: "SSS number",
-  philhealth: "PhilHealth number",
-  pagibig: "Pag-IBIG number",
-  tin: "TIN number",
-};
-
-function formatBackendValidation(detail) {
-  if (!detail) return "Something went wrong.";
-
-  if (typeof detail === "string") return detail;
-
-  if (Array.isArray(detail)) {
-    return detail
-      .map((item) => {
-        const field = item?.loc?.[item.loc.length - 1];
-        const fieldLabel = backendFieldLabelMap[field] || field || "Field";
-        const msg = item?.msg || "Invalid input.";
-        return `${fieldLabel}: ${msg}`;
-      })
-      .join(" | ");
-  }
-
-  if (typeof detail === "object") {
-    if (detail.message && Array.isArray(detail.missing_fields)) {
-      const missing = detail.missing_fields
-        .map((field) => backendFieldLabelMap[field] || field)
-        .join(", ");
-      return `${detail.message} Missing: ${missing}`;
-    }
-
-    if (detail.message) return detail.message;
-  }
-
-  return "Something went wrong.";
-}
-
-function extractBackendFieldErrors(detail) {
-  const fieldErrors = {};
-
-  if (!Array.isArray(detail)) return fieldErrors;
-
-  detail.forEach((item) => {
-    const field = item?.loc?.[item.loc.length - 1];
-    if (!field) return;
-
-    fieldErrors[field] = item?.msg || "Invalid input.";
-  });
-
-  return fieldErrors;
-}
-
-function normalizePosition(value = "") {
-  return value.toLowerCase().trim().replace(/\s+/g, " ");
-}
-
-function inferRoleFromPosition(position = "") {
-  const normalized = normalizePosition(position);
-
-  if (normalized.includes("helper")) return "helper";
-  if (normalized.includes("driver")) return "driver";
-
-  return "admin";
-}
-
-function getQuestionOptions(question) {
-  if (question.question_type !== "select") return null;
-  return ["Yes", "No"];
 }
 
 export default function OnBoardingForm() {
@@ -413,39 +123,8 @@ export default function OnBoardingForm() {
   const [questionResponses, setQuestionResponses] = useState({});
   const [questionErrors, setQuestionErrors] = useState({});
 
-  const [toast, setToast] = useState({
-    show: false,
-    message: "",
-    type: "info",
-  });
-
-  const genderOptions = useMemo(
-    () => ["Male", "Female", "Other", "Prefer not to say"],
-    [],
-  );
-
-  const civilStatusOptions = useMemo(
-    () => ["Single", "Married", "Widowed", "Separated"],
-    [],
-  );
-
-  const showToast = useCallback((message, type = "info") => {
-    setToast({ show: true, message, type });
-  }, []);
-
-  const closeToast = useCallback(() => {
-    setToast((prev) => ({ ...prev, show: false }));
-  }, []);
-
-  useEffect(() => {
-    if (!toast.show) return;
-
-    const timer = setTimeout(() => {
-      setToast((prev) => ({ ...prev, show: false }));
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [toast.show]);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState(null);
 
   const loadForm = useCallback(async () => {
     try {
@@ -453,108 +132,31 @@ export default function OnBoardingForm() {
       setError("");
 
       const data = await getApplicantOnboarding(token);
-      setApplicant(data.applicant);
 
-      const onboarding = data.onboarding || {};
-
-      setForm({
-        ...initialForm,
-        ...onboarding,
-        first_name: onboarding.first_name || data.applicant?.first_name || "",
-        last_name: onboarding.last_name || data.applicant?.last_name || "",
-        email: onboarding.email || data.applicant?.email || "",
-        contact_number:
-          onboarding.contact_number || data.applicant?.contact_number || "",
-        position: onboarding.position || data.applicant?.position_applied || "",
-        birthday: onboarding.birthday || "",
-        sss: formatSSS(onboarding.sss || ""),
-        philhealth: formatPhilHealth(onboarding.philhealth || ""),
-        pagibig: formatPagibig(onboarding.pagibig || ""),
-        tin: formatTIN(onboarding.tin || ""),
-        education_records: data.education_records || [],
-        employment_history:
-          (data.employment_history || []).map((item) => ({
-            ...item,
-            date_from: item.date_from || "",
-            date_to: item.date_to || "",
-          })) || [],
-        references: data.references || [],
-      });
-
+      setApplicant(data.applicant || null);
+      setForm(mapApiDataToForm(data));
       setQuestions(data.questions || []);
+      setQuestionResponses(
+        buildQuestionResponseMap(data.question_responses || []),
+      );
 
-      const initialResponses = {};
-      (data.questions || []).forEach((question) => {
-        initialResponses[question.question_key] = "";
-      });
-
-      (data.question_responses || []).forEach((response) => {
-        if (response.question_key) {
-          initialResponses[response.question_key] = response.answer_text || "";
-        }
-      });
-
-      setQuestionResponses(initialResponses);
+      const submitted = Boolean(data?.onboarding?.is_submitted);
+      setIsSubmitted(submitted);
+      setSubmittedAt(data?.onboarding?.submitted_at || null);
     } catch (err) {
-      console.error("Failed to load onboarding form:", err);
-
       const detail = err?.response?.data?.detail;
-      const message = formatBackendValidation(detail);
+      const message = formatBackendValidation(detail, backendFieldLabelMap);
 
       setError(message);
-      showToast(message, "error");
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [token, showToast]);
+  }, [token]);
 
   useEffect(() => {
     if (token) loadForm();
   }, [token, loadForm]);
-
-  const role = useMemo(() => {
-    return inferRoleFromPosition(
-      form.position || applicant?.position_applied || "",
-    );
-  }, [form.position, applicant]);
-
-  const applicableQuestions = useMemo(() => {
-    if (role === "helper") {
-      return questions.filter((q) => q.question_key.startsWith("helper_"));
-    }
-
-    if (role === "driver") {
-      return questions.filter(
-        (q) =>
-          !q.question_key.startsWith("helper_") &&
-          !q.question_key.startsWith("admin_"),
-      );
-    }
-
-    return questions.filter((q) => q.question_key.startsWith("admin_"));
-  }, [questions, role]);
-
-  const buildPayload = useCallback(() => {
-    return {
-      ...form,
-      birthday: normalizeEmptyToNull(form.birthday),
-      education_records: (form.education_records || []).map((record) => ({
-        ...record,
-        year_from: normalizeEmptyToNull(record.year_from),
-        year_to: normalizeEmptyToNull(record.year_to),
-      })),
-      employment_history: (form.employment_history || []).map((record) => ({
-        ...record,
-        date_from: normalizeEmptyToNull(record.date_from),
-        date_to: normalizeEmptyToNull(record.date_to),
-      })),
-      references: form.references || [],
-      question_responses: applicableQuestions.map((question) => ({
-        question_key: question.question_key,
-        answer_text: questionResponses[question.question_key] || "",
-      })),
-    };
-  }, [form, applicableQuestions, questionResponses]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -569,6 +171,8 @@ export default function OnBoardingForm() {
       formattedValue = formatPagibig(value);
     } else if (name === "tin") {
       formattedValue = formatTIN(value);
+    } else if (name === "current_salary" || name === "expected_salary") {
+      formattedValue = formatMoney(value);
     }
 
     setForm((prev) => ({ ...prev, [name]: formattedValue }));
@@ -595,449 +199,93 @@ export default function OnBoardingForm() {
     });
   };
 
-  const handleEducationChange = (index, field, value) => {
+  const updateArrayField = (arrayKey, index, field, value) => {
     setForm((prev) => {
-      const updated = [...prev.education_records];
+      const updated = [...prev[arrayKey]];
       updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, education_records: updated };
+      return { ...prev, [arrayKey]: updated };
     });
 
     setErrors((prev) => {
       const updated = { ...prev };
-      delete updated[`education_records.${index}.${field}`];
-      delete updated.education_records;
+      delete updated[`${arrayKey}.${index}.${field}`];
+      delete updated[arrayKey];
       return updated;
     });
   };
 
-  const addEducation = () => {
-    setForm((prev) => ({
-      ...prev,
-      education_records: [...prev.education_records, { ...emptyEducation }],
-    }));
-  };
-
-  const removeEducation = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      education_records: prev.education_records.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleEmploymentChange = (index, field, value) => {
+  const addArrayItem = (arrayKey, emptyItem, maxItems = null) => {
     setForm((prev) => {
-      const updated = [...prev.employment_history];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, employment_history: updated };
-    });
+      if (maxItems && prev[arrayKey].length >= maxItems) return prev;
 
-    setErrors((prev) => {
-      const updated = { ...prev };
-      delete updated[`employment_history.${index}.${field}`];
-      delete updated.employment_history;
-      return updated;
+      return {
+        ...prev,
+        [arrayKey]: [...prev[arrayKey], { ...emptyItem }],
+      };
     });
   };
 
-  const addEmployment = () => {
-    setForm((prev) => ({
-      ...prev,
-      employment_history: [...prev.employment_history, { ...emptyEmployment }],
-    }));
-  };
-
-  const removeEmployment = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      employment_history: prev.employment_history.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleReferenceChange = (index, field, value) => {
+  const removeArrayItem = (arrayKey, index) => {
     setForm((prev) => {
-      const updated = [...prev.references];
-      updated[index] = { ...updated[index], [field]: value };
-      return { ...prev, references: updated };
-    });
+      if (prev[arrayKey].length === 1) return prev;
 
-    setErrors((prev) => {
-      const updated = { ...prev };
-      delete updated[`references.${index}.${field}`];
-      return updated;
+      return {
+        ...prev,
+        [arrayKey]: prev[arrayKey].filter((_, i) => i !== index),
+      };
     });
   };
 
-  const addReference = () => {
-    setForm((prev) => ({
-      ...prev,
-      references: [...prev.references, { ...emptyReference }],
-    }));
-  };
+  const validateCurrentStep = () => {
+    const { errors: stepErrors, questionErrors: stepQuestionErrors } =
+      validateStepData(step, form, questions, questionResponses);
 
-  const removeReference = (index) => {
-    setForm((prev) => ({
-      ...prev,
-      references: prev.references.filter((_, i) => i !== index),
-    }));
-  };
-
-  const validateQuestions = useCallback(() => {
-    const newQuestionErrors = {};
-
-    applicableQuestions.forEach((question) => {
-      const rawValue = questionResponses[question.question_key];
-      const value = typeof rawValue === "string" ? rawValue.trim() : rawValue;
-
-      if (question.is_required && !value) {
-        newQuestionErrors[question.question_key] =
-          `${question.question_text} is required.`;
-      }
-    });
-
-    return newQuestionErrors;
-  }, [applicableQuestions, questionResponses]);
-
-  const validateStep = (currentStep = step) => {
-    const newErrors = {};
-    let newQuestionErrors = {};
-
-    if (currentStep === 1) {
-      if (!form.first_name.trim())
-        newErrors.first_name = "First name is required.";
-      if (!form.last_name.trim())
-        newErrors.last_name = "Last name is required.";
-
-      if (!form.email.trim()) {
-        newErrors.email = "Email is required.";
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-        newErrors.email = "Enter a valid email address.";
-      }
-
-      if (!form.position.trim()) {
-        newErrors.position = "Position is required.";
-      }
-    }
-
-    if (currentStep === 2) {
-      if (!form.birthday) newErrors.birthday = "Birthday is required.";
-      if (!form.birthplace.trim())
-        newErrors.birthplace = "Birthplace is required.";
-      if (!form.gender.trim()) newErrors.gender = "Gender is required.";
-      if (!form.civil_status.trim())
-        newErrors.civil_status = "Civil status is required.";
-      if (!form.religion.trim()) newErrors.religion = "Religion is required.";
-      if (!form.citizenship.trim())
-        newErrors.citizenship = "Citizenship is required.";
-      if (!form.height.trim()) newErrors.height = "Height is required.";
-      if (!form.weight.trim()) newErrors.weight = "Weight is required.";
-      if (!form.language.trim()) newErrors.language = "Language is required.";
-
-      if (!form.contact_number.trim()) {
-        newErrors.contact_number = "Contact number is required.";
-      } else if (!/^[0-9+\-\s()]{7,20}$/.test(form.contact_number)) {
-        newErrors.contact_number = "Enter a valid contact number.";
-      }
-
-      if (!form.current_address.trim()) {
-        newErrors.current_address = "Current address is required.";
-      }
-      if (!form.provincial_address.trim()) {
-        newErrors.provincial_address = "Provincial address is required.";
-      }
-    }
-
-    if (currentStep === 4) {
-      if (!form.emergency_contact_name.trim()) {
-        newErrors.emergency_contact_name =
-          "Emergency contact name is required.";
-      }
-      if (!form.emergency_contact_number.trim()) {
-        newErrors.emergency_contact_number =
-          "Emergency contact number is required.";
-      }
-      if (!form.emergency_relationship.trim()) {
-        newErrors.emergency_relationship = "Relationship is required.";
-      }
-    }
-
-    if (currentStep === 5) {
-      if (form.education_records.length === 0) {
-        newErrors.education_records =
-          "At least one education record is required.";
-      } else {
-        form.education_records.forEach((record, index) => {
-          if (!`${record.level || ""}`.trim()) {
-            newErrors[`education_records.${index}.level`] =
-              "Level is required.";
-          }
-          if (!`${record.institution || ""}`.trim()) {
-            newErrors[`education_records.${index}.institution`] =
-              "Institution is required.";
-          }
-          if (!`${record.degree || ""}`.trim()) {
-            newErrors[`education_records.${index}.degree`] =
-              "Degree / Course is required.";
-          }
-          if (!`${record.year_from || ""}`.trim()) {
-            newErrors[`education_records.${index}.year_from`] =
-              "Year from is required.";
-          }
-          if (!`${record.year_to || ""}`.trim()) {
-            newErrors[`education_records.${index}.year_to`] =
-              "Year to is required.";
-          }
-        });
-      }
-    }
-
-    if (currentStep === 6) {
-      if (form.employment_history.length === 0) {
-        newErrors.employment_history =
-          "At least one employment history is required.";
-      } else {
-        form.employment_history.forEach((record, index) => {
-          if (!`${record.company_name || ""}`.trim()) {
-            newErrors[`employment_history.${index}.company_name`] =
-              "Company name is required.";
-          }
-          if (!`${record.position || ""}`.trim()) {
-            newErrors[`employment_history.${index}.position`] =
-              "Position is required.";
-          }
-          if (!`${record.date_from || ""}`.trim()) {
-            newErrors[`employment_history.${index}.date_from`] =
-              "Date from is required.";
-          }
-          if (!`${record.date_to || ""}`.trim()) {
-            newErrors[`employment_history.${index}.date_to`] =
-              "Date to is required.";
-          }
-        });
-      }
-    }
-
-    if (currentStep === 8) {
-      if (!form.sss.trim()) {
-        newErrors.sss = "SSS number is required.";
-      } else if (!isValidSSS(form.sss)) {
-        newErrors.sss = "SSS format must be 12-3456789-0";
-      }
-
-      if (!form.philhealth.trim()) {
-        newErrors.philhealth = "PhilHealth number is required.";
-      } else if (!isValidPhilHealth(form.philhealth)) {
-        newErrors.philhealth = "PhilHealth format must be 12-345678901-2";
-      }
-
-      if (!form.pagibig.trim()) {
-        newErrors.pagibig = "Pag-IBIG number is required.";
-      } else if (!isValidPagibig(form.pagibig)) {
-        newErrors.pagibig = "Pag-IBIG format must be 1234-5678-9012";
-      }
-
-      if (!form.tin.trim()) {
-        newErrors.tin = "TIN number is required.";
-      } else if (!isValidTIN(form.tin)) {
-        newErrors.tin = "TIN format must be 123-456-789 or 123-456-789-000";
-      }
-    }
-
-    if (currentStep === 9) {
-      newQuestionErrors = validateQuestions();
-    }
-
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-    setQuestionErrors(newQuestionErrors);
+    setErrors((prev) => ({ ...prev, ...stepErrors }));
+    setQuestionErrors(stepQuestionErrors);
 
     return (
-      Object.keys(newErrors).length === 0 &&
-      Object.keys(newQuestionErrors).length === 0
+      Object.keys(stepErrors).length === 0 &&
+      Object.keys(stepQuestionErrors).length === 0
     );
   };
 
   const validateAllSteps = () => {
-    let isValid = true;
-    let combinedErrors = {};
+    let mergedErrors = {};
+    let mergedQuestionErrors = {};
 
     for (let i = 1; i <= stepConfig.length; i += 1) {
-      const tempErrors = {};
+      const { errors: stepErrors, questionErrors: stepQuestionErrors } =
+        validateStepData(i, form, questions, questionResponses);
 
-      if (i === 1) {
-        if (!form.first_name.trim())
-          tempErrors.first_name = "First name is required.";
-        if (!form.last_name.trim())
-          tempErrors.last_name = "Last name is required.";
-
-        if (!form.email.trim()) {
-          tempErrors.email = "Email is required.";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-          tempErrors.email = "Enter a valid email address.";
-        }
-
-        if (!form.position.trim())
-          tempErrors.position = "Position is required.";
-      }
-
-      if (i === 2) {
-        if (!form.birthday) tempErrors.birthday = "Birthday is required.";
-        if (!form.birthplace.trim())
-          tempErrors.birthplace = "Birthplace is required.";
-        if (!form.gender.trim()) tempErrors.gender = "Gender is required.";
-        if (!form.civil_status.trim())
-          tempErrors.civil_status = "Civil status is required.";
-        if (!form.religion.trim())
-          tempErrors.religion = "Religion is required.";
-        if (!form.citizenship.trim())
-          tempErrors.citizenship = "Citizenship is required.";
-        if (!form.height.trim()) tempErrors.height = "Height is required.";
-        if (!form.weight.trim()) tempErrors.weight = "Weight is required.";
-        if (!form.language.trim())
-          tempErrors.language = "Language is required.";
-
-        if (!form.contact_number.trim()) {
-          tempErrors.contact_number = "Contact number is required.";
-        } else if (!/^[0-9+\-\s()]{7,20}$/.test(form.contact_number)) {
-          tempErrors.contact_number = "Enter a valid contact number.";
-        }
-
-        if (!form.current_address.trim()) {
-          tempErrors.current_address = "Current address is required.";
-        }
-        if (!form.provincial_address.trim()) {
-          tempErrors.provincial_address = "Provincial address is required.";
-        }
-      }
-
-      if (i === 4) {
-        if (!form.emergency_contact_name.trim()) {
-          tempErrors.emergency_contact_name =
-            "Emergency contact name is required.";
-        }
-        if (!form.emergency_contact_number.trim()) {
-          tempErrors.emergency_contact_number =
-            "Emergency contact number is required.";
-        }
-        if (!form.emergency_relationship.trim()) {
-          tempErrors.emergency_relationship = "Relationship is required.";
-        }
-      }
-
-      if (i === 5) {
-        if (form.education_records.length === 0) {
-          tempErrors.education_records =
-            "At least one education record is required.";
-        } else {
-          form.education_records.forEach((record, index) => {
-            if (!`${record.level || ""}`.trim()) {
-              tempErrors[`education_records.${index}.level`] =
-                "Level is required.";
-            }
-            if (!`${record.institution || ""}`.trim()) {
-              tempErrors[`education_records.${index}.institution`] =
-                "Institution is required.";
-            }
-            if (!`${record.degree || ""}`.trim()) {
-              tempErrors[`education_records.${index}.degree`] =
-                "Degree / Course is required.";
-            }
-            if (!`${record.year_from || ""}`.trim()) {
-              tempErrors[`education_records.${index}.year_from`] =
-                "Year from is required.";
-            }
-            if (!`${record.year_to || ""}`.trim()) {
-              tempErrors[`education_records.${index}.year_to`] =
-                "Year to is required.";
-            }
-          });
-        }
-      }
-
-      if (i === 6) {
-        if (form.employment_history.length === 0) {
-          tempErrors.employment_history =
-            "At least one employment history is required.";
-        } else {
-          form.employment_history.forEach((record, index) => {
-            if (!`${record.company_name || ""}`.trim()) {
-              tempErrors[`employment_history.${index}.company_name`] =
-                "Company name is required.";
-            }
-            if (!`${record.position || ""}`.trim()) {
-              tempErrors[`employment_history.${index}.position`] =
-                "Position is required.";
-            }
-            if (!`${record.date_from || ""}`.trim()) {
-              tempErrors[`employment_history.${index}.date_from`] =
-                "Date from is required.";
-            }
-            if (!`${record.date_to || ""}`.trim()) {
-              tempErrors[`employment_history.${index}.date_to`] =
-                "Date to is required.";
-            }
-          });
-        }
-      }
-
-      if (i === 8) {
-        if (!form.sss.trim()) {
-          tempErrors.sss = "SSS number is required.";
-        } else if (!isValidSSS(form.sss)) {
-          tempErrors.sss = "SSS format must be 12-3456789-0";
-        }
-
-        if (!form.philhealth.trim()) {
-          tempErrors.philhealth = "PhilHealth number is required.";
-        } else if (!isValidPhilHealth(form.philhealth)) {
-          tempErrors.philhealth = "PhilHealth format must be 12-345678901-2";
-        }
-
-        if (!form.pagibig.trim()) {
-          tempErrors.pagibig = "Pag-IBIG number is required.";
-        } else if (!isValidPagibig(form.pagibig)) {
-          tempErrors.pagibig = "Pag-IBIG format must be 1234-5678-9012";
-        }
-
-        if (!form.tin.trim()) {
-          tempErrors.tin = "TIN number is required.";
-        } else if (!isValidTIN(form.tin)) {
-          tempErrors.tin = "TIN format must be 123-456-789 or 123-456-789-000";
-        }
-      }
-
-      if (Object.keys(tempErrors).length > 0) {
-        isValid = false;
-      }
-
-      combinedErrors = { ...combinedErrors, ...tempErrors };
+      mergedErrors = { ...mergedErrors, ...stepErrors };
+      mergedQuestionErrors = { ...mergedQuestionErrors, ...stepQuestionErrors };
     }
 
-    const combinedQuestionErrors = validateQuestions();
+    setErrors(mergedErrors);
+    setQuestionErrors(mergedQuestionErrors);
 
-    if (Object.keys(combinedQuestionErrors).length > 0) {
-      isValid = false;
-    }
-
-    setErrors(combinedErrors);
-    setQuestionErrors(combinedQuestionErrors);
-
-    return isValid;
+    return (
+      Object.keys(mergedErrors).length === 0 &&
+      Object.keys(mergedQuestionErrors).length === 0
+    );
   };
 
-  const handleSave = async (showSuccessToast = true) => {
+  const handleSave = async (showSuccessToastMessage = true) => {
     try {
       setSaving(true);
       setError("");
 
-      await saveApplicantOnboarding(token, buildPayload());
+      await saveApplicantOnboarding(
+        token,
+        buildPayload(form, questionResponses),
+      );
 
-      if (showSuccessToast) {
-        showToast("Form saved successfully.", "success");
+      if (showSuccessToastMessage) {
+        toast.success("Form saved successfully.");
       }
     } catch (err) {
-      console.error("Failed to save onboarding form:", err);
-
       const detail = err?.response?.data?.detail;
-      const message = formatBackendValidation(detail);
+      const message = formatBackendValidation(detail, backendFieldLabelMap);
       const backendErrors = extractBackendFieldErrors(detail);
 
       if (Object.keys(backendErrors).length > 0) {
@@ -1045,7 +293,7 @@ export default function OnBoardingForm() {
       }
 
       setError(message);
-      showToast(message, "error");
+      toast.error(message);
       throw err;
     } finally {
       setSaving(false);
@@ -1053,11 +301,11 @@ export default function OnBoardingForm() {
   };
 
   const handleNext = async () => {
-    const isValid = validateStep(step);
+    const isValid = validateCurrentStep();
 
     if (!isValid) {
       setError("Please complete the required fields before continuing.");
-      showToast("Please fill the highlighted fields first.", "error");
+      toast.error("Please fill the highlighted fields first.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -1068,7 +316,7 @@ export default function OnBoardingForm() {
       setStep((prev) => prev + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      // error handled in handleSave
+      //
     }
   };
 
@@ -1083,7 +331,7 @@ export default function OnBoardingForm() {
 
     if (!isValid) {
       setError("Please complete all required fields.");
-      showToast("Please fill the highlighted fields first.", "error");
+      toast.error("Please fill the highlighted fields first.");
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
@@ -1092,17 +340,21 @@ export default function OnBoardingForm() {
       setSubmitting(true);
       setError("");
 
-      await saveApplicantOnboarding(token, buildPayload());
-      await submitApplicantOnboarding(token);
-      await loadForm();
+      await saveApplicantOnboarding(
+        token,
+        buildPayload(form, questionResponses),
+      );
 
-      showToast("Form submitted successfully.", "success");
+      const submitResponse = await submitApplicantOnboarding(token);
+
+      setIsSubmitted(true);
+      setSubmittedAt(submitResponse?.submitted_at || new Date().toISOString());
+
+      toast.success("Form submitted successfully.");
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      console.error("Failed to submit onboarding form:", err);
-
       const detail = err?.response?.data?.detail;
-      const message = formatBackendValidation(detail);
+      const message = formatBackendValidation(detail, backendFieldLabelMap);
       const backendErrors = extractBackendFieldErrors(detail);
 
       if (Object.keys(backendErrors).length > 0) {
@@ -1110,50 +362,262 @@ export default function OnBoardingForm() {
       }
 
       setError(message);
-      showToast(message, "error");
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
 
+  const educationRenderer = useMemo(
+    () => (index) => ({
+      onRemove: () => removeArrayItem("education_records", index),
+      content: (
+        <>
+          <Field
+            label="Level"
+            value={form.education_records[index].level}
+            onChange={(e) =>
+              updateArrayField("education_records", index, "level", e.target.value)
+            }
+            name={`education_level_${index}`}
+            error={errors[`education_records.${index}.level`]}
+            required
+          />
+          <Field
+            label="Institution"
+            value={form.education_records[index].institution}
+            onChange={(e) =>
+              updateArrayField(
+                "education_records",
+                index,
+                "institution",
+                e.target.value,
+              )
+            }
+            name={`education_institution_${index}`}
+            error={errors[`education_records.${index}.institution`]}
+            required
+          />
+          <Field
+            label="Degree / Course"
+            value={form.education_records[index].degree}
+            onChange={(e) =>
+              updateArrayField("education_records", index, "degree", e.target.value)
+            }
+            name={`education_degree_${index}`}
+            error={errors[`education_records.${index}.degree`]}
+            required
+          />
+          <Field
+            label="Year From"
+            value={form.education_records[index].year_from}
+            onChange={(e) =>
+              updateArrayField(
+                "education_records",
+                index,
+                "year_from",
+                e.target.value,
+              )
+            }
+            name={`education_year_from_${index}`}
+            error={errors[`education_records.${index}.year_from`]}
+            required
+          />
+          <Field
+            label="Year To"
+            value={form.education_records[index].year_to}
+            onChange={(e) =>
+              updateArrayField("education_records", index, "year_to", e.target.value)
+            }
+            name={`education_year_to_${index}`}
+            error={errors[`education_records.${index}.year_to`]}
+            required
+          />
+          <Field
+            label="Skills"
+            value={form.education_records[index].skills}
+            onChange={(e) =>
+              updateArrayField("education_records", index, "skills", e.target.value)
+            }
+            name={`education_skills_${index}`}
+            error={errors[`education_records.${index}.skills`]}
+          />
+        </>
+      ),
+    }),
+    [form.education_records, errors],
+  );
+
+  const employmentRenderer = useMemo(
+    () => (index) => ({
+      onRemove: () => removeArrayItem("employment_history", index),
+      content: (
+        <>
+          <Field
+            label="Company Name"
+            value={form.employment_history[index].company_name}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "company_name",
+                e.target.value,
+              )
+            }
+            name={`employment_company_${index}`}
+            error={errors[`employment_history.${index}.company_name`]}
+            required
+          />
+          <Field
+            label="Position"
+            value={form.employment_history[index].position}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "position",
+                e.target.value,
+              )
+            }
+            name={`employment_position_${index}`}
+            error={errors[`employment_history.${index}.position`]}
+            required
+          />
+          <Field
+            label="Date From"
+            type="date"
+            value={form.employment_history[index].date_from}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "date_from",
+                e.target.value,
+              )
+            }
+            name={`employment_date_from_${index}`}
+            error={errors[`employment_history.${index}.date_from`]}
+            required
+          />
+          <Field
+            label="Date To"
+            type="date"
+            value={form.employment_history[index].date_to}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "date_to",
+                e.target.value,
+              )
+            }
+            name={`employment_date_to_${index}`}
+            error={errors[`employment_history.${index}.date_to`]}
+            required
+          />
+        </>
+      ),
+    }),
+    [form.employment_history, errors],
+  );
+
+  const referencesRenderer = useMemo(
+    () => (index) => ({
+      onRemove: () => removeArrayItem("references", index),
+      content: (
+        <>
+          <Field
+            label="Name"
+            value={form.references[index].name}
+            onChange={(e) =>
+              updateArrayField("references", index, "name", e.target.value)
+            }
+            name={`reference_name_${index}`}
+            error={errors[`references.${index}.name`]}
+            required
+          />
+          <Field
+            label="Occupation"
+            value={form.references[index].occupation}
+            onChange={(e) =>
+              updateArrayField("references", index, "occupation", e.target.value)
+            }
+            name={`reference_occupation_${index}`}
+            error={errors[`references.${index}.occupation`]}
+            required
+          />
+          <Field
+            label="Address"
+            value={form.references[index].address}
+            onChange={(e) =>
+              updateArrayField("references", index, "address", e.target.value)
+            }
+            name={`reference_address_${index}`}
+            error={errors[`references.${index}.address`]}
+            required
+          />
+          <Field
+            label="Contact"
+            value={form.references[index].contact}
+            onChange={(e) =>
+              updateArrayField("references", index, "contact", e.target.value)
+            }
+            name={`reference_contact_${index}`}
+            error={errors[`references.${index}.contact`]}
+            required
+          />
+        </>
+      ),
+    }),
+    [form.references, errors],
+  );
+
   const renderQuestionsStep = () => {
     return (
       <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
-          <h2 className="text-lg font-bold text-gray-900">
-            Additional Questions
-          </h2>
+          <h2 className="text-lg font-bold text-gray-900">Additional Questions</h2>
           <p className="mt-1 text-sm text-gray-500">
             Please answer the questions below before submitting your form.
-          </p>
-          <p className="mt-2 text-sm text-gray-500">
-            Question set for:{" "}
-            <span className="font-semibold capitalize text-gray-700">
-              {role}
-            </span>
           </p>
         </div>
 
         <div className="space-y-5">
-          {applicableQuestions.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
-              No additional questions available for this position.
-            </div>
-          ) : (
-            applicableQuestions.map((question) => (
+          {questions.map((q) => {
+            const shouldHide =
+              q.depends_on_question_key &&
+              questionResponses[q.depends_on_question_key] !== q.depends_on_value;
+
+            if (shouldHide) return null;
+
+            let options = null;
+
+            if (Array.isArray(q.options)) {
+              options = q.options;
+            } else if (typeof q.options === "string") {
+              try {
+                const parsed = JSON.parse(q.options);
+                options = Array.isArray(parsed) ? parsed : null;
+              } catch {
+                options = null;
+              }
+            }
+
+            return (
               <Field
-                key={question.id}
-                label={question.question_text}
-                name={question.question_key}
-                type={question.question_type}
-                value={questionResponses[question.question_key] || ""}
+                key={q.question_key}
+                label={q.question_text}
+                name={q.question_key}
+                type={q.question_type || "text"}
+                value={questionResponses[q.question_key] || ""}
                 onChange={handleQuestionChange}
-                options={getQuestionOptions(question)}
-                error={questionErrors[question.question_key]}
-                required={question.is_required}
+                options={options}
+                placeholder={q.placeholder || ""}
+                error={questionErrors[q.question_key]}
+                required={q.is_required}
               />
-            ))
-          )}
+            );
+          })}
         </div>
       </div>
     );
@@ -1163,7 +627,7 @@ export default function OnBoardingForm() {
     switch (step) {
       case 1:
         return (
-          <Section title="Basic Information">
+          <SectionCard title="Basic Information">
             <Field
               label="First Name"
               name="first_name"
@@ -1183,11 +647,11 @@ export default function OnBoardingForm() {
             <Field
               label="Email"
               name="email"
+              type="email"
               value={form.email}
               error={errors.email}
               required
               onChange={handleChange}
-              type="email"
             />
             <Field
               label="Department"
@@ -1204,20 +668,20 @@ export default function OnBoardingForm() {
               required
               onChange={handleChange}
             />
-          </Section>
+          </SectionCard>
         );
 
       case 2:
         return (
-          <Section title="Personal Information">
+          <SectionCard title="Personal Information">
             <Field
               label="Birthday"
               name="birthday"
+              type="date"
               value={form.birthday}
               error={errors.birthday}
               required
               onChange={handleChange}
-              type="date"
             />
             <Field
               label="Birthplace"
@@ -1309,12 +773,12 @@ export default function OnBoardingForm() {
               required
               onChange={handleChange}
             />
-          </Section>
+          </SectionCard>
         );
 
       case 3:
         return (
-          <Section title="Family Information">
+          <SectionCard title="Family Information">
             <Field
               label="Spouse Name"
               name="spouse_name"
@@ -1336,12 +800,12 @@ export default function OnBoardingForm() {
               error={errors.mother_name}
               onChange={handleChange}
             />
-          </Section>
+          </SectionCard>
         );
 
       case 4:
         return (
-          <Section title="Emergency Contact">
+          <SectionCard title="Emergency Contact">
             <Field
               label="Emergency Contact Name"
               name="emergency_contact_name"
@@ -1366,282 +830,84 @@ export default function OnBoardingForm() {
               required
               onChange={handleChange}
             />
-          </Section>
+          </SectionCard>
         );
 
       case 5:
         return (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Education</h2>
-              <button
-                type="button"
-                onClick={addEducation}
-                className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Add Education
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {form.education_records.length === 0 ? (
-                <div
-                  className={`rounded-2xl border border-dashed p-4 text-sm ${
-                    errors.education_records
-                      ? "border-red-300 bg-red-50 text-red-600"
-                      : "border-gray-300 bg-gray-50 text-gray-500"
-                  }`}
-                >
-                  No education records yet.
-                </div>
-              ) : (
-                form.education_records.map((record, index) => (
-                  <DynamicCard
-                    key={index}
-                    title={`Education ${index + 1}`}
-                    onRemove={() => removeEducation(index)}
-                  >
-                    <Field
-                      label="Level"
-                      value={record.level}
-                      onChange={(e) =>
-                        handleEducationChange(index, "level", e.target.value)
-                      }
-                      name={`education_level_${index}`}
-                      error={errors[`education_records.${index}.level`]}
-                      required
-                    />
-                    <Field
-                      label="Institution"
-                      value={record.institution}
-                      onChange={(e) =>
-                        handleEducationChange(
-                          index,
-                          "institution",
-                          e.target.value,
-                        )
-                      }
-                      name={`education_institution_${index}`}
-                      error={errors[`education_records.${index}.institution`]}
-                      required
-                    />
-                    <Field
-                      label="Degree / Course"
-                      value={record.degree}
-                      onChange={(e) =>
-                        handleEducationChange(index, "degree", e.target.value)
-                      }
-                      name={`education_degree_${index}`}
-                      error={errors[`education_records.${index}.degree`]}
-                      required
-                    />
-                    <Field
-                      label="Year From"
-                      value={record.year_from}
-                      onChange={(e) =>
-                        handleEducationChange(
-                          index,
-                          "year_from",
-                          e.target.value,
-                        )
-                      }
-                      name={`education_year_from_${index}`}
-                      error={errors[`education_records.${index}.year_from`]}
-                      required
-                    />
-                    <Field
-                      label="Year To"
-                      value={record.year_to}
-                      onChange={(e) =>
-                        handleEducationChange(index, "year_to", e.target.value)
-                      }
-                      name={`education_year_to_${index}`}
-                      error={errors[`education_records.${index}.year_to`]}
-                      required
-                    />
-                    <Field
-                      label="Skills"
-                      value={record.skills}
-                      onChange={(e) =>
-                        handleEducationChange(index, "skills", e.target.value)
-                      }
-                      name={`education_skills_${index}`}
-                      error={errors[`education_records.${index}.skills`]}
-                    />
-                  </DynamicCard>
-                ))
-              )}
-            </div>
-          </div>
+          <DynamicListSection
+            title="Education"
+            itemTitle="Education"
+            addLabel="Add Education"
+            items={form.education_records}
+            onAdd={() => addArrayItem("education_records", emptyEducation)}
+            renderItem={educationRenderer}
+            error={errors.education_records}
+          />
         );
 
       case 6:
         return (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">
-                Employment History
-              </h2>
-              <button
-                type="button"
-                onClick={addEmployment}
-                className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Add Employment
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {form.employment_history.length === 0 ? (
-                <div
-                  className={`rounded-2xl border border-dashed p-4 text-sm ${
-                    errors.employment_history
-                      ? "border-red-300 bg-red-50 text-red-600"
-                      : "border-gray-300 bg-gray-50 text-gray-500"
-                  }`}
-                >
-                  No employment history yet.
-                </div>
-              ) : (
-                form.employment_history.map((record, index) => (
-                  <DynamicCard
-                    key={index}
-                    title={`Employment ${index + 1}`}
-                    onRemove={() => removeEmployment(index)}
-                  >
-                    <Field
-                      label="Company Name"
-                      value={record.company_name}
-                      onChange={(e) =>
-                        handleEmploymentChange(
-                          index,
-                          "company_name",
-                          e.target.value,
-                        )
-                      }
-                      name={`employment_company_${index}`}
-                      error={errors[`employment_history.${index}.company_name`]}
-                      required
-                    />
-                    <Field
-                      label="Position"
-                      value={record.position}
-                      onChange={(e) =>
-                        handleEmploymentChange(
-                          index,
-                          "position",
-                          e.target.value,
-                        )
-                      }
-                      name={`employment_position_${index}`}
-                      error={errors[`employment_history.${index}.position`]}
-                      required
-                    />
-                    <Field
-                      label="Date From"
-                      value={record.date_from}
-                      onChange={(e) =>
-                        handleEmploymentChange(
-                          index,
-                          "date_from",
-                          e.target.value,
-                        )
-                      }
-                      name={`employment_date_from_${index}`}
-                      error={errors[`employment_history.${index}.date_from`]}
-                      required
-                      type="date"
-                    />
-                    <Field
-                      label="Date To"
-                      value={record.date_to}
-                      onChange={(e) =>
-                        handleEmploymentChange(index, "date_to", e.target.value)
-                      }
-                      name={`employment_date_to_${index}`}
-                      error={errors[`employment_history.${index}.date_to`]}
-                      required
-                      type="date"
-                    />
-                  </DynamicCard>
-                ))
-              )}
-            </div>
-          </div>
+          <DynamicListSection
+            title="Employment History"
+            itemTitle="Employment"
+            addLabel="Add Employment"
+            items={form.employment_history}
+            onAdd={() => addArrayItem("employment_history", emptyEmployment)}
+            renderItem={employmentRenderer}
+            error={errors.employment_history}
+          />
         );
 
       case 7:
         return (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-900">References</h2>
-              <button
-                type="button"
-                onClick={addReference}
-                className="rounded-2xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Add Reference
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {form.references.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
-                  No references yet.
-                </div>
-              ) : (
-                form.references.map((record, index) => (
-                  <DynamicCard
-                    key={index}
-                    title={`Reference ${index + 1}`}
-                    onRemove={() => removeReference(index)}
-                  >
-                    <Field
-                      label="Name"
-                      value={record.name}
-                      onChange={(e) =>
-                        handleReferenceChange(index, "name", e.target.value)
-                      }
-                      name={`reference_name_${index}`}
-                    />
-                    <Field
-                      label="Occupation"
-                      value={record.occupation}
-                      onChange={(e) =>
-                        handleReferenceChange(
-                          index,
-                          "occupation",
-                          e.target.value,
-                        )
-                      }
-                      name={`reference_occupation_${index}`}
-                    />
-                    <Field
-                      label="Address"
-                      value={record.address}
-                      onChange={(e) =>
-                        handleReferenceChange(index, "address", e.target.value)
-                      }
-                      name={`reference_address_${index}`}
-                    />
-                    <Field
-                      label="Contact"
-                      value={record.contact}
-                      onChange={(e) =>
-                        handleReferenceChange(index, "contact", e.target.value)
-                      }
-                      name={`reference_contact_${index}`}
-                    />
-                  </DynamicCard>
-                ))
-              )}
-            </div>
-          </div>
+          <SectionCard title="Salary Information">
+            <Field
+              label="Current Salary"
+              name="current_salary"
+              value={form.current_salary}
+              error={errors.current_salary}
+              onChange={handleChange}
+              placeholder="e.g. 15,000"
+            />
+            <Field
+              label="Expected Salary"
+              name="expected_salary"
+              value={form.expected_salary}
+              error={errors.expected_salary}
+              required
+              onChange={handleChange}
+              placeholder="e.g. 18,000"
+            />
+            <Field
+              label="Salary Type"
+              name="salary_type"
+              value={form.salary_type}
+              error={errors.salary_type}
+              required
+              onChange={handleChange}
+              options={salaryTypeOptions}
+            />
+          </SectionCard>
         );
 
       case 8:
         return (
-          <Section title="Government Information">
+          <DynamicListSection
+            title="Character References"
+            itemTitle="Reference"
+            addLabel="Add Reference"
+            items={form.references}
+            onAdd={() => addArrayItem("references", emptyReference, 3)}
+            renderItem={referencesRenderer}
+            error={errors.references}
+            maxItems={3}
+          />
+        );
+
+      case 9:
+        return (
+          <SectionCard title="Government Information">
             <Field
               label="SSS Number"
               name="sss"
@@ -1674,10 +940,10 @@ export default function OnBoardingForm() {
               error={errors.tin}
               required
             />
-          </Section>
+          </SectionCard>
         );
 
-      case 9:
+      case 10:
         return renderQuestionsStep();
 
       default:
@@ -1698,7 +964,6 @@ export default function OnBoardingForm() {
   if (error && !applicant) {
     return (
       <div className="min-h-screen bg-gray-50 px-4 py-10">
-        <Toast toast={toast} onClose={closeToast} />
         <div className="mx-auto max-w-5xl rounded-3xl border border-red-200 bg-red-50 p-10 text-center text-red-600 shadow-sm">
           {error}
         </div>
@@ -1706,10 +971,17 @@ export default function OnBoardingForm() {
     );
   }
 
+  if (isSubmitted) {
+    return (
+      <SubmissionSuccessScreen
+        applicant={applicant}
+        submittedAt={submittedAt}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 py-8">
-      <Toast toast={toast} onClose={closeToast} />
-
       <div className="mx-auto max-w-5xl space-y-6">
         <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
           <h1 className="text-3xl font-bold text-gray-900">
@@ -1739,7 +1011,7 @@ export default function OnBoardingForm() {
           )}
         </div>
 
-        <ProgressSteps currentStep={step} />
+        <ProgressSteps currentStep={step} steps={stepConfig} />
 
         {renderCurrentStep()}
 

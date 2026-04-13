@@ -25,8 +25,12 @@ export const getApplicantRemarks = async (id) => {
   return res.data;
 };
 
-export const addApplicantRemark = async (id, payload) => {
-  const res = await api.post(`/admin/applicants/${id}/remarks`, payload);
+export const addApplicantRemark = async (id, formData) => {
+  const res = await api.post(`/admin/applicants/${id}/remarks`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return res.data;
 };
 

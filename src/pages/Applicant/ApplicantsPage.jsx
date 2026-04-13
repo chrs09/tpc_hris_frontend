@@ -417,6 +417,12 @@ function ApplicantDrawer({
   loading,
   remarkText,
   setRemarkText,
+  remarkImage,
+  setRemarkImage,
+  remarkImagePreview,
+  setRemarkImagePreview,
+  remarkError,
+  setRemarkError,
   savingRemark,
   changingStatus,
   selectedStatus,
@@ -428,6 +434,7 @@ function ApplicantDrawer({
   onOpenConvert,
   onOpenGenerateForm,
   onViewSubmittedForm,
+  onOpenRemarkPreview
 }) {
   if (!isOpen) return null;
 
@@ -612,21 +619,96 @@ function ApplicantDrawer({
                   HR Remarks
                 </h4>
 
-                <textarea
-                  value={remarkText}
-                  onChange={(e) => setRemarkText(e.target.value)}
-                  placeholder="Write HR remarks here..."
-                  className="min-h-30 w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
-                />
+                <div className="space-y-4">
+                  <textarea
+                    value={remarkText}
+                    onChange={(e) => {
+                      setRemarkText(e.target.value);
+                      if (remarkError) setRemarkError("");
+                    }}
+                    placeholder="Write HR remarks here..."
+                    className={`min-h-30 w-full rounded-2xl border px-4 py-3 outline-none focus:ring-2 ${
+                      remarkError
+                        ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                        : "border-gray-300 focus:border-black focus:ring-black/10"
+                    }`}
+                  />
+                  {remarkError && (
+                    <p className="text-sm text-red-600">{remarkError}</p>
+                  )}
 
-                <div className="mt-3 flex justify-end">
-                  <button
-                    onClick={onSaveRemark}
-                    disabled={savingRemark || !remarkText.trim()}
-                    className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {savingRemark ? "Saving..." : "Save Remark"}
-                  </button>
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Upload Image <span className="text-gray-400">(optional)</span>
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setRemarkImage(file);
+
+                        if (file) {
+                          setRemarkImagePreview(URL.createObjectURL(file));
+                          if (remarkError) setRemarkError("");
+                        } else {
+                          setRemarkImagePreview("");
+                        }
+                      }}
+                      className="block w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+                    />
+
+                    <p className="mt-2 text-xs text-gray-500">
+                      You can save a text remark, an image, or both.
+                    </p>
+
+                    {remarkImage && (
+                      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-900">
+                              {remarkImage.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {(remarkImage.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRemarkImage(null);
+                              setRemarkImagePreview("");
+                            }}
+                            className="rounded-lg px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        {remarkImagePreview && (
+                          <div className="mt-3">
+                            <img
+                              src={remarkImagePreview}
+                              alt="Selected remark upload"
+                              className="max-h-60 rounded-2xl border border-gray-200 object-contain"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={onSaveRemark}
+                      disabled={savingRemark}
+                      className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {savingRemark ? "Saving..." : "Save Remark"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -643,17 +725,34 @@ function ApplicantDrawer({
                         className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                            {remark.status
-                              ? prettifyStatus(remark.status)
-                              : "Remark"}
+                          <span className="text-md font-extrabold underline uppercase tracking-wide text-black">
+                            {remark.status ? prettifyStatus(remark.status) : "Remark"}
                           </span>
                           <span className="text-xs text-gray-400">
                             {formatDate(remark.created_at)}
                           </span>
                         </div>
 
-                        <p className="text-sm text-gray-700">{remark.remark}</p>
+                        {remark.remark && (
+                          <p className="text-sm text-gray-700">{remark.remark}</p>
+                        )}
+
+                        {remark.image_url && (
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => onOpenRemarkPreview(remark.image_url)}
+                              className="block"
+                            >
+                              <img
+                                src={getFileUrl(remark.image_url)}
+                                alt="Remark attachment"
+                                className="max-h-72 rounded-2xl border border-gray-200 object-contain transition hover:opacity-90"
+                              />
+                            </button>
+                            <p className="mt-2 text-xs text-gray-500">Click image to preview</p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -886,6 +985,10 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
 
   const renderValue = (value) => {
     if (value === null || value === undefined || value === "") return "-";
+
+    if (!isNaN(value)) {
+      return Number(value).toLocaleString("en-US");
+    }
     return value;
   };
 
@@ -1246,6 +1349,29 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
+            {/* Salary */}
+            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-gray-900">
+                Salary Information
+              </h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoCard
+                  label="Expected Salary"
+                  value={renderValue(onboarding.expected_salary)}
+                />
+                <InfoCard
+                  label="Current Salary"
+                  value={renderValue(onboarding.current_salary)}
+                />
+                <InfoCard
+                  label="Salary Type "
+                  value={renderValue(onboarding.salary_type)}
+                />
+                
+              </div>
+            </div>
+
             {/* Additional Questions */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
@@ -1277,6 +1403,34 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ImagePreviewModal({ isOpen, imageUrl, onClose }) {
+  if (!isOpen || !imageUrl) return null;
+
+  return (
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 p-4">
+      <div className="relative w-full max-w-5xl rounded-3xl bg-white p-4 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Image Preview</h2>
+          <button
+            onClick={onClose}
+            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex max-h-[80vh] items-center justify-center overflow-auto rounded-2xl bg-gray-50 p-4">
+          <img
+            src={imageUrl}
+            alt="Preview"
+            className="max-h-[72vh] w-auto rounded-2xl object-contain"
+          />
+        </div>
       </div>
     </div>
   );
@@ -1318,6 +1472,13 @@ export default function ApplicantsPage() {
   const [onboardingViewLoading, setOnboardingViewLoading] = useState(false);
   const [onboardingViewData, setOnboardingViewData] = useState(null);
 
+  const [remarkImage, setRemarkImage] = useState(null);
+  const [remarkImagePreview, setRemarkImagePreview] = useState("");
+  const [remarkError, setRemarkError] = useState("");
+
+  const [remarkPreviewOpen, setRemarkPreviewOpen] = useState(false);
+  const [remarkPreviewImage, setRemarkPreviewImage] = useState("");
+
   const [visibleCounts, setVisibleCounts] = useState(
     COLUMNS.reduce((acc, column) => {
       acc[column.key] = COLUMN_INITIAL_LIMIT;
@@ -1336,6 +1497,17 @@ export default function ApplicantsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenRemarkPreview = (imageUrl) => {
+    if (!imageUrl) return;
+    setRemarkPreviewImage(getFileUrl(imageUrl));
+    setRemarkPreviewOpen(true);
+  };
+
+  const handleCloseRemarkPreview = () => {
+    setRemarkPreviewOpen(false);
+    setRemarkPreviewImage("");
   };
 
   useEffect(() => {
@@ -1456,6 +1628,9 @@ export default function ApplicantsPage() {
       setDrawerLoading(true);
       setSelectedApplicant(null);
       setRemarkText("");
+      setRemarkImage(null);
+      setRemarkImagePreview("");
+      setRemarkError("");
 
       const data = await getApplicantDetail(applicantId);
       setSelectedApplicant(data);
@@ -1469,25 +1644,37 @@ export default function ApplicantsPage() {
   };
 
   const handleSaveRemark = async () => {
-    if (!selectedApplicant || !remarkText.trim() || savingRemark) return;
+    if (!selectedApplicant || savingRemark) return;
+
+    if (!remarkText.trim() && !remarkImage) {
+      setRemarkError("Please enter a remark or upload an image");
+      return;
+    }
 
     try {
       setSavingRemark(true);
+      setRemarkError("");
 
-      await addApplicantRemark(selectedApplicant.id, {
-        remark: remarkText.trim(),
-        status: selectedApplicant.status,
-      });
+      const formData = new FormData();
+      formData.append("remark", remarkText.trim());
+      formData.append("status", selectedApplicant.status);
+
+      if (remarkImage) {
+        formData.append("image", remarkImage);
+      }
+
+      await addApplicantRemark(selectedApplicant.id, formData);
 
       setRemarkText("");
+      setRemarkImage(null);
+      setRemarkImagePreview("");
+      setRemarkError("");
+
       await refreshSelectedApplicant(selectedApplicant.id);
+      toast.success("Remark saved successfully");
     } catch (error) {
       console.error("Failed to save remark:", error);
-      alert(
-        error?.response?.data?.detail
-          ? JSON.stringify(error.response.data.detail)
-          : "Failed to save remark.",
-      );
+      toast.error("Failed to save remark");
     } finally {
       setSavingRemark(false);
     }
@@ -1640,6 +1827,9 @@ export default function ApplicantsPage() {
     setDrawerOpen(false);
     setSelectedApplicant(null);
     setRemarkText("");
+    setRemarkImage(null);
+    setRemarkImagePreview("");
+    setRemarkError("");
   };
 
   const handleShowMore = (columnKey) => {
@@ -1831,6 +2021,12 @@ export default function ApplicantsPage() {
         loading={drawerLoading}
         remarkText={remarkText}
         setRemarkText={setRemarkText}
+        remarkImage={remarkImage}
+        setRemarkImage={setRemarkImage}
+        remarkImagePreview={remarkImagePreview}
+        setRemarkImagePreview={setRemarkImagePreview}
+        remarkError={remarkError}
+        setRemarkError={setRemarkError}
         savingRemark={savingRemark}
         changingStatus={changingStatus}
         selectedStatus={selectedStatus}
@@ -1842,6 +2038,7 @@ export default function ApplicantsPage() {
         onOpenConvert={handleOpenConvert}
         onOpenGenerateForm={handleOpenGenerateForm}
         onViewSubmittedForm={handleViewSubmittedForm}
+        onOpenRemarkPreview={handleOpenRemarkPreview}
       />
 
       <ConvertApplicantModal
@@ -1870,6 +2067,11 @@ export default function ApplicantsPage() {
         loading={onboardingViewLoading}
         data={onboardingViewData}
         onClose={handleCloseOnboardingView}
+      />
+      <ImagePreviewModal
+        isOpen={remarkPreviewOpen}
+        imageUrl={remarkPreviewImage}
+        onClose={handleCloseRemarkPreview}
       />
     </div>
   );
