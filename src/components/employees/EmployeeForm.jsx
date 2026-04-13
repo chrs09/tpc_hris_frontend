@@ -556,6 +556,16 @@ export default function EmployeeForm({
             setPreviewImage={setPreviewImage}
           />
           <FilePreview
+            label="Contract"
+            field="contract"
+            documentType="CONTRACT"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+          <FilePreview
             label="NBI Clearance"
             field="nbi_clearance"
             documentType="NBI_CLEARANCE"

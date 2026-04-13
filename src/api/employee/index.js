@@ -6,8 +6,8 @@ export const createEmployee = async (formData) => {
   return res.data;
 };
 // Get employee list
-export const getEmployeeList = async () => {
-  const res = await api.get("/employees/");
+export const getEmployeeList = async (isActive = 1) => {
+  const res = await api.get(`/employees/?is_active=${isActive}`);
 
   return res.data;
 };

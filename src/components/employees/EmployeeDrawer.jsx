@@ -73,6 +73,7 @@ export default function EmployeeDrawer({
       const DOCUMENT_TYPE_MAP = {
         profile_image_file: "PROFILE_IMAGE",
         cv_file: "CV",
+        contract_file: "CONTRACT",
         nbi_clearance_file: "NBI_CLEARANCE",
         brgy_clearance_file: "BRGY_CLEARANCE",
         company_id_file: "COMPANY_ID",
@@ -143,6 +144,16 @@ export default function EmployeeDrawer({
       <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
         <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-xl font-semibold text-black">Employee Details</h2>
+          {employee.updated_at && (
+            <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-2 text-xs text-gray-600">
+              Updated by{" "}
+              <span className="font-semibold text-gray-800">
+                {employee.updated_by_name || "Unknown"}
+              </span>
+              <br />
+              {new Date(employee.updated_at).toLocaleString()}
+            </div>
+          )}
 
           <div className="flex items-center gap-3">
             {!isEditing ? (
