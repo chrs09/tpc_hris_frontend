@@ -14,10 +14,14 @@ import {
 
 export const normalizeEmptyToNull = (value) => (value === "" ? null : value);
 
-export function ensureAtLeastOneItem(items, fallbackItem) {
-  return Array.isArray(items) && items.length > 0
-    ? items
-    : [{ ...fallbackItem }];
+export function ensureMinimumItems(items, fallbackItem, minimum = 1) {
+  const safeItems = Array.isArray(items) ? [...items] : [];
+
+  while (safeItems.length < minimum) {
+    safeItems.push({ ...fallbackItem });
+  }
+
+  return safeItems;
 }
 
 export function formatBackendValidation(detail, backendFieldLabelMap) {
@@ -90,19 +94,33 @@ export function mapApiDataToForm(data) {
     pagibig: formatPagibig(onboarding.pagibig || ""),
     tin: formatTIN(onboarding.tin || ""),
 
-    education_records: ensureAtLeastOneItem(
+    education_records: ensureMinimumItems(
       data.education_records || [],
       emptyEducation,
+      1,
     ),
-    employment_history: ensureAtLeastOneItem(
+
+    employment_history: ensureMinimumItems(
       (data.employment_history || []).map((item) => ({
         ...item,
         date_from: item.date_from || "",
         date_to: item.date_to || "",
+        reason_for_leaving: item.reason_for_leaving || "",
+        salary_history: item.salary_history || "",
+        salary_type: item.salary_type || "",
       })),
       emptyEmployment,
+      1,
     ),
-    references: ensureAtLeastOneItem(data.references || [], emptyReference),
+
+    references: ensureMinimumItems(
+      (data.references || []).map((item) => ({
+        ...item,
+        position: item.position || "",
+      })),
+      emptyReference,
+      2,
+    ),
   };
 }
 
@@ -120,12 +138,25 @@ export function buildPayload(form, questionResponses) {
       year_from: normalizeEmptyToNull(record.year_from),
       year_to: normalizeEmptyToNull(record.year_to),
     })),
+
     employment_history: (form.employment_history || []).map((record) => ({
       ...record,
       date_from: normalizeEmptyToNull(record.date_from),
       date_to: normalizeEmptyToNull(record.date_to),
+      reason_for_leaving: normalizeEmptyToNull(record.reason_for_leaving),
+      salary_history: normalizeEmptyToNull(
+        unformatMoney(record.salary_history),
+      ),
+      salary_type: normalizeEmptyToNull(record.salary_type),
     })),
-    references: form.references || [],
+
+    references: (form.references || []).map((record) => ({
+      ...record,
+      name: normalizeEmptyToNull(record.name),
+      position: normalizeEmptyToNull(record.position),
+      address: normalizeEmptyToNull(record.address),
+      contact: normalizeEmptyToNull(record.contact),
+    })),
 
     question_responses: Object.keys(questionResponses).map((key) => ({
       question_key: key,

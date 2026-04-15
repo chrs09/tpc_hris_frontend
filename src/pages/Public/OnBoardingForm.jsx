@@ -105,6 +105,28 @@ function SubmissionSuccessScreen({ applicant, submittedAt }) {
   );
 }
 
+const getMonthDurationLabel = (dateFrom, dateTo) => {
+  if (!dateFrom || !dateTo) return "-";
+
+  const start = new Date(dateFrom);
+  const end = new Date(dateTo);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "-";
+  if (end < start) return "Invalid date range";
+
+  let months =
+    (end.getFullYear() - start.getFullYear()) * 12 +
+    (end.getMonth() - start.getMonth());
+
+  if (end.getDate() >= start.getDate()) {
+    months += 1;
+  }
+
+  if (months <= 0) months = 1;
+
+  return `${months} month${months > 1 ? "s" : ""}`;
+};
+
 export default function OnBoardingForm() {
   const { token } = useParams();
 
@@ -200,9 +222,15 @@ export default function OnBoardingForm() {
   };
 
   const updateArrayField = (arrayKey, index, field, value) => {
+    let formattedValue = value;
+
+    if (arrayKey === "employment_history" && field === "salary_history") {
+      formattedValue = formatMoney(value);
+    }
+
     setForm((prev) => {
       const updated = [...prev[arrayKey]];
-      updated[index] = { ...updated[index], [field]: value };
+      updated[index] = { ...updated[index], [field]: formattedValue };
       return { ...prev, [arrayKey]: updated };
     });
 
@@ -227,7 +255,9 @@ export default function OnBoardingForm() {
 
   const removeArrayItem = (arrayKey, index) => {
     setForm((prev) => {
-      if (prev[arrayKey].length === 1) return prev;
+      const minItems = arrayKey === "references" ? 2 : 1;
+
+      if (prev[arrayKey].length <= minItems) return prev;
 
       return {
         ...prev,
@@ -488,6 +518,7 @@ export default function OnBoardingForm() {
             error={errors[`employment_history.${index}.company_name`]}
             required
           />
+
           <Field
             label="Position"
             value={form.employment_history[index].position}
@@ -503,6 +534,7 @@ export default function OnBoardingForm() {
             error={errors[`employment_history.${index}.position`]}
             required
           />
+
           <Field
             label="Date From"
             type="date"
@@ -519,6 +551,7 @@ export default function OnBoardingForm() {
             error={errors[`employment_history.${index}.date_from`]}
             required
           />
+
           <Field
             label="Date To"
             type="date"
@@ -533,6 +566,64 @@ export default function OnBoardingForm() {
             }
             name={`employment_date_to_${index}`}
             error={errors[`employment_history.${index}.date_to`]}
+            required
+          />
+
+          <div className="sm:col-span-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <span className="font-semibold">Duration:</span>{" "}
+            {getMonthDurationLabel(
+              form.employment_history[index].date_from,
+              form.employment_history[index].date_to,
+            )}
+          </div>
+
+          <Field
+            label="Reason for Leaving"
+            value={form.employment_history[index].reason_for_leaving}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "reason_for_leaving",
+                e.target.value,
+              )
+            }
+            name={`employment_reason_for_leaving_${index}`}
+            error={errors[`employment_history.${index}.reason_for_leaving`]}
+            required
+          />
+
+          <Field
+            label="Salary History"
+            value={form.employment_history[index].salary_history}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "salary_history",
+                e.target.value,
+              )
+            }
+            name={`employment_salary_history_${index}`}
+            error={errors[`employment_history.${index}.salary_history`]}
+            placeholder="e.g. 18,000"
+            required
+          />
+
+          <Field
+            label="Salary Type"
+            value={form.employment_history[index].salary_type}
+            onChange={(e) =>
+              updateArrayField(
+                "employment_history",
+                index,
+                "salary_type",
+                e.target.value,
+              )
+            }
+            name={`employment_salary_type_${index}`}
+            error={errors[`employment_history.${index}.salary_type`]}
+            options={salaryTypeOptions}
             required
           />
         </>
@@ -557,18 +648,13 @@ export default function OnBoardingForm() {
             required
           />
           <Field
-            label="Occupation"
-            value={form.references[index].occupation}
+            label="Position"
+            value={form.references[index].position}
             onChange={(e) =>
-              updateArrayField(
-                "references",
-                index,
-                "occupation",
-                e.target.value,
-              )
+              updateArrayField("references", index, "position", e.target.value)
             }
-            name={`reference_occupation_${index}`}
-            error={errors[`references.${index}.occupation`]}
+            name={`reference_position_${index}`}
+            error={errors[`references.${index}.position`]}
             required
           />
           <Field
@@ -926,10 +1012,10 @@ export default function OnBoardingForm() {
             itemTitle="Reference"
             addLabel="Add Reference"
             items={form.references}
-            onAdd={() => addArrayItem("references", emptyReference, 3)}
+            onAdd={() => addArrayItem("references", emptyReference, 5)}
             renderItem={referencesRenderer}
             error={errors.references}
-            maxItems={3}
+            maxItems={5}
           />
         );
 
@@ -966,7 +1052,6 @@ export default function OnBoardingForm() {
               value={form.tin}
               onChange={handleChange}
               error={errors.tin}
-              required
             />
           </SectionCard>
         );

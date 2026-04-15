@@ -12,11 +12,14 @@ export const emptyEmployment = {
   position: "",
   date_from: "",
   date_to: "",
+  reason_for_leaving: "",
+  salary_history: "",
+  salary_type: "",
 };
 
 export const emptyReference = {
   name: "",
-  occupation: "",
+  position: "",
   address: "",
   contact: "",
 };
@@ -112,4 +115,18 @@ export const backendFieldLabelMap = {
   philhealth: "PhilHealth number",
   pagibig: "Pag-IBIG number",
   tin: "TIN number",
+
+  // ??
+  "employment_history.company_name": "Employment company name",
+  "employment_history.position": "Employment position",
+  "employment_history.date_from": "Employment date from",
+  "employment_history.date_to": "Employment date to",
+  "employment_history.reason_for_leaving": "Reason for leaving",
+  "employment_history.salary_history": "Salary history",
+  "employment_history.salary_type": "Employment salary type",
+
+  "references.name": "Reference name",
+  "references.position": "Reference position",
+  "references.address": "Reference address",
+  "references.contact": "Reference contact",
 };

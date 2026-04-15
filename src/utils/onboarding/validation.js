@@ -2,7 +2,7 @@ import {
   isValidPagibig,
   isValidPhilHealth,
   isValidSSS,
-  isValidTIN,
+  // isValidTIN,
 } from "./formatters";
 
 export function validateStepData(step, form, questions, questionResponses) {
@@ -125,8 +125,8 @@ export function validateStepData(step, form, questions, questionResponses) {
       if (!`${record.name || ""}`.trim()) {
         errors[`references.${index}.name`] = "Name is required.";
       }
-      if (!`${record.occupation || ""}`.trim()) {
-        errors[`references.${index}.occupation`] = "Occupation is required.";
+      if (!`${record.position || ""}`.trim()) {
+        errors[`references.${index}.position`] = "Position is required.";
       }
       if (!`${record.address || ""}`.trim()) {
         errors[`references.${index}.address`] = "Address is required.";
@@ -156,11 +156,11 @@ export function validateStepData(step, form, questions, questionResponses) {
       errors.pagibig = "Pag-IBIG format must be 1234-5678-9012";
     }
 
-    if (!form.tin.trim()) {
-      errors.tin = "TIN number is required.";
-    } else if (!isValidTIN(form.tin)) {
-      errors.tin = "TIN format must be 123-456-789 or 123-456-789-000";
-    }
+    // if (!form.tin.trim()) {
+    //   errors.tin = "TIN number is required.";
+    // } else if (!isValidTIN(form.tin)) {
+    //   errors.tin = "TIN format must be 123-456-789 or 123-456-789-000";
+    // }
   }
 
   if (step === 10) {
