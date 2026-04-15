@@ -123,7 +123,7 @@ const LatestApplicantsCard = ({ applicants = [] }) => {
               </div>
 
               <Link
-                to="/admin/applicants"
+                to="/admin/applicants/"
                 className="shrink-0 text-[11px] text-blue-300 hover:text-blue-200"
               >
                 View

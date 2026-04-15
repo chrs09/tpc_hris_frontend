@@ -75,6 +75,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             path: "/dashboard/applicants",
             roles: ["superadmin", "admin"],
           },
+          {
+            label: "Questionaire", // ✅ ADD THIS
+            path: "/dashboard/applicant/questionaire",
+            roles: ["superadmin", "admin"],
+          },
         ],
       },
       {

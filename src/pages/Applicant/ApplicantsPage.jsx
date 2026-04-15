@@ -10,6 +10,7 @@ import {
   updateApplicantStatus,
 } from "../../api/adminApplicants";
 import { employeeRoleConvert } from "../../constants/employeeRole";
+import DefaultThumbnail from "../../assets/logo/default/default-profile.jpg";
 
 const COLUMNS = [
   { key: "pending", label: "Pending" },
@@ -789,6 +790,7 @@ function ApplicantCard({
   draggingDisabled,
 }) {
   const isSubmitted = applicant?.onboarding_is_submitted === true;
+  const selfieUrl = getFileUrl(applicant.selfie_photo_url);
 
   return (
     <div
@@ -797,13 +799,24 @@ function ApplicantCard({
       className="cursor-grab rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md active:cursor-grabbing"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold leading-tight text-gray-900">
-            {applicant.first_name} {applicant.last_name}
-          </h3>
-          <p className="mt-1 truncate text-xs text-gray-500">
-            {applicant.email}
-          </p>
+        <div className="flex min-w-0 items-start gap-3">
+          <img
+            src={selfieUrl || DefaultThumbnail}
+            alt={`${applicant.first_name} ${applicant.last_name}`}
+            className="h-14 w-14 shrink-0 rounded-xl border border-gray-200 object-cover bg-gray-100"
+            onError={(e) => {
+              e.currentTarget.src = DefaultThumbnail;
+            }}
+          />
+
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold leading-tight text-gray-900">
+              {applicant.first_name} {applicant.last_name}
+            </h3>
+            <p className="mt-1 truncate text-xs text-gray-500">
+              {applicant.email}
+            </p>
+          </div>
         </div>
 
         <StatusBadge status={applicant.status} />

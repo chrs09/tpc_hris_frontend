@@ -23,9 +23,9 @@ if ("serviceWorker" in navigator) {
 // }
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>,
+  // <React.StrictMode>
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>,
+  // </React.StrictMode>,
 );

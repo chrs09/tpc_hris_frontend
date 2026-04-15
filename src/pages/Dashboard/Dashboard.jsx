@@ -8,6 +8,7 @@ import AdminTrips from "../Admin/AdminTrips";
 import DriverTrips from "../Driver/DriverTrips";
 import EmployeeListPage from "../Employee/EmployeeListPage";
 import ApplicantsPage from "../Applicant/ApplicantsPage";
+import Questionaire from "../ApplicantQuestionaire/Questionaire";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -45,6 +46,7 @@ const Dashboard = () => {
           <Route path="users" element={<UsersPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="applicants" element={<ApplicantsPage />} />
+          <Route path="applicant/questionaire" element={<Questionaire />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
           <Route path="settings" element={<div>Settings</div>} />

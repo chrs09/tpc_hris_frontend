@@ -1,7 +1,7 @@
 import api from "../services/api";
 
 export const getApplicants = async () => {
-  const res = await api.get("/admin/applicants");
+  const res = await api.get("/admin/applicants/");
   return res.data;
 };
 
