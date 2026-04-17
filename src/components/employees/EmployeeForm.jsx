@@ -8,6 +8,7 @@ const getFileUrl = (filePath) => {
     ? filePath
     : `${import.meta.env.VITE_API_URL}/${filePath}`;
 };
+
 const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
 
 const emptyEducation = {
@@ -25,6 +26,8 @@ const emptyEmployment = {
   date_from: "",
   date_to: "",
 };
+
+const DRIVER_DEPARTMENTS = ["CdcDriver", "CpdcDriver"];
 
 export default function EmployeeForm({
   employee,
@@ -88,6 +91,9 @@ export default function EmployeeForm({
   const departmentOptions = Object.values(employeeRoles).filter(
     (option) => option !== "All",
   );
+
+  const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
+
   return (
     <div className="p-6 space-y-10">
       {/* ================= BASIC ================= */}
@@ -128,28 +134,34 @@ export default function EmployeeForm({
                 <p className="text-sm mt-1">Employee ID: {employee.id}</p>
               )}
 
-              {isEditing && employee && (
+              {(isEditing || Number(formData.is_active) === 0) && (
                 <div className="mt-3 flex items-center gap-3">
                   <span className="text-sm text-gray-600">Status</span>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleChange("is_active", formData.is_active ? 0 : 1)
-                    }
-                    className={`w-12 h-6 flex items-center rounded-full p-1 ${
-                      formData.is_active ? "bg-green-500" : "bg-gray-400"
-                    }`}
-                  >
-                    <div
-                      className={`bg-white w-4 h-4 rounded-full ${
-                        formData.is_active ? "translate-x-6" : ""
+                  {isEditing ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleChange("is_active", formData.is_active ? 0 : 1)
+                      }
+                      className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
+                        Number(formData.is_active) === 1
+                          ? "bg-green-500"
+                          : "bg-gray-400"
                       }`}
-                    />
-                  </button>
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full transition ${
+                          Number(formData.is_active) === 1
+                            ? "translate-x-6"
+                            : ""
+                        }`}
+                      />
+                    </button>
+                  ) : null}
 
                   <span className="text-sm font-medium">
-                    {formData.is_active ? "Active" : "Inactive"}
+                    {Number(formData.is_active) === 1 ? "Active" : "Inactive"}
                   </span>
                 </div>
               )}
@@ -202,6 +214,32 @@ export default function EmployeeForm({
               onChange={handleChange}
             />
           </Section>
+
+          {Number(formData.is_active) === 0 && (
+            <Section title="Inactive Employee Details">
+              <EditableField
+                label="Inactive Reason"
+                field="inactive_reason"
+                value={formData.inactive_reason}
+                isEditing={false}
+                onChange={handleChange}
+              />
+              <EditableField
+                label="Inactive Date"
+                field="inactive_date"
+                value={formData.inactive_date}
+                isEditing={false}
+                onChange={handleChange}
+              />
+              <EditableField
+                label="Inactive Remarks"
+                field="inactive_remarks"
+                value={formData.inactive_remarks}
+                isEditing={false}
+                onChange={handleChange}
+              />
+            </Section>
+          )}
         </>
       )}
 
@@ -497,7 +535,7 @@ export default function EmployeeForm({
         </>
       )}
 
-      {/* GOVERNMENT */}
+      {/* ================= GOVERNMENT ================= */}
       {activeTab === "government" && (
         <Section title="Government Information">
           <EditableField
@@ -531,7 +569,7 @@ export default function EmployeeForm({
         </Section>
       )}
 
-      {/* FILES */}
+      {/* ================= FILES ================= */}
       {activeTab === "files" && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
           <FilePreview
@@ -555,6 +593,7 @@ export default function EmployeeForm({
             onFileChange={handleFileChange}
             setPreviewImage={setPreviewImage}
           />
+
           <FilePreview
             label="Contract"
             field="contract"
@@ -565,6 +604,7 @@ export default function EmployeeForm({
             onFileChange={handleFileChange}
             setPreviewImage={setPreviewImage}
           />
+
           <FilePreview
             label="NBI Clearance"
             field="nbi_clearance"
@@ -597,8 +637,76 @@ export default function EmployeeForm({
             onFileChange={handleFileChange}
             setPreviewImage={setPreviewImage}
           />
+          <FilePreview
+            label="Account Number"
+            field="account_number"
+            documentType="ACCOUNT_NUMBER"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+
+          <FilePreview
+            label="Accountability"
+            field="accountability"
+            documentType="ACCOUNTABILITY"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+
+          <FilePreview
+            label="ID File"
+            field="id_file"
+            documentType="ID_FILE"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+
+          <FilePreview
+            label="Health Card"
+            field="healthcard"
+            documentType="HEALTHCARD"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+
+          <FilePreview
+            label="X-Ray"
+            field="xray"
+            documentType="XRAY"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+
+          {isDriver && (
+            <FilePreview
+              label="NC3"
+              field="nc3"
+              documentType="NC3"
+              employee={employee}
+              formData={formData}
+              isEditing={isEditing}
+              onFileChange={handleFileChange}
+              setPreviewImage={setPreviewImage}
+            />
+          )}
         </div>
       )}
+
       {previewImage && (
         <div
           className="fixed inset-0 bg-black/70 flex items-center justify-center z-100 cursor-pointer"
@@ -608,7 +716,7 @@ export default function EmployeeForm({
             className="bg-white p-2 rounded-xl max-w-[90vw] max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {previewImage.endsWith(".pdf") ? (
+            {previewImage.toLowerCase().endsWith(".pdf") ? (
               <iframe
                 src={previewImage}
                 title="PDF Preview"
@@ -758,6 +866,7 @@ function CardBlock({ title, isEditing, onRemove, children }) {
     </div>
   );
 }
+
 /* EDITABLE FIELD */
 function EditableField({
   label,
@@ -819,9 +928,10 @@ function FilePreview({
   )?.file_url;
 
   const fileFromForm = formData?.[field];
-  const fileObject = formData?.[`${field}_file`]; // 🔥 actual File
+  const fileObject = formData?.[`${field}_file`];
 
-  const isBlob = fileFromForm?.startsWith("blob:");
+  const isBlob =
+    typeof fileFromForm === "string" && fileFromForm.startsWith("blob:");
 
   const fileUrl =
     isEditing && isBlob
@@ -830,22 +940,24 @@ function FilePreview({
         ? getFileUrl(fileFromDB)
         : null;
 
-  // 🔥 FIXED TYPE DETECTION
+  const lowerUrl = fileUrl?.toLowerCase?.() || "";
+
   const isImage =
-    (isBlob && fileObject?.type.startsWith("image/")) ||
+    (isBlob && fileObject?.type?.startsWith("image/")) ||
     (!isBlob &&
       fileUrl &&
-      (fileUrl.endsWith(".png") ||
-        fileUrl.endsWith(".jpg") ||
-        fileUrl.endsWith(".jpeg")));
+      (lowerUrl.endsWith(".png") ||
+        lowerUrl.endsWith(".jpg") ||
+        lowerUrl.endsWith(".jpeg") ||
+        lowerUrl.endsWith(".webp")));
 
   const isPDF =
     (isBlob && fileObject?.type === "application/pdf") ||
-    (!isBlob && fileUrl && fileUrl.endsWith(".pdf"));
+    (!isBlob && fileUrl && lowerUrl.endsWith(".pdf"));
 
   return (
     <div className="border rounded-xl p-4 bg-gray-50 flex flex-col items-center gap-3">
-      <p className="text-sm text-gray-600">{label}</p>
+      <p className="text-sm text-gray-600 text-center">{label}</p>
 
       <div
         className="relative w-28 h-28 border rounded-xl flex items-center justify-center overflow-hidden cursor-pointer group"
@@ -854,9 +966,11 @@ function FilePreview({
         {fileUrl ? (
           isImage ? (
             <>
-              <img src={fileUrl} className="w-full h-full object-cover" />
-
-              {/* 🔥 HOVER OVERLAY */}
+              <img
+                src={fileUrl}
+                alt={label}
+                className="w-full h-full object-cover"
+              />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 <span className="text-white text-xl">👁</span>
               </div>

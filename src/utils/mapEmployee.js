@@ -54,6 +54,10 @@ export const mapEmployeeToForm = (employee) => {
     education_records: employee.education_records || [],
     employment_history: employee.employment_history || [],
 
+    inactive_reason: employee.inactive_record?.inactive_reason || "",
+    inactive_date: employee.inactive_record?.inactive_date || "",
+    inactive_remarks: employee.inactive_record?.inactive_remarks || "",
+
     // FILES
     profile_image:
       employee.documents?.find((d) => d.document_type === "profile_image")

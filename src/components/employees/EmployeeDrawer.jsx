@@ -21,6 +21,7 @@ export default function EmployeeDrawer({
   const [formData, setFormData] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [toast, setToast] = useState(null);
+  const [showInactiveModal, setShowInactiveModal] = useState(false);
 
   if (!isOpen || !employee) return null;
 
@@ -35,6 +36,7 @@ export default function EmployeeDrawer({
     setIsEditing(false);
     setActiveTab("basic");
     setPreviewImage(null);
+    setShowInactiveModal(false);
     onClose();
   };
 
@@ -47,9 +49,32 @@ export default function EmployeeDrawer({
     setFormData(mapEmployeeToForm(employee));
     setIsEditing(false);
     setPreviewImage(null);
+    setShowInactiveModal(false);
   };
 
   const handleChange = (field, value) => {
+    if (field === "is_active") {
+      const normalizedValue = Number(value);
+
+      if (normalizedValue === 0) {
+        setFormData((prev) => ({
+          ...prev,
+          is_active: 0,
+        }));
+        setShowInactiveModal(true);
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        is_active: 1,
+        inactive_reason: "",
+        inactive_date: "",
+        inactive_remarks: "",
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -77,7 +102,27 @@ export default function EmployeeDrawer({
         nbi_clearance_file: "NBI_CLEARANCE",
         brgy_clearance_file: "BRGY_CLEARANCE",
         company_id_file: "COMPANY_ID",
+        account_number_file: "ACCOUNT_NUMBER",
+        accountability_file: "ACCOUNTABILITY",
+        id_file_file: "ID_FILE",
+        healthcard_file: "HEALTHCARD",
+        xray_file: "XRAY",
+        nc3_file: "NC3",
       };
+
+      if (Number(formData.is_active) === 0) {
+        if (!formData.inactive_reason || !formData.inactive_date) {
+          setToast({
+            type: "error",
+            message: "Inactive employee requires reason and inactive date.",
+          });
+
+          setTimeout(() => {
+            setToast(null);
+          }, 2500);
+          return;
+        }
+      }
 
       const formDataUpload = new FormData();
 
@@ -106,6 +151,13 @@ export default function EmployeeDrawer({
           formDataUpload.append(key, value);
         }
       });
+      console.log("=== RAW formData ===");
+      console.log(formData);
+
+      console.log("=== FormDataUpload ===");
+      for (let pair of formDataUpload.entries()) {
+        console.log(pair[0], pair[1]);
+      }
 
       await updateEmployeeDetails(employee.id, formDataUpload);
 
@@ -115,6 +167,7 @@ export default function EmployeeDrawer({
       });
 
       setIsEditing(false);
+      setShowInactiveModal(false);
 
       if (onSuccess) {
         onSuccess();
@@ -144,6 +197,7 @@ export default function EmployeeDrawer({
       <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
         <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-xl font-semibold text-black">Employee Details</h2>
+
           {employee.updated_at && (
             <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-2 text-xs text-gray-600">
               Updated by{" "}
@@ -224,6 +278,97 @@ export default function EmployeeDrawer({
           setPreviewImage={setPreviewImage}
         />
       </div>
+
+      {showInactiveModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-[#2b2b2b]">
+              Set Employee as Inactive
+            </h3>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Please provide the required details before saving.
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1 block text-sm text-black">
+                  Inactive Reason <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.inactive_reason || ""}
+                  onChange={(e) =>
+                    handleChange("inactive_reason", e.target.value)
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                >
+                  <option value="">Select reason</option>
+                  <option value="RESIGNED">Resigned</option>
+                  <option value="TERMINATED">Terminated</option>
+                  <option value="AWOL">AWOL</option>
+                  <option value="END_OF_CONTRACT">End of Contract</option>
+                  <option value="RETIRED">Retired</option>
+                  <option value="OTHERS">Others</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-black">
+                  Inactive Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.inactive_date || ""}
+                  onChange={(e) =>
+                    handleChange("inactive_date", e.target.value)
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-black">Remarks</label>
+                <textarea
+                  rows={3}
+                  value={formData.inactive_remarks || ""}
+                  onChange={(e) =>
+                    handleChange("inactive_remarks", e.target.value)
+                  }
+                  className="w-full border rounded-lg px-3 py-2"
+                  placeholder="Optional remarks..."
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInactiveModal(false);
+                  setFormData((prev) => ({
+                    ...prev,
+                    is_active: 1,
+                    inactive_reason: "",
+                    inactive_date: "",
+                    inactive_remarks: "",
+                  }));
+                }}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-black hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowInactiveModal(false)}
+                className="px-4 py-2 rounded-lg bg-[#2b2b2b] text-white hover:bg-[#444]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed top-6 right-6 z-9999">
