@@ -43,7 +43,8 @@ export default function EmployeeListPage() {
       const matchesSearch =
         fullName.includes(searchValue) ||
         department.includes(searchValue) ||
-        position.includes(searchValue);
+        position.includes(searchValue) ||
+        String(emp.id).includes(searchValue);
 
       const matchesDepartment =
         departmentFilter === "All" || emp.department === departmentFilter;

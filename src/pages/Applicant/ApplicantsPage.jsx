@@ -112,6 +112,15 @@ function getApplicantFormStatus(applicant) {
   return "not_generated";
 }
 
+function isApplicantLocked(applicant) {
+  if (!applicant) return false;
+
+  return (
+    applicant.status === "rejected" ||
+    (applicant.status === "hired" && applicant.is_converted_to_employee)
+  );
+}
+
 function FormStatusBadge({ applicant }) {
   const status = getApplicantFormStatus(applicant);
 
@@ -184,7 +193,7 @@ function InfoCard({ label, value }) {
       <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900">
+      <p className="mt-2 wrap-break-word text-sm text-gray-900 capitalize">
         {value || "-"}
       </p>
     </div>
@@ -301,10 +310,10 @@ function GenerateEmploymentFormModal({
             {isSubmitted
               ? "Application Filled"
               : generating
-                ? "Generating..."
-                : generatedLink
-                  ? "Regenerate Link"
-                  : "Generate Form Link"}
+              ? "Generating..."
+              : generatedLink
+              ? "Regenerate Link"
+              : "Generate Form Link"}
           </button>
         </div>
       </div>
@@ -439,6 +448,8 @@ function ApplicantDrawer({
 }) {
   if (!isOpen) return null;
 
+  const isLocked = isApplicantLocked(applicant);
+
   return (
     <div className="fixed inset-0 z-60 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
@@ -492,6 +503,13 @@ function ApplicantDrawer({
                 {applicant.status === "interview" && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <FormStatusBadge applicant={applicant} />
+                  </div>
+                )}
+
+                {isLocked && (
+                  <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                    This applicant is locked and can no longer be moved to other
+                    statuses.
                   </div>
                 )}
               </div>
@@ -594,7 +612,7 @@ function ApplicantDrawer({
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                     className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10 disabled:cursor-not-allowed disabled:bg-gray-300"
-                    disabled={applicant.is_converted_to_employee}
+                    disabled={isLocked}
                   >
                     {STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -606,7 +624,9 @@ function ApplicantDrawer({
                   <button
                     onClick={onSaveStatus}
                     disabled={
-                      changingStatus || selectedStatus === applicant.status
+                      changingStatus ||
+                      selectedStatus === applicant.status ||
+                      isLocked
                     }
                     className="rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -791,12 +811,21 @@ function ApplicantCard({
 }) {
   const isSubmitted = applicant?.onboarding_is_submitted === true;
   const selfieUrl = getFileUrl(applicant.selfie_photo_url);
+  const isLocked = isApplicantLocked(applicant);
+  const canDrag = !draggingDisabled && !isLocked;
 
   return (
     <div
-      draggable={!draggingDisabled}
-      onDragStart={() => onDragStart(applicant)}
-      className="cursor-grab rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+      draggable={canDrag}
+      onDragStart={() => {
+        if (!canDrag) return;
+        onDragStart(applicant);
+      }}
+      className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md ${
+        canDrag
+          ? "cursor-grab active:cursor-grabbing"
+          : "cursor-not-allowed opacity-90"
+      }`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -841,6 +870,12 @@ function ApplicantCard({
           <span className="font-medium">Submitted:</span>{" "}
           {formatDate(applicant.created_at)}
         </p>
+
+        {isLocked && (
+          <p className="text-xs font-medium text-red-600">
+            This applicant can no longer be moved.
+          </p>
+        )}
       </div>
 
       <div
@@ -1046,7 +1081,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Applicant Summary */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Applicant Summary
@@ -1089,7 +1123,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Basic / Personal */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Basic / Personal Information
@@ -1168,7 +1201,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Family */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Family Information
@@ -1190,7 +1222,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Emergency */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Emergency Contact
@@ -1211,7 +1242,7 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                 />
               </div>
             </div>
-            {/* Education */}
+
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Education
@@ -1264,7 +1295,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Employment */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Employment History
@@ -1298,6 +1328,18 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                           label="Date To"
                           value={formatDate(item.date_to)}
                         />
+                        <InfoCard
+                          label="Reason for Leaving"
+                          value={renderValue(item.reason_for_leaving)}
+                        />
+                        <InfoCard
+                          label="Salary History"
+                          value={renderValue(item.salary_history)}
+                        />
+                        <InfoCard
+                          label="Salary Type"
+                          value={renderValue(item.salary_type)}
+                        />
                       </div>
                     </div>
                   ))
@@ -1309,7 +1351,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Government */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Government Information
@@ -1329,7 +1370,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* References */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 References
@@ -1349,8 +1389,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <InfoCard label="Name" value={renderValue(item.name)} />
                         <InfoCard
-                          label="Occupation"
-                          value={renderValue(item.occupation)}
+                          label="position"
+                          value={renderValue(item.position)}
                         />
                         <InfoCard
                           label="Contact"
@@ -1371,7 +1411,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Salary */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Salary Information
@@ -1393,7 +1432,6 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            {/* Additional Questions */}
             <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-gray-900">
                 Additional Questions
@@ -1600,7 +1638,7 @@ export default function ApplicantsPage() {
   };
 
   const handleDragStart = (applicant) => {
-    if (updatingStatus) return;
+    if (updatingStatus || isApplicantLocked(applicant)) return;
     setDraggedApplicant(applicant);
   };
 
@@ -1612,6 +1650,13 @@ export default function ApplicantsPage() {
 
   const handleDropApplicant = async (targetStatus) => {
     if (!draggedApplicant || updatingStatus) return;
+
+    if (isApplicantLocked(draggedApplicant)) {
+      toast.error("This applicant can no longer be moved.");
+      setDraggedApplicant(null);
+      setActiveDropColumn(null);
+      return;
+    }
 
     if (draggedApplicant.status === targetStatus) {
       setDraggedApplicant(null);
@@ -1703,6 +1748,12 @@ export default function ApplicantsPage() {
 
   const handleSaveStatusFromDrawer = async () => {
     if (!selectedApplicant || changingStatus) return;
+
+    if (isApplicantLocked(selectedApplicant)) {
+      toast.error("This applicant can no longer be moved.");
+      return;
+    }
+
     if (selectedStatus === selectedApplicant.status) return;
 
     try {
@@ -2083,12 +2134,14 @@ export default function ApplicantsPage() {
         onGenerate={handleGenerateFormLink}
         onCopy={handleCopyGeneratedLink}
       />
+
       <OnboardingReviewModal
         isOpen={onboardingViewOpen}
         loading={onboardingViewLoading}
         data={onboardingViewData}
         onClose={handleCloseOnboardingView}
       />
+
       <ImagePreviewModal
         isOpen={remarkPreviewOpen}
         imageUrl={remarkPreviewImage}

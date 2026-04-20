@@ -62,7 +62,7 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
 
     // CHARACTER REFERENCE
     ref_name: "",
-    ref_occupation: "",
+    ref_position: "",
     ref_address: "",
     ref_contact: "",
 

@@ -122,7 +122,7 @@ export default function EmployeeForm({
             />
 
             <div>
-              <h3 className="text-2xl font-bold font-serif">
+              <h3 className="text-2xl font-bold font-serif capitalize">
                 {formData.first_name} {formData.last_name}
               </h3>
 
@@ -511,9 +511,9 @@ export default function EmployeeForm({
               onChange={handleChange}
             />
             <EditableField
-              label="Occupation"
-              field="ref_occupation"
-              value={formData.ref_occupation}
+              label="Position"
+              field="ref_position"
+              value={formData.ref_position}
               isEditing={isEditing}
               onChange={handleChange}
             />
@@ -881,7 +881,7 @@ function EditableField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black">{label}</label>
+      <label className="text-sm text-black uppercase">{label}</label>
 
       {isEditing ? (
         isSelect ? (
@@ -902,7 +902,7 @@ function EditableField({
             type={type}
             value={value || ""}
             onChange={(e) => onChange(field, e.target.value)}
-            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent uppercase"
           />
         )
       ) : (
