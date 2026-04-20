@@ -310,10 +310,10 @@ function GenerateEmploymentFormModal({
             {isSubmitted
               ? "Application Filled"
               : generating
-              ? "Generating..."
-              : generatedLink
-              ? "Regenerate Link"
-              : "Generate Form Link"}
+                ? "Generating..."
+                : generatedLink
+                  ? "Regenerate Link"
+                  : "Generate Form Link"}
           </button>
         </div>
       </div>
