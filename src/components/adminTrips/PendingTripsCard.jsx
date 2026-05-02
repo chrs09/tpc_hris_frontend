@@ -79,21 +79,30 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
 
     const coords = [];
 
-    // Start from origin
-    if (selectedTrip.origin_lat && selectedTrip.origin_long) {
-      coords.push([selectedTrip.origin_lat, selectedTrip.origin_long]);
+    if (
+      selectedTrip.origin_lat != null &&
+      selectedTrip.origin_long != null
+    ) {
+      coords.push([
+        Number(selectedTrip.origin_lat),
+        Number(selectedTrip.origin_long),
+      ]);
     }
 
-    // Add GPS logs
-    if (selectedTrip.gps_logs) {
-      selectedTrip.gps_logs
+    if (Array.isArray(selectedTrip.gps_logs)) {
+      [...selectedTrip.gps_logs]
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
         .forEach((log) => {
-          coords.push([log.actual_lat, log.actual_long]);
+          if (log.actual_lat != null && log.actual_long != null) {
+            coords.push([
+              Number(log.actual_lat),
+              Number(log.actual_long),
+            ]);
+          }
         });
     }
 
-    return coords;
+    return coords.filter(([lat, lng]) => !Number.isNaN(lat) && !Number.isNaN(lng));
   }, [selectedTrip]);
 
   const endPoint = mapCoordinates.length
@@ -260,11 +269,11 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
                   )}
 
                   {/* STOP MARKERS */}
-                  {selectedTrip.stops.map((stop, index) =>
+                  {selectedTrip.stops?.map((stop, index) =>
                     stop.lat_in ? (
                       <Marker
                         key={index}
-                        position={[stop.lat_in, stop.long_in]}
+                        position={[Number(stop.lat_in), Number(stop.long_in)]}
                       >
                         <Popup>
                           📍 {stop.store_name}
@@ -378,7 +387,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
                 <h3 className="font-semibold text-lg mb-4">Visited Stops</h3>
 
                 <div className="space-y-3 text-black">
-                  {selectedTrip.stops.map((stop, index) => (
+                  {selectedTrip.stops?.map((stop, index) => (
                     <div
                       key={index}
                       className="bg-gray-50 border rounded-xl p-4"
