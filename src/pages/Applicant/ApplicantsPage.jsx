@@ -163,24 +163,64 @@ function StatCard({ label, value }) {
   );
 }
 
-function CVPreviewModal({ isOpen, fileUrl, onClose }) {
+function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
   if (!isOpen || !fileUrl) return null;
+
+  const isImage = /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(fileUrl);
+
+  const zoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
+  const zoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.25));
+  const resetZoom = () => setZoom(1);
 
   return (
     <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4">
       <div className="relative h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="text-lg font-semibold text-gray-900">CV Preview</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
-          >
-            ✕
-          </button>
+
+          <div className="flex items-center gap-2">
+            {isImage && (
+              <>
+                <button onClick={zoomOut} className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
+                  -
+                </button>
+
+                <span className="w-16 text-center text-sm font-medium text-gray-700">
+                  {Math.round(zoom * 100)}%
+                </span>
+
+                <button onClick={zoomIn} className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
+                  +
+                </button>
+
+                <button onClick={resetZoom} className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
+                  Reset
+                </button>
+              </>
+            )}
+
+            <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100">
+              ✕
+            </button>
+          </div>
         </div>
 
-        <div className="h-[calc(90vh-60px)] bg-gray-50">
-          <iframe src={fileUrl} title="CV Preview" className="h-full w-full" />
+        <div className="h-[calc(90vh-60px)] overflow-auto bg-gray-50">
+          {isImage ? (
+            <div className="flex min-h-full justify-center p-6">
+              <img
+                src={fileUrl}
+                alt="CV Preview"
+                style={{
+                  width: `${zoom * 100}%`,
+                  maxWidth: "none",
+                }}
+                className="h-auto rounded-xl object-contain transition-all"
+              />
+            </div>
+          ) : (
+            <iframe src={fileUrl} title="CV Preview" className="h-full w-full" />
+          )}
         </div>
       </div>
     </div>
@@ -1502,6 +1542,7 @@ export default function ApplicantsPage() {
 
   const [previewFile, setPreviewFile] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [cvZoom, setCvZoom] = useState(1);
 
   const [draggedApplicant, setDraggedApplicant] = useState(null);
   const [activeDropColumn, setActiveDropColumn] = useState(null);
@@ -1628,6 +1669,7 @@ export default function ApplicantsPage() {
 
   const handlePreviewCV = (cvUrl) => {
     if (!cvUrl) return;
+    setCvZoom(1);
     setPreviewFile(getFileUrl(cvUrl));
     setPreviewOpen(true);
   };
@@ -2084,6 +2126,8 @@ export default function ApplicantsPage() {
       <CVPreviewModal
         isOpen={previewOpen}
         fileUrl={previewFile}
+        zoom={cvZoom}
+        setZoom={setCvZoom}
         onClose={closePreviewModal}
       />
 

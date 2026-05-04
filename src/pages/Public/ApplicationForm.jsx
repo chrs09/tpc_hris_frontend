@@ -158,7 +158,7 @@ export default function ApplicationForm() {
                     📄 {cvFile.name}
                   </span>
                 ) : (
-                  "Click to upload CV"
+                  "Click to upload Resume or Biodata"
                 )}
               </p>
             </label>
