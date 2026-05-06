@@ -181,7 +181,10 @@ function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
           <div className="flex items-center gap-2">
             {isImage && (
               <>
-                <button onClick={zoomOut} className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
+                <button
+                  onClick={zoomOut}
+                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
+                >
                   -
                 </button>
 
@@ -189,17 +192,26 @@ function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
                   {Math.round(zoom * 100)}%
                 </span>
 
-                <button onClick={zoomIn} className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
+                <button
+                  onClick={zoomIn}
+                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
+                >
                   +
                 </button>
 
-                <button onClick={resetZoom} className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100">
+                <button
+                  onClick={resetZoom}
+                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
+                >
                   Reset
                 </button>
               </>
             )}
 
-            <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100">
+            <button
+              onClick={onClose}
+              className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+            >
               ✕
             </button>
           </div>
@@ -219,7 +231,11 @@ function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
               />
             </div>
           ) : (
-            <iframe src={fileUrl} title="CV Preview" className="h-full w-full" />
+            <iframe
+              src={fileUrl}
+              title="CV Preview"
+              className="h-full w-full"
+            />
           )}
         </div>
       </div>
@@ -526,8 +542,9 @@ function ApplicantDrawer({
               <div className="rounded-3xl border border-gray-200 bg-linear-to-br from-white to-gray-50 p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      {applicant.first_name} {applicant.last_name}
+                    <h3 className="text-2xl font-bold text-gray-900 capitalize">
+                      {applicant.first_name} {applicant.middle_name}{" "}
+                      {applicant.last_name} {applicant.suffix || ""}
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
                       Applied for{" "}
@@ -871,7 +888,7 @@ function ApplicantCard({
         <div className="flex min-w-0 items-start gap-3">
           <img
             src={selfieUrl || DefaultThumbnail}
-            alt={`${applicant.first_name} ${applicant.last_name}`}
+            alt={`${applicant.first_name} ${applicant.middle_name} ${applicant.last_name} ${applicant.suffix || ""}`}
             className="h-14 w-14 shrink-0 rounded-xl border border-gray-200 object-cover bg-gray-100"
             onError={(e) => {
               e.currentTarget.src = DefaultThumbnail;
@@ -879,8 +896,9 @@ function ApplicantCard({
           />
 
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold leading-tight text-gray-900">
-              {applicant.first_name} {applicant.last_name}
+            <h3 className="text-sm font-semibold leading-tight text-gray-900 capitalize">
+              {applicant.first_name} {applicant.middle_name}{" "}
+              {applicant.last_name} {applicant.suffix || ""}
             </h3>
             <p className="mt-1 truncate text-xs text-gray-500">
               {applicant.email}

@@ -5,7 +5,9 @@ export const mapEmployeeToForm = (employee) => {
 
     // BASIC
     first_name: employee.first_name || "",
+    middle_name: employee.middle_name || "",
     last_name: employee.last_name || "",
+    suffix: employee.suffix || "",
     email: employee.email || "",
     position: employee.position || "",
     department: employee.department || "",
@@ -42,6 +44,11 @@ export const mapEmployeeToForm = (employee) => {
     philhealth: employee.government_details?.philhealth_number || "",
     pagibig: employee.government_details?.pagibig_number || "",
     tin: employee.government_details?.tin_number || "",
+
+    // BANK DETAILS
+    bank_type: employee.bank_details?.bank_type || "",
+    account_name: employee.bank_details?.account_name || "",
+    account_number: employee.bank_details?.account_number || "",
 
     // EMERGENCY
     emergency_contact_name:

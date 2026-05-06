@@ -107,6 +107,9 @@ export default function EmployeeDrawer({
         id_file_file: "ID_FILE",
         healthcard_file: "HEALTHCARD",
         xray_file: "XRAY",
+        sss_upload_file: "SSS",
+        philhealth_upload_file: "PHILHEALTH",
+        pagibig_upload_file: "PAGIBIG",
         nc3_file: "NC3",
       };
 

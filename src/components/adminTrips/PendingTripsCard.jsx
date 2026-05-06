@@ -79,10 +79,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
 
     const coords = [];
 
-    if (
-      selectedTrip.origin_lat != null &&
-      selectedTrip.origin_long != null
-    ) {
+    if (selectedTrip.origin_lat != null && selectedTrip.origin_long != null) {
       coords.push([
         Number(selectedTrip.origin_lat),
         Number(selectedTrip.origin_long),
@@ -94,15 +91,14 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
         .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
         .forEach((log) => {
           if (log.actual_lat != null && log.actual_long != null) {
-            coords.push([
-              Number(log.actual_lat),
-              Number(log.actual_long),
-            ]);
+            coords.push([Number(log.actual_lat), Number(log.actual_long)]);
           }
         });
     }
 
-    return coords.filter(([lat, lng]) => !Number.isNaN(lat) && !Number.isNaN(lng));
+    return coords.filter(
+      ([lat, lng]) => !Number.isNaN(lat) && !Number.isNaN(lng),
+    );
   }, [selectedTrip]);
 
   const endPoint = mapCoordinates.length

@@ -4,6 +4,8 @@ import { applicationSubmit } from "../../api/application";
 export default function ApplicationForm() {
   const [form, setForm] = useState({
     first_name: "",
+    middle_name: "",
+    suffix: "",
     last_name: "",
     email: "",
     contact_number: "",
@@ -27,6 +29,8 @@ export default function ApplicationForm() {
   const resetForm = () => {
     setForm({
       first_name: "",
+      middle_name: "",
+      suffix: "",
       last_name: "",
       email: "",
       contact_number: "",
@@ -109,9 +113,25 @@ export default function ApplicationForm() {
             />
 
             <input
+              placeholder="Middle Name"
+              value={form.middle_name}
+              onChange={(e) => handleChange("middle_name", e.target.value)}
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              required
+            />
+
+            <input
               placeholder="Last Name"
               value={form.last_name}
               onChange={(e) => handleChange("last_name", e.target.value)}
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              required
+            />
+
+            <input
+              placeholder="Suffix"
+              value={form.suffix}
+              onChange={(e) => handleChange("suffix", e.target.value)}
               className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
               required
             />

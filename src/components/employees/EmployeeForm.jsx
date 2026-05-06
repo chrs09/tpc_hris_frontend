@@ -123,7 +123,8 @@ export default function EmployeeForm({
 
             <div>
               <h3 className="text-2xl font-bold font-serif capitalize">
-                {formData.first_name} {formData.last_name}
+                {formData.first_name} {formData.middle_name}{" "}
+                {formData.last_name} {formData.suffix || ""}
               </h3>
 
               <p>
@@ -177,9 +178,23 @@ export default function EmployeeForm({
               onChange={handleChange}
             />
             <EditableField
+              label="Middle Name"
+              field="middle_name"
+              value={formData.middle_name}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+            <EditableField
               label="Last Name"
               field="last_name"
               value={formData.last_name}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+            <EditableField
+              label="Suffix"
+              field="suffix"
+              value={formData.suffix}
               isEditing={isEditing}
               onChange={handleChange}
             />
@@ -537,36 +552,72 @@ export default function EmployeeForm({
 
       {/* ================= GOVERNMENT ================= */}
       {activeTab === "government" && (
-        <Section title="Government Information">
-          <EditableField
-            label="SSS Number"
-            field="sss"
-            value={formData.sss}
-            isEditing={isEditing}
-            onChange={handleChange}
-          />
-          <EditableField
-            label="PhilHealth Number"
-            field="philhealth"
-            value={formData.philhealth}
-            isEditing={isEditing}
-            onChange={handleChange}
-          />
-          <EditableField
-            label="Pag-IBIG Number"
-            field="pagibig"
-            value={formData.pagibig}
-            isEditing={isEditing}
-            onChange={handleChange}
-          />
-          <EditableField
-            label="TIN Number"
-            field="tin"
-            value={formData.tin}
-            isEditing={isEditing}
-            onChange={handleChange}
-          />
-        </Section>
+        <>
+          <Section title="Government Information">
+            <EditableField
+              label="SSS Number"
+              field="sss"
+              value={formData.sss}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+            <EditableField
+              label="PhilHealth Number"
+              field="philhealth"
+              value={formData.philhealth}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+            <EditableField
+              label="Pag-IBIG Number"
+              field="pagibig"
+              value={formData.pagibig}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+            <EditableField
+              label="TIN Number"
+              field="tin"
+              value={formData.tin}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+          </Section>
+
+          <Section title="Bank Details">
+            <EditableField
+              label="Bank Type"
+              field="bank_type"
+              value={formData.bank_type}
+              isEditing={isEditing}
+              onChange={handleChange}
+              options={[
+                "BDO",
+                "GoTyme",
+                "BPI",
+                "Metrobank",
+                "UnionBank",
+                "Gcash",
+                "Cebuana",
+                "Other",
+              ]}
+            />
+            <EditableField
+              label="Account Name"
+              field="account_name"
+              value={formData.account_name}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+            <EditableField
+              label="Account Number"
+              field="account_number"
+              value={formData.account_number}
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+          </Section>
+        </>
       )}
 
       {/* ================= FILES ================= */}
@@ -685,6 +736,37 @@ export default function EmployeeForm({
             label="X-Ray"
             field="xray"
             documentType="XRAY"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+          {/* Government Documents */}
+          <FilePreview
+            label="SSS"
+            field="sss_upload"
+            documentType="SSS"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+          <FilePreview
+            label="Pag-ibig"
+            field="pagibig_upload"
+            documentType="PAGIBIG"
+            employee={employee}
+            formData={formData}
+            isEditing={isEditing}
+            onFileChange={handleFileChange}
+            setPreviewImage={setPreviewImage}
+          />
+          <FilePreview
+            label="Philhealth"
+            field="philhealth_upload"
+            documentType="PHILHEALTH"
             employee={employee}
             formData={formData}
             isEditing={isEditing}
@@ -881,7 +963,7 @@ function EditableField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black uppercase">{label}</label>
+      <label className="text-sm text-black">{label}</label>
 
       {isEditing ? (
         isSelect ? (
@@ -902,7 +984,7 @@ function EditableField({
             type={type}
             value={value || ""}
             onChange={(e) => onChange(field, e.target.value)}
-            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent uppercase"
+            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
           />
         )
       ) : (
