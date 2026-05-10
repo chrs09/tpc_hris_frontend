@@ -112,7 +112,7 @@ const AttendanceList = () => {
     const map = {};
     attendanceData.forEach((item) => {
       const dateKey = item.attendance_date;
-      map[`${item.employee_id}-${dateKey}`] = item.status;
+      map[`${item.employee_id}-${dateKey}`] = item;
     });
 
     return map;

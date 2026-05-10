@@ -69,13 +69,20 @@ button:focus-visible {
 @import "tailwindcss";
 
 html,
-body {
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  font-family: "Inter", sans-serif;
-}
-
+body,
 #root {
   min-height: 100vh;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Century Gothic", Arial, sans-serif;
+}
+
+*, 
+*::before, 
+*::after {
+  font-family: "Century Gothic", Arial, sans-serif !important;
 }

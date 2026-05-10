@@ -4,6 +4,7 @@ import { employeeRoles } from "../../constants/employeeRole";
 
 const getFileUrl = (filePath) => {
   if (!filePath) return "";
+
   return filePath.startsWith("http")
     ? filePath
     : `${import.meta.env.VITE_API_URL}/${filePath}`;
@@ -27,6 +28,13 @@ const emptyEmployment = {
   date_to: "",
 };
 
+const emptyReference = {
+  name: "",
+  position: "",
+  address: "",
+  contact: "",
+};
+
 const DRIVER_DEPARTMENTS = ["CdcDriver", "CpdcDriver"];
 
 export default function EmployeeForm({
@@ -43,15 +51,32 @@ export default function EmployeeForm({
     (f) => f.document_type === "PROFILE_IMAGE",
   )?.file_url;
 
-  const educationRecords = formData.education_records || [];
-  const employmentHistory = formData.employment_history || [];
+  const educationRecords = Array.isArray(formData.education_records)
+    ? formData.education_records
+    : [];
+
+  const employmentHistory = Array.isArray(formData.employment_history)
+    ? formData.employment_history
+    : [];
+
+  const characterReferences = Array.isArray(formData.character_references)
+    ? formData.character_references
+    : [];
+
+  const departmentOptions = Object.values(employeeRoles).filter(
+    (option) => option !== "All",
+  );
+
+  const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
 
   const handleEducationChange = (index, field, value) => {
     const updated = [...educationRecords];
+
     updated[index] = {
       ...updated[index],
       [field]: value,
     };
+
     handleChange("education_records", updated);
   };
 
@@ -69,10 +94,12 @@ export default function EmployeeForm({
 
   const handleEmploymentChange = (index, field, value) => {
     const updated = [...employmentHistory];
+
     updated[index] = {
       ...updated[index],
       [field]: value,
     };
+
     handleChange("employment_history", updated);
   };
 
@@ -88,11 +115,30 @@ export default function EmployeeForm({
     handleChange("employment_history", updated);
   };
 
-  const departmentOptions = Object.values(employeeRoles).filter(
-    (option) => option !== "All",
-  );
+  const handleReferenceChange = (index, field, value) => {
+    const updated = [...characterReferences];
 
-  const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
+
+    handleChange("character_references", updated);
+  };
+
+  const addReference = () => {
+    if (characterReferences.length >= 3) return;
+
+    handleChange("character_references", [
+      ...characterReferences,
+      { ...emptyReference },
+    ]);
+  };
+
+  const removeReference = (index) => {
+    const updated = characterReferences.filter((_, i) => i !== index);
+    handleChange("character_references", updated);
+  };
 
   return (
     <div className="p-6 space-y-10">
@@ -139,7 +185,7 @@ export default function EmployeeForm({
                 <div className="mt-3 flex items-center gap-3">
                   <span className="text-sm text-gray-600">Status</span>
 
-                  {isEditing ? (
+                  {isEditing && (
                     <button
                       type="button"
                       onClick={() =>
@@ -159,7 +205,7 @@ export default function EmployeeForm({
                         }`}
                       />
                     </button>
-                  ) : null}
+                  )}
 
                   <span className="text-sm font-medium">
                     {Number(formData.is_active) === 1 ? "Active" : "Inactive"}
@@ -517,36 +563,58 @@ export default function EmployeeForm({
             ))}
           </DynamicSection>
 
-          <Section title="Character Reference">
-            <EditableField
-              label="Reference Name"
-              field="ref_name"
-              value={formData.ref_name}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Position"
-              field="ref_position"
-              value={formData.ref_position}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Address"
-              field="ref_address"
-              value={formData.ref_address}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Contact"
-              field="ref_contact"
-              value={formData.ref_contact}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-          </Section>
+          <DynamicSection
+            title="Character Reference"
+            buttonLabel="Add Reference"
+            isEditing={isEditing && characterReferences.length < 3}
+            onAdd={addReference}
+            emptyMessage="No character references yet."
+          >
+            {characterReferences.map((record, index) => (
+              <CardBlock
+                key={index}
+                title={`Reference ${index + 1}`}
+                isEditing={isEditing}
+                onRemove={() => removeReference(index)}
+              >
+                <EditableArrayField
+                  label="Reference Name"
+                  value={record.name}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleReferenceChange(index, "name", value)
+                  }
+                />
+
+                <EditableArrayField
+                  label="Position"
+                  value={record.position}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleReferenceChange(index, "position", value)
+                  }
+                />
+
+                <EditableArrayField
+                  label="Address"
+                  value={record.address}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleReferenceChange(index, "address", value)
+                  }
+                />
+
+                <EditableArrayField
+                  label="Contact"
+                  value={record.contact}
+                  isEditing={isEditing}
+                  onChange={(value) =>
+                    handleReferenceChange(index, "contact", value)
+                  }
+                />
+              </CardBlock>
+            ))}
+          </DynamicSection>
         </>
       )}
 
@@ -561,6 +629,7 @@ export default function EmployeeForm({
               isEditing={isEditing}
               onChange={handleChange}
             />
+
             <EditableField
               label="PhilHealth Number"
               field="philhealth"
@@ -568,6 +637,7 @@ export default function EmployeeForm({
               isEditing={isEditing}
               onChange={handleChange}
             />
+
             <EditableField
               label="Pag-IBIG Number"
               field="pagibig"
@@ -575,6 +645,7 @@ export default function EmployeeForm({
               isEditing={isEditing}
               onChange={handleChange}
             />
+
             <EditableField
               label="TIN Number"
               field="tin"
@@ -584,39 +655,119 @@ export default function EmployeeForm({
             />
           </Section>
 
-          <Section title="Bank Details">
-            <EditableField
-              label="Bank Type"
-              field="bank_type"
-              value={formData.bank_type}
-              isEditing={isEditing}
-              onChange={handleChange}
-              options={[
-                "BDO",
-                "GoTyme",
-                "BPI",
-                "Metrobank",
-                "UnionBank",
-                "Gcash",
-                "Cebuana",
-                "Other",
-              ]}
-            />
-            <EditableField
-              label="Account Name"
-              field="account_name"
-              value={formData.account_name}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-            <EditableField
-              label="Account Number"
-              field="account_number"
-              value={formData.account_number}
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
-          </Section>
+          <div className="space-y-4">
+            <div className="border-b pb-1">
+              <h3 className="text-lg font-semibold text-[#2b2b2b]">
+                Government Documents
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-1">
+                Upload scanned copies or screenshots of government IDs/documents.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <FilePreview
+                label="SSS"
+                field="sss_upload"
+                documentType="SSS"
+                employee={employee}
+                formData={formData}
+                isEditing={isEditing}
+                onFileChange={handleFileChange}
+                setPreviewImage={setPreviewImage}
+              />
+
+              <FilePreview
+                label="Pag-IBIG"
+                field="pagibig_upload"
+                documentType="PAGIBIG"
+                employee={employee}
+                formData={formData}
+                isEditing={isEditing}
+                onFileChange={handleFileChange}
+                setPreviewImage={setPreviewImage}
+              />
+
+              <FilePreview
+                label="PhilHealth"
+                field="philhealth_upload"
+                documentType="PHILHEALTH"
+                employee={employee}
+                formData={formData}
+                isEditing={isEditing}
+                onFileChange={handleFileChange}
+                setPreviewImage={setPreviewImage}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="border-b pb-1">
+              <h3 className="text-lg font-semibold text-[#2b2b2b]">
+                Bank Details
+              </h3>
+
+              <p className="text-sm text-gray-500 mt-1">
+                Employee payroll and banking information.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <EditableField
+                label="Bank Type"
+                field="bank_type"
+                value={formData.bank_type}
+                isEditing={isEditing}
+                onChange={handleChange}
+                options={[
+                  "BDO",
+                  "GoTyme",
+                  "BPI",
+                  "Metrobank",
+                  "UnionBank",
+                  "Gcash",
+                  "Cebuana",
+                  "Other",
+                ]}
+              />
+
+              <EditableField
+                label="Account Name"
+                field="account_name"
+                value={formData.account_name}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+
+              <EditableField
+                label="Account Number"
+                field="account_number"
+                value={formData.account_number}
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="pt-2">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Proof of Account
+              </h4>
+
+              <div className="max-w-sm">
+                <FilePreview
+                  label="Upload ATM / Passbook / Screenshot"
+                  field="account_number_upload"
+                  documentType="ACCOUNT_NUMBER"
+                  employee={employee}
+                  formData={formData}
+                  isEditing={isEditing}
+                  onFileChange={handleFileChange}
+                  setPreviewImage={setPreviewImage}
+                />
+              </div>
+            </div>
+          </div>
         </>
       )}
 
@@ -688,16 +839,6 @@ export default function EmployeeForm({
             onFileChange={handleFileChange}
             setPreviewImage={setPreviewImage}
           />
-          <FilePreview
-            label="Account Number"
-            field="account_number"
-            documentType="ACCOUNT_NUMBER"
-            employee={employee}
-            formData={formData}
-            isEditing={isEditing}
-            onFileChange={handleFileChange}
-            setPreviewImage={setPreviewImage}
-          />
 
           <FilePreview
             label="Accountability"
@@ -711,9 +852,9 @@ export default function EmployeeForm({
           />
 
           <FilePreview
-            label="ID File"
-            field="id_file"
-            documentType="ID_FILE"
+            label="Driver's License"
+            field="license"
+            documentType="LICENSE"
             employee={employee}
             formData={formData}
             isEditing={isEditing}
@@ -736,37 +877,6 @@ export default function EmployeeForm({
             label="X-Ray"
             field="xray"
             documentType="XRAY"
-            employee={employee}
-            formData={formData}
-            isEditing={isEditing}
-            onFileChange={handleFileChange}
-            setPreviewImage={setPreviewImage}
-          />
-          {/* Government Documents */}
-          <FilePreview
-            label="SSS"
-            field="sss_upload"
-            documentType="SSS"
-            employee={employee}
-            formData={formData}
-            isEditing={isEditing}
-            onFileChange={handleFileChange}
-            setPreviewImage={setPreviewImage}
-          />
-          <FilePreview
-            label="Pag-ibig"
-            field="pagibig_upload"
-            documentType="PAGIBIG"
-            employee={employee}
-            formData={formData}
-            isEditing={isEditing}
-            onFileChange={handleFileChange}
-            setPreviewImage={setPreviewImage}
-          />
-          <FilePreview
-            label="Philhealth"
-            field="philhealth_upload"
-            documentType="PHILHEALTH"
             employee={employee}
             formData={formData}
             isEditing={isEditing}
@@ -818,13 +928,13 @@ export default function EmployeeForm({
   );
 }
 
-/* SECTION */
 function Section({ title, children }) {
   return (
     <div>
       <h3 className="text-lg font-semibold text-[#2b2b2b] mb-4 border-b pb-1">
         {title}
       </h3>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">{children}</div>
     </div>
   );
@@ -842,7 +952,7 @@ function EditableArrayField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black">{label}</label>
+      <label className="text-sm text-black font-bold">{label}</label>
 
       {isEditing ? (
         isSelect ? (
@@ -852,6 +962,7 @@ function EditableArrayField({
             className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
           >
             <option value="">Select {label}</option>
+
             {options.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -915,7 +1026,7 @@ function DynamicSection({
               <button
                 type="button"
                 onClick={onAdd}
-                className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#2b2b2b] text-[#2b2b2b] text-sm hover:bg-gray-50"
+                className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#2b2b2b] text-[#2b2b2b] text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {buttonLabel}
               </button>
@@ -949,7 +1060,6 @@ function CardBlock({ title, isEditing, onRemove, children }) {
   );
 }
 
-/* EDITABLE FIELD */
 function EditableField({
   label,
   field,
@@ -963,7 +1073,7 @@ function EditableField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black">{label}</label>
+      <label className="text-sm text-black font-bold">{label}</label>
 
       {isEditing ? (
         isSelect ? (
@@ -973,6 +1083,7 @@ function EditableField({
             className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
           >
             <option value="">Select {label}</option>
+
             {options.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -994,7 +1105,6 @@ function EditableField({
   );
 }
 
-/* FILE PREVIEW */
 function FilePreview({
   label,
   field,
@@ -1038,11 +1148,11 @@ function FilePreview({
     (!isBlob && fileUrl && lowerUrl.endsWith(".pdf"));
 
   return (
-    <div className="border rounded-xl p-4 bg-gray-50 flex flex-col items-center gap-3">
+    <div className="border border-gray-200 rounded-xl p-3 bg-white shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition">
       <p className="text-sm text-gray-600 text-center">{label}</p>
 
       <div
-        className="relative w-28 h-28 border rounded-xl flex items-center justify-center overflow-hidden cursor-pointer group"
+        className="relative w-24 h-24 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer group bg-gray-50"
         onClick={() => fileUrl && setPreviewImage(fileUrl)}
       >
         {fileUrl ? (
@@ -1053,6 +1163,7 @@ function FilePreview({
                 alt={label}
                 className="w-full h-full object-cover"
               />
+
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                 <span className="text-white text-xl">👁</span>
               </div>
@@ -1071,7 +1182,7 @@ function FilePreview({
       </div>
 
       {isEditing && (
-        <label className="text-xs px-3 py-1 bg-[#2b2b2b] text-white rounded-md cursor-pointer">
+        <label className="text-xs px-3 py-1.5 bg-[#2b2b2b] text-white rounded-lg cursor-pointer hover:bg-black transition">
           Upload
           <input
             type="file"

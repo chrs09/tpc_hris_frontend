@@ -60,6 +60,7 @@ export const mapEmployeeToForm = (employee) => {
 
     education_records: employee.education_records || [],
     employment_history: employee.employment_history || [],
+    character_references: employee.character_references || [],
 
     inactive_reason: employee.inactive_record?.inactive_reason || "",
     inactive_date: employee.inactive_record?.inactive_date || "",

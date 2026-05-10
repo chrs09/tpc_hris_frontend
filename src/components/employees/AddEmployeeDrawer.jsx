@@ -59,6 +59,7 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
     // NEW ARRAY FIELDS
     education_records: [],
     employment_history: [],
+    character_references: [],
 
     // CHARACTER REFERENCE
     ref_name: "",
@@ -117,12 +118,22 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
       Object.keys(formData).forEach((key) => {
         const value = formData[key];
 
-        if (
-          value !== null &&
-          value !== undefined &&
-          value !== "" &&
-          !(typeof value === "string" && value.startsWith("blob:"))
-        ) {
+        // skip file objects here
+        if (key.endsWith("_file")) return;
+
+        // stringify arrays
+        if (key === "education_records" || key === "employment_history" || key === "character_references") {
+          formDataUpload.append(key, JSON.stringify(value || []));
+          return;
+        }
+
+        // skip blob preview urls
+        if (typeof value === "string" && value.startsWith("blob:")) {
+          return;
+        }
+
+        // skip empty
+        if (value !== null && value !== undefined && value !== "") {
           formDataUpload.append(key, value);
         }
       });
@@ -134,6 +145,15 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
         nbi_clearance_file: "NBI_CLEARANCE",
         brgy_clearance_file: "BRGY_CLEARANCE",
         company_id_file: "COMPANY_ID",
+        account_number_upload_file: "ACCOUNT_NUMBER",
+        accountability_file: "ACCOUNTABILITY",
+        license_file: "LICENSE",
+        healthcard_file: "HEALTHCARD",
+        xray_file: "XRAY",
+        sss_upload_file: "SSS",
+        philhealth_upload_file: "PHILHEALTH",
+        pagibig_upload_file: "PAGIBIG",
+        nc3_file: "NC3",
       };
 
       Object.keys(formData).forEach((key) => {

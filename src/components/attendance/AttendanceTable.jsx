@@ -51,7 +51,7 @@ const AttendanceTable = ({
           {employees.map((emp) => (
             <tr key={emp.id}>
               <td
-                className={`sticky left-0 z-20 border px-4 py-2 font-medium capitalize ${
+                className={`sticky left-0 z-20 border px-4 py-2 font-medium capitalize  ${
                   departmentColors[emp.role] || "bg-white"
                 }`}
               >
@@ -60,9 +60,19 @@ const AttendanceTable = ({
 
               {daysInMonth.map((day) => {
                 const dateKey = format(day, "yyyy-MM-dd");
-                const status = attendanceMap[`${emp.id}-${dateKey}`];
+                const attendance = attendanceMap[`${emp.id}-${dateKey}`];
+                const status = attendance?.status;
+                const completedTrips = attendance?.completed_trips || 0;
 
-                const editable = isSuperAdmin && isEditableDate(day);
+                const isTripBasedEmployee =
+                emp.role?.toLowerCase().includes("driver") ||
+                emp.role?.toLowerCase().includes("helper");
+
+                const editable =
+                  isSuperAdmin &&
+                  isEditableDate(day) &&
+                  !isTripBasedEmployee;
+
                 const isSunday = getDay(day) === 0;
 
                 let bg = "bg-white";
@@ -76,8 +86,8 @@ const AttendanceTable = ({
                   bg = "bg-yellow-100";
                 }
                 // Priority 3: Editable but empty
-                else if (editable) {
-                  bg = "bg-gray-200";
+                else if (isTripBasedEmployee) {
+                  bg = "bg-gray-100";
                 }
 
                 return (
@@ -94,7 +104,21 @@ const AttendanceTable = ({
                       onCellClick(emp, dateKey, status || "Present");
                     }}
                   >
-                    {status ? getStatusSymbol(status) : ""}
+                    {status ? (
+                      <div className="flex items-center justify-center">
+                        {isTripBasedEmployee ? (
+                          <span className="text-base font-extrabold">
+                            {completedTrips > 0 ? completedTrips : ""}
+                          </span>
+                        ) : (
+                          <span className="text-base font-extrabold">
+                            {getStatusSymbol(status)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      ""
+                    )}
                   </td>
                 );
               })}

@@ -8,7 +8,7 @@ export const markAttendance = async (payload) => {
 
 // Get attendance records
 export const attendanceRecord = async () => {
-  const res = await api.get("/attendance/list");
+  const res = await api.get("/attendance/list?limit=5000");
   return res.data;
 };
 

@@ -93,6 +93,7 @@ const BulkAttendanceModal = ({
             <div className="md:hidden space-y-3">
               {filteredEmployees.map((emp) => {
                 const alreadyRecorded = attendanceMap[`${emp.id}-${today}`];
+                const alreadyRecordedStatus = alreadyRecorded?.status;
 
                 return (
                   <div
@@ -115,7 +116,7 @@ const BulkAttendanceModal = ({
                         disabled={alreadyRecorded}
                         value={
                           alreadyRecorded
-                            ? alreadyRecorded
+                            ? alreadyRecordedStatus
                             : selections[emp.id] || "Present"
                         }
                         onChange={(e) =>

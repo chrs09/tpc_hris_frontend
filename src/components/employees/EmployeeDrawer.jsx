@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { mapEmployeeToForm } from "../../utils/mapEmployee";
 import { updateEmployeeDetails } from "../../api/employee";
 import EmployeeForm from "./EmployeeForm";
@@ -20,7 +21,6 @@ export default function EmployeeDrawer({
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
-  const [toast, setToast] = useState(null);
   const [showInactiveModal, setShowInactiveModal] = useState(false);
 
   if (!isOpen || !employee) return null;
@@ -102,9 +102,9 @@ export default function EmployeeDrawer({
         nbi_clearance_file: "NBI_CLEARANCE",
         brgy_clearance_file: "BRGY_CLEARANCE",
         company_id_file: "COMPANY_ID",
-        account_number_file: "ACCOUNT_NUMBER",
+        account_number_upload_file: "ACCOUNT_NUMBER",
         accountability_file: "ACCOUNTABILITY",
-        id_file_file: "ID_FILE",
+        license_file: "LICENSE",
         healthcard_file: "HEALTHCARD",
         xray_file: "XRAY",
         sss_upload_file: "SSS",
@@ -115,14 +115,7 @@ export default function EmployeeDrawer({
 
       if (Number(formData.is_active) === 0) {
         if (!formData.inactive_reason || !formData.inactive_date) {
-          setToast({
-            type: "error",
-            message: "Inactive employee requires reason and inactive date.",
-          });
-
-          setTimeout(() => {
-            setToast(null);
-          }, 2500);
+          toast.error("Inactive employee requires reason and inactive date.");
           return;
         }
       }
@@ -145,7 +138,7 @@ export default function EmployeeDrawer({
           return;
         }
 
-        if (key === "education_records" || key === "employment_history") {
+        if (key === "education_records" || key === "employment_history" || key === "character_references") {
           formDataUpload.append(key, JSON.stringify(value || []));
           return;
         }
@@ -164,10 +157,15 @@ export default function EmployeeDrawer({
 
       await updateEmployeeDetails(employee.id, formDataUpload);
 
-      setToast({
-        type: "success",
-        message: "Employee updated successfully.",
-      });
+      if (Number(formData.is_active) === 0) {
+        toast.success(
+          `${formData.first_name} ${formData.last_name} marked as inactive.`,
+        );
+      } else {
+        toast.success(
+          `${formData.first_name} ${formData.last_name} updated successfully.`,
+        );
+      }
 
       setIsEditing(false);
       setShowInactiveModal(false);
@@ -177,18 +175,15 @@ export default function EmployeeDrawer({
       }
 
       setTimeout(() => {
-        setToast(null);
+        toast.dismiss();
       }, 2500);
     } catch (error) {
       console.error("Update failed:", error);
 
-      setToast({
-        type: "error",
-        message: "Update failed. Please try again.",
-      });
+      toast.error("Update failed. Please try again.");
 
       setTimeout(() => {
-        setToast(null);
+        toast.dismiss();
       }, 2500);
     }
   };
@@ -369,18 +364,6 @@ export default function EmployeeDrawer({
                 Done
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className="fixed top-6 right-6 z-9999">
-          <div
-            className={`px-4 py-3 rounded-lg shadow-lg text-white ${
-              toast.type === "success" ? "bg-green-600" : "bg-red-500"
-            }`}
-          >
-            {toast.message}
           </div>
         </div>
       )}
