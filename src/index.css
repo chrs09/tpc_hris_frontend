@@ -81,8 +81,8 @@ body {
   font-family: "Century Gothic", Arial, sans-serif;
 }
 
-*, 
-*::before, 
+*,
+*::before,
 *::after {
   font-family: "Century Gothic", Arial, sans-serif !important;
 }

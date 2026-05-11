@@ -65,13 +65,11 @@ const AttendanceTable = ({
                 const completedTrips = attendance?.completed_trips || 0;
 
                 const isTripBasedEmployee =
-                emp.role?.toLowerCase().includes("driver") ||
-                emp.role?.toLowerCase().includes("helper");
+                  emp.role?.toLowerCase().includes("driver") ||
+                  emp.role?.toLowerCase().includes("helper");
 
                 const editable =
-                  isSuperAdmin &&
-                  isEditableDate(day) &&
-                  !isTripBasedEmployee;
+                  isSuperAdmin && isEditableDate(day) && !isTripBasedEmployee;
 
                 const isSunday = getDay(day) === 0;
 

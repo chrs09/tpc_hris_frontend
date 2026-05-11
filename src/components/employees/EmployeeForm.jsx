@@ -662,7 +662,8 @@ export default function EmployeeForm({
               </h3>
 
               <p className="text-sm text-gray-500 mt-1">
-                Upload scanned copies or screenshots of government IDs/documents.
+                Upload scanned copies or screenshots of government
+                IDs/documents.
               </p>
             </div>
 

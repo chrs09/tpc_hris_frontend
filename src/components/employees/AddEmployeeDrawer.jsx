@@ -122,7 +122,11 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
         if (key.endsWith("_file")) return;
 
         // stringify arrays
-        if (key === "education_records" || key === "employment_history" || key === "character_references") {
+        if (
+          key === "education_records" ||
+          key === "employment_history" ||
+          key === "character_references"
+        ) {
           formDataUpload.append(key, JSON.stringify(value || []));
           return;
         }

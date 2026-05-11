@@ -138,7 +138,11 @@ export default function EmployeeDrawer({
           return;
         }
 
-        if (key === "education_records" || key === "employment_history" || key === "character_references") {
+        if (
+          key === "education_records" ||
+          key === "employment_history" ||
+          key === "character_references"
+        ) {
           formDataUpload.append(key, JSON.stringify(value || []));
           return;
         }
