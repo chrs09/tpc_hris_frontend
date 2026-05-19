@@ -28,5 +28,6 @@ export const changePassword = async (newPassword) => {
   const res = await api.post(`${API_URL}/auth/change-password`, {
     new_password: newPassword,
   });
+
   return res.data;
 };

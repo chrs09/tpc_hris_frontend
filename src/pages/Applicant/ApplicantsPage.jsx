@@ -1874,11 +1874,13 @@ export default function ApplicantsPage() {
       alert("Applicant converted to employee successfully.");
     } catch (error) {
       console.error("Failed to convert applicant:", error);
-      alert(
-        error?.response?.data?.detail
-          ? JSON.stringify(error.response.data.detail)
-          : "Failed to convert applicant.",
-      );
+      const message =
+        error?.response?.data?.detail ||
+        "Failed to convert applicant.";
+
+      toast.error(message, {
+        duration: 5000,
+      });
     } finally {
       setConvertingApplicant(false);
     }

@@ -463,6 +463,12 @@ export default function EmployeeForm({
                   label="Level"
                   value={record.level}
                   isEditing={isEditing}
+                  options={[
+                    "Primary",
+                    "Secondary",
+                    "Senior High",
+                    "Tertiary",
+                  ]}
                   onChange={(value) =>
                     handleEducationChange(index, "level", value)
                   }
@@ -475,14 +481,17 @@ export default function EmployeeForm({
                     handleEducationChange(index, "institution", value)
                   }
                 />
-                <EditableArrayField
-                  label="Degree / Course"
-                  value={record.degree}
-                  isEditing={isEditing}
-                  onChange={(value) =>
-                    handleEducationChange(index, "degree", value)
-                  }
-                />
+                {/* Only show for tertiary */}
+                {record.level === "Tertiary" && (
+                  <EditableArrayField
+                    label="Degree / Course"
+                    value={record.degree}
+                    isEditing={isEditing}
+                    onChange={(value) =>
+                      handleEducationChange(index, "degree", value)
+                    }
+                  />
+                )}
                 <EditableArrayField
                   label="Year From"
                   value={record.year_from}
@@ -953,7 +962,7 @@ function EditableArrayField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black font-bold">{label}</label>
+      <label className="text-sm text-black font-semibold">{label}</label>
 
       {isEditing ? (
         isSelect ? (
@@ -1074,7 +1083,7 @@ function EditableField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black font-bold">{label}</label>
+      <label className="text-sm text-black font-semibold">{label}</label>
 
       {isEditing ? (
         isSelect ? (

@@ -156,6 +156,7 @@ const UserDrawer = ({
               <option value="admin">Admin</option>
               <option value="driver">Driver</option>
               <option value="helper">Helper</option>
+              <option value="motorpol">Motorpol</option>
             </select>
           </div>
 

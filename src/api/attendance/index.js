@@ -23,3 +23,13 @@ export const updateAttendance = async (payload) => {
   const res = await api.patch("/attendance/update", payload);
   return res.data;
 };
+
+export const timeInSelfie = async (formData) => {
+  const res = await api.post("/attendance/time-in-selfie", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+  return res.data;
+};

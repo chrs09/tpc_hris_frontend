@@ -23,15 +23,22 @@ export default function Login({ setIsAuthenticated }) {
     setErrorMessage("");
 
     try {
-      const result = await userLogin(username, password);
+      const result = await userLogin(username.trim(), password);
 
       localStorage.setItem("access_token", result.access_token);
-      localStorage.setItem("role", result.role);
-      localStorage.setItem("user_id", result.user_id);
-      localStorage.setItem("username", result.username);
-      localStorage.setItem("must_change_password", result.must_change_password);
+      localStorage.setItem("refresh_token", result.refresh_token);
+      localStorage.setItem("role", result.role || "");
+      localStorage.setItem("user_id", result.user_id || "");
+      localStorage.setItem("username", result.username || "");
+      localStorage.setItem("expires_at", result.expires_at || "");
+      localStorage.setItem("refresh_expires_at", result.refresh_expires_at || "");
+      localStorage.setItem(
+        "must_change_password",
+        result.must_change_password ? "true" : "false",
+      );
 
       setIsAuthenticated(true);
+
       if (result.must_change_password === true) {
         navigate("/change-password", { replace: true });
       } else {
@@ -40,6 +47,8 @@ export default function Login({ setIsAuthenticated }) {
     } catch (error) {
       if (error.response?.status === 401) {
         setErrorMessage("Invalid username or password");
+      } else if (error.response?.status === 403) {
+        setErrorMessage("Your account is inactive.");
       } else {
         setErrorMessage("Server error. Please try again.");
       }
@@ -51,7 +60,6 @@ export default function Login({ setIsAuthenticated }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#2b2b2b] p-4">
       <Card className="w-full max-w-md shadow-xl rounded-2xl">
-        {/* Logo */}
         <div className="flex justify-center m-6 space-x-3 items-center">
           {TytanLogo ? (
             <img
@@ -69,7 +77,6 @@ export default function Login({ setIsAuthenticated }) {
 
         <CardContent>
           <form className="space-y-5" onSubmit={handleLogin}>
-            {/* Username */}
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
@@ -82,8 +89,6 @@ export default function Login({ setIsAuthenticated }) {
               />
             </div>
 
-            {/* Password */}
-            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
 
@@ -108,7 +113,6 @@ export default function Login({ setIsAuthenticated }) {
               </div>
             </div>
 
-            {/* Forgot password */}
             <div className="flex justify-end">
               <button
                 type="button"
@@ -118,7 +122,6 @@ export default function Login({ setIsAuthenticated }) {
               </button>
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               className="w-full rounded-xl"
@@ -128,13 +131,11 @@ export default function Login({ setIsAuthenticated }) {
               {loading ? "Logging in..." : "Login"}
             </Button>
 
-            {/* Error message OUTSIDE button */}
             {errorMessage && (
               <p className="text-sm text-red-500 text-center">{errorMessage}</p>
             )}
           </form>
 
-          {/* Footer */}
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Create account for user{" "}
             <span className="text-primary hover:underline cursor-pointer font-bold underline">

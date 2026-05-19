@@ -14,12 +14,15 @@ import {
   updateAttendance,
   bulkAttendanceCheck,
   markAttendance,
+  timeInSelfie
 } from "../../api/attendance";
 
 import { employeeRoles } from "../../constants/employeeRole";
 import { departmentColors } from "../../constants/departmentColors";
 import { statusColors } from "../../constants/statusColors";
 
+import SelfieAttendanceModal from "../../components/attendance/SelfieAttendanceModal";
+import AttendancePreviewModal from "../../components/attendance/AttendancePreviewModal";
 import AttendanceTable from "../../components/attendance/AttendanceTable";
 import EditAttendanceModal from "../../components/attendance/EditAttendanceModal";
 import BulkAttendanceModal from "../../components/attendance/BulkAttendanceModal";
@@ -47,6 +50,8 @@ const AttendanceList = () => {
   const [editModal, setEditModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [showBulkModal, setShowBulkModal] = useState(false);
+  const [showSelfieModal, setShowSelfieModal] = useState(false);
+  const [previewModal, setPreviewModal] = useState(null);
   const [alert, setAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
   const [dateRange, setDateRange] = useState([null, null]);
@@ -65,6 +70,7 @@ const AttendanceList = () => {
     };
     fetchData();
   }, []);
+
 
   useEffect(() => {
     if (!alert) return;
@@ -135,6 +141,27 @@ const AttendanceList = () => {
   const handlePrevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
 
   const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
+
+  // Selfie Modal State
+    const handleSelfieTimeIn = async (formData) => {
+      try {
+        await timeInSelfie(formData);
+
+        const refreshed = await attendanceRecord();
+        setAttendanceData(refreshed);
+
+        setAlert({
+          type: "success",
+          message: "Selfie attendance saved successfully!",
+        });
+      } catch (err) {
+        setAlert({
+          type: "error",
+          message:
+            err.response?.data?.detail || "Failed to save selfie attendance.",
+        });
+      }
+    };
 
   /* ---------------- SAVE LOGIC ---------------- */
   const handleSave = async () => {
@@ -227,7 +254,9 @@ const AttendanceList = () => {
       {/* CONTROLS */}
       <div className="flex flex-wrap gap-4 mb-6 items-center">
         <Button onClick={() => setShowBulkModal(true)}>Check Attendance</Button>
-
+        <Button onClick={() => setShowSelfieModal(true)} disabled>
+          Selfie Attendance
+        </Button>
         <select
           className="border rounded px-3 h-10"
           value={filter}
@@ -269,6 +298,12 @@ const AttendanceList = () => {
         isEditableDate={isEditableDate}
         isSuperAdmin={isSuperAdmin} // ✅ ADD THIS
         today={today}
+        onPreviewAttendance={(attendance, type) =>
+          setPreviewModal({
+            attendance,
+            type,
+          })
+        }
         onCellClick={(emp, date, status) =>
           setEditModal({
             employeeId: emp.id,
@@ -314,6 +349,17 @@ const AttendanceList = () => {
         setEditModal={setEditModal}
         onSave={handleSave}
         attendanceMap={attendanceMap}
+      />
+      <SelfieAttendanceModal
+        isOpen={showSelfieModal}
+        onClose={() => setShowSelfieModal(false)}
+        employees={employees}
+        onSubmit={handleSelfieTimeIn}
+        disabled
+      />
+      <AttendancePreviewModal
+        previewModal={previewModal}
+        setPreviewModal={setPreviewModal}
       />
       {showDateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

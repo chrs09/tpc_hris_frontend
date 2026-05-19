@@ -1,5 +1,15 @@
 import React from "react";
-import { format, getDay } from "date-fns";
+import { format, getDay, parseISO, isValid } from "date-fns";
+
+const formatTime = (value) => {
+  if (!value) return "--";
+
+  const parsed = typeof value === "string" ? parseISO(value) : new Date(value);
+
+  if (!isValid(parsed)) return value;
+
+  return format(parsed, "hh:mm a");
+};
 
 const AttendanceTable = ({
   employees,
@@ -11,6 +21,7 @@ const AttendanceTable = ({
   isEditableDate,
   isSuperAdmin,
   onCellClick,
+  onPreviewAttendance,
   today,
 }) => {
   return (
@@ -51,7 +62,7 @@ const AttendanceTable = ({
           {employees.map((emp) => (
             <tr key={emp.id}>
               <td
-                className={`sticky left-0 z-20 border px-4 py-2 font-medium capitalize  ${
+                className={`sticky left-0 z-20 border px-4 py-2 font-medium capitalize ${
                   departmentColors[emp.role] || "bg-white"
                 }`}
               >
@@ -61,6 +72,7 @@ const AttendanceTable = ({
               {daysInMonth.map((day) => {
                 const dateKey = format(day, "yyyy-MM-dd");
                 const attendance = attendanceMap[`${emp.id}-${dateKey}`];
+
                 const status = attendance?.status;
                 const completedTrips = attendance?.completed_trips || 0;
 
@@ -73,47 +85,98 @@ const AttendanceTable = ({
 
                 const isSunday = getDay(day) === 0;
 
+                const hasTimeIn = !!attendance?.check_in_time;
+                const hasTimeOut = !!attendance?.check_out_time;
+
+                const hasTimeInPreview =
+                  !!attendance?.time_in_photo_url ||
+                  (!!attendance?.time_in_latitude &&
+                    !!attendance?.time_in_longitude);
+
+                const hasTimeOutPreview =
+                  !!attendance?.time_out_photo_url ||
+                  (!!attendance?.time_out_latitude &&
+                    !!attendance?.time_out_longitude);
+
                 let bg = "bg-white";
 
-                // Priority 1: Status color
                 if (status) {
                   bg = statusColors[status];
-                }
-                // Priority 2: Sunday highlight
-                else if (isSunday) {
+                } else if (isSunday) {
                   bg = "bg-yellow-100";
-                }
-                // Priority 3: Editable but empty
-                else if (isTripBasedEmployee) {
+                } else if (isTripBasedEmployee) {
                   bg = "bg-gray-100";
                 }
 
                 return (
                   <td
                     key={dateKey}
-                    className={`border text-center font-bold ${bg} ${
+                    className={`border text-center font-bold min-w-17.5 ${bg} ${
                       editable
                         ? "cursor-pointer hover:brightness-95"
-                        : "opacity-60 cursor-not-allowed"
+                        : "opacity-80"
                     }`}
                     onClick={() => {
                       if (!editable) return;
-
                       onCellClick(emp, dateKey, status || "Present");
                     }}
                   >
                     {status ? (
-                      <div className="flex items-center justify-center">
+                      <>
                         {isTripBasedEmployee ? (
-                          <span className="text-base font-extrabold">
-                            {completedTrips > 0 ? completedTrips : ""}
-                          </span>
+                          <div className="flex items-center justify-center">
+                            <span className="text-base font-extrabold">
+                              {completedTrips > 0 ? completedTrips : ""}
+                            </span>
+                          </div>
+                        ) : hasTimeIn || hasTimeOut ? (
+                          <div className="flex flex-col text-[10px] leading-tight">
+                            <button
+                              type="button"
+                              disabled={!hasTimeInPreview}
+                              className={`py-1 px-1 rounded ${
+                                hasTimeInPreview
+                                  ? "hover:bg-black/10 cursor-pointer underline"
+                                  : "cursor-default"
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                if (!hasTimeInPreview) return;
+
+                                onPreviewAttendance?.(attendance, "timein");
+                              }}
+                            >
+                              IN: {formatTime(attendance.check_in_time)}
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={!hasTimeOutPreview}
+                              className={`border-t py-1 px-1 rounded ${
+                                hasTimeOutPreview
+                                  ? "hover:bg-black/10 cursor-pointer underline"
+                                  : "cursor-default"
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                if (!hasTimeOutPreview) return;
+
+                                onPreviewAttendance?.(attendance, "timeout");
+                              }}
+                            >
+                              OUT: {formatTime(attendance.check_out_time)}
+                            </button>
+                          </div>
                         ) : (
-                          <span className="text-base font-extrabold">
-                            {getStatusSymbol(status)}
-                          </span>
+                          <div className="flex items-center justify-center">
+                            <span className="text-base font-extrabold">
+                              {getStatusSymbol(status)}
+                            </span>
+                          </div>
                         )}
-                      </div>
+                      </>
                     ) : (
                       ""
                     )}
