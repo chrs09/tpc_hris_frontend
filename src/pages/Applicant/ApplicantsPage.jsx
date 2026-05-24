@@ -1875,8 +1875,7 @@ export default function ApplicantsPage() {
     } catch (error) {
       console.error("Failed to convert applicant:", error);
       const message =
-        error?.response?.data?.detail ||
-        "Failed to convert applicant.";
+        error?.response?.data?.detail || "Failed to convert applicant.";
 
       toast.error(message, {
         duration: 5000,

@@ -31,7 +31,10 @@ export default function Login({ setIsAuthenticated }) {
       localStorage.setItem("user_id", result.user_id || "");
       localStorage.setItem("username", result.username || "");
       localStorage.setItem("expires_at", result.expires_at || "");
-      localStorage.setItem("refresh_expires_at", result.refresh_expires_at || "");
+      localStorage.setItem(
+        "refresh_expires_at",
+        result.refresh_expires_at || "",
+      );
       localStorage.setItem(
         "must_change_password",
         result.must_change_password ? "true" : "false",

@@ -19,7 +19,8 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
     const a = data?.address || {};
 
     const road = a.road || a.pedestrian || a.footway || a.path || "";
-    const barangay = a.village || a.suburb || a.neighbourhood || a.quarter || "";
+    const barangay =
+      a.village || a.suburb || a.neighbourhood || a.quarter || "";
     const city = a.city || a.town || a.municipality || a.county || "";
     const province = a.state || "";
     const postcode = a.postcode || "";
@@ -207,7 +208,13 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
     const overlayHeight = 215;
 
     if (mapImage) {
-      ctx.drawImage(mapImage, padding, height - mapHeight - padding, mapWidth, mapHeight);
+      ctx.drawImage(
+        mapImage,
+        padding,
+        height - mapHeight - padding,
+        mapWidth,
+        mapHeight,
+      );
     } else {
       ctx.fillStyle = "rgba(0,0,0,0.65)";
       ctx.fillRect(padding, height - mapHeight - padding, mapWidth, mapHeight);
@@ -235,12 +242,24 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
     );
 
     ctx.font = "26px Arial";
-    ctx.fillText(`Lat ${latitude}, Long ${longitude}`, overlayX + 28, overlayY + 145);
+    ctx.fillText(
+      `Lat ${latitude}, Long ${longitude}`,
+      overlayX + 28,
+      overlayY + 145,
+    );
 
-    ctx.fillText(`${getFormattedDateTime()} GMT+08:00`, overlayX + 28, overlayY + 180);
+    ctx.fillText(
+      `${getFormattedDateTime()} GMT+08:00`,
+      overlayX + 28,
+      overlayY + 180,
+    );
 
     ctx.font = "24px Arial";
-    ctx.fillText("Note: Captured by HRIS Attendance", overlayX + 28, overlayY + 210);
+    ctx.fillText(
+      "Note: Captured by HRIS Attendance",
+      overlayX + 28,
+      overlayY + 210,
+    );
 
     return new Promise((resolve) => {
       outputCanvas.toBlob(
@@ -393,7 +412,10 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
           </Button>
 
           {!previewUrl ? (
-            <Button onClick={capturePhoto} disabled={!location || detectingAddress}>
+            <Button
+              onClick={capturePhoto}
+              disabled={!location || detectingAddress}
+            >
               Capture GPS Selfie
             </Button>
           ) : (

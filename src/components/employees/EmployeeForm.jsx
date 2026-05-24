@@ -463,12 +463,7 @@ export default function EmployeeForm({
                   label="Level"
                   value={record.level}
                   isEditing={isEditing}
-                  options={[
-                    "Primary",
-                    "Secondary",
-                    "Senior High",
-                    "Tertiary",
-                  ]}
+                  options={["Primary", "Secondary", "Senior High", "Tertiary"]}
                   onChange={(value) =>
                     handleEducationChange(index, "level", value)
                   }

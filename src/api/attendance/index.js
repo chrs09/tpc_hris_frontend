@@ -33,3 +33,15 @@ export const timeInSelfie = async (formData) => {
 
   return res.data;
 };
+
+export const approveAttendance = async (attendanceId) => {
+  const res = await api.post(`/attendance/${attendanceId}/approve`);
+
+  return res.data;
+};
+
+export const rejectAttendance = async (attendanceId) => {
+  const res = await api.post(`/attendance/${attendanceId}/reject`);
+
+  return res.data;
+};

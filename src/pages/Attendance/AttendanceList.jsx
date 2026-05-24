@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
 import {
   addMonths,
   subMonths,
@@ -14,7 +15,9 @@ import {
   updateAttendance,
   bulkAttendanceCheck,
   markAttendance,
-  timeInSelfie
+  timeInSelfie,
+  approveAttendance,
+  rejectAttendance,
 } from "../../api/attendance";
 
 import { employeeRoles } from "../../constants/employeeRole";
@@ -24,6 +27,7 @@ import { statusColors } from "../../constants/statusColors";
 import SelfieAttendanceModal from "../../components/attendance/SelfieAttendanceModal";
 import AttendancePreviewModal from "../../components/attendance/AttendancePreviewModal";
 import AttendanceTable from "../../components/attendance/AttendanceTable";
+import AttendanceGridReview from "../../components/attendance/AttendanceGridReview";
 import EditAttendanceModal from "../../components/attendance/EditAttendanceModal";
 import BulkAttendanceModal from "../../components/attendance/BulkAttendanceModal";
 import Alert from "../../components/ui/modals/Alert";
@@ -32,7 +36,6 @@ import { Button } from "../../components/ui/button/Button";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers";
-// import dayjs from "dayjs";
 
 const AttendanceList = () => {
   const today = format(new Date(), "yyyy-MM-dd");
@@ -41,11 +44,9 @@ const AttendanceList = () => {
 
   const { isEditableDate, formattedRange } = useAttendanceWeek(isSuperAdmin);
 
-  /* ---------------- STATE ---------------- */
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
   const [filter, setFilter] = useState("All");
-  // const [quincena, setQuincena] = useState("second");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editModal, setEditModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,22 +56,26 @@ const AttendanceList = () => {
   const [alert, setAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
   const [dateRange, setDateRange] = useState([null, null]);
+
+  const [viewMode, setViewMode] = useState("grid");
+  const [reviewDate, setReviewDate] = useState(today);
+
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
 
   const employeesPerPage = 15;
 
-  /* ---------------- FETCH ---------------- */
   useEffect(() => {
     const fetchData = async () => {
       const empData = await getEmployeeList();
       const attendance = await attendanceRecord();
+
       setEmployeesFromAPI(empData);
       setAttendanceData(attendance);
     };
+
     fetchData();
   }, []);
-
 
   useEffect(() => {
     if (!alert) return;
@@ -82,18 +87,16 @@ const AttendanceList = () => {
     return () => clearTimeout(timer);
   }, [alert]);
 
-  /* ---------------- FILTERED EMPLOYEES ---------------- */
   const employees = useMemo(() => {
     return employeesFromAPI
       .map((emp) => ({
         id: emp.id,
-        name: `${emp.first_name} ${emp.last_name}`,
+        name: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
         role: emp.department,
       }))
       .filter((emp) => filter === "All" || emp.role === filter);
   }, [employeesFromAPI, filter]);
 
-  /* ---------------- PAGINATION ---------------- */
   const totalPages = Math.ceil(employees.length / employeesPerPage);
 
   const currentEmployees = employees.slice(
@@ -101,7 +104,6 @@ const AttendanceList = () => {
     currentPage * employeesPerPage,
   );
 
-  /* ---------------- DAYS IN MONTH ---------------- */
   const daysInMonth = useMemo(() => {
     const allDays = eachDayOfInterval({
       start: startOfMonth(currentMonth),
@@ -113,16 +115,28 @@ const AttendanceList = () => {
     return allDays.filter((day) => day >= fromDate && day <= toDate);
   }, [currentMonth, fromDate, toDate]);
 
-  /* ---------------- ATTENDANCE MAP ---------------- */
   const attendanceMap = useMemo(() => {
     const map = {};
+
     attendanceData.forEach((item) => {
-      const dateKey = item.attendance_date;
-      map[`${item.employee_id}-${dateKey}`] = item;
+      map[`${item.employee_id}-${item.attendance_date}`] = item;
     });
 
     return map;
   }, [attendanceData]);
+
+  const reviewRecords = useMemo(() => {
+    return attendanceData.filter((item) => {
+      const matchesDate = item.attendance_date === reviewDate;
+
+      const matchesDepartment =
+        filter === "All" ||
+        item.department === filter ||
+        item.employee_department === filter;
+
+      return matchesDate && matchesDepartment;
+    });
+  }, [attendanceData, reviewDate, filter]);
 
   const getStatusSymbol = (status) => {
     const map = {
@@ -134,38 +148,34 @@ const AttendanceList = () => {
       "No Trip": "NT",
       "Rest Day": "RD",
     };
+
     return map[status] || "";
   };
 
-  /* ---------------- MONTH NAVIGATION ---------------- */
   const handlePrevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
-
   const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
 
-  // Selfie Modal State
-    const handleSelfieTimeIn = async (formData) => {
-      try {
-        await timeInSelfie(formData);
+  const handleSelfieTimeIn = async (formData) => {
+    try {
+      await timeInSelfie(formData);
 
-        const refreshed = await attendanceRecord();
-        setAttendanceData(refreshed);
+      const refreshed = await attendanceRecord();
+      setAttendanceData(refreshed);
 
-        setAlert({
-          type: "success",
-          message: "Selfie attendance saved successfully!",
-        });
-      } catch (err) {
-        setAlert({
-          type: "error",
-          message:
-            err.response?.data?.detail || "Failed to save selfie attendance.",
-        });
-      }
-    };
+      setAlert({
+        type: "success",
+        message: "Selfie attendance saved successfully!",
+      });
+    } catch (err) {
+      setAlert({
+        type: "error",
+        message:
+          err.response?.data?.detail || "Failed to save selfie attendance.",
+      });
+    }
+  };
 
-  /* ---------------- SAVE LOGIC ---------------- */
   const handleSave = async () => {
-    // 🚫 Prevent future save (extra safety)
     if (new Date(editModal.date) > new Date()) {
       setAlert({
         type: "error",
@@ -230,37 +240,71 @@ const AttendanceList = () => {
       });
     }
   };
-  /* ================= Cutoff Filter Function ================= */
 
-  /* ================= UI ================= */
+  const refreshAttendance = async () => {
+    const refreshed = await attendanceRecord();
+    setAttendanceData(refreshed);
+  };
+
+  const handleApproveAttendance = async (record) => {
+    try {
+      const response = await approveAttendance(record.id);
+
+      await refreshAttendance();
+
+      toast.success(response?.message || "Attendance approved successfully!");
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail || "Failed to approve attendance.",
+      );
+    }
+  };
+
+  const handleRejectAttendance = async (record) => {
+    try {
+      const response = await rejectAttendance(record.id);
+
+      await refreshAttendance();
+
+      toast.success(response?.message || "Attendance rejected successfully!");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to reject attendance.");
+    }
+  };
   return (
-    <>
-      <h1 className="text-2xl font-bold mb-4">Attendance</h1>
+    <div className="space-y-5">
       {alert && (
-        <div className="mb-4">
-          <Alert
-            type={alert.type}
-            message={alert.message}
-            onClose={() => setAlert(null)}
-          />
-        </div>
+        <Alert
+          type={alert.type}
+          message={alert.message}
+          onClose={() => setAlert(null)}
+        />
       )}
-      {/* Editable Week Indicator */}
-      {/* display-none */}
-      <div className="mb-4 text-sm text-gray-600 hidden">
+
+      <div className="hidden text-sm text-gray-600">
         Editable Week: {formattedRange} (Mon–Sat)
       </div>
 
-      {/* CONTROLS */}
-      <div className="flex flex-wrap gap-4 mb-6 items-center">
-        <Button onClick={() => setShowBulkModal(true)}>Check Attendance</Button>
-        <Button onClick={() => setShowSelfieModal(true)} disabled>
-          Selfie Attendance
-        </Button>
+      <div className="flex flex-wrap gap-3 items-center">
+        {viewMode === "table" && (
+          <Button onClick={() => setShowBulkModal(true)}>
+            Check Attendance
+          </Button>
+        )}
+
+        {viewMode === "table" && (
+          <Button onClick={() => setShowSelfieModal(true)} disabled>
+            Selfie Attendance
+          </Button>
+        )}
+
         <select
-          className="border rounded px-3 h-10"
+          className="border rounded-lg px-3 h-10 bg-white text-sm"
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e) => {
+            setFilter(e.target.value);
+            setCurrentPage(1);
+          }}
         >
           {Object.values(employeeRoles).map((role) => (
             <option key={role} value={role}>
@@ -269,73 +313,127 @@ const AttendanceList = () => {
           ))}
         </select>
 
-        <Button className="h-10" onClick={() => setShowDateModal(true)}>
-          {dateRange[0] && dateRange[1]
-            ? `${dateRange[0].format("YYYY-MM-DD")} → ${dateRange[1].format("YYYY-MM-DD")}`
-            : "Pick Date"}
-        </Button>
+        {viewMode === "table" && (
+          <>
+            <Button className="h-10" onClick={() => setShowDateModal(true)}>
+              {dateRange[0] && dateRange[1]
+                ? `${dateRange[0].format("YYYY-MM-DD")} → ${dateRange[1].format(
+                    "YYYY-MM-DD",
+                  )}`
+                : "Pick Date"}
+            </Button>
 
-        <Button size="sm" onClick={handlePrevMonth}>
-          Prev
-        </Button>
+            <Button size="sm" onClick={handlePrevMonth}>
+              Prev
+            </Button>
 
-        <span className="font-semibold">
-          {format(currentMonth, "MMMM yyyy")}
-        </span>
+            <span className="font-semibold">
+              {format(currentMonth, "MMMM yyyy")}
+            </span>
 
-        <Button size="sm" onClick={handleNextMonth}>
-          Next
-        </Button>
+            <Button size="sm" onClick={handleNextMonth}>
+              Next
+            </Button>
+          </>
+        )}
+
+        <div className="ml-auto flex items-center gap-3">
+          {viewMode === "grid" && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500">Review Date</label>
+
+              <input
+                type="date"
+                value={reviewDate}
+                onChange={(e) => setReviewDate(e.target.value)}
+                className="h-10 rounded-lg border px-3 text-sm bg-white"
+              />
+            </div>
+          )}
+
+          <div className="flex border rounded-lg overflow-hidden h-10 bg-white">
+            <button
+              type="button"
+              className={`px-4 text-sm ${
+                viewMode === "table"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700"
+              }`}
+              onClick={() => setViewMode("table")}
+            >
+              Table View
+            </button>
+
+            <button
+              type="button"
+              className={`px-4 text-sm ${
+                viewMode === "grid"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-gray-700"
+              }`}
+              onClick={() => setViewMode("grid")}
+            >
+              Review View
+            </button>
+          </div>
+        </div>
       </div>
 
-      <AttendanceTable
-        employees={currentEmployees}
-        daysInMonth={daysInMonth}
-        attendanceMap={attendanceMap}
-        departmentColors={departmentColors}
-        statusColors={statusColors}
-        getStatusSymbol={getStatusSymbol}
-        isEditableDate={isEditableDate}
-        isSuperAdmin={isSuperAdmin} // ✅ ADD THIS
-        today={today}
-        onPreviewAttendance={(attendance, type) =>
-          setPreviewModal({
-            attendance,
-            type,
-          })
-        }
-        onCellClick={(emp, date, status) =>
-          setEditModal({
-            employeeId: emp.id,
-            employeeName: emp.name,
-            date,
-            status,
-          })
-        }
-      />
+      {viewMode === "table" ? (
+        <>
+          <AttendanceTable
+            employees={currentEmployees}
+            daysInMonth={daysInMonth}
+            attendanceMap={attendanceMap}
+            departmentColors={departmentColors}
+            statusColors={statusColors}
+            getStatusSymbol={getStatusSymbol}
+            isEditableDate={isEditableDate}
+            isSuperAdmin={isSuperAdmin}
+            today={today}
+            onPreviewAttendance={(attendance, type) =>
+              setPreviewModal({ attendance, type })
+            }
+            onCellClick={(emp, date, status) =>
+              setEditModal({
+                employeeId: emp.id,
+                employeeName: emp.name,
+                date,
+                status,
+              })
+            }
+          />
 
-      {/* PAGINATION */}
-      <div className="flex justify-center items-center gap-4 mt-6">
-        <Button
-          size="sm"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => prev - 1)}
-        >
-          Prev
-        </Button>
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <Button
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => prev - 1)}
+            >
+              Prev
+            </Button>
 
-        <span>
-          Page {currentPage} of {totalPages}
-        </span>
+            <span>
+              Page {currentPage} of {totalPages || 1}
+            </span>
 
-        <Button
-          size="sm"
-          disabled={currentPage === totalPages}
-          onClick={() => setCurrentPage((prev) => prev + 1)}
-        >
-          Next
-        </Button>
-      </div>
+            <Button
+              size="sm"
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      ) : (
+        <AttendanceGridReview
+          records={reviewRecords}
+          onApproveAttendance={handleApproveAttendance}
+          onRejectAttendance={handleRejectAttendance}
+        />
+      )}
+
       <BulkAttendanceModal
         isOpen={showBulkModal}
         onClose={() => setShowBulkModal(false)}
@@ -344,12 +442,14 @@ const AttendanceList = () => {
         today={today}
         onSave={handleBulkSave}
       />
+
       <EditAttendanceModal
         editModal={editModal}
         setEditModal={setEditModal}
         onSave={handleSave}
         attendanceMap={attendanceMap}
       />
+
       <SelfieAttendanceModal
         isOpen={showSelfieModal}
         onClose={() => setShowSelfieModal(false)}
@@ -357,10 +457,12 @@ const AttendanceList = () => {
         onSubmit={handleSelfieTimeIn}
         disabled
       />
+
       <AttendancePreviewModal
         previewModal={previewModal}
         setPreviewModal={setPreviewModal}
       />
+
       {showDateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-xl shadow-xl w-87.5">
@@ -399,7 +501,7 @@ const AttendanceList = () => {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
