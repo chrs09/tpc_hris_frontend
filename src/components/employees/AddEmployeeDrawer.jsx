@@ -22,6 +22,9 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
     department: "",
     position: "",
     date_hired: "",
+    daily_rate: "",
+    employment_type: "",
+    payroll_type: "",
 
     // PERSONAL
     birthday: "",

@@ -45,3 +45,15 @@ export const rejectAttendance = async (attendanceId) => {
 
   return res.data;
 };
+
+export const adjustAttendanceTime = async (
+  attendanceId,
+  payload,
+) => {
+  const res = await api.patch(
+    `/attendance/${attendanceId}/adjust-time`,
+    payload,
+  );
+
+  return res.data;
+};

@@ -65,6 +65,50 @@ const EditAttendanceModal = ({
             ))}
           </select>
 
+          {editModal && (
+              <div className="border-t border-gray-600 pt-4 mt-4 space-y-3">
+                <h4 className="text-white font-semibold">
+                  Attendance Time
+                </h4>
+
+                <div>
+                  <label className="text-sm text-gray-300 block mb-1">
+                    Time In
+                  </label>
+
+                  <input
+                    type="time"
+                    value={editModal.timeIn || ""}
+                    onChange={(e) =>
+                      setEditModal((prev) => ({
+                        ...prev,
+                        timeIn: e.target.value,
+                      }))
+                    }
+                    className="w-full border rounded h-10 px-3 text-white bg-[#1e1e1e]"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-300 block mb-1">
+                    Time Out
+                  </label>
+
+                  <input
+                    type="time"
+                    value={editModal.timeOut || ""}
+                    onChange={(e) =>
+                      setEditModal((prev) => ({
+                        ...prev,
+                        timeOut: e.target.value,
+                      }))
+                    }
+                    className="w-full border rounded h-10 px-3 text-white bg-[#1e1e1e]"
+                  />
+                </div>
+              </div>
+            )}
+
           <div className="flex justify-end gap-3 text-white">
             <Button variant="secondary" onClick={() => setEditModal(null)}>
               Cancel

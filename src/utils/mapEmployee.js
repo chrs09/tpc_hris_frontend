@@ -13,6 +13,9 @@ export const mapEmployeeToForm = (employee) => {
     department: employee.department || "",
     date_hired: employee.date_hired?.slice(0, 10) || "",
     is_active: employee.is_active,
+    daily_rate: employee.daily_rate || "",
+    employment_type: employee.employment_type || "",
+    payroll_type: employee.payroll_type || "",
 
     // PERSONAL
     birthday: employee.personal_details?.birthday || "",

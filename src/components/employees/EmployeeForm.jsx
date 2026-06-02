@@ -267,6 +267,41 @@ export default function EmployeeForm({
               onChange={handleChange}
             />
             <EditableField
+              label="Daily Rate"
+              field="daily_rate"
+              value={formData.daily_rate}
+              type="number"
+              isEditing={isEditing}
+              onChange={handleChange}
+            />
+
+            <EditableField
+              label="Employment Type"
+              field="employment_type"
+              value={formData.employment_type}
+              isEditing={isEditing}
+              onChange={handleChange}
+              options={[
+                "Regular",
+                "Probationary",
+                "Contractual",
+                "Project Based",
+              ]}
+            />
+
+            <EditableField
+              label="Payroll Type"
+              field="payroll_type"
+              value={formData.payroll_type}
+              isEditing={isEditing}
+              onChange={handleChange}
+              options={[
+                "Daily",
+                "Weekly",
+                "Monthly",
+              ]}
+            />
+            <EditableField
               label="Date Hired"
               field="date_hired"
               value={formData.date_hired}

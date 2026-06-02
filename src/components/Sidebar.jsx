@@ -8,6 +8,7 @@ import {
   Truck,
   Shield,
   ChevronDown,
+  Wallet,
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getReminders, createReminder, resolveReminder } from "../api/reminder";
@@ -78,6 +79,17 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Questionaire", // ✅ ADD THIS
             path: "/dashboard/applicant/questionaire",
+            roles: ["superadmin", "admin"],
+          },
+        ],
+      },
+      {
+        label: "Payroll",
+        icon: <Wallet size={18} />,
+        children: [
+          {
+            label: "Payroll",
+            path: "/dashboard/payroll",
             roles: ["superadmin", "admin"],
           },
         ],

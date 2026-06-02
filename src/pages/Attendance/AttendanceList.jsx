@@ -18,6 +18,7 @@ import {
   timeInSelfie,
   approveAttendance,
   rejectAttendance,
+  adjustAttendanceTime
 } from "../../api/attendance";
 
 import { employeeRoles } from "../../constants/employeeRole";
@@ -183,6 +184,13 @@ const AttendanceList = () => {
       });
       return;
     }
+    const checkInTime = editModal.timeIn
+    ? `${editModal.date} ${editModal.timeIn}:00`
+    : null;
+
+  const checkOutTime = editModal.timeOut
+    ? `${editModal.date} ${editModal.timeOut}:00`
+    : null;
 
     const existing = attendanceMap[`${editModal.employeeId}-${editModal.date}`];
 
@@ -193,6 +201,13 @@ const AttendanceList = () => {
           attendance_date: editModal.date,
           status: editModal.status,
         });
+
+        if (checkInTime || checkOutTime) {
+          await adjustAttendanceTime(existing.id, {
+            check_in_time: checkInTime,
+            check_out_time: checkOutTime,
+          });
+        }
 
         setAlert({
           type: "success",
@@ -205,6 +220,28 @@ const AttendanceList = () => {
           status: editModal.status,
         });
 
+        const refreshed = await attendanceRecord();
+
+        const createdRecord = refreshed.find(
+          (item) =>
+            item.employee_id === editModal.employeeId &&
+            item.attendance_date === editModal.date
+        );
+
+        if (
+          createdRecord &&
+          (checkInTime || checkOutTime)
+        ) {
+          await adjustAttendanceTime(
+            createdRecord.id,
+            {
+              check_in_time: checkInTime,
+              check_out_time: checkOutTime,
+            }
+          );
+        }
+        
+
         setAlert({
           type: "success",
           message: "Attendance created successfully!",
@@ -213,6 +250,7 @@ const AttendanceList = () => {
 
       const refreshed = await attendanceRecord();
       setAttendanceData(refreshed);
+      
       setEditModal(null);
     } catch (err) {
       setAlert({
@@ -394,12 +432,27 @@ const AttendanceList = () => {
             onPreviewAttendance={(attendance, type) =>
               setPreviewModal({ attendance, type })
             }
-            onCellClick={(emp, date, status) =>
+            onCellClick={(emp, date, status, attendance) =>
               setEditModal({
                 employeeId: emp.id,
                 employeeName: emp.name,
                 date,
-                status,
+
+                status: status || "Present",
+
+                attendance,
+
+                timeIn: attendance?.check_in_time
+                ? new Date(attendance.check_in_time)
+                    .toTimeString()
+                    .slice(0, 5)
+                : "",
+
+                timeOut: attendance?.check_out_time
+                  ? new Date(attendance.check_out_time)
+                      .toTimeString()
+                      .slice(0, 5)
+                  : "",
               })
             }
           />

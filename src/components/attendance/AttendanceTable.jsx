@@ -118,7 +118,12 @@ const AttendanceTable = ({
                     }`}
                     onClick={() => {
                       if (!editable) return;
-                      onCellClick(emp, dateKey, status || "Present");
+                      onCellClick(
+                        emp,
+                        dateKey,
+                        status,
+                        attendance,
+                      );
                     }}
                   >
                     {status ? (
@@ -127,6 +132,19 @@ const AttendanceTable = ({
                           <div className="flex items-center justify-center">
                             <span className="text-base font-extrabold">
                               {completedTrips > 0 ? completedTrips : ""}
+                            </span>
+                          </div>
+                        ) : [
+                            "On Leave",
+                            "Absent",
+                            "Rest Day",
+                            "No Trip",
+                            "Halfday",
+                            "Delay",
+                          ].includes(status) ? (
+                          <div className="flex items-center justify-center">
+                            <span className="text-base font-extrabold">
+                              {getStatusSymbol(status)}
                             </span>
                           </div>
                         ) : hasTimeIn || hasTimeOut ? (
@@ -168,6 +186,22 @@ const AttendanceTable = ({
                             >
                               OUT: {formatTime(attendance.check_out_time)}
                             </button>
+                            <button
+                              type="button"
+                              className="border-t py-1 px-1 text-blue-600 underline hover:bg-black/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                onCellClick(
+                                  emp,
+                                  dateKey,
+                                  status,
+                                  attendance,
+                                );
+                              }}
+                            >
+                              Edit
+                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-center">
@@ -177,6 +211,25 @@ const AttendanceTable = ({
                           </div>
                         )}
                       </>
+                    ) : editable ? (
+                      <div className="flex items-center justify-center h-full">
+                        <button
+                          type="button"
+                          className="text-gray-400 hover:text-blue-600 text-lg"
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            onCellClick(
+                              emp,
+                              dateKey,
+                              "Present",
+                              null,
+                            );
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
                     ) : (
                       ""
                     )}
