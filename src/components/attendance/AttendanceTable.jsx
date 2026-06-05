@@ -68,8 +68,10 @@ const AttendanceTable = ({
               >
                 {emp.name}
               </td>
+              
 
               {daysInMonth.map((day) => {
+                
                 const dateKey = format(day, "yyyy-MM-dd");
                 const attendance = attendanceMap[`${emp.id}-${dateKey}`];
 
@@ -88,6 +90,37 @@ const AttendanceTable = ({
                 const hasTimeIn = !!attendance?.check_in_time;
                 const hasTimeOut = !!attendance?.check_out_time;
 
+                const isUndertime = (() => {
+                  if (
+                    !attendance?.check_in_time_raw ||
+                    !attendance?.check_out_time_raw
+                  ) {
+                    return false;
+                  }
+
+                  const timeIn = new Date(attendance.check_in_time_raw);
+                  const timeOut = new Date(attendance.check_out_time_raw);
+
+                  const hoursWorked =
+                    (timeOut - timeIn) / (1000 * 60 * 60);
+
+                  console.log(
+                    "UNDERTIME CHECK:",
+                    emp.name,
+                    attendance?.attendance_date,
+                    hoursWorked
+                  );
+
+                  return hoursWorked < 8;
+                })();
+
+                console.log("Employee:", emp.name);
+                console.log("Date:", dateKey);
+                console.log("IN:", attendance?.check_in_time);
+                console.log("OUT:", attendance?.check_out_time);
+                console.log("IN RAW:", attendance?.check_in_time_raw);
+                console.log("OUT RAW:", attendance?.check_out_time_raw);
+
                 const hasTimeInPreview =
                   !!attendance?.time_in_photo_url ||
                   (!!attendance?.time_in_latitude &&
@@ -98,10 +131,19 @@ const AttendanceTable = ({
                   (!!attendance?.time_out_latitude &&
                     !!attendance?.time_out_longitude);
 
+                
+
                 let bg = "bg-white";
 
                 if (status) {
                   bg = statusColors[status];
+                }
+
+                if (
+                  status === "Present" &&
+                  isUndertime
+                ) {
+                  bg = statusColors["Halfday"];
                 } else if (isSunday) {
                   bg = "bg-yellow-100";
                 } else if (isTripBasedEmployee) {

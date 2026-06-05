@@ -11,9 +11,14 @@ const PayrollList = () => {
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [department, setDepartment] = useState("Motorpool");
+  const [searchEmployee, setSearchEmployee] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState(0);
   const [selectedPayroll, setSelectedPayroll] = useState(null);
   const [otApprovals, setOTApprovals] = useState([]);
+
+  useEffect(() => {
+    setSelectedPeriod(0);
+  }, [department]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -77,12 +82,35 @@ const PayrollList = () => {
         24,
     );
     }, [department]);
+    console.log(
+      "Department:",
+      department
+    );
+
+    console.log(
+      "Periods:",
+      periods
+    );
     const activePeriod = periods[selectedPeriod] || cutoffInfo;
 
   const payrollRows = useMemo(() => {
     return employees
-      .filter((emp) => emp.department === department)
-      .map((employee) => {
+        .filter(
+          (emp) =>
+            emp.department === department
+        )
+
+        .filter((emp) => {
+          const fullName = `${emp.first_name || ""} ${
+            emp.last_name || ""
+          }`.toLowerCase();
+
+          return fullName.includes(
+            searchEmployee.toLowerCase()
+          );
+        })
+
+        .map((employee) => {
         const records = attendance.filter(
             (record) =>
                 record.employee_id === employee.id &&
@@ -268,6 +296,7 @@ const PayrollList = () => {
     department,
     activePeriod,
     otApprovals,
+    searchEmployee,
   ]);
 
   const summary = useMemo(() => {
@@ -348,6 +377,9 @@ const PayrollList = () => {
           <h1 className="text-3xl font-bold">
             Payroll
           </h1>
+          <p className="text-sm text-gray-500">
+            Showing {payrollRows.length} employees
+          </p>
 
           <p className="text-gray-500">
             Payroll Preview
@@ -394,6 +426,17 @@ const PayrollList = () => {
               ),
             )}
           </select>
+          <input
+            type="text"
+            placeholder="Search employee..."
+            value={searchEmployee}
+            onChange={(e) =>
+              setSearchEmployee(
+                e.target.value
+              )
+            }
+            className="border rounded-lg px-3 h-10 bg-white"
+          />
 
           <button className="bg-blue-600 text-white px-4 rounded-lg">
             Generate Payroll
@@ -509,10 +552,11 @@ const PayrollList = () => {
             Loading...
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50">
+          <div className="overflow-auto max-h-[70vh]">
+          <table className="min-w-550 w-full">
+            <thead className="sticky top-0 z-30 bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left">
+                <th className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left min-w-55">
                   Employee
                 </th>
 
@@ -591,15 +635,9 @@ const PayrollList = () => {
                     }
                     className="border-t"
                   >
-                    <td className="px-4 py-3">
-                      {
-                        row.employee
-                          .first_name
-                      }{" "}
-                      {
-                        row.employee
-                          .last_name
-                      }
+                    <td className="sticky left-0 z-10 bg-white px-4 py-3 min-w-55 border-r">
+                      {row.employee.first_name}{" "}
+                      {row.employee.last_name}
                     </td>
 
                     <td className="px-4 py-3">
@@ -749,6 +787,7 @@ const PayrollList = () => {
               )}
             </tbody>
           </table>
+          </div>
         )}
       </div>
       <PayrollDetailModal
@@ -756,8 +795,11 @@ const PayrollList = () => {
         payroll={selectedPayroll}
         activePeriod={activePeriod}
         onClose={() =>
-            setSelectedPayroll(null)
+          setSelectedPayroll(null)
         }
+        onOTApproved={async () => {
+          await loadOTApprovals();
+        }}
       />
     </div>
   );

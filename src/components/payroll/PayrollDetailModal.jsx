@@ -1,12 +1,256 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { approveOT, getEmployeeOTHistory } from "../../api/payroll/overtimeApproval";
+import toast from "react-hot-toast";
 
 const PayrollDetailModal = ({
   isOpen,
   onClose,
   payroll,
   activePeriod,
+  onOTApproved,
 }) => {
+
+  const [approvedOT, setApprovedOT] = useState({});
+  useEffect(() => {
+    const loadApproval = async () => {
+
+      if (!payroll?.employee?.id)
+        return;
+
+      try {
+
+        const history =
+          await getEmployeeOTHistory(
+            payroll.employee.id
+          );
+
+        const approval =
+          history.find(
+            (item) =>
+              item.cutoff_start ===
+                activePeriod.cutoffStart &&
+              item.cutoff_end ===
+                activePeriod.cutoffEnd
+          );
+
+        if (!approval)
+          return;
+
+        // setSavedApproval(
+        //   approval
+        // );
+
+        const mapped = {};
+
+        approval.details.forEach(
+          (detail) => {
+            mapped[
+              detail.attendance_id
+            ] =
+              detail.approved_ot_hours;
+          }
+        );
+
+        setApprovedOT(
+          mapped
+        );
+
+      } catch (err) {
+        console.error(
+          err
+        );
+      }
+    };
+
+    if (
+      isOpen &&
+      payroll
+    ) {
+      loadApproval();
+    }
+  }, [
+    isOpen,
+    payroll,
+    activePeriod,
+  ]);
+  const approvedTotalValue =
+    payroll?.records?.reduce(
+      (sum, record) => {
+
+        let otHours = 0;
+
+        if (
+          record.check_in_time_raw &&
+          record.check_out_time_raw
+        ) {
+          const checkIn = new Date(
+            record.check_in_time_raw
+          );
+
+          const checkOut = new Date(
+            record.check_out_time_raw
+          );
+
+          let workedHours =
+            (checkOut - checkIn) /
+            1000 /
+            60 /
+            60;
+
+          workedHours -= 1;
+
+          otHours = Math.max(
+            workedHours - 8,
+            0
+          );
+        }
+
+        return (
+          sum +
+          (approvedOT[record.id] ?? otHours)
+        );
+      },
+      0
+    ) || 0;
+  const handleSaveOTApproval =
+    async () => {
+      try {
+
+        const approvedTotal =
+          payroll.records.reduce(
+            (sum, record) => {
+
+              let otHours = 0;
+
+              if (
+                record.check_in_time_raw &&
+                record.check_out_time_raw
+              ) {
+                const checkIn =
+                  new Date(
+                    record.check_in_time_raw
+                  );
+
+                const checkOut =
+                  new Date(
+                    record.check_out_time_raw
+                  );
+
+                let worked =
+                  (checkOut - checkIn) /
+                  1000 /
+                  60 /
+                  60;
+
+                worked -= 1;
+
+                otHours =
+                  Math.max(
+                    worked - 8,
+                    0
+                  );
+              }
+
+              return (
+                sum +
+                (
+                  approvedOT[
+                    record.id
+                  ] ?? otHours
+                )
+              );
+
+            },
+            0
+          );
+
+        const details = payroll.records
+          .filter(
+            (record) =>
+              record.check_in_time_raw &&
+              record.check_out_time_raw
+          )
+          .map((record) => {
+
+            const checkIn = new Date(
+              record.check_in_time_raw
+            );
+
+            const checkOut = new Date(
+              record.check_out_time_raw
+            );
+
+            let workedHours =
+              (checkOut - checkIn) /
+              1000 /
+              60 /
+              60;
+
+            workedHours -= 1;
+
+            workedHours = Math.max(
+              workedHours,
+              0
+            );
+
+            const detectedOT =
+              Math.max(
+                workedHours - 8,
+                0
+              );
+
+            return {
+              attendance_id: record.id,
+
+              detected_ot_hours:
+                detectedOT,
+
+              approved_ot_hours:
+                approvedOT[
+                  record.id
+                ] ?? detectedOT,
+            };
+          });
+
+        await approveOT({
+          employee_id:
+            payroll.employee.id,
+
+          cutoff_start:
+            activePeriod.cutoffStart,
+
+          cutoff_end:
+            activePeriod.cutoffEnd,
+
+          detected_ot_hours:
+            payroll.otHours,
+
+          approved_ot_hours:
+            approvedTotal,
+
+          remarks:
+            "Approved via Payroll Detail Modal",
+
+          details,
+        });
+
+        toast.success("OT approved successfully");
+
+        await onOTApproved?.();
+
+        onClose();
+
+      } catch (err) {
+        console.error(err);
+
+        toast.error(
+          err?.response?.data?.detail ||
+          "Failed to approve overtime"
+        );
+      }
+    };
   if (!isOpen || !payroll) return null;
+  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -112,6 +356,27 @@ const PayrollDetailModal = ({
                   )}
                 </p>
               </div>
+              
+              <div className="border rounded-lg p-3">
+                <p className="text-xs text-gray-500">
+                  Undertime
+                </p>
+
+                <p className="font-bold text-red-600">
+                  {payroll.undertimeHours?.toFixed(2)}
+                </p>
+              </div>
+
+              <div className="border rounded-lg p-3">
+                <p className="text-xs text-gray-500">
+                  UT Deduction
+                </p>
+
+                <p className="font-bold text-red-600">
+                  ₱
+                  {payroll.undertimeDeduction?.toFixed(2)}
+                </p>
+              </div>
 
               <div className="border rounded-lg p-3">
                 <p className="text-xs text-gray-500">
@@ -152,6 +417,7 @@ const PayrollDetailModal = ({
               </div>
             </div>
           </div>
+
 
           {/* Gross */}
           <div className="border rounded-xl p-5 bg-green-50">
@@ -200,6 +466,9 @@ const PayrollDetailModal = ({
 
                     <th className="border px-3 py-2 text-left">
                         OT
+                    </th>
+                    <th className="border px-3 py-2 text-left">
+                        Approved OT
                     </th>
                     <th className="border px-3 py-2 text-left">
                         Face Review
@@ -287,6 +556,43 @@ const PayrollDetailModal = ({
                             )}
                             </td>
                             <td className="border px-3 py-2">
+                              {otHours > 0 ? (
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max={otHours}
+                                      step="0.25"
+                                      value={
+                                        approvedOT[record.id] ??
+                                        otHours
+                                      }
+                                      onChange={(e) => {
+
+                                        let value = Number(
+                                          e.target.value
+                                        );
+
+                                        if (value < 0) {
+                                          value = 0;
+                                        }
+
+                                        if (value > otHours) {
+                                          value = otHours;
+                                        }
+
+                                        setApprovedOT((prev) => ({
+                                          ...prev,
+                                          [record.id]: value,
+                                        }));
+                                      }}
+                                      className="w-20 border rounded px-2 py-1 text-center"
+                                    />
+                                  ) : (
+                                    "--"
+                               )}
+                            </td>
+
+                            <td className="border px-3 py-2">
                             {record.face_review_status ||
                                 "N/A"}
                             </td>
@@ -299,26 +605,37 @@ const PayrollDetailModal = ({
                     )}
                 </tbody>
                 <tfoot className="bg-gray-100 font-semibold">
-                    <tr>
-                        <td
-                        colSpan={4}
-                        className="border px-3 py-2"
-                        >
-                        Totals
-                        </td>
+                  <tr>
 
-                        <td className="border px-3 py-2">
-                        {payroll.totalHours.toFixed(
-                            2,
-                        )}
-                        </td>
+                    <td
+                      colSpan={4}
+                      className="border px-3 py-2"
+                    >
+                      Totals
+                    </td>
 
-                        <td className="border px-3 py-2">
-                        {payroll.otHours.toFixed(
-                            2,
-                        )}
-                        </td>
-                    </tr>
+                    {/* Hours */}
+                    <td className="border px-3 py-2">
+                      {payroll.totalHours.toFixed(2)}
+                    </td>
+
+                    {/* OT */}
+                    <td className="border px-3 py-2">
+                      {payroll.otHours.toFixed(2)}
+                    </td>
+
+                    {/* Approved OT */}
+                    <td className="border px-3 py-2">
+                      {approvedTotalValue.toFixed(2)}
+                    </td>
+
+                    {/* Face Review */}
+                    <td className="border px-3 py-2"></td>
+
+                    {/* Trips */}
+                    <td className="border px-3 py-2"></td>
+
+                  </tr>
                 </tfoot>
                 </table>
             </div>
@@ -352,7 +669,13 @@ const PayrollDetailModal = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t p-4 flex justify-end">
+        <div className="border-t p-4 flex justify-end gap-2">
+          <button
+            onClick={handleSaveOTApproval}
+            className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+          >
+            Save OT Approval
+          </button>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"

@@ -57,3 +57,30 @@ export const adjustAttendanceTime = async (
 
   return res.data;
 };
+
+//Attendance Kiosk
+// Kiosk Status
+export const getKioskStatus = async (employeeId) => {
+  const res = await api.get(
+    `/attendance/kiosk/status/${employeeId}`,
+  );
+
+  return res.data;
+};
+
+// Kiosk Selfie Attendance
+export const kioskSelfieAttendance = async (
+  formData,
+) => {
+  const res = await api.post(
+    "/attendance/kiosk/selfie",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return res.data;
+};

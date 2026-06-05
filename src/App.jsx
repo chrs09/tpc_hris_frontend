@@ -7,6 +7,7 @@ import SessionExpiredModal from "./components/ui/SessionExpiredModal";
 import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
+import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
 
 const App = () => {
   const navigate = useNavigate();
@@ -49,6 +50,11 @@ const App = () => {
         <Route
           path="/tytan-onboarding-form/:token"
           element={<OnBoardingForm />}
+        />
+
+        <Route
+          path="/attendance-kiosk"
+          element={<AttendanceKiosk />}
         />
 
         <Route

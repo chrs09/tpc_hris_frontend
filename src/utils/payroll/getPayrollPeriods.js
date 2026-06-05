@@ -159,6 +159,8 @@ export const getPayrollPeriods = (
     [
       "CdcDriver",
       "CdcHelper",
+      "CpdcDriver",
+      "CpdcHelper",
       "Dumptruck",
       "Labor",
     ].includes(department)

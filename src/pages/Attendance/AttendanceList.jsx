@@ -177,87 +177,88 @@ const AttendanceList = () => {
   };
 
   const handleSave = async () => {
-    if (new Date(editModal.date) > new Date()) {
-      setAlert({
-        type: "error",
-        message: "Cannot save attendance for future dates.",
-      });
-      return;
-    }
-    const checkInTime = editModal.timeIn
-    ? `${editModal.date} ${editModal.timeIn}:00`
-    : null;
-
-  const checkOutTime = editModal.timeOut
-    ? `${editModal.date} ${editModal.timeOut}:00`
-    : null;
-
-    const existing = attendanceMap[`${editModal.employeeId}-${editModal.date}`];
-
-    try {
-      if (existing) {
-        await updateAttendance({
-          employee_id: editModal.employeeId,
-          attendance_date: editModal.date,
-          status: editModal.status,
+      if (new Date(editModal.date) > new Date()) {
+        setAlert({
+          type: "error",
+          message: "Cannot save attendance for future dates.",
         });
+        return;
+      }
+      const checkInTime = editModal.timeIn
+      ? `${editModal.date} ${editModal.timeIn}:00`
+      : null;
 
-        if (checkInTime || checkOutTime) {
-          await adjustAttendanceTime(existing.id, {
-            check_in_time: checkInTime,
-            check_out_time: checkOutTime,
+    const checkOutTime = editModal.timeOut
+      ? `${editModal.date} ${editModal.timeOut}:00`
+      : null;
+
+      const existing = attendanceMap[`${editModal.employeeId}-${editModal.date}`];
+
+      try {
+        if (existing) {
+
+            if (existing.status !== editModal.status) {
+              await updateAttendance({
+                employee_id: editModal.employeeId,
+                attendance_date: editModal.date,
+                status: editModal.status,
+              });
+            }
+
+            if (checkInTime || checkOutTime) {
+              await adjustAttendanceTime(
+                existing.id,
+                {
+                  check_in_time: checkInTime,
+                  check_out_time: checkOutTime,
+                }
+              );
+            }
+          } else {
+          await markAttendance({
+            employee_id: editModal.employeeId,
+            attendance_date: editModal.date,
+            status: editModal.status,
+          });
+
+          const refreshed = await attendanceRecord();
+
+          const createdRecord = refreshed.find(
+            (item) =>
+              item.employee_id === editModal.employeeId &&
+              item.attendance_date === editModal.date
+          );
+
+          if (
+            createdRecord &&
+            (checkInTime || checkOutTime)
+          ) {
+            await adjustAttendanceTime(
+              createdRecord.id,
+              {
+                check_in_time: checkInTime,
+                check_out_time: checkOutTime,
+              }
+            );
+          }
+          
+
+          setAlert({
+            type: "success",
+            message: "Attendance created successfully!",
           });
         }
 
-        setAlert({
-          type: "success",
-          message: "Attendance updated successfully!",
-        });
-      } else {
-        await markAttendance({
-          employee_id: editModal.employeeId,
-          attendance_date: editModal.date,
-          status: editModal.status,
-        });
-
         const refreshed = await attendanceRecord();
-
-        const createdRecord = refreshed.find(
-          (item) =>
-            item.employee_id === editModal.employeeId &&
-            item.attendance_date === editModal.date
-        );
-
-        if (
-          createdRecord &&
-          (checkInTime || checkOutTime)
-        ) {
-          await adjustAttendanceTime(
-            createdRecord.id,
-            {
-              check_in_time: checkInTime,
-              check_out_time: checkOutTime,
-            }
-          );
-        }
+        setAttendanceData(refreshed);
         
-
+        setEditModal(null);
+      } catch (err) {
         setAlert({
-          type: "success",
-          message: "Attendance created successfully!",
+          type: "error",
+          message: err.response?.data?.detail || "Operation failed.",
         });
       }
-
-      const refreshed = await attendanceRecord();
-      setAttendanceData(refreshed);
-      
-      setEditModal(null);
-    } catch (err) {
-      setAlert({
-        type: "error",
-        message: err.response?.data?.detail || "Operation failed.",
-      });
-    }
   };
 
   const handleBulkSave = async (records) => {
@@ -308,6 +309,25 @@ const AttendanceList = () => {
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed to reject attendance.");
     }
+  };
+
+  const convertDisplayTimeToInput = (timeString) => {
+    if (!timeString) return "";
+
+    const [time, period] = timeString.split(" ");
+    let [hours, minutes] = time.split(":");
+
+    hours = parseInt(hours, 10);
+
+    if (period === "PM" && hours !== 12) {
+      hours += 12;
+    }
+
+    if (period === "AM" && hours === 12) {
+      hours = 0;
+    }
+
+    return `${String(hours).padStart(2, "0")}:${minutes}`;
   };
   return (
     <div className="space-y-5">
@@ -433,6 +453,7 @@ const AttendanceList = () => {
               setPreviewModal({ attendance, type })
             }
             onCellClick={(emp, date, status, attendance) =>
+              console.log("Attendance Clicked:", attendance) ||
               setEditModal({
                 employeeId: emp.id,
                 employeeName: emp.name,
@@ -442,17 +463,13 @@ const AttendanceList = () => {
 
                 attendance,
 
-                timeIn: attendance?.check_in_time
-                ? new Date(attendance.check_in_time)
-                    .toTimeString()
-                    .slice(0, 5)
-                : "",
+                timeIn: convertDisplayTimeToInput(
+                  attendance?.check_in_time
+                ),
 
-                timeOut: attendance?.check_out_time
-                  ? new Date(attendance.check_out_time)
-                      .toTimeString()
-                      .slice(0, 5)
-                  : "",
+                timeOut: convertDisplayTimeToInput(
+                  attendance?.check_out_time
+                ),
               })
             }
           />
