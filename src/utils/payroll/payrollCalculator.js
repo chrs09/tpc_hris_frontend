@@ -1,7 +1,4 @@
-export const computePayroll = ({
-  employee,
-  attendanceRecords,
-}) => {
+export const computePayroll = ({ employee, attendanceRecords }) => {
   const dailyRate = Number(employee.daily_rate || 0);
 
   const hourlyRate = dailyRate / 8;

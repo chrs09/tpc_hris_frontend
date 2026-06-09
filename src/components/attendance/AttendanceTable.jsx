@@ -68,10 +68,8 @@ const AttendanceTable = ({
               >
                 {emp.name}
               </td>
-              
 
               {daysInMonth.map((day) => {
-                
                 const dateKey = format(day, "yyyy-MM-dd");
                 const attendance = attendanceMap[`${emp.id}-${dateKey}`];
 
@@ -101,25 +99,10 @@ const AttendanceTable = ({
                   const timeIn = new Date(attendance.check_in_time_raw);
                   const timeOut = new Date(attendance.check_out_time_raw);
 
-                  const hoursWorked =
-                    (timeOut - timeIn) / (1000 * 60 * 60);
-
-                  console.log(
-                    "UNDERTIME CHECK:",
-                    emp.name,
-                    attendance?.attendance_date,
-                    hoursWorked
-                  );
+                  const hoursWorked = (timeOut - timeIn) / (1000 * 60 * 60);
 
                   return hoursWorked < 8;
                 })();
-
-                console.log("Employee:", emp.name);
-                console.log("Date:", dateKey);
-                console.log("IN:", attendance?.check_in_time);
-                console.log("OUT:", attendance?.check_out_time);
-                console.log("IN RAW:", attendance?.check_in_time_raw);
-                console.log("OUT RAW:", attendance?.check_out_time_raw);
 
                 const hasTimeInPreview =
                   !!attendance?.time_in_photo_url ||
@@ -131,18 +114,13 @@ const AttendanceTable = ({
                   (!!attendance?.time_out_latitude &&
                     !!attendance?.time_out_longitude);
 
-                
-
                 let bg = "bg-white";
 
                 if (status) {
                   bg = statusColors[status];
                 }
 
-                if (
-                  status === "Present" &&
-                  isUndertime
-                ) {
+                if (status === "Present" && isUndertime) {
                   bg = statusColors["Halfday"];
                 } else if (isSunday) {
                   bg = "bg-yellow-100";
@@ -160,12 +138,7 @@ const AttendanceTable = ({
                     }`}
                     onClick={() => {
                       if (!editable) return;
-                      onCellClick(
-                        emp,
-                        dateKey,
-                        status,
-                        attendance,
-                      );
+                      onCellClick(emp, dateKey, status, attendance);
                     }}
                   >
                     {status ? (
@@ -234,12 +207,7 @@ const AttendanceTable = ({
                               onClick={(e) => {
                                 e.stopPropagation();
 
-                                onCellClick(
-                                  emp,
-                                  dateKey,
-                                  status,
-                                  attendance,
-                                );
+                                onCellClick(emp, dateKey, status, attendance);
                               }}
                             >
                               Edit
@@ -261,12 +229,7 @@ const AttendanceTable = ({
                           onClick={(e) => {
                             e.stopPropagation();
 
-                            onCellClick(
-                              emp,
-                              dateKey,
-                              "Present",
-                              null,
-                            );
+                            onCellClick(emp, dateKey, "Present", null);
                           }}
                         >
                           +

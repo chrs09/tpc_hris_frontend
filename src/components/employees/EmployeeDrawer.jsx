@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
+import api from "../../api/services/api";
 import { mapEmployeeToForm } from "../../utils/mapEmployee";
 import { updateEmployeeDetails } from "../../api/employee";
 import EmployeeForm from "./EmployeeForm";
@@ -22,6 +23,23 @@ export default function EmployeeDrawer({
   const [formData, setFormData] = useState({});
   const [previewImage, setPreviewImage] = useState(null);
   const [showInactiveModal, setShowInactiveModal] = useState(false);
+  const [scheduleTemplates, setScheduleTemplates] = useState([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const loadSchedules = async () => {
+      try {
+        const res = await api.get("/schedule-templates/");
+
+        setScheduleTemplates(res.data || []);
+      } catch (error) {
+        console.error("Schedule API Error:", error);
+      }
+    };
+
+    loadSchedules();
+  }, [isOpen]);
 
   if (!isOpen || !employee) return null;
 
@@ -151,13 +169,6 @@ export default function EmployeeDrawer({
           formDataUpload.append(key, value);
         }
       });
-      console.log("=== RAW formData ===");
-      console.log(formData);
-
-      console.log("=== FormDataUpload ===");
-      for (let pair of formDataUpload.entries()) {
-        console.log(pair[0], pair[1]);
-      }
 
       await updateEmployeeDetails(employee.id, formDataUpload);
 
@@ -191,7 +202,6 @@ export default function EmployeeDrawer({
       }, 2500);
     }
   };
-
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
@@ -268,7 +278,6 @@ export default function EmployeeDrawer({
             ))}
           </div>
         </div>
-
         <EmployeeForm
           employee={employee}
           formData={displayData}
@@ -278,6 +287,7 @@ export default function EmployeeDrawer({
           handleFileChange={handleFileChange}
           previewImage={previewImage}
           setPreviewImage={setPreviewImage}
+          scheduleTemplates={scheduleTemplates}
         />
       </div>
 

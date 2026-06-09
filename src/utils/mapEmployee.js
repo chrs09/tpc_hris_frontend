@@ -17,6 +17,9 @@ export const mapEmployeeToForm = (employee) => {
     employment_type: employee.employment_type || "",
     payroll_type: employee.payroll_type || "",
 
+    schedule_template_id: employee.schedule_template_id ?? "",
+    schedule_template: employee.schedule_template || null,
+
     // PERSONAL
     birthday: employee.personal_details?.birthday || "",
     birthplace: employee.personal_details?.birthplace || "",

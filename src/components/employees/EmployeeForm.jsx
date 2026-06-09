@@ -46,6 +46,7 @@ export default function EmployeeForm({
   handleFileChange,
   previewImage,
   setPreviewImage,
+  scheduleTemplates,
 }) {
   const profileImageFromDB = employee?.files?.find(
     (f) => f.document_type === "PROFILE_IMAGE",
@@ -66,6 +67,11 @@ export default function EmployeeForm({
   const departmentOptions = Object.values(employeeRoles).filter(
     (option) => option !== "All",
   );
+  const scheduleOptions =
+    scheduleTemplates?.map((schedule) => ({
+      value: schedule.id,
+      label: schedule.name,
+    })) || [];
 
   const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
 
@@ -295,11 +301,15 @@ export default function EmployeeForm({
               value={formData.payroll_type}
               isEditing={isEditing}
               onChange={handleChange}
-              options={[
-                "Daily",
-                "Weekly",
-                "Monthly",
-              ]}
+              options={["Daily", "Weekly", "Monthly"]}
+            />
+            <EditableField
+              label="Work Schedule"
+              field="schedule_template_id"
+              value={formData.schedule_template_id}
+              isEditing={isEditing}
+              onChange={handleChange}
+              options={scheduleOptions}
             />
             <EditableField
               label="Date Hired"
@@ -1004,8 +1014,11 @@ function EditableArrayField({
             <option value="">Select {label}</option>
 
             {options.map((option) => (
-              <option key={option} value={option}>
-                {option}
+              <option
+                key={typeof option === "object" ? option.value : option}
+                value={typeof option === "object" ? option.value : option}
+              >
+                {typeof option === "object" ? option.label : option}
               </option>
             ))}
           </select>
@@ -1119,14 +1132,24 @@ function EditableField({
         isSelect ? (
           <select
             value={value || ""}
-            onChange={(e) => onChange(field, e.target.value)}
+            onChange={(e) =>
+              onChange(
+                field,
+                field === "schedule_template_id"
+                  ? Number(e.target.value)
+                  : e.target.value,
+              )
+            }
             className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
           >
             <option value="">Select {label}</option>
 
             {options.map((option) => (
-              <option key={option} value={option}>
-                {option}
+              <option
+                key={typeof option === "object" ? option.value : option}
+                value={typeof option === "object" ? option.value : option}
+              >
+                {typeof option === "object" ? option.label : option}
               </option>
             ))}
           </select>

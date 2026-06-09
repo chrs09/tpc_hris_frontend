@@ -52,10 +52,7 @@ const App = () => {
           element={<OnBoardingForm />}
         />
 
-        <Route
-          path="/attendance-kiosk"
-          element={<AttendanceKiosk />}
-        />
+        <Route path="/attendance-kiosk" element={<AttendanceKiosk />} />
 
         <Route
           path="/login"

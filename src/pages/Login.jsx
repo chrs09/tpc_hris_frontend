@@ -139,6 +139,20 @@ export default function Login({ setIsAuthenticated }) {
             )}
           </form>
 
+          {/* add attendance kiosk link button */}
+          <div className="mt-4">
+            <p className="mb-2 text-center text-sm text-gray-600">Or</p>
+
+            <Button
+              type="button"
+              className="w-full rounded-xl bg-[#2b2b2b2b] text-gray-700 hover:bg-gray-300"
+              size="lg"
+              onClick={() => navigate("/attendance-kiosk")}
+            >
+              Go to Attendance Kiosk
+            </Button>
+          </div>
+
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Create account for user{" "}
             <span className="text-primary hover:underline cursor-pointer font-bold underline">

@@ -113,8 +113,6 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
 
   const handleSubmit = async () => {
     try {
-      console.log("Submitting employee...");
-
       const formDataUpload = new FormData();
 
       // ✅ TEXT FIELDS (skip empty)

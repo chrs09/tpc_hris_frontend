@@ -46,10 +46,7 @@ export const rejectAttendance = async (attendanceId) => {
   return res.data;
 };
 
-export const adjustAttendanceTime = async (
-  attendanceId,
-  payload,
-) => {
+export const adjustAttendanceTime = async (attendanceId, payload) => {
   const res = await api.patch(
     `/attendance/${attendanceId}/adjust-time`,
     payload,
@@ -61,26 +58,18 @@ export const adjustAttendanceTime = async (
 //Attendance Kiosk
 // Kiosk Status
 export const getKioskStatus = async (employeeId) => {
-  const res = await api.get(
-    `/attendance/kiosk/status/${employeeId}`,
-  );
+  const res = await api.get(`/attendance/kiosk/status/${employeeId}`);
 
   return res.data;
 };
 
 // Kiosk Selfie Attendance
-export const kioskSelfieAttendance = async (
-  formData,
-) => {
-  const res = await api.post(
-    "/attendance/kiosk/selfie",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+export const kioskSelfieAttendance = async (formData) => {
+  const res = await api.post("/attendance/kiosk/selfie", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
     },
-  );
+  });
 
   return res.data;
 };
