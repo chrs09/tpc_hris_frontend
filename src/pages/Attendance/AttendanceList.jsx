@@ -196,13 +196,20 @@ const AttendanceList = () => {
 
     try {
       if (existing) {
-        if (existing.status !== editModal.status) {
+        const statusChanged =
+        existing.status !== editModal.status;
+
+        const remarksChanged =
+          (existing.remarks || "") !== (editModal.remarks || "");
+
+        if (statusChanged || remarksChanged) {
           await updateAttendance({
             employee_id: editModal.employeeId,
             attendance_date: editModal.date,
             status: editModal.status,
+            remarks: editModal.remarks,
           });
-        }
+      }
 
         if (checkInTime || checkOutTime) {
           await adjustAttendanceTime(existing.id, {
@@ -215,6 +222,7 @@ const AttendanceList = () => {
           employee_id: editModal.employeeId,
           attendance_date: editModal.date,
           status: editModal.status,
+          remarks: editModal.remarks,
         });
 
         const refreshed = await attendanceRecord();
@@ -449,6 +457,8 @@ const AttendanceList = () => {
                 date,
 
                 status: status || "Present",
+
+                remarks: attendance?.remarks || "",
 
                 attendance,
 

@@ -114,6 +114,11 @@ const AttendanceTable = ({
                   (!!attendance?.time_out_latitude &&
                     !!attendance?.time_out_longitude);
 
+                const tooltipText =
+                  status === "On Leave" || status === "Absent"
+                    ? attendance?.remarks || ""
+                    : "";
+
                 let bg = "bg-white";
 
                 if (status) {
@@ -131,6 +136,7 @@ const AttendanceTable = ({
                 return (
                   <td
                     key={dateKey}
+                    title={tooltipText}
                     className={`border text-center font-bold min-w-17.5 ${bg} ${
                       editable
                         ? "cursor-pointer hover:brightness-95"
@@ -157,7 +163,9 @@ const AttendanceTable = ({
                             "Halfday",
                             "Delay",
                           ].includes(status) ? (
-                          <div className="flex items-center justify-center">
+                          <div
+                            className="flex items-center justify-center"
+                          >
                             <span className="text-base font-extrabold">
                               {getStatusSymbol(status)}
                             </span>

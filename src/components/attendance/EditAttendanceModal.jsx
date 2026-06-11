@@ -42,21 +42,46 @@ const EditAttendanceModal = ({
             {isUpdate ? "Update Attendance" : "Create Attendance"}
           </h3>
 
-          <p className="text-sm mb-2 text-white">
-            <strong>{editModal.employeeName}</strong>
-          </p>
+          <div className="space-y-3 mb-4">
+            <div>
+              <label className="text-xs text-gray-400">
+                Employee
+              </label>
 
-          <p className="text-sm mb-4 text-white">{editModal.date}</p>
+              <p className="text-white font-semibold">
+                {editModal.employeeName}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400">
+                Date
+              </label>
+
+              <p className="text-white">
+                {editModal.date}
+              </p>
+            </div>
+          </div>
 
           <select
             value={editModal.status}
-            onChange={(e) =>
+            className="w-full border rounded-lg h-11 px-3 mb-4 text-white bg-[#1e1e1e]"
+            onChange={(e) => {
+              const newStatus = e.target.value;
+
               setEditModal((prev) => ({
                 ...prev,
-                status: e.target.value,
-              }))
-            }
-            className="w-full border rounded h-10 px-3 mb-4 text-white bg-[#1e1e1e] focus:outline-none focus:ring-2 focus:ring-[#d4d4d4]"
+                status: newStatus,
+
+                ...(newStatus === "On Leave" || newStatus === "Absent"
+                  ? {
+                      timeIn: "",
+                      timeOut: "",
+                    }
+                  : {}),
+              }));
+            }}
           >
             {Object.values(attendanceStatus).map((status) => (
               <option key={status} value={status}>
@@ -65,7 +90,8 @@ const EditAttendanceModal = ({
             ))}
           </select>
 
-          {editModal && (
+          {editModal &&
+          !["On Leave", "Absent"].includes(editModal.status) && (
             <div className="border-t border-gray-600 pt-4 mt-4 space-y-3">
               <h4 className="text-white font-semibold">Attendance Time</h4>
 
@@ -104,6 +130,29 @@ const EditAttendanceModal = ({
                   className="w-full border rounded h-10 px-3 text-white bg-[#1e1e1e]"
                 />
               </div>
+            </div>
+          )}
+          {/* REMARKS */}
+          {["On Leave", "Absent"].includes(editModal.status) && (
+            <div className="border-t border-gray-600 pt-4 mt-4">
+              <label className="text-sm text-gray-300 block mb-2">
+                {editModal.status === "On Leave"
+                  ? "Reason for Leave"
+                  : "Reason for Absence"}
+              </label>
+
+              <textarea
+                value={editModal.remarks || ""}
+                onChange={(e) =>
+                  setEditModal((prev) => ({
+                    ...prev,
+                    remarks: e.target.value,
+                  }))
+                }
+                placeholder="Enter reason..."
+                rows={4}
+                className="w-full border rounded p-3 text-white bg-[#1e1e1e]"
+              />
             </div>
           )}
 
