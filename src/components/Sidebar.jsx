@@ -106,6 +106,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 : "/dashboard/admin/trips",
             roles: ["superadmin", "admin", "driver"],
           },
+          {
+            label: "Maintenance",
+            path: "/dashboard/admin/trip-maintenance",
+            roles: ["superadmin", "admin"],
+          },
         ],
       },
       {

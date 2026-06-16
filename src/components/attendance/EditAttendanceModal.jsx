@@ -44,9 +44,7 @@ const EditAttendanceModal = ({
 
           <div className="space-y-3 mb-4">
             <div>
-              <label className="text-xs text-gray-400">
-                Employee
-              </label>
+              <label className="text-xs text-gray-400">Employee</label>
 
               <p className="text-white font-semibold">
                 {editModal.employeeName}
@@ -54,13 +52,9 @@ const EditAttendanceModal = ({
             </div>
 
             <div>
-              <label className="text-xs text-gray-400">
-                Date
-              </label>
+              <label className="text-xs text-gray-400">Date</label>
 
-              <p className="text-white">
-                {editModal.date}
-              </p>
+              <p className="text-white">{editModal.date}</p>
             </div>
           </div>
 
@@ -90,8 +84,7 @@ const EditAttendanceModal = ({
             ))}
           </select>
 
-          {editModal &&
-          !["On Leave", "Absent"].includes(editModal.status) && (
+          {editModal && !["On Leave", "Absent"].includes(editModal.status) && (
             <div className="border-t border-gray-600 pt-4 mt-4 space-y-3">
               <h4 className="text-white font-semibold">Attendance Time</h4>
 

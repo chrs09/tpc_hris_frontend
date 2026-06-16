@@ -163,9 +163,7 @@ const AttendanceTable = ({
                             "Halfday",
                             "Delay",
                           ].includes(status) ? (
-                          <div
-                            className="flex items-center justify-center"
-                          >
+                          <div className="flex items-center justify-center">
                             <span className="text-base font-extrabold">
                               {getStatusSymbol(status)}
                             </span>

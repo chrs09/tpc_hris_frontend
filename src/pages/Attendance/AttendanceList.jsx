@@ -196,8 +196,7 @@ const AttendanceList = () => {
 
     try {
       if (existing) {
-        const statusChanged =
-        existing.status !== editModal.status;
+        const statusChanged = existing.status !== editModal.status;
 
         const remarksChanged =
           (existing.remarks || "") !== (editModal.remarks || "");
@@ -209,7 +208,7 @@ const AttendanceList = () => {
             status: editModal.status,
             remarks: editModal.remarks,
           });
-      }
+        }
 
         if (checkInTime || checkOutTime) {
           await adjustAttendanceTime(existing.id, {
