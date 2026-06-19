@@ -98,6 +98,18 @@ const PayrollList = () => {
             (a, b) => new Date(a.attendance_date) - new Date(b.attendance_date),
           );
 
+        //new added
+        const isTripBasedEmployee =
+          employee.department?.toLowerCase().includes("driver") ||
+          employee.department?.toLowerCase().includes("helper");
+
+        let tripPay = 0;
+        let totalTrips = 0;
+        let tripBreakdown = [];
+
+        const tripsByDate = {};
+        const processedTrips = new Set();
+
         let totalHours = 0;
         let otHours = 0;
         let daysWorked = 0;
@@ -177,6 +189,88 @@ const PayrollList = () => {
           undertimeHours += result.undertimeHours;
         });
 
+        //added
+        if (isTripBasedEmployee) {
+          records.forEach((record) => {
+            console.log(
+              "PAYROLL RECORD",
+              employee.first_name,
+              record.attendance_date,
+              record.completed_trips,
+              record.trip_tickets,
+            );
+
+            const trips = record.trip_tickets || [];
+
+            if (!trips.length) return;
+
+            if (!tripsByDate[record.attendance_date]) {
+              tripsByDate[record.attendance_date] = [];
+            }
+
+            tripsByDate[record.attendance_date].push(...trips);
+          });
+
+          const dailyTripCounter = {};
+
+          Object.entries(tripsByDate).forEach(([date, trips]) => {
+            trips.forEach((trip) => {
+              if (processedTrips.has(trip.trip_id)) {
+                return;
+              }
+
+              processedTrips.add(trip.trip_id);
+
+              dailyTripCounter[date] = (dailyTripCounter[date] || 0) + 1;
+
+              const isFirstTrip = dailyTripCounter[date] === 1;
+
+              let rate = 0;
+
+              if (employee.department?.toLowerCase().includes("driver")) {
+                rate = isFirstTrip
+                  ? Number(trip.driver_first_trip_rate || 0)
+                  : Number(trip.driver_next_trip_rate || 0);
+              } else {
+                rate = isFirstTrip
+                  ? Number(trip.helper_first_trip_rate || 0)
+                  : Number(trip.helper_next_trip_rate || 0);
+              }
+
+              tripPay += rate;
+              totalTrips++;
+
+              console.log(
+                "TRIP SEQUENCE",
+                date,
+                dailyTripCounter[date],
+                trip.ticket_no,
+              );
+
+              tripBreakdown.push({
+                date,
+
+                trip_id: trip.trip_id,
+
+                ticket_no: trip.ticket_no,
+
+                vehicle_unit: trip.vehicle_unit,
+
+                plate_number: trip.plate_number,
+
+                trip_rate_profile: trip.trip_rate_profile,
+
+                rate,
+
+                tripSequence: dailyTripCounter[date],
+
+                isFirstTrip,
+              });
+            });
+          });
+        }
+        //
+
         const rate = Number(employee.daily_rate || 0);
 
         const payrollType = employee.payroll_type;
@@ -211,16 +305,70 @@ const PayrollList = () => {
 
         const grossPay = basicPay + otPay - undertimeDeduction;
 
-        if (missingTimeouts > 0) {
-          warnings.push(`${missingTimeouts} Missing Timeout`);
+        if (!isTripBasedEmployee) {
+          if (missingTimeouts > 0) {
+            warnings.push(`${missingTimeouts} Missing Timeout`);
+          }
+
+          if (rate <= 0) {
+            warnings.push("No Payroll Rate");
+          }
+
+          if (!payrollType) {
+            warnings.push("No Payroll Type");
+          }
         }
 
-        if (rate <= 0) {
-          warnings.push("No Payroll Rate");
+        //added
+        if (isTripBasedEmployee) {
+          console.log(employee.first_name, employee.last_name, tripBreakdown);
         }
+        if (isTripBasedEmployee) {
+          return {
+            employee,
 
-        if (!payrollType) {
-          warnings.push("No Payroll Type");
+            isTripBasedEmployee: true,
+
+            totalTrips,
+
+            tripPay,
+
+            grossPay: tripPay,
+
+            tripBreakdown,
+
+            records,
+
+            warnings: [],
+
+            daysWorked: Object.keys(tripsByDate).length,
+
+            dailyRate: 0,
+
+            payrollType: "Trip-Based",
+
+            totalHours: 0,
+
+            undertimeHours: 0,
+
+            undertimeDeduction: 0,
+
+            otHours: 0,
+
+            approvedOTHours: 0,
+
+            basicPay: tripPay,
+
+            otPay: 0,
+
+            attendanceCount: records.length,
+
+            missingTimeouts: 0,
+
+            otStatus: "N/A",
+
+            needsOTApproval: false,
+          };
         }
 
         return {
@@ -440,7 +588,14 @@ const PayrollList = () => {
                     Employee
                   </th>
 
-                  <th className="px-4 py-3 text-left">Days</th>
+                  <th className="px-4 py-3">Trip Profile</th>
+
+                  <th className="px-4 py-3 text-left">
+                    {department?.toLowerCase().includes("driver") ||
+                    department?.toLowerCase().includes("helper")
+                      ? "Trips"
+                      : "Days Worked"}
+                  </th>
 
                   <th className="px-4 py-3 text-left">Daily Rate</th>
 
@@ -479,22 +634,40 @@ const PayrollList = () => {
                       {row.employee.first_name} {row.employee.last_name}
                     </td>
 
-                    <td className="px-4 py-3">{row.daysWorked}</td>
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? row.tripBreakdown?.[0]?.trip_rate_profile || "-"
+                        : "-"}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? row.totalTrips
+                        : row.daysWorked}
+                    </td>
 
                     <td className="px-4 py-3">₱{row.dailyRate}</td>
 
                     <td className="px-4 py-3">{row.payrollType}</td>
-                    <td className="px-4 py-3">{row.totalHours.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? `${row.totalTrips} Trips`
+                        : row.totalHours.toFixed(2)}
+                    </td>
 
                     <td className="px-4 py-3 text-red-600 font-medium">
-                      {row.undertimeHours.toFixed(2)}
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : row.undertimeHours.toFixed(2)}
                     </td>
 
                     <td className="px-4 py-3">
                       {row.undertimeDeduction.toFixed(2)}
                     </td>
 
-                    <td className="px-4 py-3">{row.otHours.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? "--" : row.otHours.toFixed(2)}
+                    </td>
 
                     <td className="px-4 py-3">
                       {row.approvedOTHours.toFixed(2)}
@@ -502,9 +675,18 @@ const PayrollList = () => {
 
                     <td className="px-4 py-3">{row.otStatus}</td>
 
-                    <td className="px-4 py-3">₱{row.basicPay.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      ₱
+                      {Number(
+                        row.isTripBasedEmployee ? row.tripPay : row.basicPay,
+                      ).toFixed(2)}
+                    </td>
 
-                    <td className="px-4 py-3">₱{row.otPay.toFixed(2)}</td>
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.otPay.toFixed(2)}`}
+                    </td>
 
                     <td className="px-4 py-3 font-semibold text-green-700">
                       ₱{row.grossPay.toFixed(2)}
@@ -522,12 +704,18 @@ const PayrollList = () => {
                       )}
                     </td>
 
-                    <td className="px-4 py-3">{row.attendanceCount}</td>
+                    <td>
+                      {row.isTripBasedEmployee ? "--" : row.attendanceCount}
+                    </td>
 
-                    <td className="px-4 py-3">{row.missingTimeouts}</td>
+                    <td>
+                      {row.isTripBasedEmployee ? "--" : row.missingTimeouts}
+                    </td>
 
                     <td className="px-4 py-3">
-                      {row.warnings.length > 0 ? (
+                      {row.isTripBasedEmployee ? (
+                        <span className="text-gray-400 text-xs">N/A</span>
+                      ) : row.warnings.length > 0 ? (
                         <div className="space-y-1">
                           {row.warnings.map((warning, index) => (
                             <div key={index} className="text-xs text-red-600">

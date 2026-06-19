@@ -167,6 +167,8 @@ const PayrollDetailModal = ({
   };
   if (!isOpen || !payroll) return null;
 
+  const isTripBasedEmployee = payroll?.isTripBasedEmployee === true;
+
   const tableTotalHours = payroll.records.reduce((sum, record) => {
     if (!record.check_in_time_raw || !record.check_out_time_raw) {
       return sum;
@@ -234,57 +236,84 @@ const PayrollDetailModal = ({
           </div>
 
           {/* Summary */}
-          <div>
-            <h3 className="font-semibold mb-3">Payroll Summary</h3>
+          {isTripBasedEmployee ? (
+            <div>
+              <h3 className="font-semibold mb-3">Trip Payroll Summary</h3>
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">Days Worked</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Total Trips</p>
+                  <p className="font-bold text-xl">{payroll.totalTrips}</p>
+                </div>
 
-                <p className="font-bold">{payroll.daysWorked}</p>
-              </div>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Trip Pay</p>
+                  <p className="font-bold text-xl text-green-700">
+                    ₱{Number(payroll.tripPay || 0).toFixed(2)}
+                  </p>
+                </div>
 
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">Total Hours</p>
-
-                <p className="font-bold">{payroll.totalHours.toFixed(2)}</p>
-              </div>
-
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">Undertime</p>
-
-                <p className="font-bold text-red-600">
-                  {payroll.undertimeHours?.toFixed(2)}
-                </p>
-              </div>
-
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">UT Deduction</p>
-
-                <p className="font-bold text-red-600">
-                  ₱{payroll.undertimeDeduction?.toFixed(2)}
-                </p>
-              </div>
-
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">OT Hours</p>
-
-                <p className="font-bold">{payroll.otHours.toFixed(2)}</p>
-              </div>
-
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">Basic Pay</p>
-
-                <p className="font-bold">₱{payroll.basicPay.toFixed(2)}</p>
-              </div>
-
-              <div className="border rounded-lg p-3">
-                <p className="text-xs text-gray-500">OT Pay</p>
-
-                <p className="font-bold">₱{payroll.otPay.toFixed(2)}</p>
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Gross Payroll</p>
+                  <p className="font-bold text-xl text-green-700">
+                    ₱{Number(payroll.grossPay || 0).toFixed(2)}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <h3 className="font-semibold mb-3">Payroll Summary</h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Days Worked</p>
+
+                  <p className="font-bold">{payroll.daysWorked}</p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Total Hours</p>
+
+                  <p className="font-bold">{payroll.totalHours.toFixed(2)}</p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Undertime</p>
+
+                  <p className="font-bold text-red-600">
+                    {payroll.undertimeHours?.toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">UT Deduction</p>
+
+                  <p className="font-bold text-red-600">
+                    ₱{payroll.undertimeDeduction?.toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">OT Hours</p>
+
+                  <p className="font-bold">{payroll.otHours.toFixed(2)}</p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">Basic Pay</p>
+
+                  <p className="font-bold">₱{payroll.basicPay.toFixed(2)}</p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                  <p className="text-xs text-gray-500">OT Pay</p>
+
+                  <p className="font-bold">₱{payroll.otPay.toFixed(2)}</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Gross */}
           <div className="border rounded-xl p-5 bg-green-50">
@@ -296,169 +325,253 @@ const PayrollDetailModal = ({
           </div>
 
           {/* Validation */}
+          {isTripBasedEmployee ? (
+            <div>
+              <h3 className="font-semibold mb-3">Trip Breakdown</h3>
 
-          <div>
-            <h3 className="font-semibold mb-3">Attendance Breakdown</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border px-3 py-2">Date</th>
+                      <th className="border px-3 py-2">Trip #</th>
+                      <th className="border px-3 py-2">Ticket No</th>
+                      <th className="border px-3 py-2">Vehicle</th>
+                      <th className="border px-3 py-2">Plate Number</th>
+                      <th className="border px-3 py-2">Rate Profile</th>
+                      <th className="border px-3 py-2">Trip Sequence</th>
+                      <th className="border px-3 py-2">Rate</th>
+                    </tr>
+                  </thead>
 
-            <div className="overflow-x-auto">
-              <table className="w-full border">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="border px-3 py-2 text-left">Date</th>
-
-                    <th className="border px-3 py-2 text-left">Time In</th>
-
-                    <th className="border px-3 py-2 text-left">Time Out</th>
-
-                    <th className="border px-3 py-2 text-left">Status</th>
-
-                    <th className="border px-3 py-2 text-left">Hours</th>
-
-                    <th className="border px-3 py-2 text-left">OT</th>
-                    <th className="border px-3 py-2 text-left">Approved OT</th>
-                    <th className="border px-3 py-2 text-left">UT</th>
-                    {/* <th className="border px-3 py-2 text-left">
-                        Trips
-                    </th> */}
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {payroll.records?.map((record) => {
-                    let workedHours = 0;
-                    let otHours = 0;
-                    let result = {
-                      renderedHours: 0,
-                      regularHours: 0,
-                      undertimeHours: 0,
-                      overtimeHours: 0,
-                    };
-
-                    if (record.check_in_time_raw && record.check_out_time_raw) {
-                      result = calculateAttendanceHours({
-                        checkIn: new Date(record.check_in_time_raw),
-                        checkOut: new Date(record.check_out_time_raw),
-                        schedule: payroll.employee?.schedule_template,
-                        attendanceDate: record.attendance_date,
-                      });
-
-                      workedHours = result.renderedHours;
-
-                      otHours = result.overtimeHours;
-                    }
-
-                    const hasUndertime = (result.undertimeHours || 0) > 0;
-
-                    return (
+                  <tbody>
+                    {payroll.tripBreakdown?.map((trip, index) => (
                       <tr
-                        key={record.id}
-                        className={hasUndertime ? "bg-yellow-50" : ""}
+                        key={index}
+                        className={trip.isFirstTrip ? "" : "bg-yellow-50"}
                       >
+                        <td className="border px-3 py-2">{trip.date}</td>
+
+                        <td className="border px-3 py-2 text-center font-semibold">
+                          #{trip.tripSequence}
+                        </td>
+
+                        <td className="border px-3 py-2">{trip.ticket_no}</td>
+
                         <td className="border px-3 py-2">
-                          {record.attendance_date}
+                          {trip.vehicle_unit}
                         </td>
 
                         <td className="border px-3 py-2">
-                          {["On Leave", "Absent"].includes(record.status)
-                            ? "--"
-                            : record.check_in_time || "--"}
+                          {trip.plate_number}
                         </td>
 
                         <td className="border px-3 py-2">
-                          {["On Leave", "Absent"].includes(record.status)
-                            ? "--"
-                            : record.check_out_time || "--"}
-                        </td>
-
-                        <td className="border px-3 py-2">{record.status}</td>
-
-                        <td className="border px-3 py-2">
-                          {Number(workedHours || 0).toFixed(2)}
+                          {trip.trip_rate_profile}
                         </td>
 
                         <td className="border px-3 py-2">
-                          {Number(otHours || 0).toFixed(2)}
-                        </td>
-                        <td className="border px-3 py-2">
-                          {otHours > 0 ? (
-                            <input
-                              type="number"
-                              min="0"
-                              max={otHours}
-                              step="0.25"
-                              value={approvedOT[record.id] ?? otHours}
-                              onChange={(e) => {
-                                let value = Number(e.target.value);
-
-                                if (value < 0) {
-                                  value = 0;
-                                }
-
-                                if (value > otHours) {
-                                  value = otHours;
-                                }
-
-                                setApprovedOT((prev) => ({
-                                  ...prev,
-                                  [record.id]: value,
-                                }));
-                              }}
-                              className="w-20 border rounded px-2 py-1 text-center"
-                            />
+                          {trip.isFirstTrip ? (
+                            <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">
+                              First Trip
+                            </span>
                           ) : (
-                            "--"
+                            <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                              Succeeding Trip
+                            </span>
                           )}
                         </td>
 
-                        <td
-                          className={`border px-3 py-2 ${
-                            result.undertimeHours > 0
-                              ? "text-red-600 font-bold"
-                              : ""
-                          }`}
-                        >
-                          {Number(result.undertimeHours || 0).toFixed(2)}
+                        <td className="border px-3 py-2 font-semibold">
+                          ₱{Number(trip.rate || 0).toFixed(2)}
                         </td>
-                        {/* <td className="border px-3 py-2">
-                                {record.completed_trips}
-                            </td> */}
                       </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot className="bg-gray-100 font-semibold">
-                  <tr>
-                    <td colSpan={4} className="border px-3 py-2">
-                      Totals
-                    </td>
+                    ))}
+                  </tbody>
 
-                    {/* Hours */}
-                    <td className="border px-3 py-2">
-                      {tableTotalHours.toFixed(2)}
-                    </td>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={7} className="border px-3 py-2 font-bold">
+                        Total Payroll
+                      </td>
 
-                    {/* OT */}
-                    <td className="border px-3 py-2">
-                      {payroll.otHours.toFixed(2)}
-                    </td>
-
-                    {/* Approved OT */}
-                    <td className="border px-3 py-2">
-                      {approvedTotalValue.toFixed(2)}
-                    </td>
-
-                    {/* Undertime */}
-                    <td className="border px-3 py-2">
-                      {payroll.undertimeHours.toFixed(2)}
-                    </td>
-
-                    {/* Trips */}
-                    {/* <td className="border px-3 py-2"></td>   */}
-                  </tr>
-                </tfoot>
-              </table>
+                      <td className="border px-3 py-2 font-bold text-green-700">
+                        ₱{Number(payroll.tripPay || 0).toFixed(2)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <h3 className="font-semibold mb-3">Attendance Breakdown</h3>
+
+              <div className="overflow-x-auto">
+                <table className="w-full border">
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="border px-3 py-2 text-left">Date</th>
+
+                      <th className="border px-3 py-2 text-left">Time In</th>
+
+                      <th className="border px-3 py-2 text-left">Time Out</th>
+
+                      <th className="border px-3 py-2 text-left">Status</th>
+
+                      <th className="border px-3 py-2 text-left">Hours</th>
+
+                      <th className="border px-3 py-2 text-left">OT</th>
+                      <th className="border px-3 py-2 text-left">
+                        Approved OT
+                      </th>
+                      <th className="border px-3 py-2 text-left">UT</th>
+                      {/* <th className="border px-3 py-2 text-left">
+                          Trips
+                      </th> */}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {payroll.records?.map((record) => {
+                      let workedHours = 0;
+                      let otHours = 0;
+                      let result = {
+                        renderedHours: 0,
+                        regularHours: 0,
+                        undertimeHours: 0,
+                        overtimeHours: 0,
+                      };
+
+                      if (
+                        record.check_in_time_raw &&
+                        record.check_out_time_raw
+                      ) {
+                        result = calculateAttendanceHours({
+                          checkIn: new Date(record.check_in_time_raw),
+                          checkOut: new Date(record.check_out_time_raw),
+                          schedule: payroll.employee?.schedule_template,
+                          attendanceDate: record.attendance_date,
+                        });
+
+                        workedHours = result.renderedHours;
+
+                        otHours = result.overtimeHours;
+                      }
+
+                      const hasUndertime = (result.undertimeHours || 0) > 0;
+
+                      return (
+                        <tr
+                          key={record.id}
+                          className={hasUndertime ? "bg-yellow-50" : ""}
+                        >
+                          <td className="border px-3 py-2">
+                            {record.attendance_date}
+                          </td>
+
+                          <td className="border px-3 py-2">
+                            {["On Leave", "Absent"].includes(record.status)
+                              ? "--"
+                              : record.check_in_time || "--"}
+                          </td>
+
+                          <td className="border px-3 py-2">
+                            {["On Leave", "Absent"].includes(record.status)
+                              ? "--"
+                              : record.check_out_time || "--"}
+                          </td>
+
+                          <td className="border px-3 py-2">{record.status}</td>
+
+                          <td className="border px-3 py-2">
+                            {Number(workedHours || 0).toFixed(2)}
+                          </td>
+
+                          <td className="border px-3 py-2">
+                            {Number(otHours || 0).toFixed(2)}
+                          </td>
+                          <td className="border px-3 py-2">
+                            {otHours > 0 ? (
+                              <input
+                                type="number"
+                                min="0"
+                                max={otHours}
+                                step="0.25"
+                                value={approvedOT[record.id] ?? otHours}
+                                onChange={(e) => {
+                                  let value = Number(e.target.value);
+
+                                  if (value < 0) {
+                                    value = 0;
+                                  }
+
+                                  if (value > otHours) {
+                                    value = otHours;
+                                  }
+
+                                  setApprovedOT((prev) => ({
+                                    ...prev,
+                                    [record.id]: value,
+                                  }));
+                                }}
+                                className="w-20 border rounded px-2 py-1 text-center"
+                              />
+                            ) : (
+                              "--"
+                            )}
+                          </td>
+
+                          <td
+                            className={`border px-3 py-2 ${
+                              result.undertimeHours > 0
+                                ? "text-red-600 font-bold"
+                                : ""
+                            }`}
+                          >
+                            {Number(result.undertimeHours || 0).toFixed(2)}
+                          </td>
+                          {/* <td className="border px-3 py-2">
+                                  {record.completed_trips}
+                              </td> */}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-gray-100 font-semibold">
+                    <tr>
+                      <td colSpan={4} className="border px-3 py-2">
+                        Totals
+                      </td>
+
+                      {/* Hours */}
+                      <td className="border px-3 py-2">
+                        {tableTotalHours.toFixed(2)}
+                      </td>
+
+                      {/* OT */}
+                      <td className="border px-3 py-2">
+                        {payroll.otHours.toFixed(2)}
+                      </td>
+
+                      {/* Approved OT */}
+                      <td className="border px-3 py-2">
+                        {approvedTotalValue.toFixed(2)}
+                      </td>
+
+                      {/* Undertime */}
+                      <td className="border px-3 py-2">
+                        {payroll.undertimeHours.toFixed(2)}
+                      </td>
+
+                      {/* Trips */}
+                      {/* <td className="border px-3 py-2"></td>   */}
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          )}
           <div>
             <h3 className="font-semibold mb-2">Validation</h3>
 
@@ -478,12 +591,14 @@ const PayrollDetailModal = ({
 
         {/* Footer */}
         <div className="border-t p-4 flex justify-end gap-2">
-          <button
-            onClick={handleSaveOTApproval}
-            className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
-          >
-            Save OT Approval
-          </button>
+          {!isTripBasedEmployee && (
+            <button
+              onClick={handleSaveOTApproval}
+              className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+            >
+              Save OT Approval
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"

@@ -24,6 +24,7 @@ export default function EmployeeDrawer({
   const [previewImage, setPreviewImage] = useState(null);
   const [showInactiveModal, setShowInactiveModal] = useState(false);
   const [scheduleTemplates, setScheduleTemplates] = useState([]);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (!isOpen) return;
@@ -71,6 +72,10 @@ export default function EmployeeDrawer({
   };
 
   const handleChange = (field, value) => {
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+    }));
     if (field === "is_active") {
       const normalizedValue = Number(value);
 
@@ -112,6 +117,10 @@ export default function EmployeeDrawer({
   };
 
   const handleSave = async () => {
+    if (!validateForm()) {
+      toast.error("Please complete all required fields.");
+      return;
+    }
     try {
       const DOCUMENT_TYPE_MAP = {
         profile_image_file: "PROFILE_IMAGE",
@@ -202,6 +211,41 @@ export default function EmployeeDrawer({
       }, 2500);
     }
   };
+
+  //Validation
+  const validateForm = () => {
+    const newErrors = {};
+
+    const requiredFields = {
+      first_name: "First Name",
+      last_name: "Last Name",
+      department: "Department",
+      position: "Position",
+      date_hired: "Date Hired",
+      employment_type: "Employment Type",
+      payroll_type: "Payroll Type",
+    };
+
+    Object.entries(requiredFields).forEach(([field, label]) => {
+      if (!formData[field]?.toString().trim()) {
+        newErrors[field] = `${label} is required`;
+      }
+    });
+
+    if (["CdcDriver", "CpdcDriver"].includes(formData.department)) {
+      if (!formData.license) {
+        newErrors.license = "Driver's License is required";
+      }
+
+      if (!formData.nc3) {
+        newErrors.nc3 = "NC3 is required";
+      }
+    }
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
@@ -288,6 +332,7 @@ export default function EmployeeDrawer({
           previewImage={previewImage}
           setPreviewImage={setPreviewImage}
           scheduleTemplates={scheduleTemplates}
+          errors={errors}
         />
       </div>
 

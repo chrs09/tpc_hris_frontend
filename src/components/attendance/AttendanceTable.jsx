@@ -104,6 +104,21 @@ const AttendanceTable = ({
                   return hoursWorked < 8;
                 })();
 
+                const tripTickets = attendance?.trip_tickets || [];
+
+                const tripTooltip =
+                  tripTickets.length > 0
+                    ? tripTickets
+                        .map((trip) =>
+                          [
+                            `Ticket: ${trip.ticket_no}`,
+                            `Vehicle: ${trip.vehicle_unit || "N/A"}`,
+                            `Profile: ${trip.trip_rate_profile || "N/A"}`,
+                          ].join("\n"),
+                        )
+                        .join("\n\n")
+                    : "";
+
                 const hasTimeInPreview =
                   !!attendance?.time_in_photo_url ||
                   (!!attendance?.time_in_latitude &&
@@ -136,7 +151,7 @@ const AttendanceTable = ({
                 return (
                   <td
                     key={dateKey}
-                    title={tooltipText}
+                    title={isTripBasedEmployee ? tripTooltip : tooltipText}
                     className={`border text-center font-bold min-w-17.5 ${bg} ${
                       editable
                         ? "cursor-pointer hover:brightness-95"

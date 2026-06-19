@@ -47,6 +47,7 @@ export default function EmployeeForm({
   previewImage,
   setPreviewImage,
   scheduleTemplates,
+  errors = {},
 }) {
   const profileImageFromDB = employee?.files?.find(
     (f) => f.document_type === "PROFILE_IMAGE",
@@ -228,6 +229,8 @@ export default function EmployeeForm({
               value={formData.first_name}
               isEditing={isEditing}
               onChange={handleChange}
+              error={errors.first_name}
+              required
             />
             <EditableField
               label="Middle Name"
@@ -242,6 +245,8 @@ export default function EmployeeForm({
               value={formData.last_name}
               isEditing={isEditing}
               onChange={handleChange}
+              error={errors.last_name}
+              required
             />
             <EditableField
               label="Suffix"
@@ -256,6 +261,7 @@ export default function EmployeeForm({
               value={formData.email}
               isEditing={isEditing}
               onChange={handleChange}
+              error={errors.email}
             />
             <EditableField
               label="Department"
@@ -264,6 +270,8 @@ export default function EmployeeForm({
               isEditing={isEditing}
               onChange={handleChange}
               options={departmentOptions}
+              error={errors.department}
+              required
             />
             <EditableField
               label="Position"
@@ -271,6 +279,8 @@ export default function EmployeeForm({
               value={formData.position}
               isEditing={isEditing}
               onChange={handleChange}
+              error={errors.position}
+              required
             />
             <EditableField
               label="Daily Rate"
@@ -293,6 +303,8 @@ export default function EmployeeForm({
                 "Contractual",
                 "Project Based",
               ]}
+              error={errors.employment_type}
+              required
             />
 
             <EditableField
@@ -302,6 +314,8 @@ export default function EmployeeForm({
               isEditing={isEditing}
               onChange={handleChange}
               options={["Daily", "Weekly", "Monthly"]}
+              error={errors.payroll_type}
+              required
             />
             <EditableField
               label="Work Schedule"
@@ -318,6 +332,8 @@ export default function EmployeeForm({
               type="date"
               isEditing={isEditing}
               onChange={handleChange}
+              error={errors.date_hired}
+              required
             />
           </Section>
 
@@ -1121,12 +1137,18 @@ function EditableField({
   onChange,
   type = "text",
   options = null,
+  error,
+  required = false,
 }) {
   const isSelect = Array.isArray(options) && options.length > 0;
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black font-semibold">{label}</label>
+      <label className="text-sm text-black font-semibold">
+        {label}
+
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
 
       {isEditing ? (
         isSelect ? (
@@ -1140,7 +1162,9 @@ function EditableField({
                   : e.target.value,
               )
             }
-            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+            className={`w-full border-b focus:outline-none py-2 bg-transparent ${
+              error ? "border-red-500" : "border-gray-300"
+            }`}
           >
             <option value="">Select {label}</option>
 
@@ -1158,12 +1182,15 @@ function EditableField({
             type={type}
             value={value || ""}
             onChange={(e) => onChange(field, e.target.value)}
-            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+            className={`w-full border-b focus:outline-none py-2 bg-transparent ${
+              error ? "border-red-500" : "border-gray-300"
+            }`}
           />
         )
       ) : (
         <p className="font-serif">{value || "-"}</p>
       )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
 }

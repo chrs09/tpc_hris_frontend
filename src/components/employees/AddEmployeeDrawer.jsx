@@ -3,6 +3,7 @@ import { useState } from "react";
 // import { civilStatusOptions } from "../../constants/civilStatus";
 import { createEmployee } from "../../api/employee";
 import EmployeeForm from "./EmployeeForm";
+import toast from "react-hot-toast";
 
 const tabs = [
   { key: "basic", label: "Basic Information" },
@@ -88,6 +89,7 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
 
   const [formData, setFormData] = useState(initialFormState);
   const [files, setFiles] = useState(initialFileState);
+  const [errors, setErrors] = useState({});
 
   if (!isOpen) return null;
 
@@ -95,10 +97,16 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
     setActiveTab("basic");
     setFormData(initialFormState);
     setFiles(initialFileState);
+    setErrors({});
     onClose();
   };
 
   const handleChange = (field, value) => {
+    setErrors((prev) => ({
+      ...prev,
+      [field]: undefined,
+    }));
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -111,7 +119,36 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
     setFiles({ ...files, [name]: selectedFiles[0] });
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+
+    const requiredFields = {
+      first_name: "First Name",
+      last_name: "Last Name",
+      department: "Department",
+      position: "Position",
+      employment_type: "Employment Type",
+      payroll_type: "Payroll Type",
+      date_hired: "Date Hired",
+    };
+
+    Object.entries(requiredFields).forEach(([field, label]) => {
+      if (!formData[field]?.toString().trim()) {
+        newErrors[field] = `${label} is required`;
+      }
+    });
+
+    setErrors(newErrors);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("Please complete all required fields.");
+      return;
+    }
+
     try {
       const formDataUpload = new FormData();
 
@@ -147,6 +184,7 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
       const DOCUMENT_TYPE_MAP = {
         profile_image_file: "PROFILE_IMAGE",
         cv_file: "CV",
+        contract_file: "CONTRACT",
         nbi_clearance_file: "NBI_CLEARANCE",
         brgy_clearance_file: "BRGY_CLEARANCE",
         company_id_file: "COMPANY_ID",
@@ -180,6 +218,7 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
       }
 
       await createEmployee(formDataUpload);
+      setErrors({});
 
       if (onSuccess) onSuccess();
     } catch (error) {
@@ -220,6 +259,7 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
         <EmployeeForm
           activeTab={activeTab}
           formData={formData}
+          errors={errors}
           onChange={handleChange}
           onFileChange={handleFileChange}
           handleChange={(field, value) =>
@@ -239,6 +279,8 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
           previewImage={previewImage}
           setPreviewImage={setPreviewImage}
           isEditing={true}
+          employee={null}
+          scheduleTemplates={[]}
         />
 
         <div className="p-6 border-t flex justify-end gap-3">
