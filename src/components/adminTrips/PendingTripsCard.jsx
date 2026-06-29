@@ -58,6 +58,12 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
     const res = await reviewTrip(tripId);
     console.log("Trip data:", res.data);
     console.log("Start photo:", res.data.start_photo);
+
+     console.log("=== GPS LOG COUNT ===");
+      console.log(res.data.gps_logs?.length);
+
+      console.log("=== GPS LOGS ===");
+      console.log(res.data.gps_logs);
     setSelectedTrip(res.data);
     setShowModal(true);
   };

@@ -110,7 +110,8 @@ const PayrollList = () => {
         const tripsByDate = {};
         const processedTrips = new Set();
 
-        let totalHours = 0;
+        let renderedHours = 0;
+        let regularHours = 0;
         let otHours = 0;
         let daysWorked = 0;
         let undertimeHours = 0;
@@ -182,7 +183,9 @@ const PayrollList = () => {
 
           // end
 
-          totalHours += result.renderedHours;
+          renderedHours += result.renderedHours;
+
+          regularHours += result.regularHours;
 
           otHours += result.overtimeHours;
 
@@ -281,7 +284,7 @@ const PayrollList = () => {
         if (payrollType === "Daily" || payrollType === "Weekly") {
           hourlyRate = rate / 8;
 
-          basicPay = totalHours * hourlyRate;
+          basicPay = regularHours * hourlyRate;
 
           undertimeDeduction = undertimeHours * hourlyRate;
         } else if (payrollType === "Monthly") {
@@ -384,7 +387,8 @@ const PayrollList = () => {
           dailyRate: rate,
           payrollType,
 
-          totalHours,
+          renderedHours,
+          regularHours, 
           otHours,
 
           approvedOTHours,
@@ -412,9 +416,26 @@ const PayrollList = () => {
   const summary = useMemo(() => {
     return {
       employees: payrollRows.length,
-      totalHours: payrollRows.reduce((sum, row) => sum + row.totalHours, 0),
-      totalOT: payrollRows.reduce((sum, row) => sum + row.otHours, 0),
-      totalGross: payrollRows.reduce((sum, row) => sum + row.grossPay, 0),
+
+      totalRenderedHours: payrollRows.reduce(
+        (sum, row) => sum + (row.renderedHours || 0),
+        0
+      ),
+
+      totalRegularHours: payrollRows.reduce(
+        (sum, row) => sum + (row.regularHours || 0),
+        0
+      ),
+
+      totalOT: payrollRows.reduce(
+        (sum, row) => sum + (row.otHours || 0),
+        0
+      ),
+
+      totalGross: payrollRows.reduce(
+        (sum, row) => sum + (row.grossPay || 0),
+        0
+      ),
     };
   }, [payrollRows]);
 
@@ -553,7 +574,8 @@ const PayrollList = () => {
           <p className="text-sm text-gray-500">Total Hours</p>
 
           <h2 className="text-2xl font-bold">
-            {summary.totalHours.toFixed(2)}
+            {summary.totalRenderedHours.toFixed(2)}
+            {summary.totalRegularHours.toFixed(2)}
           </h2>
         </div>
 
@@ -652,7 +674,7 @@ const PayrollList = () => {
                     <td className="px-4 py-3">
                       {row.isTripBasedEmployee
                         ? `${row.totalTrips} Trips`
-                        : row.totalHours.toFixed(2)}
+                        : row.renderedHours.toFixed(2)}
                     </td>
 
                     <td className="px-4 py-3 text-red-600 font-medium">

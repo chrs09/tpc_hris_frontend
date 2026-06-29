@@ -169,20 +169,29 @@ const PayrollDetailModal = ({
 
   const isTripBasedEmployee = payroll?.isTripBasedEmployee === true;
 
-  const tableTotalHours = payroll.records.reduce((sum, record) => {
-    if (!record.check_in_time_raw || !record.check_out_time_raw) {
-      return sum;
+  const tableTotals = payroll.records.reduce(
+    (totals, record) => {
+      if (!record.check_in_time_raw || !record.check_out_time_raw) {
+        return totals;
+      }
+
+      const result = calculateAttendanceHours({
+        checkIn: new Date(record.check_in_time_raw),
+        checkOut: new Date(record.check_out_time_raw),
+        schedule: payroll.employee?.schedule_template,
+        attendanceDate: record.attendance_date,
+      });
+
+      totals.rendered += result.renderedHours || 0;
+      totals.regular += result.regularHours || 0;
+
+      return totals;
+    },
+    {
+      rendered: 0,
+      regular: 0,
     }
-
-    const result = calculateAttendanceHours({
-      checkIn: new Date(record.check_in_time_raw),
-      checkOut: new Date(record.check_out_time_raw),
-      schedule: payroll.employee?.schedule_template,
-      attendanceDate: record.attendance_date,
-    });
-
-    return sum + (result.renderedHours || 0);
-  }, 0);
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -273,9 +282,23 @@ const PayrollDetailModal = ({
                 </div>
 
                 <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Total Hours</p>
+                  <p className="text-xs text-gray-500">
+                      Hours Rendered
+                  </p>
 
-                  <p className="font-bold">{payroll.totalHours.toFixed(2)}</p>
+                  <p className="font-bold">
+                      {Number(payroll.renderedHours || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border rounded-lg p-3">
+                    <p className="text-xs text-gray-500">
+                        Regular Hours
+                    </p>
+
+                    <p className="font-bold">
+                        {Number(payroll.regularHours || 0).toFixed(2)}
+                    </p>
                 </div>
 
                 <div className="border rounded-lg p-3">
@@ -419,7 +442,9 @@ const PayrollDetailModal = ({
 
                       <th className="border px-3 py-2 text-left">Status</th>
 
-                      <th className="border px-3 py-2 text-left">Hours</th>
+                      <th className="border px-3 py-2 text-left">Hours Rendered</th>
+
+                      <th className="border px-3 py-2 text-left">Regular Hours</th>
 
                       <th className="border px-3 py-2 text-left">OT</th>
                       <th className="border px-3 py-2 text-left">
@@ -435,6 +460,7 @@ const PayrollDetailModal = ({
                   <tbody>
                     {payroll.records?.map((record) => {
                       let workedHours = 0;
+                      let regularHours = 0;
                       let otHours = 0;
                       let result = {
                         renderedHours: 0,
@@ -455,6 +481,8 @@ const PayrollDetailModal = ({
                         });
 
                         workedHours = result.renderedHours;
+
+                        regularHours = result.regularHours;
 
                         otHours = result.overtimeHours;
                       }
@@ -486,6 +514,10 @@ const PayrollDetailModal = ({
 
                           <td className="border px-3 py-2">
                             {Number(workedHours || 0).toFixed(2)}
+                          </td>
+
+                          <td className="border px-3 py-2">
+                            {Number(regularHours || 0).toFixed(2)}
                           </td>
 
                           <td className="border px-3 py-2">
@@ -540,34 +572,36 @@ const PayrollDetailModal = ({
                   </tbody>
                   <tfoot className="bg-gray-100 font-semibold">
                     <tr>
-                      <td colSpan={4} className="border px-3 py-2">
-                        Totals
-                      </td>
+                        <td colSpan={4} className="border px-3 py-2">
+                            Totals
+                        </td>
 
-                      {/* Hours */}
-                      <td className="border px-3 py-2">
-                        {tableTotalHours.toFixed(2)}
-                      </td>
+                        {/* Hours Rendered */}
+                        <td className="border px-3 py-2">
+                            {tableTotals.toFixed(2)}
+                        </td>
 
-                      {/* OT */}
-                      <td className="border px-3 py-2">
-                        {payroll.otHours.toFixed(2)}
-                      </td>
+                        {/* Regular Hours */}
+                        <td className="border px-3 py-2">
+                            {tableTotals.toFixed(2)}
+                        </td>
 
-                      {/* Approved OT */}
-                      <td className="border px-3 py-2">
-                        {approvedTotalValue.toFixed(2)}
-                      </td>
+                        {/* OT */}
+                        <td className="border px-3 py-2">
+                            {payroll.otHours.toFixed(2)}
+                        </td>
 
-                      {/* Undertime */}
-                      <td className="border px-3 py-2">
-                        {payroll.undertimeHours.toFixed(2)}
-                      </td>
+                        {/* Approved OT */}
+                        <td className="border px-3 py-2">
+                            {approvedTotalValue.toFixed(2)}
+                        </td>
 
-                      {/* Trips */}
-                      {/* <td className="border px-3 py-2"></td>   */}
+                        {/* UT */}
+                        <td className="border px-3 py-2">
+                            {payroll.undertimeHours.toFixed(2)}
+                        </td>
                     </tr>
-                  </tfoot>
+                </tfoot>
                 </table>
               </div>
             </div>
