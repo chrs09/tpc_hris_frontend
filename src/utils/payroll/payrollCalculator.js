@@ -8,15 +8,15 @@ export const computePayroll = ({ employee, attendanceRecords }) => {
   let otHours = 0;
 
   attendanceRecords.forEach((record) => {
-      const workedHours = Number(record.total_hours || 0);
+    const workedHours = Number(record.total_hours || 0);
 
-      const regular = Math.min(workedHours, 8);
+    const regular = Math.min(workedHours, 8);
 
-      const overtime = Math.max(workedHours - 8, 0);
+    const overtime = Math.max(workedHours - 8, 0);
 
-      renderedHours += workedHours;
-      regularHours += regular;
-      otHours += overtime;
+    renderedHours += workedHours;
+    regularHours += regular;
+    otHours += overtime;
   });
 
   const basicPay = regularHours * hourlyRate;

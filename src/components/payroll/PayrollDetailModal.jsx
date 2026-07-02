@@ -190,7 +190,7 @@ const PayrollDetailModal = ({
     {
       rendered: 0,
       regular: 0,
-    }
+    },
   );
 
   return (
@@ -282,23 +282,19 @@ const PayrollDetailModal = ({
                 </div>
 
                 <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">
-                      Hours Rendered
-                  </p>
+                  <p className="text-xs text-gray-500">Hours Rendered</p>
 
                   <p className="font-bold">
-                      {Number(payroll.renderedHours || 0).toFixed(2)}
+                    {Number(payroll.renderedHours || 0).toFixed(2)}
                   </p>
                 </div>
 
                 <div className="border rounded-lg p-3">
-                    <p className="text-xs text-gray-500">
-                        Regular Hours
-                    </p>
+                  <p className="text-xs text-gray-500">Regular Hours</p>
 
-                    <p className="font-bold">
-                        {Number(payroll.regularHours || 0).toFixed(2)}
-                    </p>
+                  <p className="font-bold">
+                    {Number(payroll.regularHours || 0).toFixed(2)}
+                  </p>
                 </div>
 
                 <div className="border rounded-lg p-3">
@@ -442,9 +438,13 @@ const PayrollDetailModal = ({
 
                       <th className="border px-3 py-2 text-left">Status</th>
 
-                      <th className="border px-3 py-2 text-left">Hours Rendered</th>
+                      <th className="border px-3 py-2 text-left">
+                        Hours Rendered
+                      </th>
 
-                      <th className="border px-3 py-2 text-left">Regular Hours</th>
+                      <th className="border px-3 py-2 text-left">
+                        Regular Hours
+                      </th>
 
                       <th className="border px-3 py-2 text-left">OT</th>
                       <th className="border px-3 py-2 text-left">
@@ -572,36 +572,36 @@ const PayrollDetailModal = ({
                   </tbody>
                   <tfoot className="bg-gray-100 font-semibold">
                     <tr>
-                        <td colSpan={4} className="border px-3 py-2">
-                            Totals
-                        </td>
+                      <td colSpan={4} className="border px-3 py-2">
+                        Totals
+                      </td>
 
-                        {/* Hours Rendered */}
-                        <td className="border px-3 py-2">
-                            {tableTotals.toFixed(2)}
-                        </td>
+                      {/* Hours Rendered */}
+                      <td className="border px-3 py-2">
+                        {tableTotals.toFixed(2)}
+                      </td>
 
-                        {/* Regular Hours */}
-                        <td className="border px-3 py-2">
-                            {tableTotals.toFixed(2)}
-                        </td>
+                      {/* Regular Hours */}
+                      <td className="border px-3 py-2">
+                        {tableTotals.toFixed(2)}
+                      </td>
 
-                        {/* OT */}
-                        <td className="border px-3 py-2">
-                            {payroll.otHours.toFixed(2)}
-                        </td>
+                      {/* OT */}
+                      <td className="border px-3 py-2">
+                        {payroll.otHours.toFixed(2)}
+                      </td>
 
-                        {/* Approved OT */}
-                        <td className="border px-3 py-2">
-                            {approvedTotalValue.toFixed(2)}
-                        </td>
+                      {/* Approved OT */}
+                      <td className="border px-3 py-2">
+                        {approvedTotalValue.toFixed(2)}
+                      </td>
 
-                        {/* UT */}
-                        <td className="border px-3 py-2">
-                            {payroll.undertimeHours.toFixed(2)}
-                        </td>
+                      {/* UT */}
+                      <td className="border px-3 py-2">
+                        {payroll.undertimeHours.toFixed(2)}
+                      </td>
                     </tr>
-                </tfoot>
+                  </tfoot>
                 </table>
               </div>
             </div>

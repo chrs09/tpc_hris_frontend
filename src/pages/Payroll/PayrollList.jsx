@@ -388,7 +388,7 @@ const PayrollList = () => {
           payrollType,
 
           renderedHours,
-          regularHours, 
+          regularHours,
           otHours,
 
           approvedOTHours,
@@ -419,22 +419,19 @@ const PayrollList = () => {
 
       totalRenderedHours: payrollRows.reduce(
         (sum, row) => sum + (row.renderedHours || 0),
-        0
+        0,
       ),
 
       totalRegularHours: payrollRows.reduce(
         (sum, row) => sum + (row.regularHours || 0),
-        0
+        0,
       ),
 
-      totalOT: payrollRows.reduce(
-        (sum, row) => sum + (row.otHours || 0),
-        0
-      ),
+      totalOT: payrollRows.reduce((sum, row) => sum + (row.otHours || 0), 0),
 
       totalGross: payrollRows.reduce(
         (sum, row) => sum + (row.grossPay || 0),
-        0
+        0,
       ),
     };
   }, [payrollRows]);
