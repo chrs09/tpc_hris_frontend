@@ -316,7 +316,7 @@ const PayrollDetailModal = ({
                 <div className="border rounded-lg p-3">
                   <p className="text-xs text-gray-500">OT Hours</p>
 
-                  <p className="font-bold">{payroll.otHours.toFixed(2)}</p>
+                  <p className="font-bold">{Number(payroll.otHours || 0).toFixed(2)}</p>
                 </div>
 
                 <div className="border rounded-lg p-3">
@@ -578,17 +578,17 @@ const PayrollDetailModal = ({
 
                       {/* Hours Rendered */}
                       <td className="border px-3 py-2">
-                        {tableTotals.toFixed(2)}
+                         {Number(tableTotals.rendered || 0).toFixed(2)}
                       </td>
 
                       {/* Regular Hours */}
                       <td className="border px-3 py-2">
-                        {tableTotals.toFixed(2)}
+                        {Number(tableTotals.regular || 0).toFixed(2)}
                       </td>
 
                       {/* OT */}
                       <td className="border px-3 py-2">
-                        {payroll.otHours.toFixed(2)}
+                        {Number(payroll.otHours || 0).toFixed(2)}
                       </td>
 
                       {/* Approved OT */}
