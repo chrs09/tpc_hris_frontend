@@ -44,7 +44,7 @@ const FitBounds = ({ coordinates }) => {
   return null;
 };
 
-const PendingTripsCard = ({ trips = [], refreshTrips }) => {
+const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showPhoto, setShowPhoto] = useState(false);
@@ -153,7 +153,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
                     onClick={() => handleReview(trip.id)}
                     className="bg-[#2b2b2b] text-white px-4 py-2 rounded-lg cursor-pointer"
                   >
-                    Review
+                    {mode === "pending" ? "Review" : "View"}
                   </button>
                 </td>
               </tr>
@@ -412,12 +412,14 @@ const PendingTripsCard = ({ trips = [], refreshTrips }) => {
                   ))}
                 </div>
 
-                <button
-                  onClick={handleApprove}
-                  className="mt-6 bg-yellow-400 text-black py-3 w-full rounded-xl font-bold"
-                >
-                  Approve Trip
-                </button>
+                {mode === "pending" && (
+                    <button
+                        onClick={handleApprove}
+                        className="mt-6 bg-yellow-400 text-black py-3 w-full rounded-xl font-bold"
+                    >
+                        Approve Trip
+                    </button>
+                )}
               </div>
             </div>
           </div>

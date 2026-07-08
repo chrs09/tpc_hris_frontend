@@ -10,3 +10,5 @@ export const approveTrip = (tripId) =>
   api.post(`/admin/trips/${tripId}/approve`);
 
 export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
+
+export const getCompletedTrips = () => api.get("/admin/trips/completed");

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   getAdminTripSummary,
   getPendingTrips,
+  getCompletedTrips,
   getActiveTrips,
 } from "../../api/adminTripManagement/trips";
 import { getUnknownStops } from "../../api/adminTripManagement/stores";
@@ -18,19 +19,24 @@ const AdminTrips = () => {
   const [unknownStops, setUnknownStops] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [completedTrips, setCompletedTrips] = useState([]);
+  const [activeTab, setActiveTab] = useState("pending");
+
   const [successMessage, setSuccessMessage] = useState("");
 
   const loadTrips = async () => {
     try {
-      const [s, p, a, u] = await Promise.all([
+      const [s, p, c, a, u] = await Promise.all([
         getAdminTripSummary(),
         getPendingTrips(),
+        getCompletedTrips(),
         getActiveTrips(),
         getUnknownStops(),
       ]);
 
       setSummary(s.data);
       setPendingTrips(p.data);
+      setCompletedTrips(c.data);
       setActiveTrips(a.data);
       setUnknownStops(u.data);
     } catch (err) {
@@ -85,9 +91,36 @@ const AdminTrips = () => {
           Pending Trip Approvals
         </h2>
 
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setActiveTab("pending")}
+            className={`px-4 py-2 rounded-lg ${
+              activeTab === "pending"
+                ? "bg-yellow-400 text-black"
+                : "bg-gray-200"
+            }`}
+          >
+            Pending ({pendingTrips.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={`px-4 py-2 rounded-lg ${
+              activeTab === "completed"
+                ? "bg-yellow-400 text-black"
+                : "bg-gray-200"
+            }`}
+          >
+            Completed ({completedTrips.length})
+          </button>
+        </div>
+
         <PendingTripsCard
-          trips={pendingTrips}
-          refreshTrips={handleTripApproved}
+            trips={activeTab === "pending"
+                ? pendingTrips
+                : completedTrips}
+            refreshTrips={handleTripApproved}
+            mode={activeTab}
         />
       </div>
 
