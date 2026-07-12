@@ -111,6 +111,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             path: "/dashboard/admin/trip-maintenance",
             roles: ["superadmin", "admin"],
           },
+          // {
+          //   label: "Shipment Planning",
+          //   path: "/dashboard/admin/shipment-planning",
+          //   roles: ["superadmin", "admin"],
+          // },
           {
             label: "Daily Dispatch Board",
             path: "/dashboard/admin/daily-deliveries",
