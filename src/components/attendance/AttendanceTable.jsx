@@ -15,6 +15,7 @@ const AttendanceTable = ({
   employees,
   daysInMonth,
   attendanceMap,
+  holidayMap = {},
   departmentColors,
   statusColors,
   getStatusSymbol,
@@ -28,34 +29,43 @@ const AttendanceTable = ({
     <div className="overflow-x-auto border rounded shadow">
       <table className="min-w-full border-collapse">
         <thead>
-          <tr>
-            <th className="sticky left-0 z-30 bg-white border px-4 py-2">
-              Employee
-            </th>
+            <tr>
+              <th className="sticky left-0 z-30 bg-white border px-4 py-2">
+                Employee
+              </th>
 
-            {daysInMonth.map((day) => {
-              const dateKey = format(day, "yyyy-MM-dd");
-              const isToday = dateKey === today;
-              const isSunday = getDay(day) === 0;
+              {daysInMonth.map((day) => {
+                const dateKey = format(day, "yyyy-MM-dd");
+                const isToday = dateKey === today;
+                const isSunday = getDay(day) === 0;
+                const holiday = holidayMap[dateKey];
 
-              let headerBg = "bg-white";
+                let headerBg = "bg-white";
 
-              if (isToday) {
-                headerBg = "bg-blue-500 text-white";
-              } else if (isSunday) {
-                headerBg = "bg-yellow-300";
-              }
+                if (isToday) {
+                  headerBg = "bg-blue-500 text-white";
+                } else if (holiday) {
+                  headerBg = "bg-rose-200";
+                } else if (isSunday) {
+                  headerBg = "bg-yellow-300";
+                }
 
-              return (
-                <th
-                  key={dateKey}
-                  className={`border px-2 py-1 text-center ${headerBg}`}
-                >
-                  {format(day, "dd")}
-                </th>
-              );
-            })}
-          </tr>
+                return (
+                  <th
+                    key={dateKey}
+                    title={holiday ? holiday.holiday_name : undefined}
+                    className={`border px-2 py-1 text-center ${headerBg}`}
+                  >
+                    {format(day, "dd")}
+                    {holiday && (
+                      <div className="text-[9px] leading-tight text-rose-700 font-normal whitespace-normal wrap-break-word mt-0.5">
+                        ★ {holiday.holiday_name}
+                      </div>
+                    )}
+                  </th>
+                );
+              })}
+            </tr>
         </thead>
 
         <tbody>
@@ -72,6 +82,7 @@ const AttendanceTable = ({
               {daysInMonth.map((day) => {
                 const dateKey = format(day, "yyyy-MM-dd");
                 const attendance = attendanceMap[`${emp.id}-${dateKey}`];
+                const holiday = holidayMap[dateKey];
 
                 const status = attendance?.status;
                 const completedTrips = attendance?.completed_trips || 0;
@@ -142,6 +153,8 @@ const AttendanceTable = ({
 
                 if (status === "Present" && isUndertime) {
                   bg = statusColors["Halfday"];
+                } else if (holiday) {
+                  bg = "bg-rose-50";
                 } else if (isSunday) {
                   bg = "bg-yellow-100";
                 } else if (isTripBasedEmployee) {
@@ -151,7 +164,13 @@ const AttendanceTable = ({
                 return (
                   <td
                     key={dateKey}
-                    title={isTripBasedEmployee ? tripTooltip : tooltipText}
+                    title={
+                      holiday
+                        ? holiday.holiday_name
+                        : isTripBasedEmployee
+                        ? tripTooltip
+                        : tooltipText
+                    }
                     className={`border text-center font-bold min-w-17.5 ${bg} ${
                       editable
                         ? "cursor-pointer hover:brightness-95"

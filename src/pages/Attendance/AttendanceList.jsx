@@ -20,6 +20,7 @@ import {
   rejectAttendance,
   adjustAttendanceTime,
 } from "../../api/attendance";
+import { getHolidays } from "../../api/holidays";
 
 import { employeeRoles } from "../../constants/employeeRole";
 import { departmentColors } from "../../constants/departmentColors";
@@ -63,8 +64,23 @@ const AttendanceList = () => {
 
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
+  const [holidays, setHolidays] = useState([]);
 
   const employeesPerPage = 15;
+
+  const currentYear = useMemo(() => currentMonth.getFullYear(), [currentMonth]);
+  useEffect(() => {
+      const fetchHolidays = async () => {
+        try {
+          const data = await getHolidays(currentYear);
+          setHolidays(data);
+        } catch (err) {
+          console.error("Failed to fetch holidays:", err);
+        }
+      };
+
+      fetchHolidays();
+    }, [currentYear]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -138,6 +154,18 @@ const AttendanceList = () => {
       return matchesDate && matchesDepartment;
     });
   }, [attendanceData, reviewDate, filter]);
+
+  const holidayMap = useMemo(() => {
+    const map = {};
+    holidays.forEach((h) => {
+      if (h.is_active) {
+        map[h.holiday_date] = h;
+      }
+    });
+    return map;
+  }, [holidays]);
+
+  
 
   const getStatusSymbol = (status) => {
     const map = {
@@ -439,6 +467,7 @@ const AttendanceList = () => {
             employees={currentEmployees}
             daysInMonth={daysInMonth}
             attendanceMap={attendanceMap}
+            holidayMap={holidayMap}
             departmentColors={departmentColors}
             statusColors={statusColors}
             getStatusSymbol={getStatusSymbol}

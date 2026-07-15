@@ -133,6 +133,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             roles: ["superadmin"],
           },
           {
+            label: "Holidays",
+            path: "/dashboard/holidays",
+            roles: ["superadmin"],
+          },
+          {
             label: "Settings",
             path: "/dashboard/settings",
             roles: ["superadmin"],
