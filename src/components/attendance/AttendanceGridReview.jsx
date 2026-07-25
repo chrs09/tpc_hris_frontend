@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 const getPhoto = (record) => record.time_in_photo_url || null;
 
@@ -80,6 +80,29 @@ const AttendanceGridReview = ({
   onRejectAttendance,
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
+  const [modalRecordId, setModalRecordId] = useState(null);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches,
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1279px)");
+    const updateMobile = (event) => setIsMobile(event.matches);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", updateMobile);
+    } else {
+      mediaQuery.addListener(updateMobile);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener("change", updateMobile);
+      } else {
+        mediaQuery.removeListener(updateMobile);
+      }
+    };
+  }, []);
 
   const stats = useMemo(() => {
     const total = records.length;
@@ -138,6 +161,19 @@ const AttendanceGridReview = ({
     }
   };
 
+  const openRecordModal = (record) => {
+    setSelectedRecordId(record.id);
+    if (isMobile) {
+      setModalRecordId(record.id);
+    }
+  };
+
+  const closeRecordModal = () => setModalRecordId(null);
+
+  const modalRecord = isMobile
+    ? records.find((record) => record.id === modalRecordId) || null
+    : null;
+
   return (
     <div className="space-y-5">
       <div>
@@ -148,7 +184,7 @@ const AttendanceGridReview = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
         <StatCard label="Total Attendance" value={stats.total} />
         <StatCard label="Approved" value={stats.autoApproved} color="green" />
         <StatCard
@@ -160,14 +196,14 @@ const AttendanceGridReview = ({
         <StatCard label="No Selfie" value={stats.noSelfie} color="gray" />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5">
         <div>
           {!records.length ? (
             <div className="bg-white border rounded-xl p-10 text-center text-gray-500">
               No attendance records found.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {records.map((record) => {
                 const photo = getPhoto(record);
                 const status = getReviewStatus(record);
@@ -175,21 +211,31 @@ const AttendanceGridReview = ({
                 const isSelected = selectedRecordId === record.id;
 
                 return (
-                  <button
-                    type="button"
+                  <div
                     key={record.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => setSelectedRecordId(record.id)}
-                    className={`bg-white text-left rounded-xl border overflow-hidden transition hover:shadow-md ${
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        setSelectedRecordId(record.id);
+                      }
+                    }}
+                    className={`flex h-full flex-col overflow-hidden rounded-xl border bg-white text-left transition hover:shadow-md ${
                       style.border
                     } ${isSelected ? "ring-2 ring-blue-500" : ""}`}
                   >
-                    <div className="relative h-56 bg-gray-100">
+                    <div className="relative h-32 sm:h-36 bg-gray-100">
                       {photo ? (
                         <img
                           src={photo}
                           alt={getName(record)}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover cursor-pointer"
                           loading="lazy"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openRecordModal(record);
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
@@ -211,7 +257,7 @@ const AttendanceGridReview = ({
                         )}
                     </div>
 
-                    <div className="p-4 space-y-3">
+                    <div className="flex flex-1 flex-col p-3 space-y-2 text-sm">
                       <div>
                         <h3 className="font-bold text-gray-900 line-clamp-1">
                           {getName(record)}
@@ -239,19 +285,26 @@ const AttendanceGridReview = ({
                       </div>
 
                       <div className="pt-2">
-                        <span className="block w-full text-center rounded-lg bg-gray-900 text-white text-sm py-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openRecordModal(record);
+                          }}
+                          className="block w-full text-center rounded-lg bg-gray-900 text-white text-sm py-2"
+                        >
                           View Details
-                        </span>
+                        </button>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
           )}
         </div>
 
-        <aside className="bg-white border rounded-xl h-fit sticky top-5 overflow-hidden">
+        <aside className="hidden xl:block bg-white border rounded-xl h-fit overflow-hidden xl:sticky xl:top-5">
           <div className="h-14 px-5 border-b flex items-center justify-between">
             <h3 className="font-bold text-lg">Attendance Detail</h3>
 
@@ -277,6 +330,30 @@ const AttendanceGridReview = ({
           )}
         </aside>
       </div>
+
+      {modalRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <h3 className="text-lg font-semibold text-gray-900">Attendance Detail</h3>
+              <button
+                type="button"
+                onClick={closeRecordModal}
+                className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-[80vh] overflow-auto p-5">
+              <AttendanceDetail
+                record={modalRecord}
+                onApproveAttendance={handleApprove}
+                onRejectAttendance={handleReject}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -500,16 +577,16 @@ const StatCard = ({ label, value, color }) => {
             : "text-gray-900";
 
   return (
-    <div className="bg-white border rounded-xl p-4">
-      <p className="text-sm text-gray-500">{label}</p>
-      <h3 className={`mt-2 text-3xl font-bold ${colorClass}`}>{value}</h3>
+    <div className="bg-white border rounded-xl p-3 sm:p-4">
+      <p className="text-xs sm:text-sm text-gray-500">{label}</p>
+      <h3 className={`mt-2 text-2xl sm:text-3xl font-bold ${colorClass}`}>{value}</h3>
     </div>
   );
 };
 
 const DetailRow = ({ label, value }) => {
   return (
-    <div className="grid grid-cols-[130px_1fr] gap-3 py-2 text-sm">
+    <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-3 py-2 text-sm">
       <span className="text-gray-500">{label}</span>
       <span className="text-gray-900 wrap-break-word">{value || "--"}</span>
     </div>

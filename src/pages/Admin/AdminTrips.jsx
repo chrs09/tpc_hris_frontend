@@ -54,7 +54,9 @@ const AdminTrips = () => {
 
   const handleTripApproved = async () => {
     await loadTrips();
-    setSuccessMessage("Trip approved successfully ✔");
+    // NOTE: approval now hands the trip to finance for review instead of
+    // marking it complete, so the copy reflects that instead of "approved".
+    setSuccessMessage("Trip approved and sent for finance review ✔");
 
     setTimeout(() => {
       setSuccessMessage("");

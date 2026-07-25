@@ -6,8 +6,10 @@ export const getPendingTrips = () => api.get("/admin/trips/pending");
 
 export const getActiveTrips = () => api.get("/admin/trips/active");
 
-export const approveTrip = (tripId) =>
-  api.post(`/admin/trips/${tripId}/approve`);
+// CHANGED: now accepts remarks and sends it as the JSON body,
+// matching the backend's approve_trip(remarks: str = Body(..., embed=True)).
+export const approveTrip = (tripId, remarks) =>
+  api.post(`/admin/trips/${tripId}/approve`, { remarks });
 
 export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
 

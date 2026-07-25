@@ -232,15 +232,15 @@ export default function EmployeeDrawer({
       }
     });
 
-    if (["CdcDriver", "CpdcDriver"].includes(formData.department)) {
-      if (!formData.license) {
-        newErrors.license = "Driver's License is required";
-      }
+    // if (["CdcDriver", "CpdcDriver"].includes(formData.department)) {
+    //   if (!formData.license) {
+    //     newErrors.license = "Driver's License is required";
+    //   }
 
-      if (!formData.nc3) {
-        newErrors.nc3 = "NC3 is required";
-      }
-    }
+    //   if (!formData.nc3) {
+    //     newErrors.nc3 = "NC3 is required";
+    //   }
+    // }
 
     setErrors(newErrors);
 

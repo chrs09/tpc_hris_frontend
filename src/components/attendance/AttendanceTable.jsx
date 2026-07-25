@@ -189,14 +189,13 @@ const AttendanceTable = ({
                               {completedTrips > 0 ? completedTrips : ""}
                             </span>
                           </div>
-                        ) : [
-                            "On Leave",
-                            "Absent",
-                            "Rest Day",
-                            "No Trip",
-                            "Halfday",
-                            "Delay",
-                          ].includes(status) ? (
+                        ) : ["On Leave", "Absent"].includes(status) ? (
+                          <div className="flex items-center justify-center px-1 py-1">
+                            <span className="text-[10px] leading-tight font-semibold whitespace-normal wrap-break-word">
+                              {attendance?.remarks || getStatusSymbol(status)}
+                            </span>
+                          </div>
+                        ) : ["Rest Day", "No Trip", "Halfday", "Delay"].includes(status) ? (
                           <div className="flex items-center justify-center">
                             <span className="text-base font-extrabold">
                               {getStatusSymbol(status)}

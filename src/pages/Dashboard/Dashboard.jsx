@@ -5,6 +5,7 @@ import DashboardHome from "./DashboardHome";
 import AttendanceList from "../Attendance/AttendanceList";
 import UsersPage from "../Users/UsersPage";
 import AdminTrips from "../Admin/AdminTrips";
+import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripPlanning from "../Coordinator/TripPlanning";
 import DriverTrips from "../Driver/DriverTrips";
@@ -13,6 +14,8 @@ import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import PayrollList from "../Payroll/PayrollList";
 import HolidaysPage from "../Holiday/HolidaysPage";
+import FinanceTrips from "../Finance/FinanceTrips";
+import OfficeTripReview from "../Office/OfficeTripReview";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -51,10 +54,15 @@ const Dashboard = () => {
           <Route path="users" element={<UsersPage />} />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
+          <Route path="admin/stores" element={<StoreManagement />} />
           <Route path="applicants" element={<ApplicantsPage />} />
           <Route path="applicant/questionaire" element={<Questionaire />} />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
           <Route path="admin/shipment-planning" element={<TripPlanning />} />
+          {/* Office */}
+          <Route path="office/trips" element={<OfficeTripReview />} />
+          {/* FINANCE */}
+          <Route path="finance/trips" element={<FinanceTrips />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
           <Route path="settings" element={<div>Settings</div>} />

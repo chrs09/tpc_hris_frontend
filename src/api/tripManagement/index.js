@@ -16,21 +16,34 @@ export const getActiveTrip = async () => {
 };
 
 // ========================================
-// GET AVAILABLE HELPERS
+// GET AVAILABLE STORES
 // ========================================
-export const getAvailableHelpers = async () => {
+export const getAvailableStores = async () => {
   try {
-    const response = await api.get("/driver/trips/available-helpers");
+    const response = await api.get("/driver/trips/available-stores");
     return response.data;
   } catch (error) {
-    console.error("Error fetching helpers:", error);
+    console.error("Error fetching stores:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// GET AVAILABLE VEHICLE UNITS
+// ========================================
+export const getAvailableVehicleUnits = async () => {
+  try {
+    const response = await api.get("/trip-maintenance/vehicle-units/active");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching vehicle units:", error);
     throw error;
   }
 };
 
 // ========================================
 // START TRIP
-// payload: { ticket_no, lat, long }
+// Form data: { shipment_no, vehicle_unit_id, store_id, lat, long, invoice_photo }
 // ========================================
 export const startTrip = async (formData) => {
   try {
@@ -62,7 +75,7 @@ export const checkIn = async (tripId, payload) => {
 // ========================================
 // CHECK OUT
 // Requires stopId
-// payload: { lat, long }
+// Form data: { lat, long, delivery_proof_photo }
 // ========================================
 export const checkOut = async (tripId, stopId, payload) => {
   try {
@@ -79,7 +92,7 @@ export const checkOut = async (tripId, stopId, payload) => {
 
 // ========================================
 // COMPLETE TRIP
-// payload: { lat, long }
+// Form data: { lat, long, stamped_invoice_photo }
 // ========================================
 export const completeTrip = async (tripId, payload) => {
   try {

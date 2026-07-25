@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button/Button";
+import SearchSelect from "../SearchSelect";
 import { getEmployeeList } from "../../api/employee";
 import { createUser, updateUser } from "../../api/users";
 
@@ -14,6 +15,7 @@ const UserDrawer = ({
 
   const [employees, setEmployees] = useState([]);
   const [employeeId, setEmployeeId] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [role, setRole] = useState("driver");
   const [isActive, setIsActive] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -32,6 +34,7 @@ const UserDrawer = ({
     } else {
       setRole("driver");
       setEmployeeId("");
+      setSelectedEmployee(null);
       setIsActive(true);
     }
   }, [editingUser]);
@@ -130,19 +133,21 @@ const UserDrawer = ({
           {!isEditMode && (
             <div>
               <label className="block text-sm mb-1">Select Employee</label>
-              <select
-                value={employeeId}
-                onChange={(e) => setEmployeeId(e.target.value)}
-                required
-                className="w-full border rounded-lg p-2"
-              >
-                <option value="">-- Select Employee --</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.first_name} {emp.last_name}
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={selectedEmployee}
+                options={employees.map((emp) => ({
+                  ...emp,
+                  label: `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || emp.username || `Employee #${emp.id}`,
+                  value: emp.id,
+                }))}
+                onChange={(option) => {
+                  setSelectedEmployee(option);
+                  setEmployeeId(option?.id ? String(option.id) : "");
+                }}
+                placeholder="Search employee"
+                getOptionLabel={(option) => option?.label || ""}
+                getOptionValue={(option) => option?.value ?? option?.id ?? null}
+              />
             </div>
           )}
 

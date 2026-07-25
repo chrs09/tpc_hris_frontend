@@ -367,33 +367,35 @@ const AttendanceList = () => {
         Editable Week: {formattedRange} (Mon–Sat)
       </div>
 
-      <div className="flex flex-wrap gap-3 items-center">
-        {viewMode === "table" && (
-          <Button onClick={() => setShowBulkModal(true)}>
-            Check Attendance
-          </Button>
-        )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {viewMode === "table" && (
+            <Button onClick={() => setShowBulkModal(true)}>
+              Check Attendance
+            </Button>
+          )}
 
-        {viewMode === "table" && (
-          <Button onClick={() => setShowSelfieModal(true)} disabled>
-            Selfie Attendance
-          </Button>
-        )}
+          {viewMode === "table" && (
+            <Button onClick={() => setShowSelfieModal(true)} disabled>
+              Selfie Attendance
+            </Button>
+          )}
 
-        <select
-          className="border rounded-lg px-3 h-10 bg-white text-sm"
-          value={filter}
-          onChange={(e) => {
-            setFilter(e.target.value);
-            setCurrentPage(1);
-          }}
-        >
-          {Object.values(employeeRoles).map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
+          <select
+            className="border rounded-lg px-3 h-10 bg-white text-sm"
+            value={filter}
+            onChange={(e) => {
+              setFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            {Object.values(employeeRoles).map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {viewMode === "table" && (
           <>

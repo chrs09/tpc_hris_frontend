@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
 import { attendanceRecord } from "../../api/attendance";
 import { getPayrollCutoff } from "../../utils/payroll/payrollCutoff";
@@ -474,6 +475,137 @@ const PayrollList = () => {
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+
+      // Prepare payroll sheet data
+      const payrollSheetData = [];
+
+      // Row 1: Empty
+      payrollSheetData.push([]);
+
+      // Row 2: Notes/Remarks
+      payrollSheetData.push(["", "", "", "", "", "", "Weekly cut-off effective this week"]);
+
+      // Row 3: Headers
+      const headers = [
+        "#",
+        "Name",
+        "Positions",
+        "Daily Rates",
+        "Hours worked per day",
+        "Hourly Rate",
+        "Payperiods",
+        "Cut off period",
+        "Absences",
+        "Total days worked",
+        "No. of days",
+        "Overtime Hrs",
+        "Net Pay",
+        "Overtime Pay",
+        "Gross Pay",
+        "Date Credited",
+        "Remarks",
+      ];
+      payrollSheetData.push(headers);
+
+      // Row 4: Department header
+      payrollSheetData.push([department, "DEPARTMENT"]);
+
+      // Rows 5+: Employee data
+      payrollRows.forEach((row, index) => {
+        const employeeData = [
+          index + 1, // #
+          `${row.employee.first_name} ${row.employee.last_name}`, // Name
+          row.employee.position || "-", // Positions
+          row.dailyRate || "", // Daily Rates
+          "8", // Hours worked per day (standard)
+          row.dailyRate ? `=D${index + 6}/E${index + 6}` : "", // Hourly Rate formula
+          row.payrollType, // Payperiods
+          `${activePeriod.cutoffStart} to ${activePeriod.cutoffEnd}`, // Cut off period
+          row.isTripBasedEmployee ? 0 : row.missingTimeouts || 0, // Absences
+          row.isTripBasedEmployee
+            ? Object.keys(row.tripBreakdown?.reduce((acc, t) => {
+              acc[t.date] = true;
+              return acc;
+            }, {}) || {}).length || 0
+            : row.daysWorked || 0, // Total days worked
+          row.isTripBasedEmployee ? row.totalTrips : row.renderedHours?.toFixed(2) || 0, // No. of days/trips
+          row.isTripBasedEmployee ? 0 : row.otHours?.toFixed(2) || 0, // Overtime Hrs
+          row.isTripBasedEmployee ? row.tripPay?.toFixed(2) || 0 : (row.basicPay?.toFixed(2) || 0), // Net Pay
+          row.otPay?.toFixed(2) || 0, // Overtime Pay
+          row.grossPay?.toFixed(2) || 0, // Gross Pay
+          activePeriod.payoutDate || "", // Date Credited
+          row.warnings?.join(", ") || "No Issues", // Remarks
+        ];
+        payrollSheetData.push(employeeData);
+      });
+
+      // Add total row
+      const startRow = 6;
+      const endRow = startRow + payrollRows.length - 1;
+      payrollSheetData.push([
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        `=SUM(M${startRow}:M${endRow})`,
+        `=SUM(N${startRow}:N${endRow})`,
+        `=SUM(O${startRow}:O${endRow})`,
+        "",
+        "TOTAL",
+      ]);
+
+      // Create worksheet and add data
+      const payrollWorksheet = XLSX.utils.aoa_to_sheet(payrollSheetData);
+
+      // Set column widths
+      payrollWorksheet["!cols"] = [
+        { wch: 5 }, // #
+        { wch: 20 }, // Name
+        { wch: 18 }, // Positions
+        { wch: 12 }, // Daily Rates
+        { wch: 18 }, // Hours worked per day
+        { wch: 12 }, // Hourly Rate
+        { wch: 15 }, // Payperiods
+        { wch: 25 }, // Cut off period
+        { wch: 10 }, // Absences
+        { wch: 16 }, // Total days worked
+        { wch: 12 }, // No. of days
+        { wch: 12 }, // Overtime Hrs
+        { wch: 12 }, // Net Pay
+        { wch: 12 }, // Overtime Pay
+        { wch: 12 }, // Gross Pay
+        { wch: 15 }, // Date Credited
+        { wch: 25 }, // Remarks
+      ];
+
+      XLSX.utils.book_append_sheet(
+        workbook,
+        payrollWorksheet,
+        `Payroll_${activePeriod.cutoffStart.replace(/\//g, "-")}`
+      );
+
+      // Generate filename with date
+      const fileName = `Payroll_${department}_${activePeriod.cutoffStart.replace(/\//g, "-")}_to_${activePeriod.cutoffEnd.replace(/\//g, "-")}.xlsx`;
+
+      // Write file
+      XLSX.writeFile(workbook, fileName);
+    } catch (err) {
+      console.error("Error exporting Excel:", err);
+    }
+  };
+
   return (
     <div className="space-y-6 p-6">
       {/* HEADER */}
@@ -521,7 +653,10 @@ const PayrollList = () => {
             Generate Payroll
           </button>
 
-          <button className="bg-green-600 text-white px-4 rounded-lg">
+          <button 
+            className="bg-green-600 text-white px-4 rounded-lg hover:bg-green-700 transition"
+            onClick={handleExportExcel}
+          >
             Export Excel
           </button>
         </div>

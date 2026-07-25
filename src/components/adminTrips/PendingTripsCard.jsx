@@ -44,12 +44,54 @@ const FitBounds = ({ coordinates }) => {
   return null;
 };
 
+// Cleans up a raw photo URL/path the same way for any photo field --
+// start photo, delivery proof, stamped invoice, etc. Extracted out of
+// the old inline start_photo-only logic so every photo type can reuse it.
+const resolvePhotoUrl = (rawUrl) => {
+  if (!rawUrl) return "";
+
+  // Example:
+  // Local:      http://localhost:8000
+  // Production: https://portal.tytanprime.net
+  const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+
+  try {
+    const parsedUrl = new URL(rawUrl);
+
+    // If backend returns a localhost/127.0.0.1 URL,
+    // rebuild it using the current environment's VITE_API_URL.
+    if (
+      parsedUrl.hostname === "localhost" ||
+      parsedUrl.hostname === "127.0.0.1"
+    ) {
+      return `${apiBaseUrl}${parsedUrl.pathname}`;
+    }
+
+    // Already a valid production/external URL
+    return rawUrl;
+  } catch {
+    // Backend returned only a relative path
+    const cleanPath = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
+    return `${apiBaseUrl}${cleanPath}`;
+  }
+};
+
 const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showPhoto, setShowPhoto] = useState(false);
+
+  // NEW: replaces the old boolean showPhoto -- now tracks which photo
+  // URL + label to display, so the same viewer works for start photo,
+  // delivery proof photos, or any future photo type.
+  const [activePhoto, setActivePhoto] = useState(null); // { url, label } | null
+
   const [page, setPage] = useState(1);
   const perPage = 5;
+
+  // NEW: remarks for finance review, entered at approval time
+  const [remarks, setRemarks] = useState("");
+  const [remarksError, setRemarksError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const paginatedTrips = trips.slice((page - 1) * perPage, page * perPage);
   const totalPages = Math.ceil(trips.length / perPage);
@@ -65,13 +107,48 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
     console.log("=== GPS LOGS ===");
     console.log(res.data.gps_logs);
     setSelectedTrip(res.data);
+    setRemarks("");
+    setRemarksError("");
     setShowModal(true);
   };
 
   const handleApprove = async () => {
-    await approveTrip(selectedTrip.trip_id);
-    setShowModal(false);
-    refreshTrips();
+    if (!remarks.trim()) {
+      setRemarksError("Add coordinator remarks before approving the trip.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setRemarksError("");
+
+      // Coordinator approval:
+      // PENDING_APPROVAL -> PENDING_OFFICE_REVIEW
+      //
+      // Backend will also:
+      // - save coordinator remarks
+      // - save coordinator_settlement_date
+      // - create the TripFinanceReview record
+      await approveTrip(
+        selectedTrip.trip_id,
+        remarks.trim(),
+      );
+
+      setShowModal(false);
+      setSelectedTrip(null);
+      setRemarks("");
+
+      await refreshTrips();
+    } catch (error) {
+      console.error("Failed to approve trip:", error);
+
+      setRemarksError(
+        error.response?.data?.detail ||
+          "Failed to approve the trip. Please try again.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const endIcon = new L.Icon({
@@ -110,15 +187,6 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   const endPoint = mapCoordinates.length
     ? mapCoordinates[mapCoordinates.length - 1]
     : null;
-
-  let imageUrl = selectedTrip?.start_photo || "";
-
-  // If a broken prefix like 127.0.0.1/...https:// appears, strip everything before https://
-  if (imageUrl.includes("https://")) {
-    imageUrl = imageUrl.substring(imageUrl.indexOf("https://"));
-  } else if (imageUrl && !imageUrl.startsWith("http")) {
-    imageUrl = `${import.meta.env.VITE_API_URL}/${imageUrl}`;
-  }
 
   return (
     <>
@@ -339,107 +407,287 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                   </div>
                 )}
 
-                {/* TRIP INFO */}
+                {/* ======================= TRIP INFO ======================= */}
                 <div className="space-y-4 mb-6">
+                  {/* ORIGIN */}
                   <div>
                     <p className="text-sm text-gray-300">Origin</p>
                     <p>{selectedTrip.origin_store}</p>
                   </div>
 
+                  {/* START TIME */}
                   <div>
-                    <p className="text-sm">
+                    <p className="text-sm text-gray-300">
                       <FontAwesomeIcon icon={faUserClock} className="mr-2" />
                       Start
                     </p>
-                    {selectedTrip.start_time}
+                    <p>{selectedTrip.start_time || "-"}</p>
                   </div>
 
+                  {/* END TIME */}
                   <div>
-                    <p className="text-sm">
+                    <p className="text-sm text-gray-300">
                       <FontAwesomeIcon icon={faUserClock} className="mr-2" />
                       End
                     </p>
-                    {selectedTrip.end_time}
+                    <p>{selectedTrip.end_time || "-"}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-300">Start Photo</p>
+
+                  {/* ======================= START PHOTO ======================= */}
+                  <div className="flex items-center justify-between gap-4 bg-[#3a3a3a] p-3 rounded-xl">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        Start Trip Photo
+                      </p>
+
+                      <p className="text-xs text-gray-400">
+                        Photo uploaded when the trip started
+                      </p>
+                    </div>
 
                     {selectedTrip.start_photo ? (
                       <button
-                        onClick={() => {
-                          console.log(
-                            "Start Photo URL:",
-                            selectedTrip.start_photo,
-                          );
-                          setShowPhoto(true);
-                        }}
-                        className="text-yellow-400 underline text-sm"
+                        type="button"
+                        onClick={() =>
+                          setActivePhoto({
+                            url: resolvePhotoUrl(selectedTrip.start_photo),
+                            label: "Start Trip Photo",
+                          })
+                        }
+                        title="View start trip photo"
+                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-400 text-black rounded-lg hover:bg-yellow-300"
                       >
-                        See Attached Photo
+                        <FontAwesomeIcon icon={faEye} />
                       </button>
                     ) : (
-                      <span className="text-gray-400 text-sm">No Photo</span>
+                      <span className="text-xs text-gray-400">
+                        No Photo
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ======================= END PHOTO ======================= */}
+                  <div className="flex items-center justify-between gap-4 bg-[#3a3a3a] p-3 rounded-xl">
+                    <div>
+                      <p className="text-sm font-semibold text-white">
+                        End Trip Photo
+                      </p>
+
+                      <p className="text-xs text-gray-400">
+                        Stamped invoice uploaded when trip was completed
+                      </p>
+                    </div>
+
+                    {selectedTrip.stamped_invoice_photo ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActivePhoto({
+                            url: resolvePhotoUrl(
+                              selectedTrip.stamped_invoice_photo,
+                            ),
+                            label: "End Trip - Stamped Invoice",
+                          })
+                        }
+                        title="View end trip photo"
+                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-400 text-black rounded-lg hover:bg-yellow-300"
+                      >
+                        <FontAwesomeIcon icon={faEye} />
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400">
+                        No Photo
+                      </span>
                     )}
                   </div>
                 </div>
 
                 <hr className="mb-6" />
 
-                {/* STOPS */}
-                <h3 className="font-semibold text-lg mb-4">Visited Stops</h3>
+                {/* ======================= VISITED STOPS ======================= */}
+                <h3 className="font-semibold text-lg mb-4">
+                  Visited Stops
+                </h3>
 
-                <div className="space-y-3 text-black">
-                  {selectedTrip.stops?.map((stop, index) => (
-                    <div
-                      key={index}
-                      className="bg-gray-50 border rounded-xl p-4"
-                    >
-                      <p className="font-semibold">
-                        <FontAwesomeIcon icon={faStore} className="mr-2" />
-                        {stop.store_name}
-                      </p>
+                <div className="space-y-3">
+                  {selectedTrip.stops?.length > 0 ? (
+                    selectedTrip.stops.map((stop, index) => (
+                      <div
+                        key={stop.id || index}
+                        className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-black"
+                      >
+                        {/* STORE HEADER */}
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex-1">
+                            <p className="font-semibold">
+                              <FontAwesomeIcon
+                                icon={faStore}
+                                className="mr-2"
+                              />
 
-                      <p className="text-sm">
-                        <FontAwesomeIcon icon={faClock} className="mr-2" />
-                        Check-In: {stop.check_in_time || "-"}
-                      </p>
+                              {stop.store_name}
+                            </p>
 
-                      <p className="text-sm">
-                        <FontAwesomeIcon icon={faClock} className="mr-2" />
-                        Check-Out: {stop.check_out_time || "-"}
-                      </p>
+                            <p className="text-sm mt-2">
+                              <FontAwesomeIcon
+                                icon={faClock}
+                                className="mr-2"
+                              />
+
+                              Check-In: {stop.check_in_time || "-"}
+                            </p>
+
+                            <p className="text-sm">
+                              <FontAwesomeIcon
+                                icon={faClock}
+                                className="mr-2"
+                              />
+
+                              Check-Out: {stop.check_out_time || "-"}
+                            </p>
+                          </div>
+
+                          {/* POD VIEW BUTTON */}
+                          {stop.delivery_proof_photo ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActivePhoto({
+                                  url: resolvePhotoUrl(
+                                    stop.delivery_proof_photo,
+                                  ),
+                                  label: `${stop.store_name} - Proof of Delivery`,
+                                })
+                              }
+                              title="View Proof of Delivery"
+                              className="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-400 text-black rounded-lg hover:bg-yellow-300"
+                            >
+                              <FontAwesomeIcon icon={faEye} />
+                            </button>
+                          ) : (
+                            <div className="shrink-0 text-right">
+                              <span className="text-xs text-gray-400">
+                                No POD
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* POD STATUS */}
+                        <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
+                          <span className="text-xs text-gray-500">
+                            Proof of Delivery
+                          </span>
+
+                          {stop.delivery_proof_photo ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setActivePhoto({
+                                  url: resolvePhotoUrl(
+                                    stop.delivery_proof_photo,
+                                  ),
+                                  label: `${stop.store_name} - Proof of Delivery`,
+                                })
+                              }
+                              className="text-xs font-semibold underline"
+                            >
+                              View Attached Photo
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Not available
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="bg-gray-50 text-gray-500 p-4 rounded-xl text-sm">
+                      No visited stops found.
                     </div>
-                  ))}
+                  )}
                 </div>
 
+                {/* ===== NEW: REMARKS FOR FINANCE REVIEW ===== */}
+                {/* ===== COORDINATOR REMARKS ===== */}
                 {mode === "pending" && (
+                  <>
+                    <hr className="my-6" />
+
+                    <div>
+                      <label className="font-semibold text-lg mb-2 block text-white">
+                        Coordinator Remarks
+                      </label>
+
+                      <p className="text-xs text-gray-300 mb-3">
+                        Add your remarks after reviewing the trip details, route,
+                        stops, invoices, and proof of delivery. Once approved, the
+                        trip will be settled and forwarded to Office Personnel for
+                        further review.
+                      </p>
+
+                      <textarea
+                        value={remarks}
+                        onChange={(e) => {
+                          setRemarks(e.target.value);
+
+                          if (e.target.value.trim()) {
+                            setRemarksError("");
+                          }
+                        }}
+                        rows={4}
+                        placeholder="e.g. All stops, PODs, and trip details verified. No discrepancies found."
+                        className={`w-full rounded-xl p-3 text-sm text-black bg-gray-50 border ${
+                          remarksError
+                            ? "border-red-500"
+                            : "border-gray-200"
+                        } focus:outline-none focus:ring-2 focus:ring-yellow-400`}
+                      />
+
+                      {remarksError && (
+                        <p className="text-red-400 text-xs mt-1">
+                          {remarksError}
+                        </p>
+                      )}
+                    </div>
+
                     <button
-                        onClick={handleApprove}
-                        className="mt-6 bg-yellow-400 text-black py-3 w-full rounded-xl font-bold"
+                      onClick={handleApprove}
+                      disabled={submitting}
+                      className="mt-6 bg-yellow-400 text-black py-3 w-full rounded-xl font-bold disabled:opacity-60"
                     >
-                        Approve Trip
+                      {submitting
+                        ? "Approving..."
+                        : "Approve & Send to Office Review"}
                     </button>
+                  </>
                 )}
               </div>
             </div>
           </div>
         </div>
       )}
-      {showPhoto && (
+
+      {/* ======================= SHARED PHOTO VIEWER ======================= */}
+      {activePhoto && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded-xl max-w-lg w-full">
+            <p className="text-sm font-semibold text-black mb-2">
+              {activePhoto.label}
+            </p>
+
             <img
-              src={imageUrl}
-              // src={selectedTrip.start_photo}
-              alt="Trip Start"
+              src={activePhoto.url}
+              alt={activePhoto.label}
               className="w-full rounded-lg"
               onError={() => {
-                console.log("Image failed to load:", selectedTrip.start_photo);
+                console.log("Image failed to load:", activePhoto.url);
               }}
             />
 
             <button
-              onClick={() => setShowPhoto(false)}
+              onClick={() => setActivePhoto(null)}
               className="mt-4 bg-yellow-400 w-full py-2 rounded-lg"
             >
               Close

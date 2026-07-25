@@ -9,6 +9,7 @@ import {
   Shield,
   ChevronDown,
   Wallet,
+  Landmark,
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getReminders, createReminder, resolveReminder } from "../api/reminder";
@@ -107,8 +108,18 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             roles: ["superadmin", "admin", "driver"],
           },
           {
+            label: "Office Trip Review",
+            path: "/dashboard/office/trips",
+            roles: ["superadmin", "admin"],
+          },
+          {
             label: "Maintenance",
             path: "/dashboard/admin/trip-maintenance",
+            roles: ["superadmin", "admin"],
+          },
+          {
+            label: "Stores",
+            path: "/dashboard/admin/stores",
             roles: ["superadmin", "admin"],
           },
           // {
@@ -119,6 +130,22 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Daily Dispatch Board",
             path: "/dashboard/admin/daily-deliveries",
+            roles: ["superadmin", "admin"],
+          },
+        ],
+      },
+      {
+        // NEW: Finance parent group
+        label: "Finance",
+        icon: <Landmark size={18} />,
+        children: [
+          {
+            label: "Trip Review",
+            path: "/dashboard/finance/trips",
+            // NOTE: no separate "finance" role exists yet — approval
+            // currently reuses get_current_admin on the backend, so
+            // this is gated the same way. Add "finance" here once
+            // that role exists.
             roles: ["superadmin", "admin"],
           },
         ],
