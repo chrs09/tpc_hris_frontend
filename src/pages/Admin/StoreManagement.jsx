@@ -28,6 +28,9 @@ export default function StoreManagement() {
   const [tripRateProfiles, setTripRateProfiles] = useState([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   const loadTripRateProfiles = async () => {
     try {
       setProfilesLoading(true);
@@ -58,6 +61,10 @@ export default function StoreManagement() {
     loadTripRateProfiles();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, profileFilter, itemsPerPage]);
+
   const openCreateModal = () => {
     setEditingStore(null);
     setForm(initialFormState);
@@ -68,9 +75,8 @@ export default function StoreManagement() {
     // The stores list only returns a resolved profile name (store.profile),
     // not the numeric trip_rate_profile_id, so we look it up here.
     const matchedProfile = tripRateProfiles.find(
-      (p) => p.profile_name === store.profile
+      (p) => p.code === store.profile
     );
-
     setEditingStore(store);
     setForm({
       name: store.name || "",
@@ -147,6 +153,18 @@ export default function StoreManagement() {
     return matchesSearch && matchesProfile;
   });
 
+  const totalItems = filteredStores.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const paginatedStores = filteredStores.slice(startIndex, endIndex);
+
+  const goToPage = (page) => {
+    const clamped = Math.min(Math.max(page, 1), totalPages);
+    setCurrentPage(clamped);
+  };
+
   const renderRows = () => {
     if (!filteredStores.length) {
       return (
@@ -160,7 +178,7 @@ export default function StoreManagement() {
       );
     }
 
-    return filteredStores.map((store) => (
+    return paginatedStores.map((store) => (
       <tr key={store.id} className="border-b last:border-b-0">
         <td className="px-6 py-4">{store.name}</td>
         <td className="px-6 py-4">{store.profile || "Unassigned"}</td>
@@ -267,6 +285,78 @@ export default function StoreManagement() {
             </tr>
           ) : renderRows()}</tbody>
         </table>
+
+        {!loading && totalItems > 0 && (
+          <div className="flex flex-col gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>
+                Showing {startIndex + 1}–{endIndex} of {totalItems} stores
+              </span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="ml-2 rounded-lg border px-2 py-1 text-sm"
+              >
+                <option value={10}>10 / page</option>
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                className="rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-50"
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
+              >
+                Previous
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(
+                  (page) =>
+                    page === 1 ||
+                    page === totalPages ||
+                    Math.abs(page - safePage) <= 1
+                )
+                .reduce((acc, page, idx, arr) => {
+                  if (idx > 0 && page - arr[idx - 1] > 1) {
+                    acc.push("ellipsis-" + page);
+                  }
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((page) =>
+                  typeof page === "string" ? (
+                    <span key={page} className="px-2 text-sm text-gray-400">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`rounded-lg border px-3 py-1.5 text-sm ${
+                        page === safePage
+                          ? "border-black bg-black text-white"
+                          : "hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+
+              <button
+                className="rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-50"
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <MaintenanceModal
