@@ -17,11 +17,6 @@ const initialFormState = {
   trip_rate_profile_id: "",
 };
 
-const getProfileLabel = (profiles, trip_rate_profile_id) => {
-  const profile = profiles.find((p) => p.id === trip_rate_profile_id);
-  return profile ? profile.profile_name : "Unassigned";
-};
-
 export default function StoreManagement() {
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +65,12 @@ export default function StoreManagement() {
   };
 
   const openEditModal = (store) => {
+    // The stores list only returns a resolved profile name (store.profile),
+    // not the numeric trip_rate_profile_id, so we look it up here.
+    const matchedProfile = tripRateProfiles.find(
+      (p) => p.profile_name === store.profile
+    );
+
     setEditingStore(store);
     setForm({
       name: store.name || "",
@@ -77,7 +78,7 @@ export default function StoreManagement() {
       longitude: store.longitude || "",
       allowed_radius_meters: store.allowed_radius_meters || 100,
       required_helper: store.required_helper || 0,
-      trip_rate_profile_id: store.trip_rate_profile_id || "",
+      trip_rate_profile_id: matchedProfile ? matchedProfile.id : "",
     });
     setShowModal(true);
   };
@@ -142,8 +143,7 @@ export default function StoreManagement() {
       ?.toLowerCase()
       .includes(searchTerm.trim().toLowerCase());
     const matchesProfile =
-      profileFilter === "ALL" ||
-      String(store.trip_rate_profile_id) === profileFilter;
+      profileFilter === "ALL" || store.profile === profileFilter;
     return matchesSearch && matchesProfile;
   });
 
@@ -163,9 +163,7 @@ export default function StoreManagement() {
     return filteredStores.map((store) => (
       <tr key={store.id} className="border-b last:border-b-0">
         <td className="px-6 py-4">{store.name}</td>
-        <td className="px-6 py-4">
-          {getProfileLabel(tripRateProfiles, store.trip_rate_profile_id)}
-        </td>
+        <td className="px-6 py-4">{store.profile || "Unassigned"}</td>
         <td className="px-6 py-4">{store.required_helper}</td>
         <td className="px-6 py-4">{store.allowed_radius_meters} m</td>
         <td className="px-6 py-4">{store.latitude}, {store.longitude}</td>
@@ -219,7 +217,7 @@ export default function StoreManagement() {
         >
           <option value="ALL">All Profiles</option>
           {tripRateProfiles.map((profile) => (
-            <option key={profile.id} value={String(profile.id)}>
+            <option key={profile.id} value={profile.profile_name}>
               {profile.profile_name}
             </option>
           ))}
