@@ -217,7 +217,7 @@ export default function StoreManagement() {
         >
           <option value="ALL">All Profiles</option>
           {tripRateProfiles.map((profile) => (
-            <option key={profile.id} value={profile.profile_name}>
+            <option key={profile.id} value={profile.code}>
               {profile.profile_name}
             </option>
           ))}
