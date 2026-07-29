@@ -54,7 +54,15 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Overview",
             path: "/dashboard",
-            roles: ["superadmin", "admin", "driver", "helper"],
+            roles: [
+              "superadmin",
+              "admin",
+              "driver",
+              "helper",
+              "payroll_admin",
+              "coordinator_admin",
+              "office_admin",
+            ],
           },
         ],
       },
@@ -91,7 +99,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Payroll",
             path: "/dashboard/payroll",
-            roles: ["superadmin", "admin"],
+            roles: ["superadmin", "payroll_admin"],
           },
         ],
       },
@@ -105,22 +113,22 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               role === "driver"
                 ? "/dashboard/driver/trips"
                 : "/dashboard/admin/trips",
-            roles: ["superadmin", "admin", "driver"],
+            roles: ["superadmin", "driver", "coordinator_admin"],
           },
           {
             label: "Office Trip Review",
             path: "/dashboard/office/trips",
-            roles: ["superadmin", "admin"],
+            roles: ["superadmin", "coordinator_admin", "office_admin"],
           },
           {
             label: "Maintenance",
             path: "/dashboard/admin/trip-maintenance",
-            roles: ["superadmin", "admin"],
+            roles: ["superadmin", "coordinator_admin"],
           },
           {
             label: "Stores",
             path: "/dashboard/admin/stores",
-            roles: ["superadmin", "admin"],
+            roles: ["superadmin", "coordinator_admin"],
           },
           // {
           //   label: "Shipment Planning",
@@ -130,7 +138,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Daily Dispatch Board",
             path: "/dashboard/admin/daily-deliveries",
-            roles: ["superadmin", "admin"],
+            roles: ["superadmin", "coordinator_admin"],
           },
         ],
       },
@@ -142,11 +150,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Trip Review",
             path: "/dashboard/finance/trips",
-            // NOTE: no separate "finance" role exists yet — approval
-            // currently reuses get_current_admin on the backend, so
-            // this is gated the same way. Add "finance" here once
-            // that role exists.
-            roles: ["superadmin", "admin"],
+            roles: ["superadmin"],
           },
         ],
       },

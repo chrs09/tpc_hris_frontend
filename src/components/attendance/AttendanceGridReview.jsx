@@ -30,6 +30,9 @@ const getGoogleMapsUrl = (record) => {
   return `https://maps.google.com/?q=${getLat(record)},${getLng(record)}`;
 };
 
+const getIsAbsent = (record) =>
+  (record.status || "").toUpperCase() === "ABSENT";
+
 const getReviewStatus = (record) => {
   if (record.face_review_status === "AUTO_APPROVED") return "Auto Approved";
   if (record.face_review_status === "APPROVED") return "Approved";
@@ -126,28 +129,37 @@ const AttendanceGridReview = ({
 
     const noSelfie = records.filter((record) => !getPhoto(record)).length;
 
+    const absent = records.filter((record) => getIsAbsent(record)).length;
+
     return {
       total,
       autoApproved,
       needsReview,
       rejected,
       noSelfie,
+      absent,
     };
   }, [records]);
 
+  const presentRecords = useMemo(
+    () => records.filter((record) => !getIsAbsent(record)),
+    [records],
+  );
+
   const activeRecord = useMemo(() => {
-    if (!records.length) {
+    if (!presentRecords.length) {
       return null;
     }
 
     if (!selectedRecordId) {
-      return records[0];
+      return presentRecords[0];
     }
 
     return (
-      records.find((record) => record.id === selectedRecordId) || records[0]
+      presentRecords.find((record) => record.id === selectedRecordId) ||
+      presentRecords[0]
     );
-  }, [records, selectedRecordId]);
+  }, [presentRecords, selectedRecordId]);
 
   const handleApprove = (record) => {
     if (onApproveAttendance) {
@@ -171,7 +183,7 @@ const AttendanceGridReview = ({
   const closeRecordModal = () => setModalRecordId(null);
 
   const modalRecord = isMobile
-    ? records.find((record) => record.id === modalRecordId) || null
+    ? presentRecords.find((record) => record.id === modalRecordId) || null
     : null;
 
   return (
@@ -184,7 +196,7 @@ const AttendanceGridReview = ({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
         <StatCard label="Total Attendance" value={stats.total} />
         <StatCard label="Approved" value={stats.autoApproved} color="green" />
         <StatCard
@@ -194,17 +206,18 @@ const AttendanceGridReview = ({
         />
         <StatCard label="Rejected" value={stats.rejected} color="red" />
         <StatCard label="No Selfie" value={stats.noSelfie} color="gray" />
+        <StatCard label="Absent" value={stats.absent} color="red" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5">
         <div>
-          {!records.length ? (
+          {!presentRecords.length ? (
             <div className="bg-white border rounded-xl p-10 text-center text-gray-500">
               No attendance records found.
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {records.map((record) => {
+              {presentRecords.map((record) => {
                 const photo = getPhoto(record);
                 const status = getReviewStatus(record);
                 const style = getStatusStyle(status);

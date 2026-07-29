@@ -76,6 +76,8 @@ export default function EmployeeForm({
 
   const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
 
+  const isSuperAdmin = localStorage.getItem("role") === "superadmin";
+
   const handleEducationChange = (index, field, value) => {
     const updated = [...educationRecords];
 
@@ -282,14 +284,16 @@ export default function EmployeeForm({
               error={errors.position}
               required
             />
-            <EditableField
-              label="Daily Rate"
-              field="daily_rate"
-              value={formData.daily_rate}
-              type="number"
-              isEditing={isEditing}
-              onChange={handleChange}
-            />
+            {isSuperAdmin && (
+              <EditableField
+                label="Daily Rate"
+                field="daily_rate"
+                value={formData.daily_rate}
+                type="number"
+                isEditing={isEditing}
+                onChange={handleChange}
+              />
+            )}
 
             <EditableField
               label="Employment Type"
