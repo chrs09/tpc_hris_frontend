@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
 import { attendanceRecord } from "../../api/attendance";
+import { getHolidays } from "../../api/holidays/index"
 import { getPayrollCutoff } from "../../utils/payroll/payrollCutoff";
 import { getPayrollPeriods } from "../../utils/payroll/getPayrollPeriods";
 import PayrollDetailModal from "../../components/payroll/PayrollDetailModal";
@@ -11,6 +12,49 @@ import {
   reverseOT,
 } from "../../api/payroll/overtimeApproval";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
+import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
+
+
+/*
+ * Government contribution lookup used by Admin payroll.
+ *
+ * The uploaded admin government workbook shows monthly EE values.
+ * Because Admin payroll is semi-monthly:
+ *
+ * SSS EE monthly amount -> divide by 2 per cutoff
+ * PHIC EE monthly amount -> divide by 2 per cutoff
+ * Pag-IBIG EE default ₱200/month -> ₱100 per cutoff
+ *
+ * These contributions are calculated in PayrollList instead of being
+ * maintained in EmployeeForm.
+ */
+const getSSSEmployeeShare = (monthlyBasic) => {
+  const basic = Number(monthlyBasic || 0);
+
+  if (basic <= 0) return 0;
+
+  // admin gov.xlsx reference:
+  // ₱20,000 Monthly Basic -> ₱1,000 monthly SSS EE
+  // ₱25,000 Monthly Basic -> ₱1,250 monthly SSS EE
+  //
+  // The workbook examples follow 5% for the MONTHLY SSS EE amount.
+  // Admin payroll is semi-monthly, so only half is deducted per cutoff.
+  const monthlySSSEE = basic * 0.05;
+
+  return monthlySSSEE / 2;
+};
+
+const getPagibigEmployeeShare = (monthlyBasic) => {
+  const basic = Number(monthlyBasic || 0);
+
+  if (basic <= 0) return 0;
+
+  // Default monthly Pag-IBIG EE contribution = ₱200.
+  // Admin payroll is semi-monthly, so deduct ₱100 per cutoff.
+  const monthlyPagibigEE = 200;
+
+  return monthlyPagibigEE / 2;
+};
 
 const PayrollList = () => {
   const [employees, setEmployees] = useState([]);
@@ -21,6 +65,30 @@ const PayrollList = () => {
   const [selectedPeriod, setSelectedPeriod] = useState(0);
   const [selectedPayroll, setSelectedPayroll] = useState(null);
   const [otApprovals, setOTApprovals] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+
+  // Manual per-employee, per-cutoff entries that aren't computed from
+  // attendance (Others, government deductions, personal deductions, etc.)
+  // Keyed by `${employeeId}_${cutoffStart}_${cutoffEnd}`.
+  // NOTE: this lives only in local state for now — nothing is persisted to
+  // the backend. If you want these saved, they'll need employee/payroll
+  // fields + an API endpoint on your end.
+  const [adjustments, setAdjustments] = useState({});
+
+  const getAdjustmentKey = (employeeId, period) =>
+    `${employeeId}_${period.cutoffStart}_${period.cutoffEnd}`;
+
+  const updateAdjustment = (employeeId, period, field, value) => {
+    const key = getAdjustmentKey(employeeId, period);
+
+    setAdjustments((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        [field]: value === "" ? 0 : Number(value),
+      },
+    }));
+  };
 
   useEffect(() => {
     setSelectedPeriod(0);
@@ -29,13 +97,21 @@ const PayrollList = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [employeeData, attendanceData] = await Promise.all([
-          getEmployeeList(),
-          attendanceRecord(),
+        const currentYear = new Date().getFullYear();
+
+        const [
+            employeeData,
+            attendanceData,
+            holidayData,
+        ] = await Promise.all([
+            getEmployeeList(),
+            attendanceRecord(),
+            getHolidays(currentYear),
         ]);
 
         setEmployees(employeeData);
         setAttendance(attendanceData);
+        setHolidays(holidayData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -275,24 +351,74 @@ const PayrollList = () => {
         }
         //
 
-        const rate = Number(employee.daily_rate || 0);
-
         const payrollType = employee.payroll_type;
+        const isMonthlyRateType = payrollType === "Monthly";
+
+        // Monthly-rate employees: Monthly Basic/Allow is the source of
+        // truth. Daily equivalents are derived using Factor 313
+        // (Annual Basic ÷ 313), matching the rate sheet:
+        //   Daily Rate = (Monthly Basic × 12) ÷ 313
+        //   Daily Allow = (Monthly Allow × 12) ÷ 313
+        // Daily/Weekly employees: daily_rate/daily_allowance is the
+        // source of truth, entered directly (no conversion).
+        const monthlyBasic = Number(employee.monthly_basic || 0);
+        const monthlyAllow = Number(employee.monthly_allow || 0);
+
+        const rate = isMonthlyRateType
+          ? Math.round((monthlyBasic * 12) / 313)
+          : Number(employee.daily_rate || 0);
+
+        const dailyAllowanceFromRate = isMonthlyRateType
+          ? Math.round((monthlyAllow * 12) / 313)
+          : Number(employee.daily_allowance || employee.allowance || 0);
 
         let basicPay = 0;
-        let hourlyRate = 0;
+        let hourlyRate = rate / 8;
 
-        if (payrollType === "Daily" || payrollType === "Weekly") {
-          hourlyRate = rate / 8;
+        // NEW
+        let semiMonthlyBasic = 0;
+        let semiMonthlyAllowance = 0;
+        let totalBasicPay = 0;
+        let absentDeduction = 0;
 
-          basicPay = regularHours * hourlyRate;
+        // Daily & Weekly
+        if (
+            payrollType === "Daily" ||
+            payrollType === "Weekly"
+        ) {
+            basicPay = regularHours * hourlyRate;
 
-          undertimeDeduction = undertimeHours * hourlyRate;
-        } else if (payrollType === "Monthly") {
-          basicPay = rate / 2;
+            undertimeDeduction =
+                undertimeHours * hourlyRate;
+        }
 
-          // Optional for future
-          undertimeDeduction = 0;
+        // Monthly
+        else if (payrollType === "Monthly") {
+
+            // Display values
+            semiMonthlyBasic = monthlyBasic / 2;
+
+            semiMonthlyAllowance = monthlyAllow / 2;
+
+            totalBasicPay =
+                semiMonthlyBasic +
+                semiMonthlyAllowance;
+
+            const absentDays = records.filter(
+                (record) => record.status === "Absent"
+            ).length;
+
+            absentDeduction =
+                absentDays *
+                (rate + dailyAllowanceFromRate);
+
+            undertimeDeduction =
+                undertimeHours * hourlyRate;
+
+            basicPay =
+                totalBasicPay -
+                absentDeduction -
+                undertimeDeduction;
         }
 
         const approval = otApprovals.find(
@@ -307,7 +433,156 @@ const PayrollList = () => {
 
         const otPay = approvedOTHours * hourlyRate * 1.25;
 
-        const grossPay = basicPay + otPay - undertimeDeduction;
+        // ===== Allowance =====
+        // Paid per day actually worked. Derived above from monthly_allow
+        // (Monthly type) or entered directly as daily_allowance (Daily/
+        // Weekly type).
+        const dailyAllowance = dailyAllowanceFromRate;
+        const allowancePay =
+          payrollType === "Monthly"
+              ? 0
+              : dailyAllowance * daysWorked;
+
+        // ===== Special / Regular Holiday pay =====
+        // Counts days where the attendance record status marks a holiday
+        // was worked. Multipliers follow the common DOLE convention
+        // (Special Non-Working Holiday worked = 130%, Regular Holiday
+        // worked = 200%) — adjust these if your company policy differs.
+        // const shDaysWorked = records.filter(
+        //   (r) => r.status === "Special Holiday",
+        // ).length;
+        // const rhDaysWorked = records.filter(
+        //   (r) => r.status === "Regular Holiday",
+        // ).length;
+
+        const regularHolidayDates = holidays
+            .filter(h => h.holiday_type === "regular")
+            .map(h => h.holiday_date);
+
+        const specialHolidayDates = holidays
+            .filter(
+                h =>
+                    h.holiday_type ===
+                    "special_non_working"
+            )
+            .map(h => h.holiday_date);
+
+        const rhDaysWorked = records.filter(record =>
+
+            regularHolidayDates.includes(record.attendance_date) &&
+
+            record.check_in_time_raw &&
+            record.check_out_time_raw
+
+        ).length;
+
+        const shDaysWorked =
+        records.filter(record =>
+            specialHolidayDates.includes(
+                record.attendance_date
+            )
+        ).length;
+
+        const shPay = rate * 1.3 * shDaysWorked;
+        const rhPay = rate * rhDaysWorked;
+
+        // ===== Leave pay =====
+        // Only pays out for leave explicitly marked paid on the record
+        // (e.g. record.is_paid_leave === true). Your sheet shows "no leave
+        // credit" for most rows, so this defaults to 0 unless the record
+        // says otherwise.
+        const paidLeaveDays = records.filter(
+          (r) => r.status === "On Leave" && r.is_paid_leave,
+        ).length;
+        const leavePay = rate * paidLeaveDays;
+
+        // Monthly Basic used for statutory computations — for Daily-type
+        // employees this is the derived equivalent (Daily Rate × 26),
+        // computed above via `monthlyBasic` when Monthly type, or here for
+        // Daily type, so PHIC/WHT formulas have a consistent base either way.
+        const monthlyBasicForContributions = isMonthlyRateType
+          ? monthlyBasic
+          : rate * 26;
+        const annualBasicForContributions = monthlyBasicForContributions * 12;
+
+        // ===== Manual entries (Others) + statutory deductions =====
+        // SSS EE and Pag-IBIG EE are calculated here from the Admin
+        // government reference sheet, so they are no longer maintained in
+        // EmployeeForm. PhilHealth and WHT keep their payroll calculations.
+        const adjKey = getAdjustmentKey(employee.id, activePeriod);
+        const adj = adjustments[adjKey] || {};
+
+        const others = Number(adj.others || 0);
+
+        let sssDeduction = 0;
+        let philhealthDeduction = 0;
+        let pagibigDeduction = 0;
+        let withholdingTax = 0;
+
+        if (payrollType === "Monthly") {
+
+            sssDeduction =
+                getSSSEmployeeShare(monthlyBasicForContributions);
+
+            const computedPhilhealth =
+                (monthlyBasicForContributions * 0.05) / 2 / 2;
+
+            philhealthDeduction =
+                adj.philhealthDeduction !== undefined
+                    ? Number(adj.philhealthDeduction)
+                    : computedPhilhealth;
+
+            pagibigDeduction =
+                getPagibigEmployeeShare(monthlyBasicForContributions);
+
+            const computedWithholdingTax =
+                annualBasicForContributions > 250000
+                    ? ((annualBasicForContributions - 250000) * 0.15) / 12
+                    : 0;
+
+            withholdingTax =
+                adj.withholdingTax !== undefined
+                    ? Number(adj.withholdingTax)
+                    : computedWithholdingTax;
+        }
+
+        const sssLoan = Number(adj.sssLoan || 0);
+        const cashAdvance = Number(adj.cashAdvance || 0);
+        const personalDeduction = Number(adj.personalDeduction || 0);
+
+        const govtDeductions =
+          sssDeduction + philhealthDeduction + pagibigDeduction + withholdingTax;
+
+        const otherDeductions = sssLoan + cashAdvance + personalDeduction;
+
+        const totalDeductions = govtDeductions + otherDeductions;
+
+        let grossPay = 0;
+
+        if (payrollType === "Monthly") {
+
+            grossPay =
+                basicPay +
+                otPay +
+                shPay +
+                rhPay +
+                leavePay +
+                others;
+
+        } else {
+
+            grossPay =
+                basicPay +
+                allowancePay +
+                otPay +
+                shPay +
+                rhPay +
+                leavePay +
+                others -
+                undertimeDeduction;
+        }
+
+        const netPay = grossPay - totalDeductions;
 
         if (!isTripBasedEmployee) {
           if (missingTimeouts > 0) {
@@ -365,6 +640,21 @@ const PayrollList = () => {
 
             otPay: 0,
 
+            allowancePay: 0,
+            shPay: 0,
+            rhPay: 0,
+            leavePay: 0,
+            others: 0,
+            sssDeduction: 0,
+            philhealthDeduction: 0,
+            pagibigDeduction: 0,
+            withholdingTax: 0,
+            sssLoan: 0,
+            cashAdvance: 0,
+            personalDeduction: 0,
+            totalDeductions: 0,
+            netPay: tripPay,
+
             attendanceCount: records.length,
 
             missingTimeouts: 0,
@@ -374,6 +664,16 @@ const PayrollList = () => {
             needsOTApproval: false,
           };
         }
+
+        console.log("deductions",{
+            grossPay,
+            sssDeduction,
+            philhealthDeduction,
+            pagibigDeduction,
+            withholdingTax,
+            totalDeductions,
+            netPay
+        });
 
         return {
           employee,
@@ -386,6 +686,16 @@ const PayrollList = () => {
           undertimeHours,
           undertimeDeduction,
           dailyRate: rate,
+          isMonthlyRateType,
+          monthlyBasic: isMonthlyRateType ? monthlyBasic : null,
+          monthlyAllow: isMonthlyRateType ? monthlyAllow : null,
+
+          // NEW
+          semiMonthlyBasic,
+          semiMonthlyAllowance,
+          totalBasicPay,
+          absentDeduction,
+
           payrollType,
 
           renderedHours,
@@ -398,7 +708,26 @@ const PayrollList = () => {
 
           basicPay,
           otPay,
+
+          allowancePay,
+          shDaysWorked,
+          rhDaysWorked,
+          shPay,
+          rhPay,
+          paidLeaveDays,
+          leavePay,
+          others,
+          sssDeduction,
+          philhealthDeduction,
+          pagibigDeduction,
+          withholdingTax,
+          sssLoan,
+          cashAdvance,
+          personalDeduction,
+          totalDeductions,
+
           grossPay,
+          netPay,
 
           records,
 
@@ -408,10 +737,12 @@ const PayrollList = () => {
   }, [
     employees,
     attendance,
+    holidays,
     department,
     activePeriod,
     otApprovals,
     searchEmployee,
+    adjustments,
   ]);
 
   const summary = useMemo(() => {
@@ -434,6 +765,8 @@ const PayrollList = () => {
         (sum, row) => sum + (row.grossPay || 0),
         0,
       ),
+
+      totalNet: payrollRows.reduce((sum, row) => sum + (row.netPay || 0), 0),
     };
   }, [payrollRows]);
 
@@ -476,134 +809,17 @@ const PayrollList = () => {
   };
 
   const handleExportExcel = () => {
-    try {
-      // Create workbook and worksheet
-      const workbook = XLSX.utils.book_new();
 
-      // Prepare payroll sheet data
-      const payrollSheetData = [];
+      exportPayrollExcel(
 
-      // Row 1: Empty
-      payrollSheetData.push([]);
+          payrollRows,
 
-      // Row 2: Notes/Remarks
-      payrollSheetData.push(["", "", "", "", "", "", "Weekly cut-off effective this week"]);
+          activePeriod,
 
-      // Row 3: Headers
-      const headers = [
-        "#",
-        "Name",
-        "Positions",
-        "Daily Rates",
-        "Hours worked per day",
-        "Hourly Rate",
-        "Payperiods",
-        "Cut off period",
-        "Absences",
-        "Total days worked",
-        "No. of days",
-        "Overtime Hrs",
-        "Net Pay",
-        "Overtime Pay",
-        "Gross Pay",
-        "Date Credited",
-        "Remarks",
-      ];
-      payrollSheetData.push(headers);
+          department
 
-      // Row 4: Department header
-      payrollSheetData.push([department, "DEPARTMENT"]);
-
-      // Rows 5+: Employee data
-      payrollRows.forEach((row, index) => {
-        const employeeData = [
-          index + 1, // #
-          `${row.employee.first_name} ${row.employee.last_name}`, // Name
-          row.employee.position || "-", // Positions
-          row.dailyRate || "", // Daily Rates
-          "8", // Hours worked per day (standard)
-          row.dailyRate ? `=D${index + 6}/E${index + 6}` : "", // Hourly Rate formula
-          row.payrollType, // Payperiods
-          `${activePeriod.cutoffStart} to ${activePeriod.cutoffEnd}`, // Cut off period
-          row.isTripBasedEmployee ? 0 : row.missingTimeouts || 0, // Absences
-          row.isTripBasedEmployee
-            ? Object.keys(row.tripBreakdown?.reduce((acc, t) => {
-              acc[t.date] = true;
-              return acc;
-            }, {}) || {}).length || 0
-            : row.daysWorked || 0, // Total days worked
-          row.isTripBasedEmployee ? row.totalTrips : row.renderedHours?.toFixed(2) || 0, // No. of days/trips
-          row.isTripBasedEmployee ? 0 : row.otHours?.toFixed(2) || 0, // Overtime Hrs
-          row.isTripBasedEmployee ? row.tripPay?.toFixed(2) || 0 : (row.basicPay?.toFixed(2) || 0), // Net Pay
-          row.otPay?.toFixed(2) || 0, // Overtime Pay
-          row.grossPay?.toFixed(2) || 0, // Gross Pay
-          activePeriod.payoutDate || "", // Date Credited
-          row.warnings?.join(", ") || "No Issues", // Remarks
-        ];
-        payrollSheetData.push(employeeData);
-      });
-
-      // Add total row
-      const startRow = 6;
-      const endRow = startRow + payrollRows.length - 1;
-      payrollSheetData.push([
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-        `=SUM(M${startRow}:M${endRow})`,
-        `=SUM(N${startRow}:N${endRow})`,
-        `=SUM(O${startRow}:O${endRow})`,
-        "",
-        "TOTAL",
-      ]);
-
-      // Create worksheet and add data
-      const payrollWorksheet = XLSX.utils.aoa_to_sheet(payrollSheetData);
-
-      // Set column widths
-      payrollWorksheet["!cols"] = [
-        { wch: 5 }, // #
-        { wch: 20 }, // Name
-        { wch: 18 }, // Positions
-        { wch: 12 }, // Daily Rates
-        { wch: 18 }, // Hours worked per day
-        { wch: 12 }, // Hourly Rate
-        { wch: 15 }, // Payperiods
-        { wch: 25 }, // Cut off period
-        { wch: 10 }, // Absences
-        { wch: 16 }, // Total days worked
-        { wch: 12 }, // No. of days
-        { wch: 12 }, // Overtime Hrs
-        { wch: 12 }, // Net Pay
-        { wch: 12 }, // Overtime Pay
-        { wch: 12 }, // Gross Pay
-        { wch: 15 }, // Date Credited
-        { wch: 25 }, // Remarks
-      ];
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        payrollWorksheet,
-        `Payroll_${activePeriod.cutoffStart.replace(/\//g, "-")}`
       );
 
-      // Generate filename with date
-      const fileName = `Payroll_${department}_${activePeriod.cutoffStart.replace(/\//g, "-")}_to_${activePeriod.cutoffEnd.replace(/\//g, "-")}.xlsx`;
-
-      // Write file
-      XLSX.writeFile(workbook, fileName);
-    } catch (err) {
-      console.error("Error exporting Excel:", err);
-    }
   };
 
   return (
@@ -727,6 +943,17 @@ const PayrollList = () => {
             })}
           </h2>
         </div>
+
+        <div className="bg-white border rounded-xl p-4">
+          <p className="text-sm text-gray-500">Net Payroll</p>
+
+          <h2 className="text-2xl font-bold text-blue-700">
+            ₱
+            {summary.totalNet.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </h2>
+        </div>
       </div>
 
       {/* TABLE */}
@@ -766,11 +993,45 @@ const PayrollList = () => {
 
                   <th className="px-4 py-3 text-left">OT Status</th>
 
-                  <th className="px-4 py-3 text-left">Basic Pay</th>
+                  <th className="px-4 py-3 text-left">Basic</th>
+
+                  <th className="px-4 py-3 text-left">Allowance</th>
+
+                  <th className="px-4 py-3 text-left">Total Basic</th>
+
+                  <th className="px-4 py-3 text-left">Absent</th>
+
+                  <th className="px-4 py-3 text-left">UT Deduction</th>
+
+                  <th className="px-4 py-3 text-left">Adjusted Basic</th>
 
                   <th className="px-4 py-3 text-left">OT Pay</th>
 
+                  <th className="px-4 py-3 text-left">SH Pay</th>
+
+                  <th className="px-4 py-3 text-left">RH Pay</th>
+
+                  <th className="px-4 py-3 text-left">Leave Pay</th>
+
+                  <th className="px-4 py-3 text-left">Others</th>
+
                   <th className="px-4 py-3 text-left">Gross Pay</th>
+
+                  <th className="px-4 py-3 text-left">SSS</th>
+
+                  <th className="px-4 py-3 text-left">PhilHealth</th>
+
+                  <th className="px-4 py-3 text-left">Pag-IBIG</th>
+
+                  <th className="px-4 py-3 text-left">WHT</th>
+
+                  <th className="px-4 py-3 text-left">SSS Loan</th>
+
+                  <th className="px-4 py-3 text-left">Cash Advance</th>
+
+                  <th className="px-4 py-3 text-left">Personal Ded.</th>
+
+                  <th className="px-4 py-3 text-left">Net Pay</th>
 
                   <th className="px-4 py-3 text-left">Status</th>
 
@@ -800,7 +1061,14 @@ const PayrollList = () => {
                         : row.daysWorked}
                     </td>
 
-                    <td className="px-4 py-3">₱{row.dailyRate}</td>
+                    <td className="px-4 py-3">
+                      ₱{row.dailyRate.toFixed(2)}
+                      {row.isMonthlyRateType && (
+                        <div className="text-xs text-gray-400">
+                          (₱{row.monthlyBasic?.toLocaleString()}/mo ÷ 313)
+                        </div>
+                      )}
+                    </td>
 
                     <td className="px-4 py-3">{row.payrollType}</td>
                     <td className="px-4 py-3">
@@ -829,21 +1097,222 @@ const PayrollList = () => {
 
                     <td className="px-4 py-3">{row.otStatus}</td>
 
+                    {/* Basic */}
                     <td className="px-4 py-3">
-                      ₱
-                      {Number(
-                        row.isTripBasedEmployee ? row.tripPay : row.basicPay,
-                      ).toFixed(2)}
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.semiMonthlyBasic.toFixed(2)}`}
                     </td>
 
+                    {/* Allowance */}
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.semiMonthlyAllowance.toFixed(2)}`}
+                    </td>
+
+                    {/* Total Basic */}
+                    <td className="px-4 py-3 font-semibold text-blue-700">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.totalBasicPay.toFixed(2)}`}
+                    </td>
+
+                    {/* Absent */}
+                    <td className="px-4 py-3 text-red-600">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.absentDeduction.toFixed(2)}`}
+                    </td>
+
+                    {/* UT */}
+                    <td className="px-4 py-3 text-red-600">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.undertimeDeduction.toFixed(2)}`}
+                    </td>
+
+                    {/* Adjusted Basic */}
+                    <td className="px-4 py-3 font-semibold">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.basicPay.toFixed(2)}`}
+                    </td>
+
+                    {/* OT */}
                     <td className="px-4 py-3">
                       {row.isTripBasedEmployee
                         ? "--"
                         : `₱${row.otPay.toFixed(2)}`}
                     </td>
 
+                    {/* SH */}
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.shPay.toFixed(2)}`}
+                    </td>
+
+                    {/* RH */}
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.rhPay.toFixed(2)}`}
+                    </td>
+
+                    {/* Leave */}
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.leavePay.toFixed(2)}`}
+                    </td>
+
+                    {/* Others */}
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-24 border rounded px-2 py-1 text-sm"
+                          value={row.others || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "others",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </td>
+
+                    {/* Gross */}
                     <td className="px-4 py-3 font-semibold text-green-700">
                       ₱{row.grossPay.toFixed(2)}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.sssDeduction.toFixed(2)}`}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-20 border rounded px-2 py-1 text-sm"
+                          value={row.philhealthDeduction || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "philhealthDeduction",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.pagibigDeduction.toFixed(2)}`}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-20 border rounded px-2 py-1 text-sm"
+                          value={row.withholdingTax || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "withholdingTax",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-20 border rounded px-2 py-1 text-sm"
+                          value={row.sssLoan || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "sssLoan",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-24 border rounded px-2 py-1 text-sm"
+                          value={row.cashAdvance || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "cashAdvance",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-24 border rounded px-2 py-1 text-sm"
+                          value={row.personalDeduction || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "personalDeduction",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3 font-semibold text-blue-700">
+                      ₱{row.netPay.toFixed(2)}
                     </td>
 
                     <td className="px-4 py-3">

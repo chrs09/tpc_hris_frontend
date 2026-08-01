@@ -14,6 +14,8 @@ export const mapEmployeeToForm = (employee) => {
     date_hired: employee.date_hired?.slice(0, 10) || "",
     is_active: employee.is_active,
     daily_rate: employee.daily_rate || "",
+    monthly_basic: employee.monthly_basic || "",
+    monthly_allow: employee.monthly_allow || "",
     employment_type: employee.employment_type || "",
     payroll_type: employee.payroll_type || "",
 

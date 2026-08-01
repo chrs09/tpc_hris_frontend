@@ -284,15 +284,53 @@ export default function EmployeeForm({
               error={errors.position}
               required
             />
-            {isSuperAdmin && (
-              <EditableField
-                label="Daily Rate"
-                field="daily_rate"
-                value={formData.daily_rate}
-                type="number"
-                isEditing={isEditing}
-                onChange={handleChange}
-              />
+            {isSuperAdmin && formData.payroll_type === "Monthly" ? (
+              <>
+                <EditableField
+                  label="Monthly Basic"
+                  field="monthly_basic"
+                  value={formData.monthly_basic}
+                  type="number"
+                  isEditing={isEditing}
+                  onChange={handleChange}
+                />
+                <EditableField
+                  label="Monthly Allowance"
+                  field="monthly_allow"
+                  value={formData.monthly_allow}
+                  type="number"
+                  isEditing={isEditing}
+                  onChange={handleChange}
+                />
+                <div className="space-y-1">
+                  <label className="text-sm text-black font-semibold">
+                    Daily Rate Equivalent
+                  </label>
+                  <p className="font-serif text-gray-600">
+                    ₱
+                    {(
+                      (Number(formData.monthly_basic || 0) * 12) /
+                      313
+                    ).toFixed(2)}{" "}
+                    / day
+                    <span className="text-xs text-gray-400 ml-2">
+                      (Monthly Basic × 12 ÷ 313 — auto-computed, not stored
+                      directly)
+                    </span>
+                  </p>
+                </div>
+              </>
+            ) : (
+              isSuperAdmin && (
+                <EditableField
+                  label="Daily Rate"
+                  field="daily_rate"
+                  value={formData.daily_rate}
+                  type="number"
+                  isEditing={isEditing}
+                  onChange={handleChange}
+                />
+              )
             )}
 
             <EditableField
