@@ -13,37 +13,21 @@ import {
 } from "../../api/payroll/overtimeApproval";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
+import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
 
 
 /*
  * Government contribution lookup used by Admin payroll.
  *
- * The uploaded admin government workbook shows monthly EE values.
  * Because Admin payroll is semi-monthly:
  *
- * SSS EE monthly amount -> divide by 2 per cutoff
- * PHIC EE monthly amount -> divide by 2 per cutoff
+ * SSS EE  -> employee deduction selected from the gross-pay contribution range
+ * PHIC EE -> 2.5% of Basic per cutoff (allowance excluded)
  * Pag-IBIG EE default ₱200/month -> ₱100 per cutoff
  *
- * These contributions are calculated in PayrollList instead of being
- * maintained in EmployeeForm.
+ * SSS is calculated from `grossPay` inside the main payroll loop; PHIC is
+ * calculated from `semiMonthlyBasic`; Pag-IBIG uses the flat lookup below.
  */
-const getSSSEmployeeShare = (monthlyBasic) => {
-  const basic = Number(monthlyBasic || 0);
-
-  if (basic <= 0) return 0;
-
-  // admin gov.xlsx reference:
-  // ₱20,000 Monthly Basic -> ₱1,000 monthly SSS EE
-  // ₱25,000 Monthly Basic -> ₱1,250 monthly SSS EE
-  //
-  // The workbook examples follow 5% for the MONTHLY SSS EE amount.
-  // Admin payroll is semi-monthly, so only half is deducted per cutoff.
-  const monthlySSSEE = basic * 0.05;
-
-  return monthlySSSEE / 2;
-};
-
 const getPagibigEmployeeShare = (monthlyBasic) => {
   const basic = Number(monthlyBasic || 0);
 
@@ -408,6 +392,8 @@ const PayrollList = () => {
                 (record) => record.status === "Absent"
             ).length;
 
+            // An absent day removes both the daily Basic rate and the
+            // daily Allowance rate from the semi-monthly pay.
             absentDeduction =
                 absentDays *
                 (rate + dailyAllowanceFromRate);
@@ -505,15 +491,48 @@ const PayrollList = () => {
           : rate * 26;
         const annualBasicForContributions = monthlyBasicForContributions * 12;
 
-        // ===== Manual entries (Others) + statutory deductions =====
-        // SSS EE and Pag-IBIG EE are calculated here from the Admin
-        // government reference sheet, so they are no longer maintained in
-        // EmployeeForm. PhilHealth and WHT keep their payroll calculations.
+        // ===== Manual entries (Others) =====
         const adjKey = getAdjustmentKey(employee.id, activePeriod);
         const adj = adjustments[adjKey] || {};
 
         const others = Number(adj.others || 0);
 
+        // ===== Gross pay =====
+        // Computed before statutory deductions since SSS and PHIC are now
+        // calculated as a percentage of gross pay for the cutoff.
+        let grossPay = 0;
+
+        if (payrollType === "Monthly") {
+
+            grossPay =
+                basicPay +
+                otPay +
+                shPay +
+                rhPay +
+                leavePay +
+                others;
+
+        } else {
+
+            grossPay =
+                basicPay +
+                allowancePay +
+                otPay +
+                shPay +
+                rhPay +
+                leavePay +
+                others -
+                undertimeDeduction;
+        }
+
+        // ===== Statutory deductions =====
+        // SSS is looked up from the official contribution table (see
+        // utils/payroll/sssContributionTable.js) — grossPay for the cutoff
+        // is matched directly against the bracket ranges, and the boxed
+        // "Employee Total" amount for that bracket is deducted as-is.
+        // PHIC = 2.5% of Basic only for the cutoff; allowance is excluded.
+        // Pag-IBIG EE (flat ₱100/cutoff) and WHT keep their existing
+        // calculations.
         let sssDeduction = 0;
         let philhealthDeduction = 0;
         let pagibigDeduction = 0;
@@ -521,11 +540,9 @@ const PayrollList = () => {
 
         if (payrollType === "Monthly") {
 
-            sssDeduction =
-                getSSSEmployeeShare(monthlyBasicForContributions);
+            sssDeduction = getSSSEmployeeDeduction(grossPay);
 
-            const computedPhilhealth =
-                (monthlyBasicForContributions * 0.05) / 2 / 2;
+            const computedPhilhealth = semiMonthlyBasic * 0.025;
 
             philhealthDeduction =
                 adj.philhealthDeduction !== undefined
@@ -556,31 +573,6 @@ const PayrollList = () => {
         const otherDeductions = sssLoan + cashAdvance + personalDeduction;
 
         const totalDeductions = govtDeductions + otherDeductions;
-
-        let grossPay = 0;
-
-        if (payrollType === "Monthly") {
-
-            grossPay =
-                basicPay +
-                otPay +
-                shPay +
-                rhPay +
-                leavePay +
-                others;
-
-        } else {
-
-            grossPay =
-                basicPay +
-                allowancePay +
-                otPay +
-                shPay +
-                rhPay +
-                leavePay +
-                others -
-                undertimeDeduction;
-        }
 
         const netPay = grossPay - totalDeductions;
 
