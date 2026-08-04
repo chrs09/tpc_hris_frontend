@@ -14,6 +14,7 @@ import {
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
 import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
+import PayslipModal from "../../components/payroll/PayslipModal";
 
 
 /*
@@ -48,6 +49,7 @@ const PayrollList = () => {
   const [searchEmployee, setSearchEmployee] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState(0);
   const [selectedPayroll, setSelectedPayroll] = useState(null);
+  const [selectedPayslips, setSelectedPayslips] = useState([]);
   const [otApprovals, setOTApprovals] = useState([]);
   const [holidays, setHolidays] = useState([]);
 
@@ -867,6 +869,15 @@ const PayrollList = () => {
           >
             Export Excel
           </button>
+
+          <button
+            type="button"
+            className="bg-violet-600 text-white px-4 rounded-lg hover:bg-violet-700 transition disabled:cursor-not-allowed disabled:bg-violet-300"
+            onClick={() => setSelectedPayslips(payrollRows)}
+            disabled={payrollRows.length === 0}
+          >
+            Generate Bulk Payslips
+          </button>
         </div>
       </div>
 
@@ -1354,6 +1365,13 @@ const PayrollList = () => {
                           View Details
                         </button>
 
+                        <button
+                          className="px-3 py-1 rounded-lg bg-violet-600 text-white text-xs hover:bg-violet-700"
+                          onClick={() => setSelectedPayslips([row])}
+                        >
+                          Generate Payslip
+                        </button>
+
                         {row.otHours > 0 && row.otStatus !== "Approved" ? (
                           <button
                             className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs"
@@ -1388,6 +1406,12 @@ const PayrollList = () => {
         onOTApproved={async () => {
           await loadOTApprovals();
         }}
+      />
+      <PayslipModal
+        isOpen={selectedPayslips.length > 0}
+        payrolls={selectedPayslips}
+        activePeriod={activePeriod}
+        onClose={() => setSelectedPayslips([])}
       />
     </div>
   );
