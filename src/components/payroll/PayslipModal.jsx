@@ -60,7 +60,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
     { label: "Withholding Tax", amount: payroll.withholdingTax },
     { label: "SSS Loan", amount: payroll.sssLoan },
     { label: "Other Deductions", amount: payroll.personalDeduction },
-  ].filter((item) => Number(item.amount || 0) !== 0);
+  ];
 
   const totalDeductions = deductions.reduce(
     (total, item) => total + Number(item.amount || 0),

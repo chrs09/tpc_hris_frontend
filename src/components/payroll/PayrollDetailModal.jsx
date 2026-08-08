@@ -185,17 +185,29 @@ const PayrollDetailModal = ({
       totals.rendered += result.renderedHours || 0;
       totals.regular += result.regularHours || 0;
 
+      totals.tardiness += result.tardinessMinutes || 0;
+      totals.undertime += result.undertimeMinutes || 0;
+
+      totals.total +=
+          (result.tardinessMinutes || 0) +
+          (result.undertimeMinutes || 0);
+
       return totals;
     },
     {
-      rendered: 0,
-      regular: 0,
+        rendered:0,
+        regular:0,
+
+        tardiness:0,
+        undertime:0,
+
+        total:0,
     },
   );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="flex justify-between items-center border-b p-5">
           <div>
@@ -430,27 +442,33 @@ const PayrollDetailModal = ({
                 <table className="w-full border">
                   <thead className="bg-gray-100">
                     <tr>
-                      <th className="border px-3 py-2 text-left">Date</th>
+                      <th className="border px-3 py-2 text-center">Date</th>
 
-                      <th className="border px-3 py-2 text-left">Time In</th>
+                      <th className="border px-3 py-2 text-center">Time In</th>
 
-                      <th className="border px-3 py-2 text-left">Time Out</th>
+                      <th className="border px-3 py-2 text-center">Time Out</th>
 
-                      <th className="border px-3 py-2 text-left">Status</th>
+                      <th className="border px-3 py-2 text-center">Status</th>
 
-                      <th className="border px-3 py-2 text-left">
+                      <th className="border px-3 py-2 text-center">
                         Hours Rendered
                       </th>
 
-                      <th className="border px-3 py-2 text-left">
+                      <th className="border px-3 py-2 text-center">
                         Regular Hours
                       </th>
 
-                      <th className="border px-3 py-2 text-left">OT</th>
-                      <th className="border px-3 py-2 text-left">
+                      <th className="border px-3 py-2 text-center">OT</th>
+                      <th className="border px-3 py-2 text-center">
                         Approved OT
                       </th>
-                      <th className="border px-3 py-2 text-left">UT</th>
+                      <th className="border px-3 py-2 text-center">
+                        Tardiness
+                      </th>
+                      <th className="border px-3 py-2 text-center">
+                        UT
+                      </th>
+                      <th className="border px-3 py-2 text-center">Total</th>
                       {/* <th className="border px-3 py-2 text-left">
                           Trips
                       </th> */}
@@ -462,11 +480,18 @@ const PayrollDetailModal = ({
                       let workedHours = 0;
                       let regularHours = 0;
                       let otHours = 0;
+
                       let result = {
-                        renderedHours: 0,
-                        regularHours: 0,
-                        undertimeHours: 0,
-                        overtimeHours: 0,
+                          renderedHours:0,
+                          regularHours:0,
+
+                          tardinessMinutes:0,
+                          tardinessHours:0,
+
+                          undertimeMinutes:0,
+                          undertimeHours:0,
+
+                          overtimeHours:0,
                       };
 
                       if (
@@ -487,15 +512,35 @@ const PayrollDetailModal = ({
                         otHours = result.overtimeHours;
                       }
 
-                      const hasUndertime = (result.undertimeHours || 0) > 0;
+                      const hasAttendanceWarning =
+                        (result.undertimeHours || 0) > 0 ||
+                        (result.tardinessHours || 0) > 0;
 
                       return (
                         <tr
                           key={record.id}
-                          className={hasUndertime ? "bg-yellow-50" : ""}
+                          className={hasAttendanceWarning ? "bg-yellow-50" : ""}
                         >
                           <td className="border px-3 py-2">
-                            {record.attendance_date}
+                            <div className="flex flex-col gap-1">
+                              <span>{record.attendance_date}</span>
+
+                              <span className="text-xs text-gray-500">
+                                {new Date(record.attendance_date + "T00:00:00").toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    weekday: "long",
+                                  },
+                                )}
+                              </span>
+
+                              <span className="text-xs text-gray-500">
+                                Schedule: 
+                                <p className="font-semibold inline-block ml-1">
+                                  {result.scheduledTimeIn || "--"} - {result.scheduledTimeOut || "--"}
+                                </p>
+                              </span>
+                            </div>
                           </td>
 
                           <td className="border px-3 py-2">
@@ -512,18 +557,18 @@ const PayrollDetailModal = ({
 
                           <td className="border px-3 py-2">{record.status}</td>
 
-                          <td className="border px-3 py-2">
+                          <td className="border px-3 py-2 text-center">
                             {Number(workedHours || 0).toFixed(2)}
                           </td>
 
-                          <td className="border px-3 py-2">
+                          <td className="border px-3 py-2 text-center">
                             {Number(regularHours || 0).toFixed(2)}
                           </td>
 
-                          <td className="border px-3 py-2">
+                              <td className="border px-3 py-2 text-center">
                             {Number(otHours || 0).toFixed(2)}
                           </td>
-                          <td className="border px-3 py-2">
+                          <td className="border px-3 py-2 text-center">
                             {otHours > 0 ? (
                               <input
                                 type="number"
@@ -554,14 +599,22 @@ const PayrollDetailModal = ({
                             )}
                           </td>
 
-                          <td
-                            className={`border px-3 py-2 ${
-                              result.undertimeHours > 0
-                                ? "text-red-600 font-bold"
-                                : ""
-                            }`}
-                          >
-                            {Number(result.undertimeHours || 0).toFixed(2)}
+                          <td className="border px-3 py-2 text-red-600">
+                              {result.tardinessMinutes > 0
+                                  ? `${result.tardinessMinutes} mins (${result.tardinessHours.toFixed(2)} hr)`
+                                  : "--"}
+                          </td>
+
+                          <td className="border px-3 py-2 text-red-600">
+                              {result.undertimeMinutes > 0
+                                  ? `${result.undertimeMinutes} mins (${result.undertimeHours.toFixed(2)} hr)`
+                                  : "--"}
+                          </td>
+
+                          <td className="border px-3 py-2 font-bold text-red-700">
+                              {result.tardinessMinutes + result.undertimeMinutes > 0
+                                  ? `${result.tardinessMinutes + result.undertimeMinutes} mins (${((result.tardinessMinutes + result.undertimeMinutes) / 60).toFixed(2)} hr)`
+                                  : "--"}
                           </td>
                           {/* <td className="border px-3 py-2">
                                   {record.completed_trips}
@@ -596,9 +649,23 @@ const PayrollDetailModal = ({
                         {approvedTotalValue.toFixed(2)}
                       </td>
 
-                      {/* UT */}
+                      {/* Deduction */}
                       <td className="border px-3 py-2">
-                        {payroll.undertimeHours.toFixed(2)}
+                          {tableTotals.tardiness > 0
+                              ? `${tableTotals.tardiness} mins (${(tableTotals.tardiness / 60).toFixed(2)} hr)`
+                              : "--"}
+                      </td>
+
+                      <td className="border px-3 py-2">
+                          {tableTotals.undertime > 0
+                              ? `${tableTotals.undertime} mins (${(tableTotals.undertime / 60).toFixed(2)} hr)`
+                              : "--"}
+                      </td>
+
+                      <td className="border px-3 py-2 font-bold">
+                          {tableTotals.total > 0
+                              ? `${tableTotals.total} mins (${(tableTotals.total / 60).toFixed(2)} hr)`
+                              : "--"}
                       </td>
                     </tr>
                   </tfoot>

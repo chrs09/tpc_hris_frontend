@@ -34,6 +34,7 @@ const getIsAbsent = (record) =>
   (record.status || "").toUpperCase() === "ABSENT";
 
 const getReviewStatus = (record) => {
+  if (getIsAbsent(record)) return "Absent";
   if (record.face_review_status === "AUTO_APPROVED") return "Auto Approved";
   if (record.face_review_status === "APPROVED") return "Approved";
   if (record.face_review_status === "REJECTED") return "Rejected";
@@ -48,32 +49,36 @@ const getReviewStatus = (record) => {
 const getStatusStyle = (status) => {
   if (status === "Auto Approved" || status === "Approved") {
     return {
-      badge: "bg-green-100 text-green-700",
-      border: "border-green-200",
-      text: "text-green-600",
+      badge: "bg-emerald-600 text-white",
+      border: "border-emerald-300",
+      text: "text-emerald-700",
+      card: "bg-emerald-100",
     };
   }
 
-  if (status === "Rejected" || status === "Match Failed") {
+  if (status === "Rejected" || status === "Match Failed" || status === "Absent") {
     return {
-      badge: "bg-red-100 text-red-700",
-      border: "border-red-200",
-      text: "text-red-600",
+      badge: "bg-rose-600 text-white",
+      border: "border-rose-300",
+      text: "text-rose-700",
+      card: "bg-rose-100",
     };
   }
 
   if (status === "No Selfie" || status === "No Profile Photo") {
     return {
-      badge: "bg-gray-100 text-gray-700",
-      border: "border-gray-200",
-      text: "text-gray-600",
+      badge: "bg-slate-600 text-white",
+      border: "border-slate-300",
+      text: "text-slate-700",
+      card: "bg-slate-100",
     };
   }
 
   return {
-    badge: "bg-orange-100 text-orange-700",
-    border: "border-orange-200",
-    text: "text-orange-600",
+    badge: "bg-amber-600 text-white",
+    border: "border-amber-300",
+    text: "text-amber-700",
+    card: "bg-amber-100",
   };
 };
 
@@ -84,6 +89,7 @@ const AttendanceGridReview = ({
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
   const [modalRecordId, setModalRecordId] = useState(null);
+  const [selectedStat, setSelectedStat] = useState(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches,
   );
@@ -141,25 +147,54 @@ const AttendanceGridReview = ({
     };
   }, [records]);
 
-  const presentRecords = useMemo(
-    () => records.filter((record) => !getIsAbsent(record)),
-    [records],
-  );
+  const visibleRecords = useMemo(() => {
+    if (!selectedStat || selectedStat === "total") {
+      return records;
+    }
+
+    if (selectedStat === "approved") {
+      return records.filter(
+        (record) =>
+          record.face_review_status === "AUTO_APPROVED" ||
+          record.face_review_status === "APPROVED",
+      );
+    }
+
+    if (selectedStat === "needsReview") {
+      return records.filter(
+        (record) =>
+          record.face_review_status === "NEEDS_REVIEW" ||
+          record.face_review_status === "NO_PROFILE_PHOTO" ||
+          record.face_review_status === "FACE_MATCH_FAILED",
+      );
+    }
+
+    if (selectedStat === "rejected") {
+      return records.filter((record) => record.face_review_status === "REJECTED");
+    }
+
+    if (selectedStat === "noSelfie") {
+      return records.filter((record) => !getPhoto(record));
+    }
+
+    if (selectedStat === "absent") {
+      return records.filter((record) => getIsAbsent(record));
+    }
+
+    return records;
+  }, [records, selectedStat]);
 
   const activeRecord = useMemo(() => {
-    if (!presentRecords.length) {
+    if (!visibleRecords.length) {
       return null;
     }
 
     if (!selectedRecordId) {
-      return presentRecords[0];
+      return visibleRecords[0];
     }
 
-    return (
-      presentRecords.find((record) => record.id === selectedRecordId) ||
-      presentRecords[0]
-    );
-  }, [presentRecords, selectedRecordId]);
+    return visibleRecords.find((record) => record.id === selectedRecordId) || visibleRecords[0];
+  }, [visibleRecords, selectedRecordId]);
 
   const handleApprove = (record) => {
     if (onApproveAttendance) {
@@ -182,8 +217,14 @@ const AttendanceGridReview = ({
 
   const closeRecordModal = () => setModalRecordId(null);
 
+  const handleStatSelect = (statKey) => {
+    setSelectedStat((current) => (current === statKey ? null : statKey));
+    setSelectedRecordId(null);
+    setModalRecordId(null);
+  };
+
   const modalRecord = isMobile
-    ? presentRecords.find((record) => record.id === modalRecordId) || null
+    ? visibleRecords.find((record) => record.id === modalRecordId) || null
     : null;
 
   return (
@@ -197,27 +238,64 @@ const AttendanceGridReview = ({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-        <StatCard label="Total Attendance" value={stats.total} />
-        <StatCard label="Approved" value={stats.autoApproved} color="green" />
+        <StatCard
+          label="Total Attendance"
+          value={stats.total}
+          onClick={() => handleStatSelect("total")}
+          isActive={selectedStat === "total"}
+        />
+        <StatCard
+          label="Approved"
+          value={stats.autoApproved}
+          color="green"
+          onClick={() => handleStatSelect("approved")}
+          isActive={selectedStat === "approved"}
+        />
         <StatCard
           label="Needs Review"
           value={stats.needsReview}
           color="orange"
+          onClick={() => handleStatSelect("needsReview")}
+          isActive={selectedStat === "needsReview"}
         />
-        <StatCard label="Rejected" value={stats.rejected} color="red" />
-        <StatCard label="No Selfie" value={stats.noSelfie} color="gray" />
-        <StatCard label="Absent" value={stats.absent} color="red" />
+        <StatCard
+          label="Rejected"
+          value={stats.rejected}
+          color="red"
+          onClick={() => handleStatSelect("rejected")}
+          isActive={selectedStat === "rejected"}
+        />
+        <StatCard
+          label="No Selfie"
+          value={stats.noSelfie}
+          color="gray"
+          onClick={() => handleStatSelect("noSelfie")}
+          isActive={selectedStat === "noSelfie"}
+        />
+        <StatCard
+          label="Absent"
+          value={stats.absent}
+          color="red"
+          onClick={() => handleStatSelect("absent")}
+          isActive={selectedStat === "absent"}
+        />
       </div>
+
+      {selectedStat && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+          Showing {selectedStat === "absent" ? "absent employees" : `${selectedStat.replace(/([A-Z])/g, " $1").toLowerCase()} records`}.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5">
         <div>
-          {!presentRecords.length ? (
+          {!visibleRecords.length ? (
             <div className="bg-white border rounded-xl p-10 text-center text-gray-500">
               No attendance records found.
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {presentRecords.map((record) => {
+              {visibleRecords.map((record) => {
                 const photo = getPhoto(record);
                 const status = getReviewStatus(record);
                 const style = getStatusStyle(status);
@@ -234,9 +312,9 @@ const AttendanceGridReview = ({
                         setSelectedRecordId(record.id);
                       }
                     }}
-                    className={`flex h-full flex-col overflow-hidden rounded-xl border bg-white text-left transition hover:shadow-md ${
+                    className={`flex h-full flex-col overflow-hidden rounded-xl border text-left transition hover:shadow-md ${
                       style.border
-                    } ${isSelected ? "ring-2 ring-blue-500" : ""}`}
+                    } ${isSelected ? "ring-2 ring-blue-500" : ""} ${style.card}`}
                   >
                     <div className="relative h-32 sm:h-36 bg-gray-100">
                       {photo ? (
@@ -577,7 +655,7 @@ const FaceReviewMessage = ({ record }) => {
   );
 };
 
-const StatCard = ({ label, value, color }) => {
+const StatCard = ({ label, value, color, onClick, isActive }) => {
   const colorClass =
     color === "green"
       ? "text-green-600"
@@ -590,10 +668,16 @@ const StatCard = ({ label, value, color }) => {
             : "text-gray-900";
 
   return (
-    <div className="bg-white border rounded-xl p-3 sm:p-4">
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full rounded-xl border bg-white p-3 text-left transition sm:p-4 ${
+        isActive ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200 hover:border-blue-300"
+      }`}
+    >
       <p className="text-xs sm:text-sm text-gray-500">{label}</p>
       <h3 className={`mt-2 text-2xl sm:text-3xl font-bold ${colorClass}`}>{value}</h3>
-    </div>
+    </button>
   );
 };
 

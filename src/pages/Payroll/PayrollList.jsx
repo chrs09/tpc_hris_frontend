@@ -177,8 +177,12 @@ const PayrollList = () => {
         let regularHours = 0;
         let otHours = 0;
         let daysWorked = 0;
+
         let undertimeHours = 0;
+        let tardinessHours = 0;
+
         let undertimeDeduction = 0;
+        let tardinessDeduction = 0;
 
         let attendanceCount = records.length;
         let missingTimeouts = 0;
@@ -253,6 +257,7 @@ const PayrollList = () => {
           otHours += result.overtimeHours;
 
           undertimeHours += result.undertimeHours;
+          tardinessHours += result.tardinessHours || 0;
         });
 
         //added
@@ -376,6 +381,9 @@ const PayrollList = () => {
 
             undertimeDeduction =
                 undertimeHours * hourlyRate;
+
+            tardinessDeduction =
+                tardinessHours * hourlyRate;
         }
 
         // Monthly
@@ -403,10 +411,14 @@ const PayrollList = () => {
             undertimeDeduction =
                 undertimeHours * hourlyRate;
 
+            tardinessDeduction =
+                tardinessHours * hourlyRate;
+
             basicPay =
                 totalBasicPay -
                 absentDeduction -
-                undertimeDeduction;
+                undertimeDeduction -
+                tardinessDeduction;
         }
 
         const approval = otApprovals.find(
@@ -540,30 +552,39 @@ const PayrollList = () => {
         let pagibigDeduction = 0;
         let withholdingTax = 0;
 
-        if (payrollType === "Monthly") {
+        const computedPhilhealth = semiMonthlyBasic * 0.025;
+        const computedWithholdingTax =
+            annualBasicForContributions > 250000
+                ? ((annualBasicForContributions - 250000) * 0.15) / 12
+                : 0;
+        const computedPagibig = getPagibigEmployeeShare(monthlyBasicForContributions);
+        const computedSSS = getSSSEmployeeDeduction(grossPay);
 
-            sssDeduction = getSSSEmployeeDeduction(grossPay);
+        sssDeduction =
+            adj.sssDeduction !== undefined
+                ? Number(adj.sssDeduction)
+                : payrollType === "Monthly"
+                ? computedSSS
+                : 0;
 
-            const computedPhilhealth = semiMonthlyBasic * 0.025;
+        philhealthDeduction =
+            adj.philhealthDeduction !== undefined
+                ? Number(adj.philhealthDeduction)
+                : payrollType === "Monthly"
+                ? computedPhilhealth
+                : 0;
 
-            philhealthDeduction =
-                adj.philhealthDeduction !== undefined
-                    ? Number(adj.philhealthDeduction)
-                    : computedPhilhealth;
+        pagibigDeduction =
+            adj.pagibigDeduction !== undefined
+                ? Number(adj.pagibigDeduction)
+                : computedPagibig;
 
-            pagibigDeduction =
-                getPagibigEmployeeShare(monthlyBasicForContributions);
-
-            const computedWithholdingTax =
-                annualBasicForContributions > 250000
-                    ? ((annualBasicForContributions - 250000) * 0.15) / 12
-                    : 0;
-
-            withholdingTax =
-                adj.withholdingTax !== undefined
-                    ? Number(adj.withholdingTax)
-                    : computedWithholdingTax;
-        }
+        withholdingTax =
+            adj.withholdingTax !== undefined
+                ? Number(adj.withholdingTax)
+                : payrollType === "Monthly"
+                ? computedWithholdingTax
+                : 0;
 
         const sssLoan = Number(adj.sssLoan || 0);
         const cashAdvance = Number(adj.cashAdvance || 0);
@@ -622,9 +643,11 @@ const PayrollList = () => {
 
             totalHours: 0,
 
-            undertimeHours: 0,
+            undertimeHours,
+            tardinessHours,
 
-            undertimeDeduction: 0,
+            undertimeDeduction,
+            tardinessDeduction,
 
             otHours: 0,
 
@@ -677,8 +700,13 @@ const PayrollList = () => {
           warnings,
 
           daysWorked,
+
           undertimeHours,
+          tardinessHours,
+
           undertimeDeduction,
+          tardinessDeduction,
+
           dailyRate: rate,
           isMonthlyRateType,
           monthlyBasic: isMonthlyRateType ? monthlyBasic : null,
@@ -1004,6 +1032,8 @@ const PayrollList = () => {
 
                   <th className="px-4 py-3 text-left">Absent</th>
 
+                  <th className="px-4 py-3 text-left">Tardiness Deduction</th>
+
                   <th className="px-4 py-3 text-left">UT Deduction</th>
 
                   <th className="px-4 py-3 text-left">Adjusted Basic</th>
@@ -1128,11 +1158,18 @@ const PayrollList = () => {
                         : `₱${row.absentDeduction.toFixed(2)}`}
                     </td>
 
-                    {/* UT */}
+                    {/* Tardiness */}
                     <td className="px-4 py-3 text-red-600">
-                      {row.isTripBasedEmployee
-                        ? "--"
-                        : `₱${row.undertimeDeduction.toFixed(2)}`}
+                        {row.isTripBasedEmployee
+                            ? "--"
+                            : `₱${row.tardinessDeduction.toFixed(2)}`}
+                    </td>
+
+                    {/* Undertime */}
+                    <td className="px-4 py-3 text-red-600">
+                        {row.isTripBasedEmployee
+                            ? "--"
+                            : `₱${row.undertimeDeduction.toFixed(2)}`}
                     </td>
 
                     {/* Adjusted Basic */}
@@ -1198,9 +1235,24 @@ const PayrollList = () => {
                     </td>
 
                     <td className="px-4 py-3">
-                      {row.isTripBasedEmployee
-                        ? "--"
-                        : `₱${row.sssDeduction.toFixed(2)}`}
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-24 border rounded px-2 py-1 text-sm"
+                          value={row.sssDeduction || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "sssDeduction",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
                     </td>
 
                     <td className="px-4 py-3">
@@ -1225,9 +1277,24 @@ const PayrollList = () => {
                     </td>
 
                     <td className="px-4 py-3">
-                      {row.isTripBasedEmployee
-                        ? "--"
-                        : `₱${row.pagibigDeduction.toFixed(2)}`}
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <input
+                          type="number"
+                          className="w-20 border rounded px-2 py-1 text-sm"
+                          value={row.pagibigDeduction || ""}
+                          placeholder="0"
+                          onChange={(e) =>
+                            updateAdjustment(
+                              row.employee.id,
+                              activePeriod,
+                              "pagibigDeduction",
+                              e.target.value,
+                            )
+                          }
+                        />
+                      )}
                     </td>
 
                     <td className="px-4 py-3">
