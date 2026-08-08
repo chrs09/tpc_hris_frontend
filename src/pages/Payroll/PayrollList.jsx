@@ -536,7 +536,8 @@ const PayrollList = () => {
                 rhPay +
                 leavePay +
                 others -
-                undertimeDeduction;
+                undertimeDeduction -
+                tardinessDeduction;
         }
 
         // ===== Statutory deductions =====
