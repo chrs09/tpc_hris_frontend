@@ -9,6 +9,7 @@ export const employeeRoles = {
   CdcHelper: "CdcHelper",
   CpdcDriver: "CpdcDriver",
   CpdcHelper: "CpdcHelper",
+  WingvanDriver: "WingvanDriver",
 };
 
 export const employeeRoleConvert = {
@@ -21,4 +22,5 @@ export const employeeRoleConvert = {
   CdcHelper: "CdcHelper",
   CpdcDriver: "CpdcDriver",
   CpdcHelper: "CpdcHelper",
+  WingvanDriver: "WingvanDriver",
 };
