@@ -15,6 +15,11 @@ import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanc
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
 import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
 import PayslipModal from "../../components/payroll/PayslipModal";
+import {
+  savePayrollDeduction,
+  savePayrollDeductionsBulk,
+  getPayrollDeductions,
+} from "../../api/payroll/payroll_deductions";
 
 
 /*
@@ -136,6 +141,49 @@ const PayrollList = () => {
     return getPayrollPeriods(department, 24);
   }, [department]);
   const activePeriod = periods[selectedPeriod] || cutoffInfo;
+
+  // Re-hydrates the manual SSS/PhilHealth/Pag-IBIG override inputs from
+  // whatever was last saved to `payroll_deductions` for this cutoff +
+  // department. Without this, `adjustments` starts empty on every page
+  // load/refresh and the inputs silently fall back to their computed
+  // defaults even though a row was already saved.
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+
+    const loadSavedDeductions = async () => {
+      try {
+        const cutoff_period = `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`;
+        const saved = await getPayrollDeductions({ cutoff_period, department });
+        const records = Array.isArray(saved) ? saved : saved?.items || [];
+
+        if (records.length === 0) return;
+
+        setAdjustments((prev) => {
+          const next = { ...prev };
+
+          records.forEach((record) => {
+            const key = getAdjustmentKey(record.employee_id, activePeriod);
+
+            next[key] = {
+              // Seed from the DB first...
+              sssDeduction: record.sss_deduction,
+              philhealthDeduction: record.philhealth_deduction,
+              pagibigDeduction: record.pagibig_deduction,
+              // ...but let any value already edited locally this session
+              // (e.g. the user just typed something) win.
+              ...prev[key],
+            };
+          });
+
+          return next;
+        });
+      } catch (err) {
+        console.error("Failed to load saved payroll_deductions", err);
+      }
+    };
+
+    loadSavedDeductions();
+  }, [activePeriod, department]);
 
   const payrollRows = useMemo(() => {
     return employees
@@ -696,6 +744,8 @@ const PayrollList = () => {
         return {
           employee,
 
+          isTripBasedEmployee: false,
+
           attendanceCount,
           missingTimeouts,
           warnings,
@@ -831,19 +881,120 @@ const PayrollList = () => {
     }
   };
 
-  const handleExportExcel = () => {
+  const [savingPayslipFor, setSavingPayslipFor] = useState(null);
 
-      exportPayrollExcel(
+  // Persists the SSS / PhilHealth / Pag-IBIG / tardiness / undertime /
+  // absent deductions (and gross/net pay, for reference) to the
+  // `payroll_deductions` table, then opens the payslip modal. Backend
+  // upserts on (employee_id, cutoff_period) so re-generating a payslip
+  // for the same cutoff updates the existing row instead of duplicating it.
+  const handleGeneratePayslip = async (row) => {
+    if (!row.isTripBasedEmployee) {
+      setSavingPayslipFor(row.employee.id);
 
-          payrollRows,
+      try {
+        await savePayrollDeduction({
+          cutoff_period: `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+          employee_id: row.employee.id,
+          department,
+          gross_pay: row.grossPay,
+          sss_deduction: row.sssDeduction,
+          philhealth_deduction: row.philhealthDeduction,
+          pagibig_deduction: row.pagibigDeduction,
+          tardiness_deduction: row.tardinessDeduction,
+          undertime_deduction: row.undertimeDeduction,
+          absent_deduction: row.absentDeduction,
+          net_pay: row.netPay,
+        });
+      } catch (err) {
+        console.error("Failed to save payroll_deductions", err);
 
-          activePeriod,
+        // Surface it — silently swallowing this means deductions can look
+        // "saved" from the UI's perspective when they never hit the DB.
+        alert(
+          `Could not save deductions for ${row.employee.first_name} ${row.employee.last_name}: ` +
+            (err?.response?.data?.detail || err.message || "Unknown error") +
+            "\n\nThe payslip will still open, but this record was NOT saved.",
+        );
+      } finally {
+        setSavingPayslipFor(null);
+      }
+    }
 
-          department
+    setSelectedPayslips([row]);
+  };
 
+  const [isExporting, setIsExporting] = useState(false);
+  const [isGeneratingPayroll, setIsGeneratingPayroll] = useState(false);
+
+  const buildDeductionRows = () =>
+    payrollRows
+      .filter((row) => !row.isTripBasedEmployee)
+      .map((row) => ({
+        cutoff_period: `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+        employee_id: row.employee.id,
+        department,
+        gross_pay: row.grossPay,
+        sss_deduction: row.sssDeduction,
+        philhealth_deduction: row.philhealthDeduction,
+        pagibig_deduction: row.pagibigDeduction,
+        tardiness_deduction: row.tardinessDeduction,
+        undertime_deduction: row.undertimeDeduction,
+        absent_deduction: row.absentDeduction,
+        net_pay: row.netPay,
+      }));
+
+  // Bulk-saves every row's deductions for the active cutoff to
+  // `payroll_deductions`. Shared by "Generate Payroll" and "Export Excel"
+  // so both buttons persist the exact same data the same way.
+  const saveAllDeductions = async ({ onErrorSuffix = "" } = {}) => {
+    const deductionRows = buildDeductionRows();
+
+    if (deductionRows.length === 0) return true;
+
+    try {
+      await savePayrollDeductionsBulk(deductionRows);
+
+      return true;
+    } catch (err) {
+      console.error("Failed to save payroll_deductions", err);
+
+      alert(
+        "Some deduction records could not be saved to the database: " +
+          (err?.response?.data?.detail || err.message || "Unknown error") +
+          onErrorSuffix,
       );
 
+      return false;
+    }
   };
+
+  const handleGeneratePayroll = async () => {
+    setIsGeneratingPayroll(true);
+
+    const saved = await saveAllDeductions();
+
+    setIsGeneratingPayroll(false);
+
+    if (saved) {
+      alert(
+        `Payroll deductions saved for ${payrollRows.filter((r) => !r.isTripBasedEmployee).length} employee(s).`,
+      );
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+
+    await saveAllDeductions({
+      onErrorSuffix: "\n\nThe Excel file will still be generated.",
+    });
+
+    setIsExporting(false);
+
+    exportPayrollExcel(payrollRows, activePeriod, department);
+  };
+
 
   return (
     <div className="space-y-6 p-6">
@@ -888,15 +1039,20 @@ const PayrollList = () => {
             className="border rounded-lg px-3 h-10 bg-white"
           />
 
-          <button className="bg-blue-600 text-white px-4 rounded-lg">
-            Generate Payroll
+          <button
+            className="bg-blue-600 text-white px-4 rounded-lg disabled:opacity-60"
+            disabled={isGeneratingPayroll}
+            onClick={handleGeneratePayroll}
+          >
+            {isGeneratingPayroll ? "Saving..." : "Generate Payroll"}
           </button>
 
           <button 
-            className="bg-green-600 text-white px-4 rounded-lg hover:bg-green-700 transition"
+            className="bg-green-600 text-white px-4 rounded-lg hover:bg-green-700 transition disabled:opacity-60"
+            disabled={isExporting}
             onClick={handleExportExcel}
           >
-            Export Excel
+            {isExporting ? "Saving..." : "Export Excel"}
           </button>
 
           <button
@@ -1434,10 +1590,13 @@ const PayrollList = () => {
                         </button>
 
                         <button
-                          className="px-3 py-1 rounded-lg bg-violet-600 text-white text-xs hover:bg-violet-700"
-                          onClick={() => setSelectedPayslips([row])}
+                          className="px-3 py-1 rounded-lg bg-violet-600 text-white text-xs hover:bg-violet-700 disabled:opacity-60"
+                          disabled={savingPayslipFor === row.employee.id}
+                          onClick={() => handleGeneratePayslip(row)}
                         >
-                          Generate Payslip
+                          {savingPayslipFor === row.employee.id
+                            ? "Saving..."
+                            : "Generate Payslip"}
                         </button>
 
                         {row.otHours > 0 && row.otStatus !== "Approved" ? (
