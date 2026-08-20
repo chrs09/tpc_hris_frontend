@@ -152,6 +152,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             path: "/dashboard/finance/trips",
             roles: ["superadmin"],
           },
+          {
+            label: "Expenses",
+            path: "/dashboard/finance/expenses",
+            roles: ["superadmin"],
+          }
         ],
       },
       {

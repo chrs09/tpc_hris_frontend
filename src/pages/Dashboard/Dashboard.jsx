@@ -16,6 +16,7 @@ import PayrollList from "../Payroll/PayrollList";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
+import FinanceExpenses from "../Finance/FinanceExpenses";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -63,6 +64,7 @@ const Dashboard = () => {
           <Route path="office/trips" element={<OfficeTripReview />} />
           {/* FINANCE */}
           <Route path="finance/trips" element={<FinanceTrips />} />
+          <Route path="finance/expenses" element={<FinanceExpenses />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
           <Route path="settings" element={<div>Settings</div>} />
