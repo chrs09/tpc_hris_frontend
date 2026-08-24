@@ -15,6 +15,22 @@ const money = (value) =>
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
 
+const getExpenseAmount = (expense) => {
+    if (
+      Array.isArray(expense.items) &&
+      expense.items.length > 0
+    ) {
+      return expense.items.reduce(
+        (total, item) =>
+          total + Number(item.amount || 0),
+        0,
+      );
+    }
+
+    // Fallback for old expenses
+    return Number(expense.amount || 0);
+  };
+
 const dateOnly = (value) => {
   if (!value) return "—";
 
@@ -42,17 +58,44 @@ const unique = (items) => [
 const mapExpenseFromApi = (expense) => ({
   ...expense,
 
-  encodedDate: expense.encoded_date,
+  expenseNumber: expense.expense_number ?? "",
 
-  postingPeriod: expense.posting_period,
+  invoiceDate:
+    expense.invoice_date ??
+    expense.date ??
+    "",
 
-  poNumber: expense.po_number,
+  poNumber:
+    expense.po_number ?? "",
 
-  receiptNumber: expense.receipt_number,
+  supplier:
+    expense.supplier ?? "",
 
-  receiptImage: expense.receipt_image_url,
+  invoiceNumber:
+    expense.invoice_number ??
+    expense.receipt_number ??
+    "",
 
-  unitPrice: expense.unit_price,
+  receiptImage:
+    expense.receipt_image_url,
+
+  items: Array.isArray(expense.items)
+    ? expense.items.map((item) => ({
+        id: item.id ?? null,
+        particulars:
+          item.particulars ?? "",
+        qty: item.qty ?? 1,
+        unit:
+          item.unit ?? "Piece",
+        unitPrice:
+          item.unit_price ?? "",
+        amount:
+          item.amount ?? 0,
+      }))
+    : [],
+
+  unitPrice:
+    expense.unit_price,
 
   additionalDetails:
     expense.additional_details,
@@ -90,13 +133,8 @@ const buildExpenseFormData = (expense) => {
   const formData = new FormData();
 
   formData.append(
-    "posting_period",
-    expense.postingPeriod || "",
-  );
-
-  formData.append(
     "date",
-    expense.date || "",
+    expense.invoiceDate || "",
   );
 
   formData.append(
@@ -110,8 +148,8 @@ const buildExpenseFormData = (expense) => {
   );
 
   formData.append(
-    "receipt_number",
-    expense.receiptNumber || "",
+    "invoice_number",
+    expense.invoiceNumber || "",
   );
 
   formData.append(
@@ -132,6 +170,26 @@ const buildExpenseFormData = (expense) => {
   formData.append(
     "unit_price",
     expense.unitPrice ?? "",
+  );
+
+  formData.append(
+    "items",
+    JSON.stringify(
+      (expense.items || []).map((item) => ({
+        id: item.id ?? null,
+        particulars:
+          item.particulars || "",
+        qty: Number(item.qty || 1),
+        unit:
+          item.unit || "Piece",
+        unit_price:
+          item.unitPrice === ""
+            ? null
+            : Number(item.unitPrice),
+        amount:
+          Number(item.amount || 0),
+      })),
+    ),
   );
 
   formData.append(
@@ -364,11 +422,11 @@ export default function FinanceExpenses() {
   const months = useMemo(() => {
     return unique(
       rows.map((r) => {
-        if (!r.date) {
+        if (!r.invoiceDate) {
           return null;
         }
 
-        const d = new Date(r.date);
+        const d = new Date(r.invoiceDate);
 
         if (
           Number.isNaN(
@@ -401,7 +459,9 @@ export default function FinanceExpenses() {
 
     return rows.filter((row) => {
       const haystack = [
-        row.receiptNumber,
+        row.expenseNumber,
+
+        row.invoiceNumber,
 
         row.receiptNumber2,
 
@@ -423,10 +483,10 @@ export default function FinanceExpenses() {
         .join(" ")
         .toLowerCase();
 
-      const rowMonth = row.date
+      const rowMonth = row.invoiceDate
         ? (() => {
             const d = new Date(
-              row.date,
+              row.invoiceDate,
             );
 
             return Number.isNaN(
@@ -482,29 +542,32 @@ export default function FinanceExpenses() {
 
   const total = filtered.reduce(
     (sum, row) =>
-      sum +
-      Number(
-        row.amount || 0,
-      ),
+      sum + getExpenseAmount(row),
     0,
   );
 
   const paid = filtered
     .filter(
       (row) =>
-        row.datePaid ||
-        row.status === "Paid",
+        row.status === "Paid" ||
+        row.datePaid,
     )
     .reduce(
       (sum, row) =>
-        sum +
-        Number(
-          row.amount || 0,
-        ),
+        sum + getExpenseAmount(row),
       0,
     );
 
-  const pending = total - paid;
+  const pending = filtered
+    .filter(
+      (row) =>
+        row.status === "Pending",
+    )
+    .reduce(
+      (sum, row) =>
+        sum + Number(row.ap || 0),
+      0,
+    );
 
   /*
    * ==========================================
@@ -763,11 +826,11 @@ export default function FinanceExpenses() {
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
                   <th className="px-4 py-3">
-                    Date
+                    Invoice Date
                   </th>
 
                   <th className="px-4 py-3">
-                    Receipt #
+                    Invoice Number
                   </th>
 
                   <th className="px-4 py-3">
@@ -816,12 +879,12 @@ export default function FinanceExpenses() {
                       >
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                           {dateOnly(
-                            row.date,
+                            row.invoiceDate,
                           )}
                         </td>
 
                         <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-800">
-                          {row.receiptNumber ||
+                          {row.invoiceNumber ||
                             "—"}
                         </td>
 
@@ -866,7 +929,7 @@ export default function FinanceExpenses() {
 
                         <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">
                           {money(
-                            row.amount,
+                            getExpenseAmount(row),
                           )}
                         </td>
 

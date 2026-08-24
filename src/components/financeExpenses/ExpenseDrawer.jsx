@@ -1,12 +1,24 @@
 import { useMemo, useState } from "react";
 
 const emptyExpense = {
-  date: "",
-  postingPeriod: "",
+  expenseNumber: "",
+  invoiceDate: "",
   poNumber: "",
   supplier: "",
-  receiptNumber: "",
+  invoiceNumber: "",
   receiptImage: null,
+
+  items: [
+    {
+      id: null,
+      particulars: "",
+      qty: 1,
+      unit: "Piece",
+      unitPrice: "",
+      amount: 0,
+    },
+  ],
+
 
   qty: 1,
   unit: "Piece",
@@ -20,7 +32,7 @@ const emptyExpense = {
   receivedBy: "",
 
   category: "Others",
-  account: "CST",
+  account: "Tytan",
   notes: "",
 
   dateCountered: "",
@@ -156,10 +168,56 @@ export default function ExpenseDrawer({
    * That allows us to initialize the form directly from
    * the selected expense without useEffect.
    */
-  const [form, setForm] = useState(() => ({
-    ...emptyExpense,
-    ...(expense || {}),
-  }));
+  const [form, setForm] = useState(() => {
+    const initialExpense = {
+      ...emptyExpense,
+      ...(expense || {}),
+    };
+
+    if (
+      Array.isArray(expense?.items) &&
+      expense.items.length > 0
+    ) {
+      // New expense item structure
+      initialExpense.items = expense.items.map(
+        (item) => ({
+          id: item.id ?? null,
+          particulars:
+            item.particulars ?? "",
+          qty: item.qty ?? 1,
+          unit:
+            item.unit ?? "Piece",
+          unitPrice:
+            item.unit_price ?? "",
+          amount:
+            item.amount ?? 0,
+        }),
+      );
+    } else if (
+      expense?.particulars ||
+      expense?.qty ||
+      expense?.unit_price
+    ) {
+      // Legacy single-item structure
+      initialExpense.items = [
+        {
+          id: null,
+          particulars:
+            expense.particulars ?? "",
+          qty:
+            expense.qty ?? 1,
+          unit:
+            expense.unit ?? "Piece",
+          unitPrice:
+            expense.unit_price ?? "",
+          amount:
+            expense.amount ?? 0,
+        },
+      ];
+    }
+
+    return initialExpense;
+  });
 
   const isView = mode === "view";
 
@@ -168,6 +226,81 @@ export default function ExpenseDrawer({
       ...prev,
       [field]: value,
     }));
+  };
+
+  const updateItem = (index, field, value) => {
+    setForm((prev) => {
+      const items = [...(prev.items || [])];
+
+      const updatedItem = {
+        ...items[index],
+        [field]: value,
+      };
+
+      // Calculate amount automatically
+      if (
+        field === "qty" ||
+        field === "unitPrice"
+      ) {
+        const qty = Number(
+          field === "qty"
+            ? value
+            : updatedItem.qty || 0
+        );
+
+        const unitPrice = Number(
+          field === "unitPrice"
+            ? value
+            : updatedItem.unitPrice || 0
+        );
+
+        updatedItem.amount =
+          qty * unitPrice;
+      }
+
+      items[index] = updatedItem;
+
+      return {
+        ...prev,
+        items,
+      };
+    });
+  };
+
+  const addItem = () => {
+    setForm((prev) => ({
+      ...prev,
+      items: [
+        ...(prev.items || []),
+        {
+          id: null,
+          particulars: "",
+          qty: 1,
+          unit: "Piece",
+          unitPrice: "",
+          amount: 0,
+        },
+      ],
+    }));
+  };
+
+  const removeItem = (index) => {
+    setForm((prev) => {
+      const items = [...(prev.items || [])];
+
+      // Don't allow the user to remove
+      // the final remaining row.
+      if (items.length <= 1) {
+        return prev;
+      }
+
+      items.splice(index, 1);
+
+      return {
+        ...prev,
+        items,
+      };
+    });
   };
 
   /*
@@ -179,6 +312,15 @@ export default function ExpenseDrawer({
 
     return qty * unitPrice;
   }, [form.qty, form.unitPrice]);
+
+  const calculatedItemsTotal = useMemo(() => {
+    return (form.items || []).reduce(
+      (total, item) => {
+        return total + Number(item.amount || 0);
+      },
+      0,
+    );
+  }, [form.items]);
 
   /*
    * Image preview.
@@ -293,49 +435,39 @@ export default function ExpenseDrawer({
 
           <Section title="Expense Details">
             <Field
-              label="Date"
-              type="date"
-              disabled={isView}
-              value={form.date?.slice(0, 10)}
-              onChange={(value) =>
-                update("date", value)
-              }
+              label="Expense #"
+              disabled
+              value={form.expenseNumber}
+              onChange={() => {}}
             />
 
             <Field
-              label="Posting Period"
+              label="Invoice Date"
+              type="date"
               disabled={isView}
-              value={form.postingPeriod}
-              onChange={(value) =>
-                update("postingPeriod", value)
-              }
+              value={form.invoiceDate?.slice(0, 10)}
+              onChange={(v) => update("invoiceDate", v)}
             />
 
             <Field
               label="PO #"
               disabled={isView}
               value={form.poNumber}
-              onChange={(value) =>
-                update("poNumber", value)
-              }
+              onChange={(v) => update("poNumber", v)}
             />
 
             <Field
               label="Supplier"
               disabled={isView}
               value={form.supplier}
-              onChange={(value) =>
-                update("supplier", value)
-              }
+              onChange={(v) => update("supplier", v)}
             />
 
             <Field
-              label="Receipt #"
+              label="Invoice Number"
               disabled={isView}
-              value={form.receiptNumber}
-              onChange={(value) =>
-                update("receiptNumber", value)
-              }
+              value={form.invoiceNumber}
+              onChange={(v) => update("invoiceNumber", v)}
             />
 
             {/* Receipt Image */}
@@ -382,56 +514,245 @@ export default function ExpenseDrawer({
               </label>
             </div>
 
-            <Field
-              label="Particulars"
-              disabled={isView}
-              value={form.particulars}
-              onChange={(value) =>
-                update("particulars", value)
-              }
-            />
+           {/* ==============================
+                PARTICULARS / EXPENSE ITEMS
+            ============================== */}
 
-            <Field
-              label="Qty."
-              type="number"
-              disabled={isView}
-              value={form.qty}
-              onChange={(value) =>
-                update("qty", value)
-              }
-            />
+            <div className="md:col-span-2">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800">
+                    Particulars
+                  </h4>
 
-            <SelectField
-              label="Unit"
-              disabled={isView}
-              value={form.unit}
-              options={units}
-              onChange={(value) =>
-                update("unit", value)
-              }
-            />
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Add the items included in this invoice.
+                  </p>
+                </div>
 
-            <Field
-              label="Unit Price"
-              type="number"
-              disabled={isView}
-              value={form.unitPrice}
-              onChange={(value) =>
-                update("unitPrice", value)
-              }
-            />
+                {!isView && (
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    disabled={saving}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    + Add Particular
+                  </button>
+                )}
+              </div>
 
-            <Field
-              label="Amount"
-              type="number"
-              disabled
-              value={
-                calculatedAmount ||
-                form.amount ||
-                ""
-              }
-              onChange={() => {}}
-            />
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="w-full min-w-190 text-sm">
+                  <thead className="bg-slate-50">
+                    <tr className="border-b border-slate-200">
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                        Particulars
+                      </th>
+
+                      <th className="w-24 px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                        Qty
+                      </th>
+
+                      <th className="w-32 px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                        Unit
+                      </th>
+
+                      <th className="w-36 px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                        Unit Price
+                      </th>
+
+                      <th className="w-36 px-3 py-3 text-right text-xs font-semibold text-slate-500">
+                        Amount
+                      </th>
+
+                      {!isView && (
+                        <th className="w-16 px-3 py-3 text-center text-xs font-semibold text-slate-500">
+                          Action
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {(form.items || []).map((item, index) => (
+                      <tr
+                        key={item.id ?? `new-${index}`}
+                        className="border-b border-slate-100 last:border-b-0"
+                      >
+                        {/* Particulars */}
+                        <td className="px-3 py-3">
+                          {isView ? (
+                            <span className="text-sm text-slate-800">
+                              {item.particulars || "—"}
+                            </span>
+                          ) : (
+                            <input
+                              type="text"
+                              value={item.particulars ?? ""}
+                              disabled={saving}
+                              placeholder="Enter particular"
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "particulars",
+                                  e.target.value,
+                                )
+                              }
+                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                            />
+                          )}
+                        </td>
+
+                        {/* Quantity */}
+                        <td className="px-3 py-3">
+                          {isView ? (
+                            <span className="text-sm text-slate-800">
+                              {item.qty ?? "—"}
+                            </span>
+                          ) : (
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.qty ?? ""}
+                              disabled={saving}
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "qty",
+                                  e.target.value,
+                                )
+                              }
+                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                            />
+                          )}
+                        </td>
+
+                        {/* Unit */}
+                        <td className="px-3 py-3">
+                          {isView ? (
+                            <span className="text-sm text-slate-800">
+                              {item.unit || "—"}
+                            </span>
+                          ) : (
+                            <select
+                              value={item.unit ?? "Piece"}
+                              disabled={saving}
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "unit",
+                                  e.target.value,
+                                )
+                              }
+                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                            >
+                              {units.map((unit) => (
+                                <option
+                                  key={unit}
+                                  value={unit}
+                                >
+                                  {unit}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </td>
+
+                        {/* Unit Price */}
+                        <td className="px-3 py-3">
+                          {isView ? (
+                            <span className="text-sm text-slate-800">
+                              {Number(
+                                item.unitPrice || 0,
+                              ).toLocaleString(
+                                undefined,
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                },
+                              )}
+                            </span>
+                          ) : (
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unitPrice ?? ""}
+                              disabled={saving}
+                              placeholder="0.00"
+                              onChange={(e) =>
+                                updateItem(
+                                  index,
+                                  "unitPrice",
+                                  e.target.value,
+                                )
+                              }
+                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                            />
+                          )}
+                        </td>
+
+                        {/* Amount */}
+                        <td className="px-3 py-3 text-right">
+                          <span className="font-medium text-slate-800">
+                            {Number(
+                              item.amount || 0,
+                            ).toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              },
+                            )}
+                          </span>
+                        </td>
+
+                        {/* Action */}
+                        {!isView && (
+                          <td className="px-3 py-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                removeItem(index)
+                              }
+                              disabled={
+                                saving ||
+                                (form.items || []).length <= 1
+                              }
+                              title="Remove item"
+                              className="rounded-lg px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
+                            >
+                              ×
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-3 flex items-center justify-end">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-slate-500">
+                    Total
+                  </span>
+
+                  <span className="text-lg font-semibold text-slate-900">
+                    ₱
+                    {calculatedItemsTotal.toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      },
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             <Field
               label="Responsible"
