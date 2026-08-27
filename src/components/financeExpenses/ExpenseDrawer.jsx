@@ -19,7 +19,6 @@ const emptyExpense = {
     },
   ],
 
-
   qty: 1,
   unit: "Piece",
   particulars: "",
@@ -68,21 +67,11 @@ const units = [
   "Other",
 ];
 
-const categories = [
-  "Others",
-  "Supplies",
-  "Auto parts",
-  "Legal",
-  "Tires",
-];
+const categories = ["Others", "Supplies", "Auto parts", "Legal", "Tires"];
 
 const accounts = ["CST", "Tytan"];
 
-const statuses = [
-  "Pending",
-  "Paid",
-  "Cancelled",
-];
+const statuses = ["Pending", "Paid", "Cancelled"];
 
 function Field({
   label,
@@ -94,9 +83,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-slate-500">
-        {label}
-      </span>
+      <span className="text-xs font-medium text-slate-500">{label}</span>
 
       <input
         type={type}
@@ -110,18 +97,10 @@ function Field({
   );
 }
 
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-  disabled = false,
-}) {
+function SelectField({ label, value, options, onChange, disabled = false }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-slate-500">
-        {label}
-      </span>
+      <span className="text-xs font-medium text-slate-500">{label}</span>
 
       <select
         value={value ?? ""}
@@ -142,13 +121,9 @@ function SelectField({
 function Section({ title, children }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-      <h3 className="mb-4 text-sm font-semibold text-slate-800">
-        {title}
-      </h3>
+      <h3 className="mb-4 text-sm font-semibold text-slate-800">{title}</h3>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {children}
-      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{children}</div>
     </section>
   );
 }
@@ -174,44 +149,26 @@ export default function ExpenseDrawer({
       ...(expense || {}),
     };
 
-    if (
-      Array.isArray(expense?.items) &&
-      expense.items.length > 0
-    ) {
+    if (Array.isArray(expense?.items) && expense.items.length > 0) {
       // New expense item structure
-      initialExpense.items = expense.items.map(
-        (item) => ({
-          id: item.id ?? null,
-          particulars:
-            item.particulars ?? "",
-          qty: item.qty ?? 1,
-          unit:
-            item.unit ?? "Piece",
-          unitPrice:
-            item.unit_price ?? "",
-          amount:
-            item.amount ?? 0,
-        }),
-      );
-    } else if (
-      expense?.particulars ||
-      expense?.qty ||
-      expense?.unit_price
-    ) {
+      initialExpense.items = expense.items.map((item) => ({
+        id: item.id ?? null,
+        particulars: item.particulars ?? "",
+        qty: item.qty ?? 1,
+        unit: item.unit ?? "Piece",
+        unitPrice: item.unit_price ?? "",
+        amount: item.amount ?? 0,
+      }));
+    } else if (expense?.particulars || expense?.qty || expense?.unit_price) {
       // Legacy single-item structure
       initialExpense.items = [
         {
           id: null,
-          particulars:
-            expense.particulars ?? "",
-          qty:
-            expense.qty ?? 1,
-          unit:
-            expense.unit ?? "Piece",
-          unitPrice:
-            expense.unit_price ?? "",
-          amount:
-            expense.amount ?? 0,
+          particulars: expense.particulars ?? "",
+          qty: expense.qty ?? 1,
+          unit: expense.unit ?? "Piece",
+          unitPrice: expense.unit_price ?? "",
+          amount: expense.amount ?? 0,
         },
       ];
     }
@@ -238,24 +195,14 @@ export default function ExpenseDrawer({
       };
 
       // Calculate amount automatically
-      if (
-        field === "qty" ||
-        field === "unitPrice"
-      ) {
-        const qty = Number(
-          field === "qty"
-            ? value
-            : updatedItem.qty || 0
-        );
+      if (field === "qty" || field === "unitPrice") {
+        const qty = Number(field === "qty" ? value : updatedItem.qty || 0);
 
         const unitPrice = Number(
-          field === "unitPrice"
-            ? value
-            : updatedItem.unitPrice || 0
+          field === "unitPrice" ? value : updatedItem.unitPrice || 0,
         );
 
-        updatedItem.amount =
-          qty * unitPrice;
+        updatedItem.amount = qty * unitPrice;
       }
 
       items[index] = updatedItem;
@@ -314,12 +261,9 @@ export default function ExpenseDrawer({
   }, [form.qty, form.unitPrice]);
 
   const calculatedItemsTotal = useMemo(() => {
-    return (form.items || []).reduce(
-      (total, item) => {
-        return total + Number(item.amount || 0);
-      },
-      0,
-    );
+    return (form.items || []).reduce((total, item) => {
+      return total + Number(item.amount || 0);
+    }, 0);
   }, [form.items]);
 
   /*
@@ -371,9 +315,7 @@ export default function ExpenseDrawer({
   };
 
   const save = () => {
-    const amount = Number.isFinite(calculatedAmount)
-      ? calculatedAmount
-      : 0;
+    const amount = Number.isFinite(calculatedAmount) ? calculatedAmount : 0;
 
     onSave({
       ...form,
@@ -404,8 +346,7 @@ export default function ExpenseDrawer({
             <h2 className="mt-1 text-xl font-semibold text-slate-900">
               {mode === "create"
                 ? "Add Expense"
-                : form.receiptNumber ||
-                  `Expense #${form.id}`}
+                : form.receiptNumber || `Expense #${form.id}`}
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
@@ -514,7 +455,7 @@ export default function ExpenseDrawer({
               </label>
             </div>
 
-           {/* ==============================
+            {/* ==============================
                 PARTICULARS / EXPENSE ITEMS
             ============================== */}
 
@@ -593,11 +534,7 @@ export default function ExpenseDrawer({
                               disabled={saving}
                               placeholder="Enter particular"
                               onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "particulars",
-                                  e.target.value,
-                                )
+                                updateItem(index, "particulars", e.target.value)
                               }
                               className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                             />
@@ -618,11 +555,7 @@ export default function ExpenseDrawer({
                               value={item.qty ?? ""}
                               disabled={saving}
                               onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "qty",
-                                  e.target.value,
-                                )
+                                updateItem(index, "qty", e.target.value)
                               }
                               className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                             />
@@ -640,19 +573,12 @@ export default function ExpenseDrawer({
                               value={item.unit ?? "Piece"}
                               disabled={saving}
                               onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "unit",
-                                  e.target.value,
-                                )
+                                updateItem(index, "unit", e.target.value)
                               }
                               className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                             >
                               {units.map((unit) => (
-                                <option
-                                  key={unit}
-                                  value={unit}
-                                >
+                                <option key={unit} value={unit}>
                                   {unit}
                                 </option>
                               ))}
@@ -664,9 +590,7 @@ export default function ExpenseDrawer({
                         <td className="px-3 py-3">
                           {isView ? (
                             <span className="text-sm text-slate-800">
-                              {Number(
-                                item.unitPrice || 0,
-                              ).toLocaleString(
+                              {Number(item.unitPrice || 0).toLocaleString(
                                 undefined,
                                 {
                                   minimumFractionDigits: 2,
@@ -683,11 +607,7 @@ export default function ExpenseDrawer({
                               disabled={saving}
                               placeholder="0.00"
                               onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "unitPrice",
-                                  e.target.value,
-                                )
+                                updateItem(index, "unitPrice", e.target.value)
                               }
                               className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
                             />
@@ -697,9 +617,7 @@ export default function ExpenseDrawer({
                         {/* Amount */}
                         <td className="px-3 py-3 text-right">
                           <span className="font-medium text-slate-800">
-                            {Number(
-                              item.amount || 0,
-                            ).toLocaleString(
+                            {Number(item.amount || 0).toLocaleString(
                               undefined,
                               {
                                 minimumFractionDigits: 2,
@@ -714,12 +632,9 @@ export default function ExpenseDrawer({
                           <td className="px-3 py-3 text-center">
                             <button
                               type="button"
-                              onClick={() =>
-                                removeItem(index)
-                              }
+                              onClick={() => removeItem(index)}
                               disabled={
-                                saving ||
-                                (form.items || []).length <= 1
+                                saving || (form.items || []).length <= 1
                               }
                               title="Remove item"
                               className="rounded-lg px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
@@ -742,13 +657,10 @@ export default function ExpenseDrawer({
 
                   <span className="text-lg font-semibold text-slate-900">
                     ₱
-                    {calculatedItemsTotal.toLocaleString(
-                      undefined,
-                      {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      },
-                    )}
+                    {calculatedItemsTotal.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </span>
                 </div>
               </div>
@@ -758,18 +670,14 @@ export default function ExpenseDrawer({
               label="Responsible"
               disabled={isView}
               value={form.responsible}
-              onChange={(value) =>
-                update("responsible", value)
-              }
+              onChange={(value) => update("responsible", value)}
             />
 
             <Field
               label="Additional Details"
               disabled={isView}
               value={form.additionalDetails}
-              onChange={(value) =>
-                update("additionalDetails", value)
-              }
+              onChange={(value) => update("additionalDetails", value)}
             />
 
             <SelectField
@@ -777,9 +685,7 @@ export default function ExpenseDrawer({
               disabled={isView}
               value={form.category}
               options={categories}
-              onChange={(value) =>
-                update("category", value)
-              }
+              onChange={(value) => update("category", value)}
             />
 
             <SelectField
@@ -787,9 +693,7 @@ export default function ExpenseDrawer({
               disabled={isView}
               value={form.account}
               options={accounts}
-              onChange={(value) =>
-                update("account", value)
-              }
+              onChange={(value) => update("account", value)}
             />
           </Section>
 
@@ -802,18 +706,14 @@ export default function ExpenseDrawer({
               label="Requested By"
               disabled={isView}
               value={form.requestedBy}
-              onChange={(value) =>
-                update("requestedBy", value)
-              }
+              onChange={(value) => update("requestedBy", value)}
             />
 
             <Field
               label="Received By"
               disabled={isView}
               value={form.receivedBy}
-              onChange={(value) =>
-                update("receivedBy", value)
-              }
+              onChange={(value) => update("receivedBy", value)}
             />
 
             <div className="md:col-span-2">
@@ -821,9 +721,7 @@ export default function ExpenseDrawer({
                 label="Notes"
                 disabled={isView}
                 value={form.notes}
-                onChange={(value) =>
-                  update("notes", value)
-                }
+                onChange={(value) => update("notes", value)}
               />
             </div>
           </Section>
@@ -837,22 +735,15 @@ export default function ExpenseDrawer({
               label="Date Countered"
               type="date"
               disabled={isView}
-              value={form.dateCountered?.slice(
-                0,
-                10,
-              )}
-              onChange={(value) =>
-                update("dateCountered", value)
-              }
+              value={form.dateCountered?.slice(0, 10)}
+              onChange={(value) => update("dateCountered", value)}
             />
 
             <Field
               label="Counter #"
               disabled={isView}
               value={form.counterNumber}
-              onChange={(value) =>
-                update("counterNumber", value)
-              }
+              onChange={(value) => update("counterNumber", value)}
             />
           </Section>
 
@@ -866,27 +757,21 @@ export default function ExpenseDrawer({
               type="date"
               disabled={isView}
               value={form.datePaid?.slice(0, 10)}
-              onChange={(value) =>
-                update("datePaid", value)
-              }
+              onChange={(value) => update("datePaid", value)}
             />
 
             <Field
               label="Bank"
               disabled={isView}
               value={form.bank}
-              onChange={(value) =>
-                update("bank", value)
-              }
+              onChange={(value) => update("bank", value)}
             />
 
             <Field
               label="Check #"
               disabled={isView}
               value={form.checkNumber}
-              onChange={(value) =>
-                update("checkNumber", value)
-              }
+              onChange={(value) => update("checkNumber", value)}
             />
 
             <Field
@@ -894,18 +779,14 @@ export default function ExpenseDrawer({
               type="number"
               disabled={isView}
               value={form.checkAmount}
-              onChange={(value) =>
-                update("checkAmount", value)
-              }
+              onChange={(value) => update("checkAmount", value)}
             />
 
             <Field
               label="Receipt #2"
               disabled={isView}
               value={form.receiptNumber2}
-              onChange={(value) =>
-                update("receiptNumber2", value)
-              }
+              onChange={(value) => update("receiptNumber2", value)}
             />
           </Section>
 
@@ -919,9 +800,7 @@ export default function ExpenseDrawer({
               disabled={isView}
               value={form.status || "Pending"}
               options={statuses}
-              onChange={(value) =>
-                update("status", value)
-              }
+              onChange={(value) => update("status", value)}
             />
 
             <Field
@@ -929,9 +808,7 @@ export default function ExpenseDrawer({
               type="number"
               disabled={isView}
               value={form.ap}
-              onChange={(value) =>
-                update("ap", value)
-              }
+              onChange={(value) => update("ap", value)}
             />
 
             <div className="md:col-span-2">
@@ -939,9 +816,7 @@ export default function ExpenseDrawer({
                 label="Remarks"
                 disabled={isView}
                 value={form.remarks}
-                onChange={(value) =>
-                  update("remarks", value)
-                }
+                onChange={(value) => update("remarks", value)}
               />
             </div>
           </Section>

@@ -129,10 +129,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
       // - save coordinator remarks
       // - save coordinator_settlement_date
       // - create the TripFinanceReview record
-      await approveTrip(
-        selectedTrip.trip_id,
-        remarks.trim(),
-      );
+      await approveTrip(selectedTrip.trip_id, remarks.trim());
 
       setShowModal(false);
       setSelectedTrip(null);
@@ -460,9 +457,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                         <FontAwesomeIcon icon={faEye} />
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-400">
-                        No Photo
-                      </span>
+                      <span className="text-xs text-gray-400">No Photo</span>
                     )}
                   </div>
 
@@ -495,9 +490,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                         <FontAwesomeIcon icon={faEye} />
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-400">
-                        No Photo
-                      </span>
+                      <span className="text-xs text-gray-400">No Photo</span>
                     )}
                   </div>
                 </div>
@@ -505,9 +498,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 <hr className="mb-6" />
 
                 {/* ======================= VISITED STOPS ======================= */}
-                <h3 className="font-semibold text-lg mb-4">
-                  Visited Stops
-                </h3>
+                <h3 className="font-semibold text-lg mb-4">Visited Stops</h3>
 
                 <div className="space-y-3">
                   {selectedTrip.stops?.length > 0 ? (
@@ -533,7 +524,6 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                                 icon={faClock}
                                 className="mr-2"
                               />
-
                               Check-In: {stop.check_in_time || "-"}
                             </p>
 
@@ -542,7 +532,6 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                                 icon={faClock}
                                 className="mr-2"
                               />
-
                               Check-Out: {stop.check_out_time || "-"}
                             </p>
                           </div>
@@ -621,10 +610,10 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                       </label>
 
                       <p className="text-xs text-gray-300 mb-3">
-                        Add your remarks after reviewing the trip details, route,
-                        stops, invoices, and proof of delivery. Once approved, the
-                        trip will be settled and forwarded to Office Personnel for
-                        further review.
+                        Add your remarks after reviewing the trip details,
+                        route, stops, invoices, and proof of delivery. Once
+                        approved, the trip will be settled and forwarded to
+                        Office Personnel for further review.
                       </p>
 
                       <textarea
@@ -639,9 +628,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                         rows={4}
                         placeholder="e.g. All stops, PODs, and trip details verified. No discrepancies found."
                         className={`w-full rounded-xl p-3 text-sm text-black bg-gray-50 border ${
-                          remarksError
-                            ? "border-red-500"
-                            : "border-gray-200"
+                          remarksError ? "border-red-500" : "border-gray-200"
                         } focus:outline-none focus:ring-2 focus:ring-yellow-400`}
                       />
 

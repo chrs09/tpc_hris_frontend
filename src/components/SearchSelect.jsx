@@ -7,7 +7,8 @@ export default function SearchSelect({
   onChange,
   placeholder = "Select",
   disabled = false,
-  getOptionLabel = (option) => option?.label ?? option?.name ?? String(option ?? ""),
+  getOptionLabel = (option) =>
+    option?.label ?? option?.name ?? String(option ?? ""),
   getOptionValue = (option) => option?.value ?? option?.id ?? option,
 }) {
   const [open, setOpen] = useState(false);
@@ -95,53 +96,57 @@ export default function SearchSelect({
         <span className="text-gray-400">▾</span>
       </button>
 
-      {open && rect && createPortal(
-        <div
-          data-searchable-dropdown
-          style={{
-            position: "fixed",
-            top: rect.bottom + 4,
-            left: rect.left,
-            width: Math.max(rect.width, 260),
-          }}
-          className="z-9999 rounded-lg border bg-white shadow-lg"
-        >
-          <div className="border-b p-2">
-            <input
-              autoFocus
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search..."
-              className="w-full rounded border px-2 py-1 text-sm focus:outline-none"
-            />
-          </div>
+      {open &&
+        rect &&
+        createPortal(
+          <div
+            data-searchable-dropdown
+            style={{
+              position: "fixed",
+              top: rect.bottom + 4,
+              left: rect.left,
+              width: Math.max(rect.width, 260),
+            }}
+            className="z-9999 rounded-lg border bg-white shadow-lg"
+          >
+            <div className="border-b p-2">
+              <input
+                autoFocus
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full rounded border px-2 py-1 text-sm focus:outline-none"
+              />
+            </div>
 
-          <div className="max-h-60 overflow-auto">
-            {filtered.length === 0 ? (
-              <div className="p-3 text-sm text-slate-400">No results</div>
-            ) : (
-              filtered.map((option) => {
-                const isActive = selectedValue !== null && getOptionValue(option) === selectedValue;
+            <div className="max-h-60 overflow-auto">
+              {filtered.length === 0 ? (
+                <div className="p-3 text-sm text-slate-400">No results</div>
+              ) : (
+                filtered.map((option) => {
+                  const isActive =
+                    selectedValue !== null &&
+                    getOptionValue(option) === selectedValue;
 
-                return (
-                  <button
-                    key={getOptionValue(option)}
-                    type="button"
-                    onClick={() => handleSelect(option)}
-                    className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 ${
-                      isActive ? "bg-gray-50 font-medium" : ""
-                    }`}
-                  >
-                    <span>{getOptionLabel(option)}</span>
-                    {isActive && <span className="text-[#2b2b2b]">✓</span>}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+                  return (
+                    <button
+                      key={getOptionValue(option)}
+                      type="button"
+                      onClick={() => handleSelect(option)}
+                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 ${
+                        isActive ? "bg-gray-50 font-medium" : ""
+                      }`}
+                    >
+                      <span>{getOptionLabel(option)}</span>
+                      {isActive && <span className="text-[#2b2b2b]">✓</span>}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

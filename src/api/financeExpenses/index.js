@@ -28,25 +28,14 @@ export const getFinanceExpenseDetail = (expenseId) =>
 // =========================================================
 
 export const createFinanceExpense = (formData) =>
-  api.post(
-    "/finance/expenses",
-    formData,
-    multipartConfig,
-  );
+  api.post("/finance/expenses", formData, multipartConfig);
 
 // =========================================================
 // UPDATE EXPENSE
 // =========================================================
 
-export const updateFinanceExpense = (
-  expenseId,
-  formData,
-) =>
-  api.patch(
-    `/finance/expenses/${expenseId}`,
-    formData,
-    multipartConfig,
-  );
+export const updateFinanceExpense = (expenseId, formData) =>
+  api.patch(`/finance/expenses/${expenseId}`, formData, multipartConfig);
 
 // =========================================================
 // DELETE EXPENSE

@@ -3,6 +3,7 @@
 A Vite + React Single Page Application (SPA) for the TYTAN HRIS system. Provides authentication, attendance (including selfie kiosk), onboarding/application forms, trip management (maps), payroll utilities, and admin dashboards.
 
 ## Tech stack
+
 - React 19 + Vite
 - Tailwind CSS, MUI (@mui/material), shadcn/ui + Radix primitives
 - Axios for HTTP, ag-grid for tables
@@ -13,6 +14,7 @@ A Vite + React Single Page Application (SPA) for the TYTAN HRIS system. Provides
 ## Quick start
 
 Prerequisites:
+
 - Node.js (18+) and npm/yarn
 
 1. Install dependencies
@@ -53,6 +55,7 @@ npm run lint
 ```
 
 ## Project layout (high level)
+
 - `src/main.jsx` — app bootstrap and router provider
 - `src/App.jsx` — top-level routes (public and protected)
 - `src/pages/` — page views grouped by domain (Dashboard, Payroll, Attendance, Finance, Driver, Public forms, Admin)
@@ -61,28 +64,35 @@ npm run lint
 - `src/hooks/`, `src/utils/`, `src/constants/` — helpers and utilities
 
 ## Auth & routing
+
 - Access token is stored in `localStorage` under `access_token`.
 - Protected routes mounted under `/dashboard/*` and guarded by token presence and `must_change_password` logic (see [src/App.jsx](src/App.jsx)).
 - Public endpoints include `/login`, application and onboarding forms, and `/attendance-kiosk`.
 
 ## PWA & service worker
+
 - `public/manifest.json` is included for PWA configuration. Service worker registration is present but commented out in `src/main.jsx`; enable registration if you want offline caching.
 
 ## Deployment notes
+
 - SPA rewrite is configured for Vercel and Azure Static Web Apps via `vercel.json` and `staticwebapp.config.json`.
 - Ensure `VITE_API_URL` is set in the environment for the deployed site.
 
 ## Useful files
+
 - [package.json](package.json) — scripts and dependencies
 - [vite.config.js](vite.config.js) — Vite config and aliases
 
 ## Next steps / suggestions
+
 - Enable the service worker if you need PWA offline support.
 - Add a `.env.example` with required env vars for contributors.
 - Optionally add a simple health-check route or an API mock for local development.
 
 ---
-If you want, I can also generate a detailed route/component inventory or add a `.env.example` file. 
+
+If you want, I can also generate a detailed route/component inventory or add a `.env.example` file.
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

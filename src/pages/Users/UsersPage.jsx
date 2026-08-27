@@ -162,191 +162,198 @@ const UsersPage = () => {
         </div>
 
         {/* ================= SUCCESS BANNER ================= */}
-      {generatedCredentials && (
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="font-semibold">User Created Successfully</div>
-              <div className="mt-1 text-sm">
-                Username: <strong>{generatedCredentials.username}</strong>
+        {generatedCredentials && (
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="font-semibold">User Created Successfully</div>
+                <div className="mt-1 text-sm">
+                  Username: <strong>{generatedCredentials.username}</strong>
+                </div>
+                <div className="text-sm">
+                  Temporary Password:{" "}
+                  <strong>{generatedCredentials.temporary_password}</strong>
+                </div>
               </div>
-              <div className="text-sm">
-                Temporary Password: <strong>{generatedCredentials.temporary_password}</strong>
-              </div>
-            </div>
 
-            <button
-              className="text-sm font-medium underline"
-              onClick={() => setGeneratedCredentials(null)}
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ================= USERS CONTAINER ================= */}
-      <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-        {/* ================= MOBILE ================= */}
-        <div className="space-y-4 p-4 sm:hidden">
-          {loading ? (
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
-              Loading users...
-            </div>
-          ) : paginatedUsers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
-              No users match the current filters.
-            </div>
-          ) : (
-            paginatedUsers.map((user) => (
-              <div
-                key={user.id}
-                className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm"
+              <button
+                className="text-sm font-medium underline"
+                onClick={() => setGeneratedCredentials(null)}
               >
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-semibold text-gray-800">{user.username}</div>
-                    <div className="text-xs text-gray-400">{user.email}</div>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
-                      user.is_active
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-600"
-                    }`}
-                  >
-                    {user.is_active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Role</span>
-                  <span className="text-sm font-medium capitalize text-gray-700">
-                    {user.role}
-                  </span>
-                </div>
-
-                <Button
-                  size="sm"
-                  className="w-full bg-[#2b2b2b] text-white transition hover:bg-[#4a4a4a]"
-                  onClick={() => {
-                    setEditingUser(user);
-                    setDrawerOpen(true);
-                  }}
-                >
-                  View Details
-                </Button>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* ================= DESKTOP ================= */}
-        <div className="hidden p-6 sm:block">
-          {loading ? (
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-10 text-center text-sm text-gray-500">
-              Loading users...
+                Dismiss
+              </button>
             </div>
-          ) : (
-            <div className="overflow-hidden rounded-2xl border border-gray-200">
-              <table className="w-full text-sm">
-                <thead className="bg-[#2b2b2b] text-white">
-                  <tr className="text-xs uppercase tracking-wide text-white">
-                    <th className="px-6 py-4 text-left font-medium">User</th>
-                    <th className="px-6 text-left font-medium">Role</th>
-                    <th className="px-6 text-left font-medium">Status</th>
-                    <th className="px-6 text-right font-medium">Action</th>
-                  </tr>
-                </thead>
+          </div>
+        )}
 
-                <tbody>
-                  {paginatedUsers.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan="4"
-                        className="px-6 py-12 text-center text-gray-400"
-                      >
-                        No users found
-                      </td>
+        {/* ================= USERS CONTAINER ================= */}
+        <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+          {/* ================= MOBILE ================= */}
+          <div className="space-y-4 p-4 sm:hidden">
+            {loading ? (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                Loading users...
+              </div>
+            ) : paginatedUsers.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                No users match the current filters.
+              </div>
+            ) : (
+              paginatedUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-semibold text-gray-800">
+                        {user.username}
+                      </div>
+                      <div className="text-xs text-gray-400">{user.email}</div>
+                    </div>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                        user.is_active
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-600"
+                      }`}
+                    >
+                      {user.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+
+                  <div className="mb-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">Role</span>
+                    <span className="text-sm font-medium capitalize text-gray-700">
+                      {user.role}
+                    </span>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    className="w-full bg-[#2b2b2b] text-white transition hover:bg-[#4a4a4a]"
+                    onClick={() => {
+                      setEditingUser(user);
+                      setDrawerOpen(true);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* ================= DESKTOP ================= */}
+          <div className="hidden p-6 sm:block">
+            {loading ? (
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-10 text-center text-sm text-gray-500">
+                Loading users...
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-gray-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#2b2b2b] text-white">
+                    <tr className="text-xs uppercase tracking-wide text-white">
+                      <th className="px-6 py-4 text-left font-medium">User</th>
+                      <th className="px-6 text-left font-medium">Role</th>
+                      <th className="px-6 text-left font-medium">Status</th>
+                      <th className="px-6 text-right font-medium">Action</th>
                     </tr>
-                  ) : (
-                    paginatedUsers.map((user) => (
-                      <tr
-                        key={user.id}
-                        className="border-t border-gray-200 transition hover:bg-gray-50"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
-                              {user.username.charAt(0).toUpperCase()}
-                            </div>
+                  </thead>
 
-                            <div>
-                              <div className="font-medium text-gray-800 capitalize">
-                                {user.username}
-                              </div>
-                              <div className="text-xs text-gray-400">{user.email}</div>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="px-6 text-gray-600 capitalize">{user.role}</td>
-
-                        <td className="px-6">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                              user.is_active
-                                ? "bg-green-50 text-green-600"
-                                : "bg-gray-100 text-gray-500"
-                            }`}
-                          >
-                            {user.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-
-                        <td className="px-6 text-right">
-                          <button
-                            className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm transition hover:bg-gray-100"
-                            onClick={() => {
-                              setEditingUser(user);
-                              setDrawerOpen(true);
-                            }}
-                          >
-                            View
-                          </button>
+                  <tbody>
+                    {paginatedUsers.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="px-6 py-12 text-center text-gray-400"
+                        >
+                          No users found
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      paginatedUsers.map((user) => (
+                        <tr
+                          key={user.id}
+                          className="border-t border-gray-200 transition hover:bg-gray-50"
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+                                {user.username.charAt(0).toUpperCase()}
+                              </div>
+
+                              <div>
+                                <div className="font-medium text-gray-800 capitalize">
+                                  {user.username}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {user.email}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 text-gray-600 capitalize">
+                            {user.role}
+                          </td>
+
+                          <td className="px-6">
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                user.is_active
+                                  ? "bg-green-50 text-green-600"
+                                  : "bg-gray-100 text-gray-500"
+                              }`}
+                            >
+                              {user.is_active ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+
+                          <td className="px-6 text-right">
+                            <button
+                              className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm transition hover:bg-gray-100"
+                              onClick={() => {
+                                setEditingUser(user);
+                                setDrawerOpen(true);
+                              }}
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* PAGINATION */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => prev - 1)}
+                className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Prev
+              </button>
+
+              <span className="text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => prev + 1)}
+                className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
             </div>
-          )}
-
-          {/* PAGINATION */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-              className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Prev
-            </button>
-
-            <span className="text-sm text-gray-600">
-              Page {currentPage} of {totalPages}
-            </span>
-
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-              className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
           </div>
         </div>
-      </div>
       </div>
 
       {/* ================= DRAWER ================= */}

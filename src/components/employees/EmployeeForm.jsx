@@ -308,10 +308,9 @@ export default function EmployeeForm({
                   </label>
                   <p className="font-serif text-gray-600">
                     ₱
-                    {(
-                      (Number(formData.monthly_basic || 0) * 12) /
-                      313
-                    ).toFixed(2)}{" "}
+                    {((Number(formData.monthly_basic || 0) * 12) / 313).toFixed(
+                      2,
+                    )}{" "}
                     / day
                     <span className="text-xs text-gray-400 ml-2">
                       (Monthly Basic × 12 ÷ 313 — auto-computed, not stored

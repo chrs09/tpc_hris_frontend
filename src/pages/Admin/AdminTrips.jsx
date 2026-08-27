@@ -118,11 +118,9 @@ const AdminTrips = () => {
         </div>
 
         <PendingTripsCard
-            trips={activeTab === "pending"
-                ? pendingTrips
-                : completedTrips}
-            refreshTrips={handleTripApproved}
-            mode={activeTab}
+          trips={activeTab === "pending" ? pendingTrips : completedTrips}
+          refreshTrips={handleTripApproved}
+          mode={activeTab}
         />
       </div>
 

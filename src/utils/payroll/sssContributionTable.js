@@ -88,7 +88,7 @@ export const getSSSEmployeeDeduction = (grossPay) => {
   if (amount <= 0) return 0;
 
   const bracket = SSS_CONTRIBUTION_TABLE.find(
-    (row) => amount >= row.min && amount <= row.max
+    (row) => amount >= row.min && amount <= row.max,
   );
 
   return bracket ? bracket.employeeDeduction : 0;

@@ -28,8 +28,7 @@ export default function SearchableSelect({
 
     document.addEventListener("mousedown", handleClick);
 
-    return () =>
-      document.removeEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   useEffect(() => {
@@ -53,7 +52,7 @@ export default function SearchableSelect({
   }, [open]);
 
   const filtered = options.filter((opt) =>
-    opt.label.toLowerCase().includes(query.toLowerCase())
+    opt.label.toLowerCase().includes(query.toLowerCase()),
   );
 
   return (
@@ -86,9 +85,7 @@ export default function SearchableSelect({
             className="z-9999 max-h-60 overflow-auto rounded-lg border bg-white shadow-lg"
           >
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-gray-400">
-                No results
-              </div>
+              <div className="px-3 py-2 text-sm text-gray-400">No results</div>
             ) : (
               filtered.map((opt) => (
                 <button
@@ -100,9 +97,7 @@ export default function SearchableSelect({
                     setQuery("");
                   }}
                   className={`block w-full px-3 py-2 text-left hover:bg-amber-50 ${
-                    value?.id === opt.id
-                      ? "bg-amber-50 text-amber-700"
-                      : ""
+                    value?.id === opt.id ? "bg-amber-50 text-amber-700" : ""
                   }`}
                 >
                   {opt.label}
@@ -110,7 +105,7 @@ export default function SearchableSelect({
               ))
             )}
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

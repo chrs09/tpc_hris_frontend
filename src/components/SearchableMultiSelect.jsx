@@ -57,12 +57,11 @@ export default function SearchableMultiSelect({
 
   const filtered = useMemo(() => {
     return options.filter((opt) =>
-      opt.label.toLowerCase().includes(query.toLowerCase())
+      opt.label.toLowerCase().includes(query.toLowerCase()),
     );
   }, [options, query]);
 
-  const isSelected = (option) =>
-    value.some((v) => v.id === option.id);
+  const isSelected = (option) => value.some((v) => v.id === option.id);
 
   const toggleOption = (option) => {
     if (disabled) return;
@@ -91,9 +90,7 @@ export default function SearchableMultiSelect({
         }`}
       >
         {value.length === 0 ? (
-          <span className="text-slate-400">
-            {placeholder}
-          </span>
+          <span className="text-slate-400">{placeholder}</span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {value.map((item) => (
@@ -133,16 +130,12 @@ export default function SearchableMultiSelect({
 
             <div className="max-h-60 overflow-auto">
               {filtered.length === 0 ? (
-                <div className="p-3 text-sm text-slate-400">
-                  No results
-                </div>
+                <div className="p-3 text-sm text-slate-400">No results</div>
               ) : (
                 filtered.map((option) => {
                   const checked = isSelected(option);
 
-                  const limitReached =
-                    !checked &&
-                    value.length >= maxSelection;
+                  const limitReached = !checked && value.length >= maxSelection;
 
                   return (
                     <button
@@ -151,18 +144,12 @@ export default function SearchableMultiSelect({
                       onClick={() => toggleOption(option)}
                       disabled={limitReached}
                       className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-amber-50 ${
-                        limitReached
-                          ? "cursor-not-allowed opacity-40"
-                          : ""
+                        limitReached ? "cursor-not-allowed opacity-40" : ""
                       }`}
                     >
                       <span>{option.label}</span>
 
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        readOnly
-                      />
+                      <input type="checkbox" checked={checked} readOnly />
                     </button>
                   );
                 })
@@ -175,7 +162,7 @@ export default function SearchableMultiSelect({
                 : `${value.length} / ${maxSelection} selected`}
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </div>
   );

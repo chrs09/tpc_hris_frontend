@@ -10,6 +10,7 @@ export const markAttendance = async (payload) => {
 export const attendanceRecord = async ({
   department = "All",
   limit = 5000,
+  attendance_date,
 } = {}) => {
   const params = new URLSearchParams();
 
@@ -19,9 +20,40 @@ export const attendanceRecord = async ({
     params.append("department", department);
   }
 
+  if (attendance_date) {
+    params.append("attendance_date", attendance_date);
+  }
+
   const res = await api.get(`/attendance/list?${params.toString()}`);
 
-  return res.data;
+  // New backend response
+  if (res.data && !Array.isArray(res.data) && Array.isArray(res.data.records)) {
+    const records = res.data.records;
+
+    const activeEmployeeCount = res.data.active_employee_count || 0;
+
+    console.log(
+      "Total Active Employees (Admin + motorpool):",
+      activeEmployeeCount,
+    );
+
+    records.active_employee_count = activeEmployeeCount;
+
+    return records;
+  }
+
+  // Backward compatibility if backend still returns an array
+  if (Array.isArray(res.data)) {
+    console.log("Total Active Employees (Admin + motorpool):", 0);
+
+    res.data.active_employee_count = 0;
+
+    return res.data;
+  }
+
+  console.log("Total Active Employees (Admin + motorpool):", 0);
+
+  return [];
 };
 
 // Bulk attendance check

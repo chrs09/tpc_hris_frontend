@@ -137,7 +137,10 @@ const UserDrawer = ({
                 value={selectedEmployee}
                 options={employees.map((emp) => ({
                   ...emp,
-                  label: `${emp.first_name || ""} ${emp.last_name || ""}`.trim() || emp.username || `Employee #${emp.id}`,
+                  label:
+                    `${emp.first_name || ""} ${emp.last_name || ""}`.trim() ||
+                    emp.username ||
+                    `Employee #${emp.id}`,
                   value: emp.id,
                 }))}
                 onChange={(option) => {

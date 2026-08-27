@@ -63,6 +63,7 @@ const PayrollDetailModal = ({
           checkOut,
           schedule: payroll.employee?.schedule_template,
           attendanceDate: record.attendance_date,
+          payrollType: payroll.employee?.payroll_type,
         });
 
         otHours = result.overtimeHours;
@@ -85,6 +86,7 @@ const PayrollDetailModal = ({
             checkOut,
             schedule: payroll.employee?.schedule_template,
             attendanceDate: record.attendance_date,
+            payrollType: payroll.employee?.payroll_type,
           });
 
           otHours = result.overtimeHours;
@@ -125,6 +127,7 @@ const PayrollDetailModal = ({
             checkOut,
             schedule: payroll.employee?.schedule_template,
             attendanceDate: record.attendance_date,
+            payrollType: payroll.employee?.payroll_type,
           });
 
           const detectedOT = result.overtimeHours;
@@ -180,6 +183,7 @@ const PayrollDetailModal = ({
         checkOut: new Date(record.check_out_time_raw),
         schedule: payroll.employee?.schedule_template,
         attendanceDate: record.attendance_date,
+        payrollType: payroll.employee?.payroll_type,
       });
 
       totals.rendered += result.renderedHours || 0;
@@ -189,19 +193,18 @@ const PayrollDetailModal = ({
       totals.undertime += result.undertimeMinutes || 0;
 
       totals.total +=
-          (result.tardinessMinutes || 0) +
-          (result.undertimeMinutes || 0);
+        (result.tardinessMinutes || 0) + (result.undertimeMinutes || 0);
 
       return totals;
     },
     {
-        rendered:0,
-        regular:0,
+      rendered: 0,
+      regular: 0,
 
-        tardiness:0,
-        undertime:0,
+      tardiness: 0,
+      undertime: 0,
 
-        total:0,
+      total: 0,
     },
   );
 
@@ -328,7 +331,9 @@ const PayrollDetailModal = ({
                 <div className="border rounded-lg p-3">
                   <p className="text-xs text-gray-500">OT Hours</p>
 
-                  <p className="font-bold">{Number(payroll.otHours || 0).toFixed(2)}</p>
+                  <p className="font-bold">
+                    {Number(payroll.otHours || 0).toFixed(2)}
+                  </p>
                 </div>
 
                 <div className="border rounded-lg p-3">
@@ -465,9 +470,7 @@ const PayrollDetailModal = ({
                       <th className="border px-3 py-2 text-center">
                         Tardiness
                       </th>
-                      <th className="border px-3 py-2 text-center">
-                        UT
-                      </th>
+                      <th className="border px-3 py-2 text-center">UT</th>
                       <th className="border px-3 py-2 text-center">Total</th>
                       {/* <th className="border px-3 py-2 text-left">
                           Trips
@@ -482,16 +485,16 @@ const PayrollDetailModal = ({
                       let otHours = 0;
 
                       let result = {
-                          renderedHours:0,
-                          regularHours:0,
+                        renderedHours: 0,
+                        regularHours: 0,
 
-                          tardinessMinutes:0,
-                          tardinessHours:0,
+                        tardinessMinutes: 0,
+                        tardinessHours: 0,
 
-                          undertimeMinutes:0,
-                          undertimeHours:0,
+                        undertimeMinutes: 0,
+                        undertimeHours: 0,
 
-                          overtimeHours:0,
+                        overtimeHours: 0,
                       };
 
                       if (
@@ -503,6 +506,7 @@ const PayrollDetailModal = ({
                           checkOut: new Date(record.check_out_time_raw),
                           schedule: payroll.employee?.schedule_template,
                           attendanceDate: record.attendance_date,
+                          payrollType: payroll.employee?.payroll_type,
                         });
 
                         workedHours = result.renderedHours;
@@ -526,18 +530,18 @@ const PayrollDetailModal = ({
                               <span>{record.attendance_date}</span>
 
                               <span className="text-xs text-gray-500">
-                                {new Date(record.attendance_date + "T00:00:00").toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    weekday: "long",
-                                  },
-                                )}
+                                {new Date(
+                                  record.attendance_date + "T00:00:00",
+                                ).toLocaleDateString("en-US", {
+                                  weekday: "long",
+                                })}
                               </span>
 
                               <span className="text-xs text-gray-500">
-                                Schedule: 
+                                Schedule:
                                 <p className="font-semibold inline-block ml-1">
-                                  {result.scheduledTimeIn || "--"} - {result.scheduledTimeOut || "--"}
+                                  {result.scheduledTimeIn || "--"} -{" "}
+                                  {result.scheduledTimeOut || "--"}
                                 </p>
                               </span>
                             </div>
@@ -565,7 +569,7 @@ const PayrollDetailModal = ({
                             {Number(regularHours || 0).toFixed(2)}
                           </td>
 
-                              <td className="border px-3 py-2 text-center">
+                          <td className="border px-3 py-2 text-center">
                             {Number(otHours || 0).toFixed(2)}
                           </td>
                           <td className="border px-3 py-2 text-center">
@@ -600,21 +604,22 @@ const PayrollDetailModal = ({
                           </td>
 
                           <td className="border px-3 py-2 text-red-600">
-                              {result.tardinessMinutes > 0
-                                  ? `${result.tardinessMinutes} mins (${result.tardinessHours.toFixed(2)} hr)`
-                                  : "--"}
+                            {result.tardinessMinutes > 0
+                              ? `${result.tardinessMinutes} mins (${result.tardinessHours.toFixed(2)} hr)`
+                              : "--"}
                           </td>
 
                           <td className="border px-3 py-2 text-red-600">
-                              {result.undertimeMinutes > 0
-                                  ? `${result.undertimeMinutes} mins (${result.undertimeHours.toFixed(2)} hr)`
-                                  : "--"}
+                            {result.undertimeMinutes > 0
+                              ? `${result.undertimeMinutes} mins (${result.undertimeHours.toFixed(2)} hr)`
+                              : "--"}
                           </td>
 
                           <td className="border px-3 py-2 font-bold text-red-700">
-                              {result.tardinessMinutes + result.undertimeMinutes > 0
-                                  ? `${result.tardinessMinutes + result.undertimeMinutes} mins (${((result.tardinessMinutes + result.undertimeMinutes) / 60).toFixed(2)} hr)`
-                                  : "--"}
+                            {result.tardinessMinutes + result.undertimeMinutes >
+                            0
+                              ? `${result.tardinessMinutes + result.undertimeMinutes} mins (${((result.tardinessMinutes + result.undertimeMinutes) / 60).toFixed(2)} hr)`
+                              : "--"}
                           </td>
                           {/* <td className="border px-3 py-2">
                                   {record.completed_trips}
@@ -631,7 +636,7 @@ const PayrollDetailModal = ({
 
                       {/* Hours Rendered */}
                       <td className="border px-3 py-2">
-                         {Number(tableTotals.rendered || 0).toFixed(2)}
+                        {Number(tableTotals.rendered || 0).toFixed(2)}
                       </td>
 
                       {/* Regular Hours */}
@@ -651,21 +656,21 @@ const PayrollDetailModal = ({
 
                       {/* Deduction */}
                       <td className="border px-3 py-2">
-                          {tableTotals.tardiness > 0
-                              ? `${tableTotals.tardiness} mins (${(tableTotals.tardiness / 60).toFixed(2)} hr)`
-                              : "--"}
+                        {tableTotals.tardiness > 0
+                          ? `${tableTotals.tardiness} mins (${(tableTotals.tardiness / 60).toFixed(2)} hr)`
+                          : "--"}
                       </td>
 
                       <td className="border px-3 py-2">
-                          {tableTotals.undertime > 0
-                              ? `${tableTotals.undertime} mins (${(tableTotals.undertime / 60).toFixed(2)} hr)`
-                              : "--"}
+                        {tableTotals.undertime > 0
+                          ? `${tableTotals.undertime} mins (${(tableTotals.undertime / 60).toFixed(2)} hr)`
+                          : "--"}
                       </td>
 
                       <td className="border px-3 py-2 font-bold">
-                          {tableTotals.total > 0
-                              ? `${tableTotals.total} mins (${(tableTotals.total / 60).toFixed(2)} hr)`
-                              : "--"}
+                        {tableTotals.total > 0
+                          ? `${tableTotals.total} mins (${(tableTotals.total / 60).toFixed(2)} hr)`
+                          : "--"}
                       </td>
                     </tr>
                   </tfoot>

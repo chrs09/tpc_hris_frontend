@@ -16,20 +16,16 @@ const money = (value) =>
   }).format(Number(value || 0));
 
 const getExpenseAmount = (expense) => {
-    if (
-      Array.isArray(expense.items) &&
-      expense.items.length > 0
-    ) {
-      return expense.items.reduce(
-        (total, item) =>
-          total + Number(item.amount || 0),
-        0,
-      );
-    }
+  if (Array.isArray(expense.items) && expense.items.length > 0) {
+    return expense.items.reduce(
+      (total, item) => total + Number(item.amount || 0),
+      0,
+    );
+  }
 
-    // Fallback for old expenses
-    return Number(expense.amount || 0);
-  };
+  // Fallback for old expenses
+  return Number(expense.amount || 0);
+};
 
 const dateOnly = (value) => {
   if (!value) return "—";
@@ -47,9 +43,7 @@ const dateOnly = (value) => {
   });
 };
 
-const unique = (items) => [
-  ...new Set(items.filter(Boolean)),
-];
+const unique = (items) => [...new Set(items.filter(Boolean))];
 
 /*
  * Convert backend snake_case fields into the
@@ -60,69 +54,46 @@ const mapExpenseFromApi = (expense) => ({
 
   expenseNumber: expense.expense_number ?? "",
 
-  invoiceDate:
-    expense.invoice_date ??
-    expense.date ??
-    "",
+  invoiceDate: expense.invoice_date ?? expense.date ?? "",
 
-  poNumber:
-    expense.po_number ?? "",
+  poNumber: expense.po_number ?? "",
 
-  supplier:
-    expense.supplier ?? "",
+  supplier: expense.supplier ?? "",
 
-  invoiceNumber:
-    expense.invoice_number ??
-    expense.receipt_number ??
-    "",
+  invoiceNumber: expense.invoice_number ?? expense.receipt_number ?? "",
 
-  receiptImage:
-    expense.receipt_image_url,
+  receiptImage: expense.receipt_image_url,
 
   items: Array.isArray(expense.items)
     ? expense.items.map((item) => ({
         id: item.id ?? null,
-        particulars:
-          item.particulars ?? "",
+        particulars: item.particulars ?? "",
         qty: item.qty ?? 1,
-        unit:
-          item.unit ?? "Piece",
-        unitPrice:
-          item.unit_price ?? "",
-        amount:
-          item.amount ?? 0,
+        unit: item.unit ?? "Piece",
+        unitPrice: item.unit_price ?? "",
+        amount: item.amount ?? 0,
       }))
     : [],
 
-  unitPrice:
-    expense.unit_price,
+  unitPrice: expense.unit_price,
 
-  additionalDetails:
-    expense.additional_details,
+  additionalDetails: expense.additional_details,
 
-  requestedBy:
-    expense.requested_by,
+  requestedBy: expense.requested_by,
 
-  receivedBy:
-    expense.received_by,
+  receivedBy: expense.received_by,
 
-  dateCountered:
-    expense.date_countered,
+  dateCountered: expense.date_countered,
 
-  counterNumber:
-    expense.counter_number,
+  counterNumber: expense.counter_number,
 
-  datePaid:
-    expense.date_paid,
+  datePaid: expense.date_paid,
 
-  checkNumber:
-    expense.check_number,
+  checkNumber: expense.check_number,
 
-  checkAmount:
-    expense.check_amount,
+  checkAmount: expense.check_amount,
 
-  receiptNumber2:
-    expense.receipt_number_2,
+  receiptNumber2: expense.receipt_number_2,
 });
 
 /*
@@ -132,150 +103,69 @@ const mapExpenseFromApi = (expense) => ({
 const buildExpenseFormData = (expense) => {
   const formData = new FormData();
 
-  formData.append(
-    "date",
-    expense.invoiceDate || "",
-  );
+  formData.append("date", expense.invoiceDate || "");
 
-  formData.append(
-    "po_number",
-    expense.poNumber || "",
-  );
+  formData.append("po_number", expense.poNumber || "");
 
-  formData.append(
-    "supplier",
-    expense.supplier || "",
-  );
+  formData.append("supplier", expense.supplier || "");
 
-  formData.append(
-    "invoice_number",
-    expense.invoiceNumber || "",
-  );
+  formData.append("invoice_number", expense.invoiceNumber || "");
 
-  formData.append(
-    "qty",
-    expense.qty ?? 1,
-  );
+  formData.append("qty", expense.qty ?? 1);
 
-  formData.append(
-    "unit",
-    expense.unit || "Piece",
-  );
+  formData.append("unit", expense.unit || "Piece");
 
-  formData.append(
-    "particulars",
-    expense.particulars || "",
-  );
+  formData.append("particulars", expense.particulars || "");
 
-  formData.append(
-    "unit_price",
-    expense.unitPrice ?? "",
-  );
+  formData.append("unit_price", expense.unitPrice ?? "");
 
   formData.append(
     "items",
     JSON.stringify(
       (expense.items || []).map((item) => ({
         id: item.id ?? null,
-        particulars:
-          item.particulars || "",
+        particulars: item.particulars || "",
         qty: Number(item.qty || 1),
-        unit:
-          item.unit || "Piece",
-        unit_price:
-          item.unitPrice === ""
-            ? null
-            : Number(item.unitPrice),
-        amount:
-          Number(item.amount || 0),
+        unit: item.unit || "Piece",
+        unit_price: item.unitPrice === "" ? null : Number(item.unitPrice),
+        amount: Number(item.amount || 0),
       })),
     ),
   );
 
-  formData.append(
-    "responsible",
-    expense.responsible || "",
-  );
+  formData.append("responsible", expense.responsible || "");
 
-  formData.append(
-    "additional_details",
-    expense.additionalDetails || "",
-  );
+  formData.append("additional_details", expense.additionalDetails || "");
 
-  formData.append(
-    "requested_by",
-    expense.requestedBy || "",
-  );
+  formData.append("requested_by", expense.requestedBy || "");
 
-  formData.append(
-    "received_by",
-    expense.receivedBy || "",
-  );
+  formData.append("received_by", expense.receivedBy || "");
 
-  formData.append(
-    "category",
-    expense.category || "",
-  );
+  formData.append("category", expense.category || "");
 
-  formData.append(
-    "account",
-    expense.account || "",
-  );
+  formData.append("account", expense.account || "");
 
-  formData.append(
-    "notes",
-    expense.notes || "",
-  );
+  formData.append("notes", expense.notes || "");
 
-  formData.append(
-    "date_countered",
-    expense.dateCountered || "",
-  );
+  formData.append("date_countered", expense.dateCountered || "");
 
-  formData.append(
-    "counter_number",
-    expense.counterNumber || "",
-  );
+  formData.append("counter_number", expense.counterNumber || "");
 
-  formData.append(
-    "date_paid",
-    expense.datePaid || "",
-  );
+  formData.append("date_paid", expense.datePaid || "");
 
-  formData.append(
-    "bank",
-    expense.bank || "",
-  );
+  formData.append("bank", expense.bank || "");
 
-  formData.append(
-    "check_number",
-    expense.checkNumber || "",
-  );
+  formData.append("check_number", expense.checkNumber || "");
 
-  formData.append(
-    "check_amount",
-    expense.checkAmount ?? "",
-  );
+  formData.append("check_amount", expense.checkAmount ?? "");
 
-  formData.append(
-    "receipt_number_2",
-    expense.receiptNumber2 || "",
-  );
+  formData.append("receipt_number_2", expense.receiptNumber2 || "");
 
-  formData.append(
-    "status",
-    expense.status || "Pending",
-  );
+  formData.append("status", expense.status || "Pending");
 
-  formData.append(
-    "ap",
-    expense.ap ?? "",
-  );
+  formData.append("ap", expense.ap ?? "");
 
-  formData.append(
-    "remarks",
-    expense.remarks || "",
-  );
+  formData.append("remarks", expense.remarks || "");
 
   /*
    * Only append the image when the user selected
@@ -285,10 +175,7 @@ const buildExpenseFormData = (expense) => {
    * in the database, so we don't send it back.
    */
   if (expense.receiptImage instanceof File) {
-    formData.append(
-      "receipt_image",
-      expense.receiptImage,
-    );
+    formData.append("receipt_image", expense.receiptImage);
   }
 
   return formData;
@@ -305,23 +192,17 @@ export default function FinanceExpenses() {
 
   const [search, setSearch] = useState("");
 
-  const [supplier, setSupplier] =
-    useState("All Suppliers");
+  const [supplier, setSupplier] = useState("All Suppliers");
 
-  const [category, setCategory] =
-    useState("All Categories");
+  const [category, setCategory] = useState("All Categories");
 
-  const [status, setStatus] =
-    useState("All Status");
+  const [status, setStatus] = useState("All Status");
 
-  const [month, setMonth] =
-    useState("All Months");
+  const [month, setMonth] = useState("All Months");
 
-  const [selected, setSelected] =
-    useState(null);
+  const [selected, setSelected] = useState(null);
 
-  const [drawerMode, setDrawerMode] =
-    useState("view");
+  const [drawerMode, setDrawerMode] = useState("view");
 
   /*
    * ==========================================
@@ -329,52 +210,37 @@ export default function FinanceExpenses() {
    * ==========================================
    */
 
-  const loadExpenses = useCallback(
-    async () => {
-      try {
-        setLoading(true);
-        setError("");
+  const loadExpenses = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-        const response =
-          await getFinanceExpenses();
+      const response = await getFinanceExpenses();
 
-        /*
-         * Supports both:
-         *
-         * response.data
-         *
-         * and:
-         *
-         * response.data.data
-         *
-         * depending on your api_response format.
-         */
-        const data =
-          response?.data?.data ??
-          response?.data ??
-          [];
+      /*
+       * Supports both:
+       *
+       * response.data
+       *
+       * and:
+       *
+       * response.data.data
+       *
+       * depending on your api_response format.
+       */
+      const data = response?.data?.data ?? response?.data ?? [];
 
-        const mapped = Array.isArray(data)
-          ? data.map(mapExpenseFromApi)
-          : [];
+      const mapped = Array.isArray(data) ? data.map(mapExpenseFromApi) : [];
 
-        setRows(mapped);
-      } catch (err) {
-        console.error(
-          "Failed to load finance expenses:",
-          err,
-        );
+      setRows(mapped);
+    } catch (err) {
+      console.error("Failed to load finance expenses:", err);
 
-        setError(
-          err?.response?.data?.detail ||
-            "Failed to load expenses.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+      setError(err?.response?.data?.detail || "Failed to load expenses.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   /*
    * Load when page opens.
@@ -389,33 +255,12 @@ export default function FinanceExpenses() {
    * ==========================================
    */
 
-  const suppliers = useMemo(
-    () =>
-      unique(
-        rows.map(
-          (r) => r.supplier,
-        ),
-      ),
-    [rows],
-  );
+  const suppliers = useMemo(() => unique(rows.map((r) => r.supplier)), [rows]);
 
-  const categories = useMemo(
-    () =>
-      unique(
-        rows.map(
-          (r) => r.category,
-        ),
-      ),
-    [rows],
-  );
+  const categories = useMemo(() => unique(rows.map((r) => r.category)), [rows]);
 
   const statuses = useMemo(
-    () =>
-      unique(
-        rows.map(
-          (r) => r.status || "Pending",
-        ),
-      ),
+    () => unique(rows.map((r) => r.status || "Pending")),
     [rows],
   );
 
@@ -428,17 +273,14 @@ export default function FinanceExpenses() {
 
         const d = new Date(r.invoiceDate);
 
-        if (
-          Number.isNaN(
-            d.getTime(),
-          )
-        ) {
+        if (Number.isNaN(d.getTime())) {
           return null;
         }
 
-        return `${d.getFullYear()}-${String(
-          d.getMonth() + 1,
-        ).padStart(2, "0")}`;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0",
+        )}`;
       }),
     )
       .sort()
@@ -452,10 +294,7 @@ export default function FinanceExpenses() {
    */
 
   const filtered = useMemo(() => {
-    const q =
-      search
-        .trim()
-        .toLowerCase();
+    const q = search.trim().toLowerCase();
 
     return rows.filter((row) => {
       const haystack = [
@@ -485,54 +324,26 @@ export default function FinanceExpenses() {
 
       const rowMonth = row.invoiceDate
         ? (() => {
-            const d = new Date(
-              row.invoiceDate,
-            );
+            const d = new Date(row.invoiceDate);
 
-            return Number.isNaN(
-              d.getTime(),
-            )
+            return Number.isNaN(d.getTime())
               ? ""
-              : `${d.getFullYear()}-${String(
-                  d.getMonth() + 1,
-                ).padStart(2, "0")}`;
+              : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+                  2,
+                  "0",
+                )}`;
           })()
         : "";
 
       return (
-        (!q ||
-          haystack.includes(q)) &&
-
-        (supplier ===
-          "All Suppliers" ||
-          row.supplier ===
-            supplier) &&
-
-        (category ===
-          "All Categories" ||
-          row.category ===
-            category) &&
-
-        (status ===
-          "All Status" ||
-          (row.status ||
-            "Pending") ===
-            status) &&
-
-        (month ===
-          "All Months" ||
-          rowMonth ===
-            month)
+        (!q || haystack.includes(q)) &&
+        (supplier === "All Suppliers" || row.supplier === supplier) &&
+        (category === "All Categories" || row.category === category) &&
+        (status === "All Status" || (row.status || "Pending") === status) &&
+        (month === "All Months" || rowMonth === month)
       );
     });
-  }, [
-    rows,
-    search,
-    supplier,
-    category,
-    status,
-    month,
-  ]);
+  }, [rows, search, supplier, category, status, month]);
 
   /*
    * ==========================================
@@ -540,34 +351,15 @@ export default function FinanceExpenses() {
    * ==========================================
    */
 
-  const total = filtered.reduce(
-    (sum, row) =>
-      sum + getExpenseAmount(row),
-    0,
-  );
+  const total = filtered.reduce((sum, row) => sum + getExpenseAmount(row), 0);
 
   const paid = filtered
-    .filter(
-      (row) =>
-        row.status === "Paid" ||
-        row.datePaid,
-    )
-    .reduce(
-      (sum, row) =>
-        sum + getExpenseAmount(row),
-      0,
-    );
+    .filter((row) => row.status === "Paid" || row.datePaid)
+    .reduce((sum, row) => sum + getExpenseAmount(row), 0);
 
   const pending = filtered
-    .filter(
-      (row) =>
-        row.status === "Pending",
-    )
-    .reduce(
-      (sum, row) =>
-        sum + Number(row.ap || 0),
-      0,
-    );
+    .filter((row) => row.status === "Pending")
+    .reduce((sum, row) => sum + Number(row.ap || 0), 0);
 
   /*
    * ==========================================
@@ -599,35 +391,24 @@ export default function FinanceExpenses() {
    * ==========================================
    */
 
-  const handleSave = async (
-    expense,
-  ) => {
+  const handleSave = async (expense) => {
     try {
       setSaving(true);
       setError("");
 
-      const formData =
-        buildExpenseFormData(
-          expense,
-        );
+      const formData = buildExpenseFormData(expense);
 
       /*
        * CREATE
        */
       if (!expense.id) {
-        await createFinanceExpense(
-          formData,
-        );
-      }
+        await createFinanceExpense(formData);
+      } else {
 
       /*
        * UPDATE
        */
-      else {
-        await updateFinanceExpense(
-          expense.id,
-          formData,
-        );
+        await updateFinanceExpense(expense.id, formData);
       }
 
       /*
@@ -642,10 +423,7 @@ export default function FinanceExpenses() {
       setSelected(null);
       setDrawerMode("view");
     } catch (err) {
-      console.error(
-        "Failed to save finance expense:",
-        err,
-      );
+      console.error("Failed to save finance expense:", err);
 
       setError(
         err?.response?.data?.detail ||
@@ -672,18 +450,14 @@ export default function FinanceExpenses() {
 
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">
-              Finance
-            </p>
+            <p className="text-sm font-medium text-slate-500">Finance</p>
 
             <h1 className="mt-1 text-2xl font-semibold text-slate-900">
               Expenses
             </h1>
 
             <p className="mt-1 text-sm text-slate-500">
-              Track expense entries,
-              countering, payments,
-              and accounts payable.
+              Track expense entries, countering, payments, and accounts payable.
             </p>
           </div>
 
@@ -706,9 +480,7 @@ export default function FinanceExpenses() {
 
             <button
               type="button"
-              onClick={() =>
-                setError("")
-              }
+              onClick={() => setError("")}
               className="ml-4 font-semibold text-red-600 hover:text-red-800"
             >
               ×
@@ -721,20 +493,11 @@ export default function FinanceExpenses() {
         ====================================== */}
 
         <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <SummaryCard
-            label="Total Expenses"
-            value={money(total)}
-          />
+          <SummaryCard label="Total Expenses" value={money(total)} />
 
-          <SummaryCard
-            label="Paid"
-            value={money(paid)}
-          />
+          <SummaryCard label="Paid" value={money(paid)} />
 
-          <SummaryCard
-            label="Pending AP"
-            value={money(pending)}
-          />
+          <SummaryCard label="Pending AP" value={money(pending)} />
         </div>
 
         {/* ======================================
@@ -747,46 +510,27 @@ export default function FinanceExpenses() {
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
               <input
                 value={search}
-                onChange={(e) =>
-                  setSearch(
-                    e.target.value,
-                  )
-                }
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search receipt, supplier, particulars..."
                 className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 lg:col-span-2"
               />
 
               <Filter
                 value={supplier}
-                onChange={
-                  setSupplier
-                }
-                options={[
-                  "All Suppliers",
-                  ...suppliers,
-                ]}
+                onChange={setSupplier}
+                options={["All Suppliers", ...suppliers]}
               />
 
               <Filter
                 value={category}
-                onChange={
-                  setCategory
-                }
-                options={[
-                  "All Categories",
-                  ...categories,
-                ]}
+                onChange={setCategory}
+                options={["All Categories", ...categories]}
               />
 
               <Filter
                 value={status}
-                onChange={
-                  setStatus
-                }
-                options={[
-                  "All Status",
-                  ...statuses,
-                ]}
+                onChange={setStatus}
+                options={["All Status", ...statuses]}
               />
             </div>
 
@@ -798,17 +542,11 @@ export default function FinanceExpenses() {
               <Filter
                 value={month}
                 onChange={setMonth}
-                options={[
-                  "All Months",
-                  ...months,
-                ]}
+                options={["All Months", ...months]}
               />
 
               <span className="ml-auto text-xs text-slate-400">
-                Showing{" "}
-                {filtered.length}{" "}
-                of {rows.length}{" "}
-                expenses
+                Showing {filtered.length} of {rows.length} expenses
               </span>
             </div>
           </div>
@@ -825,45 +563,25 @@ export default function FinanceExpenses() {
             <table className="w-full min-w-275 text-left">
               <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">
-                    Invoice Date
-                  </th>
+                  <th className="px-4 py-3">Invoice Date</th>
 
-                  <th className="px-4 py-3">
-                    Invoice Number
-                  </th>
+                  <th className="px-4 py-3">Invoice Number</th>
 
-                  <th className="px-4 py-3">
-                    Supplier
-                  </th>
+                  <th className="px-4 py-3">Supplier</th>
 
-                  <th className="px-4 py-3">
-                    Particulars
-                  </th>
+                  <th className="px-4 py-3">Particulars</th>
 
-                  <th className="px-4 py-3">
-                    Category
-                  </th>
+                  <th className="px-4 py-3">Category</th>
 
-                  <th className="px-4 py-3">
-                    Account
-                  </th>
+                  <th className="px-4 py-3">Account</th>
 
-                  <th className="px-4 py-3 text-right">
-                    Qty.
-                  </th>
+                  <th className="px-4 py-3 text-right">Qty.</th>
 
-                  <th className="px-4 py-3 text-right">
-                    Unit Price
-                  </th>
+                  <th className="px-4 py-3 text-right">Unit Price</th>
 
-                  <th className="px-4 py-3 text-right">
-                    Amount
-                  </th>
+                  <th className="px-4 py-3 text-right">Amount</th>
 
-                  <th className="px-4 py-3">
-                    Status
-                  </th>
+                  <th className="px-4 py-3">Status</th>
 
                   <th className="px-4 py-3" />
                 </tr>
@@ -871,132 +589,89 @@ export default function FinanceExpenses() {
 
               <tbody className="divide-y divide-slate-100">
                 {!loading &&
-                  filtered.map(
-                    (row) => (
-                      <tr
-                        key={row.id}
-                        className="hover:bg-slate-50"
-                      >
-                        <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
-                          {dateOnly(
-                            row.invoiceDate,
-                          )}
-                        </td>
+                  filtered.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                        {dateOnly(row.invoiceDate)}
+                      </td>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-800">
-                          {row.invoiceNumber ||
-                            "—"}
-                        </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-800">
+                        {row.invoiceNumber || "—"}
+                      </td>
 
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {row.supplier ||
-                            "—"}
-                        </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {row.supplier || "—"}
+                      </td>
 
-                        <td className="max-w-70 px-4 py-3 text-sm text-slate-700">
-                          <div
-                            className="truncate"
-                            title={
-                              row.particulars ||
-                              ""
-                            }
+                      <td className="max-w-70 px-4 py-3 text-sm text-slate-700">
+                        <div className="truncate" title={row.particulars || ""}>
+                          {row.particulars || "—"}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {row.category || "—"}
+                      </td>
+
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {row.account || "—"}
+                      </td>
+
+                      <td className="px-4 py-3 text-right text-sm text-slate-600">
+                        {row.qty ?? "—"}
+                      </td>
+
+                      <td className="px-4 py-3 text-right text-sm text-slate-600">
+                        {money(row.unitPrice)}
+                      </td>
+
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">
+                        {money(getExpenseAmount(row))}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <StatusBadge status={row.status || "Pending"} />
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openView(row)}
+                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
                           >
-                            {row.particulars ||
-                              "—"}
-                          </div>
-                        </td>
+                            View
+                          </button>
 
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {row.category ||
-                            "—"}
-                        </td>
-
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {row.account ||
-                            "—"}
-                        </td>
-
-                        <td className="px-4 py-3 text-right text-sm text-slate-600">
-                          {row.qty ??
-                            "—"}
-                        </td>
-
-                        <td className="px-4 py-3 text-right text-sm text-slate-600">
-                          {money(
-                            row.unitPrice,
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">
-                          {money(
-                            getExpenseAmount(row),
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <StatusBadge
-                            status={
-                              row.status ||
-                              "Pending"
-                            }
-                          />
-                        </td>
-
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openView(
-                                  row,
-                                )
-                              }
-                              className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                            >
-                              View
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openEdit(
-                                  row,
-                                )
-                              }
-                              className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-                            >
-                              Edit
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ),
-                  )}
-
-                {!loading &&
-                  filtered.length ===
-                    0 && (
-                    <tr>
-                      <td
-                        colSpan={11}
-                        className="px-4 py-16 text-center"
-                      >
-                        <p className="text-sm font-medium text-slate-700">
-                          {rows.length ===
-                          0
-                            ? "No expenses yet"
-                            : "No expenses found"}
-                        </p>
-
-                        <p className="mt-1 text-xs text-slate-400">
-                          {rows.length ===
-                          0
-                            ? "Click Add Expense to create your first expense."
-                            : "Try changing your filters or search term."}
-                        </p>
+                          <button
+                            type="button"
+                            onClick={() => openEdit(row)}
+                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  )}
+                  ))}
+
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={11} className="px-4 py-16 text-center">
+                      <p className="text-sm font-medium text-slate-700">
+                        {rows.length === 0
+                          ? "No expenses yet"
+                          : "No expenses found"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {rows.length === 0
+                          ? "Click Add Expense to create your first expense."
+                          : "Try changing your filters or search term."}
+                      </p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -1009,10 +684,7 @@ export default function FinanceExpenses() {
 
       <ExpenseDrawer
         key={`${drawerMode}-${selected?.id ?? "new"}`}
-        open={
-          drawerMode !== "view" ||
-          Boolean(selected)
-        }
+        open={drawerMode !== "view" || Boolean(selected)}
         expense={selected}
         mode={drawerMode}
         onClose={() => {
@@ -1032,19 +704,14 @@ export default function FinanceExpenses() {
  * ============================================
  */
 
-function SummaryCard({
-  label,
-  value,
-}) {
+function SummaryCard({ label, value }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
         {label}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold text-slate-900">
-        {value}
-      </p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
@@ -1055,31 +722,18 @@ function SummaryCard({
  * ============================================
  */
 
-function Filter({
-  value,
-  onChange,
-  options,
-}) {
+function Filter({ value, onChange, options }) {
   return (
     <select
       value={value}
-      onChange={(e) =>
-        onChange(
-          e.target.value,
-        )
-      }
+      onChange={(e) => onChange(e.target.value)}
       className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
     >
-      {options.map(
-        (option) => (
-          <option
-            key={option}
-            value={option}
-          >
-            {option}
-          </option>
-        ),
-      )}
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
     </select>
   );
 }
@@ -1090,25 +744,19 @@ function Filter({
  * ============================================
  */
 
-function StatusBadge({
-  status,
-}) {
+function StatusBadge({ status }) {
   const styles = {
-    Paid:
-      "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Paid: "bg-emerald-50 text-emerald-700 border-emerald-100",
 
-    Pending:
-      "bg-amber-50 text-amber-700 border-amber-100",
+    Pending: "bg-amber-50 text-amber-700 border-amber-100",
 
-    Cancelled:
-      "bg-red-50 text-red-700 border-red-100",
+    Cancelled: "bg-red-50 text-red-700 border-red-100",
   };
 
   return (
     <span
       className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${
-        styles[status] ||
-        styles.Pending
+        styles[status] || styles.Pending
       }`}
     >
       {status}

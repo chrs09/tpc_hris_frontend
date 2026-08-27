@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
 import { attendanceRecord } from "../../api/attendance";
-import { getHolidays } from "../../api/holidays/index"
+import { getHolidays } from "../../api/holidays/index";
 import { getPayrollCutoff } from "../../utils/payroll/payrollCutoff";
 import { getPayrollPeriods } from "../../utils/payroll/getPayrollPeriods";
 import PayrollDetailModal from "../../components/payroll/PayrollDetailModal";
@@ -20,7 +20,6 @@ import {
   savePayrollDeductionsBulk,
   getPayrollDeductions,
 } from "../../api/payroll/payroll_deductions";
-
 
 /*
  * Government contribution lookup used by Admin payroll.
@@ -90,14 +89,10 @@ const PayrollList = () => {
       try {
         const currentYear = new Date().getFullYear();
 
-        const [
-            employeeData,
-            attendanceData,
-            holidayData,
-        ] = await Promise.all([
-            getEmployeeList(),
-            attendanceRecord(),
-            getHolidays(currentYear),
+        const [employeeData, attendanceData, holidayData] = await Promise.all([
+          getEmployeeList(),
+          attendanceRecord(),
+          getHolidays(currentYear),
         ]);
 
         setEmployees(employeeData);
@@ -275,6 +270,7 @@ const PayrollList = () => {
             checkOut,
             schedule: employee.schedule_template,
             attendanceDate: record.attendance_date,
+            payrollType: employee.payroll_type,
           });
 
           if (
@@ -414,59 +410,128 @@ const PayrollList = () => {
         let basicPay = 0;
         let hourlyRate = rate / 8;
 
-        // NEW
+        // ============================================================
+        // PAYROLL BREAKDOWN VARIABLES
+        // ============================================================
+
         let semiMonthlyBasic = 0;
         let semiMonthlyAllowance = 0;
-        let totalBasicPay = 0;
+
+        let absentBasicDeduction = 0;
+        let absentAllowanceDeduction = 0;
         let absentDeduction = 0;
 
-        // Daily & Weekly
-        if (
-            payrollType === "Daily" ||
-            payrollType === "Weekly"
-        ) {
-            basicPay = regularHours * hourlyRate;
+        let adjustedBasicPay = 0;
+        let adjustedAllowancePay = 0;
 
-            undertimeDeduction =
-                undertimeHours * hourlyRate;
+        // ============================================================
+        // BASIC PAY CALCULATION
+        // ============================================================
 
-            tardinessDeduction =
-                tardinessHours * hourlyRate;
+        // ------------------------------------------------------------
+        // DAILY / WEEKLY
+        // ------------------------------------------------------------
+        // Regular Hours already represents the employee's payable hours.
+        //
+        // Example:
+        // Scheduled = 8 hours
+        // Employee was late 41 minutes
+        // Regular Hours may become 7.32 hours
+        //
+        // Therefore we DO NOT subtract tardiness/undertime again here.
+        // Otherwise the same attendance issue would be deducted twice.
+        // ------------------------------------------------------------
+        if (payrollType === "Daily" || payrollType === "Weekly") {
+          basicPay = regularHours * hourlyRate;
+
+          adjustedBasicPay = basicPay;
+
+          // Daily/Weekly allowance is based on days actually worked.
+          adjustedAllowancePay = dailyAllowanceFromRate * daysWorked;
+
+          // These are REFERENCE VALUES only.
+          // They should not be deducted again from basicPay.
+          undertimeDeduction = undertimeHours * hourlyRate;
+
+          tardinessDeduction = tardinessHours * hourlyRate;
         }
 
-        // Monthly
+        // ------------------------------------------------------------
+        // MONTHLY
+        // ------------------------------------------------------------
+        // Monthly employees start with their semi-monthly salary.
+        //
+        // Basic and Allowance are kept separate.
+        // This prevents "Basic Pay" from accidentally containing
+        // the employee's allowance.
+        // ------------------------------------------------------------
         else if (payrollType === "Monthly") {
+          // ----------------------------------------------------------
+          // 1. Semi-monthly salary components
+          // ----------------------------------------------------------
+          semiMonthlyBasic = monthlyBasic / 2;
 
-            // Display values
-            semiMonthlyBasic = monthlyBasic / 2;
+          semiMonthlyAllowance = monthlyAllow / 2;
 
-            semiMonthlyAllowance = monthlyAllow / 2;
+          // ----------------------------------------------------------
+          // 2. Count unpaid absence days
+          // ----------------------------------------------------------
+          const absentDays = records.filter(
+            (record) => record.status === "Absent",
+          ).length;
 
-            totalBasicPay =
-                semiMonthlyBasic +
-                semiMonthlyAllowance;
+          // ----------------------------------------------------------
+          // 3. Absence deduction for BASIC only
+          // ----------------------------------------------------------
+          absentBasicDeduction = absentDays * rate;
 
-            const absentDays = records.filter(
-                (record) => record.status === "Absent"
-            ).length;
+          // ----------------------------------------------------------
+          // 4. Absence deduction for ALLOWANCE only
+          // ----------------------------------------------------------
+          absentAllowanceDeduction = absentDays * dailyAllowanceFromRate;
 
-            // An absent day removes both the daily Basic rate and the
-            // daily Allowance rate from the semi-monthly pay.
-            absentDeduction =
-                absentDays *
-                (rate + dailyAllowanceFromRate);
+          // ----------------------------------------------------------
+          // 5. Total absence reference
+          // ----------------------------------------------------------
+          absentDeduction = absentBasicDeduction + absentAllowanceDeduction;
 
-            undertimeDeduction =
-                undertimeHours * hourlyRate;
+          // ----------------------------------------------------------
+          // 6. Tardiness / Undertime
+          // ----------------------------------------------------------
+          undertimeDeduction = undertimeHours * hourlyRate;
 
-            tardinessDeduction =
-                tardinessHours * hourlyRate;
+          tardinessDeduction = tardinessHours * hourlyRate;
 
-            basicPay =
-                totalBasicPay -
-                absentDeduction -
-                undertimeDeduction -
-                tardinessDeduction;
+          // ----------------------------------------------------------
+          // 7. ADJUSTED BASIC PAY
+          // ----------------------------------------------------------
+          // Only BASIC belongs here.
+          //
+          // Semi-monthly Basic
+          // - Absence
+          // - Tardiness
+          // - Undertime
+          // = Adjusted Basic
+          //
+          // IMPORTANT:
+          // This value will later be used ONCE in Gross Pay.
+          // ----------------------------------------------------------
+          adjustedBasicPay =
+            semiMonthlyBasic -
+            absentBasicDeduction -
+            undertimeDeduction -
+            tardinessDeduction;
+
+          // ----------------------------------------------------------
+          // 8. ADJUSTED ALLOWANCE
+          // ----------------------------------------------------------
+          adjustedAllowancePay =
+            semiMonthlyAllowance - absentAllowanceDeduction;
+
+          // ----------------------------------------------------------
+          // 9. basicPay remains BASIC ONLY
+          // ----------------------------------------------------------
+          basicPay = adjustedBasicPay;
         }
 
         const approval = otApprovals.find(
@@ -487,9 +552,7 @@ const PayrollList = () => {
         // Weekly type).
         const dailyAllowance = dailyAllowanceFromRate;
         const allowancePay =
-          payrollType === "Monthly"
-              ? 0
-              : dailyAllowance * daysWorked;
+          payrollType === "Monthly" ? 0 : dailyAllowance * daysWorked;
 
         // ===== Special / Regular Holiday pay =====
         // Counts days where the attendance record status marks a holiday
@@ -504,35 +567,34 @@ const PayrollList = () => {
         // ).length;
 
         const regularHolidayDates = holidays
-            .filter(h => h.holiday_type === "regular")
-            .map(h => h.holiday_date);
+          .filter((h) => h.holiday_type === "regular")
+          .map((h) => h.holiday_date);
 
         const specialHolidayDates = holidays
-            .filter(
-                h =>
-                    h.holiday_type ===
-                    "special_non_working"
-            )
-            .map(h => h.holiday_date);
+          .filter((h) => h.holiday_type === "special_non_working")
+          .map((h) => h.holiday_date);
 
-        const rhDaysWorked = records.filter(record =>
-
-            regularHolidayDates.includes(record.attendance_date) &&
-
+        const shDaysWorked = records.filter(
+          (record) =>
+            specialHolidayDates.includes(record.attendance_date) &&
             record.check_in_time_raw &&
-            record.check_out_time_raw
-
+            record.check_out_time_raw,
         ).length;
 
-        const shDaysWorked =
-        records.filter(record =>
-            specialHolidayDates.includes(
-                record.attendance_date
-            )
+        const rhDaysWorked = records.filter(
+          (record) =>
+            regularHolidayDates.includes(record.attendance_date) &&
+            record.check_in_time_raw &&
+            record.check_out_time_raw,
         ).length;
 
-        const shPay = rate * 1.3 * shDaysWorked;
-        const rhPay = rate * rhDaysWorked;
+        // Special Non-Working Holiday
+        // 130% of the daily rate
+        const shPay = rate * 0.3 * shDaysWorked;
+
+        // Regular Holiday
+        // 200% of the daily rate
+        const rhPay = rate * 1.0 * rhDaysWorked;
 
         // ===== Leave pay =====
         // Only pays out for leave explicitly marked paid on the record
@@ -565,27 +627,17 @@ const PayrollList = () => {
         let grossPay = 0;
 
         if (payrollType === "Monthly") {
-
-            grossPay =
-                basicPay +
-                otPay +
-                shPay +
-                rhPay +
-                leavePay +
-                others;
-
+          grossPay =
+            adjustedBasicPay +
+            adjustedAllowancePay +
+            otPay +
+            shPay +
+            rhPay +
+            leavePay +
+            others;
         } else {
-
-            grossPay =
-                basicPay +
-                allowancePay +
-                otPay +
-                shPay +
-                rhPay +
-                leavePay +
-                others -
-                undertimeDeduction -
-                tardinessDeduction;
+          grossPay =
+            basicPay + allowancePay + otPay + shPay + rhPay + leavePay + others;
         }
 
         // ===== Statutory deductions =====
@@ -603,44 +655,49 @@ const PayrollList = () => {
 
         const computedPhilhealth = semiMonthlyBasic * 0.025;
         const computedWithholdingTax =
-            annualBasicForContributions > 250000
-                ? ((annualBasicForContributions - 250000) * 0.15) / 12
-                : 0;
-        const computedPagibig = getPagibigEmployeeShare(monthlyBasicForContributions);
+          annualBasicForContributions > 250000
+            ? ((annualBasicForContributions - 250000) * 0.15) / 12
+            : 0;
+        const computedPagibig = getPagibigEmployeeShare(
+          monthlyBasicForContributions,
+        );
         const computedSSS = getSSSEmployeeDeduction(grossPay);
 
         sssDeduction =
-            adj.sssDeduction !== undefined
-                ? Number(adj.sssDeduction)
-                : payrollType === "Monthly"
-                ? computedSSS
-                : 0;
+          adj.sssDeduction !== undefined
+            ? Number(adj.sssDeduction)
+            : payrollType === "Monthly"
+              ? computedSSS
+              : 0;
 
         philhealthDeduction =
-            adj.philhealthDeduction !== undefined
-                ? Number(adj.philhealthDeduction)
-                : payrollType === "Monthly"
-                ? computedPhilhealth
-                : 0;
+          adj.philhealthDeduction !== undefined
+            ? Number(adj.philhealthDeduction)
+            : payrollType === "Monthly"
+              ? computedPhilhealth
+              : 0;
 
         pagibigDeduction =
-            adj.pagibigDeduction !== undefined
-                ? Number(adj.pagibigDeduction)
-                : computedPagibig;
+          adj.pagibigDeduction !== undefined
+            ? Number(adj.pagibigDeduction)
+            : computedPagibig;
 
         withholdingTax =
-            adj.withholdingTax !== undefined
-                ? Number(adj.withholdingTax)
-                : payrollType === "Monthly"
-                ? computedWithholdingTax
-                : 0;
+          adj.withholdingTax !== undefined
+            ? Number(adj.withholdingTax)
+            : payrollType === "Monthly"
+              ? computedWithholdingTax
+              : 0;
 
         const sssLoan = Number(adj.sssLoan || 0);
         const cashAdvance = Number(adj.cashAdvance || 0);
         const personalDeduction = Number(adj.personalDeduction || 0);
 
         const govtDeductions =
-          sssDeduction + philhealthDeduction + pagibigDeduction + withholdingTax;
+          sssDeduction +
+          philhealthDeduction +
+          pagibigDeduction +
+          withholdingTax;
 
         const otherDeductions = sssLoan + cashAdvance + personalDeduction;
 
@@ -731,14 +788,14 @@ const PayrollList = () => {
           };
         }
 
-        console.log("deductions",{
-            grossPay,
-            sssDeduction,
-            philhealthDeduction,
-            pagibigDeduction,
-            withholdingTax,
-            totalDeductions,
-            netPay
+        console.log("deductions", {
+          grossPay,
+          sssDeduction,
+          philhealthDeduction,
+          pagibigDeduction,
+          withholdingTax,
+          totalDeductions,
+          netPay,
         });
 
         return {
@@ -763,11 +820,19 @@ const PayrollList = () => {
           monthlyBasic: isMonthlyRateType ? monthlyBasic : null,
           monthlyAllow: isMonthlyRateType ? monthlyAllow : null,
 
-          // NEW
+          // ============================================================
+          // BASIC / ALLOWANCE BREAKDOWN
+          // ============================================================
+
           semiMonthlyBasic,
           semiMonthlyAllowance,
-          totalBasicPay,
+
+          absentBasicDeduction,
+          absentAllowanceDeduction,
           absentDeduction,
+
+          adjustedBasicPay,
+          adjustedAllowancePay,
 
           payrollType,
 
@@ -995,7 +1060,6 @@ const PayrollList = () => {
     exportPayrollExcel(payrollRows, activePeriod, department);
   };
 
-
   return (
     <div className="space-y-6 p-6">
       {/* HEADER */}
@@ -1047,7 +1111,7 @@ const PayrollList = () => {
             {isGeneratingPayroll ? "Saving..." : "Generate Payroll"}
           </button>
 
-          <button 
+          <button
             className="bg-green-600 text-white px-4 rounded-lg hover:bg-green-700 transition disabled:opacity-60"
             disabled={isExporting}
             onClick={handleExportExcel}
@@ -1107,10 +1171,9 @@ const PayrollList = () => {
         </div>
 
         <div className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-gray-500">Total Hours</p>
+          <p className="text-sm text-gray-500">Total Regular Hours</p>
 
           <h2 className="text-2xl font-bold">
-            {summary.totalRenderedHours.toFixed(2)}
             {summary.totalRegularHours.toFixed(2)}
           </h2>
         </div>
@@ -1170,7 +1233,7 @@ const PayrollList = () => {
 
                   <th className="px-4 py-3 text-left">Payroll Type</th>
 
-                  <th className="px-4 py-3 text-left">Hours</th>
+                  <th className="px-4 py-3 text-left">Regular Hours</th>
 
                   <th className="px-4 py-3 text-left">Undertime</th>
 
@@ -1181,11 +1244,11 @@ const PayrollList = () => {
 
                   <th className="px-4 py-3 text-left">OT Status</th>
 
-                  <th className="px-4 py-3 text-left">Basic</th>
+                  <th className="px-4 py-3 text-left">Semi-Monthly Basic</th>
 
-                  <th className="px-4 py-3 text-left">Allowance</th>
-
-                  <th className="px-4 py-3 text-left">Total Basic</th>
+                  <th className="px-4 py-3 text-left">
+                    Semi-Monthly Allowance
+                  </th>
 
                   <th className="px-4 py-3 text-left">Absent</th>
 
@@ -1264,7 +1327,7 @@ const PayrollList = () => {
                     <td className="px-4 py-3">
                       {row.isTripBasedEmployee
                         ? `${row.totalTrips} Trips`
-                        : row.renderedHours.toFixed(2)}
+                        : row.regularHours.toFixed(2)}
                     </td>
 
                     <td className="px-4 py-3 text-red-600 font-medium">
@@ -1302,11 +1365,11 @@ const PayrollList = () => {
                     </td>
 
                     {/* Total Basic */}
-                    <td className="px-4 py-3 font-semibold text-blue-700">
+                    {/* <td className="px-4 py-3 font-semibold text-blue-700">
                       {row.isTripBasedEmployee
                         ? "--"
                         : `₱${row.totalBasicPay.toFixed(2)}`}
-                    </td>
+                    </td> */}
 
                     {/* Absent */}
                     <td className="px-4 py-3 text-red-600">
@@ -1317,23 +1380,23 @@ const PayrollList = () => {
 
                     {/* Tardiness */}
                     <td className="px-4 py-3 text-red-600">
-                        {row.isTripBasedEmployee
-                            ? "--"
-                            : `₱${row.tardinessDeduction.toFixed(2)}`}
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.tardinessDeduction.toFixed(2)}`}
                     </td>
 
                     {/* Undertime */}
                     <td className="px-4 py-3 text-red-600">
-                        {row.isTripBasedEmployee
-                            ? "--"
-                            : `₱${row.undertimeDeduction.toFixed(2)}`}
+                      {row.isTripBasedEmployee
+                        ? "--"
+                        : `₱${row.undertimeDeduction.toFixed(2)}`}
                     </td>
 
                     {/* Adjusted Basic */}
                     <td className="px-4 py-3 font-semibold">
                       {row.isTripBasedEmployee
                         ? "--"
-                        : `₱${row.basicPay.toFixed(2)}`}
+                        : `₱${row.adjustedBasicPay.toFixed(2)}`}
                     </td>
 
                     {/* OT */}

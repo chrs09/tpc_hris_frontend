@@ -25,7 +25,10 @@ export const savePayrollDeductionsBulk = async (payloadArray) => {
   return res.data;
 };
 
-export const getPayrollDeductions = async ({ cutoff_period, department } = {}) => {
+export const getPayrollDeductions = async ({
+  cutoff_period,
+  department,
+} = {}) => {
   const res = await api.get("/payroll-deductions/list", {
     params: { cutoff_period, department },
   });

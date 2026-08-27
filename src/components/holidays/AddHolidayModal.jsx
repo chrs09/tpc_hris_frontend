@@ -42,7 +42,9 @@ export default function AddHolidayModal({ onClose, onSaved }) {
       >
         <div className="px-6 pt-6 pb-4 border-b border-slate-100">
           <h3 className="text-lg font-semibold text-slate-900">Add Holiday</h3>
-          <p className="text-sm text-slate-400 mt-0.5">Manually add a holiday not covered by the API</p>
+          <p className="text-sm text-slate-400 mt-0.5">
+            Manually add a holiday not covered by the API
+          </p>
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
@@ -58,7 +60,9 @@ export default function AddHolidayModal({ onClose, onSaved }) {
               required
               placeholder="e.g. Founding Anniversary"
               value={form.holiday_name}
-              onChange={(e) => setForm({ ...form, holiday_name: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, holiday_name: e.target.value })
+              }
               className={inputClass}
             />
           </div>
@@ -69,7 +73,9 @@ export default function AddHolidayModal({ onClose, onSaved }) {
               required
               type="date"
               value={form.holiday_date}
-              onChange={(e) => setForm({ ...form, holiday_date: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, holiday_date: e.target.value })
+              }
               className={inputClass}
             />
           </div>
@@ -79,7 +85,9 @@ export default function AddHolidayModal({ onClose, onSaved }) {
               <label className={labelClass}>Type</label>
               <select
                 value={form.holiday_type}
-                onChange={(e) => setForm({ ...form, holiday_type: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, holiday_type: e.target.value })
+                }
                 className={inputClass}
               >
                 <option value="regular">Regular Holiday</option>
@@ -108,7 +116,9 @@ export default function AddHolidayModal({ onClose, onSaved }) {
                 <input
                   placeholder="Cebu"
                   value={form.province}
-                  onChange={(e) => setForm({ ...form, province: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, province: e.target.value })
+                  }
                   className={inputClass}
                 />
               </div>
@@ -128,7 +138,9 @@ export default function AddHolidayModal({ onClose, onSaved }) {
             <input
               type="checkbox"
               checked={form.override_api}
-              onChange={(e) => setForm({ ...form, override_api: e.target.checked })}
+              onChange={(e) =>
+                setForm({ ...form, override_api: e.target.checked })
+              }
               className="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-300"
             />
             Override API holiday on this date

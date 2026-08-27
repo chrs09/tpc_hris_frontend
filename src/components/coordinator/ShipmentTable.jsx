@@ -13,13 +13,13 @@ const columns = [
 ];
 
 export default function ShipmentTable({
-    rows,
-    setRows,
+  rows,
+  setRows,
 
-    drivers,
-    helpers,
-    vehicles,
-    tripProfiles,
+  drivers,
+  helpers,
+  vehicles,
+  tripProfiles,
 }) {
   const updateRow = (index, field, value) => {
     setRows((prev) =>
@@ -29,28 +29,20 @@ export default function ShipmentTable({
               ...row,
               [field]: value,
             }
-          : row
-      )
+          : row,
+      ),
     );
   };
 
   const editRow = (index) => {
     setRows((prev) =>
-      prev.map((row, i) =>
-        i === index
-          ? { ...row, editing: true }
-          : row
-      )
+      prev.map((row, i) => (i === index ? { ...row, editing: true } : row)),
     );
   };
 
   const saveRow = (index) => {
     setRows((prev) =>
-      prev.map((row, i) =>
-        i === index
-          ? { ...row, editing: false }
-          : row
-      )
+      prev.map((row, i) => (i === index ? { ...row, editing: false } : row)),
     );
   };
 
@@ -102,31 +94,41 @@ export default function ShipmentTable({
             <tr>
               <td colSpan={columns.length + 1} className="px-4 py-12">
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-300">
+                  <svg
+                    width="28"
+                    height="28"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    className="text-slate-300"
+                  >
                     <rect x="3" y="7" width="18" height="13" rx="2" />
                     <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
-                  <p className="text-sm font-medium text-slate-600">No shipments planned yet</p>
-                  <p className="text-xs text-slate-400">Add a row or upload a load plan to get started.</p>
+                  <p className="text-sm font-medium text-slate-600">
+                    No shipments planned yet
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    Add a row or upload a load plan to get started.
+                  </p>
                 </div>
               </td>
             </tr>
           ) : (
             rows.map((row, index) => (
               <ShipmentRow
-                  key={`${row.dispatchId}-${row.id}`}
-                  row={row}
-                  index={index}
-
-                  updateRow={updateRow}
-                  editRow={editRow}
-                  saveRow={saveRow}
-                  deleteRow={deleteRow}
-
-                  drivers={drivers}
-                  helpers={helpers}
-                  vehicles={vehicles}
-                  tripProfiles={tripProfiles}
+                key={`${row.dispatchId}-${row.id}`}
+                row={row}
+                index={index}
+                updateRow={updateRow}
+                editRow={editRow}
+                saveRow={saveRow}
+                deleteRow={deleteRow}
+                drivers={drivers}
+                helpers={helpers}
+                vehicles={vehicles}
+                tripProfiles={tripProfiles}
               />
             ))
           )}

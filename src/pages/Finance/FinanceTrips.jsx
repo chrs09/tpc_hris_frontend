@@ -20,11 +20,10 @@ const FinanceTrips = () => {
     try {
       setError("");
 
-      const [tripsResponse, summaryResponse] =
-        await Promise.all([
-          getFinanceTrips(status),
-          getFinanceTripSummary(),
-        ]);
+      const [tripsResponse, summaryResponse] = await Promise.all([
+        getFinanceTrips(status),
+        getFinanceTripSummary(),
+      ]);
 
       setTrips(tripsResponse.data);
       setSummary(summaryResponse.data);
@@ -34,8 +33,7 @@ const FinanceTrips = () => {
       setTrips([]);
 
       setError(
-        err.response?.data?.detail ||
-          "Failed to load Finance trip data.",
+        err.response?.data?.detail || "Failed to load Finance trip data.",
       );
     }
   };
@@ -55,9 +53,7 @@ const FinanceTrips = () => {
   const handleTripApproved = async () => {
     await loadTrips(activeTab);
 
-    setSuccessMessage(
-      "Trip approved — synced to attendance and payroll.",
-    );
+    setSuccessMessage("Trip approved — synced to attendance and payroll.");
 
     setTimeout(() => {
       setSuccessMessage("");
@@ -92,16 +88,14 @@ const FinanceTrips = () => {
         </h1>
 
         <p className="mt-1 text-sm text-gray-500">
-          Verify Office-reviewed trips before they reflect on
-          attendance and payroll.
+          Verify Office-reviewed trips before they reflect on attendance and
+          payroll.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <p className="text-xs text-gray-500">
-            For Finance Review
-          </p>
+          <p className="text-xs text-gray-500">For Finance Review</p>
 
           <p className="mt-1 text-2xl font-bold text-gray-900">
             {summary.finance_review_count ?? "—"}
@@ -109,9 +103,7 @@ const FinanceTrips = () => {
         </div>
 
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <p className="text-xs text-gray-500">
-            Approved
-          </p>
+          <p className="text-xs text-gray-500">Approved</p>
 
           <p className="mt-1 text-2xl font-bold text-gray-900">
             {summary.approved_count ?? "—"}
@@ -119,9 +111,7 @@ const FinanceTrips = () => {
         </div>
 
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <p className="text-xs text-gray-500">
-            Total Trips
-          </p>
+          <p className="text-xs text-gray-500">Total Trips</p>
 
           <p className="mt-1 text-2xl font-bold text-gray-900">
             {summary.total_count ?? "—"}
@@ -129,9 +119,7 @@ const FinanceTrips = () => {
         </div>
 
         <div className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
-          <p className="text-xs text-gray-500">
-            Synced to Payroll
-          </p>
+          <p className="text-xs text-gray-500">Synced to Payroll</p>
 
           <p className="mt-1 text-2xl font-bold text-gray-900">
             {summary.synced_to_payroll_count ?? "—"}

@@ -13,10 +13,7 @@ import {
   forwardTripToFinance,
 } from "../../api/officeTripManagement/trip";
 
-export default function OfficePendingTripsCard({
-  trips = [],
-  refreshTrips,
-}) {
+export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
@@ -44,8 +41,7 @@ export default function OfficePendingTripsCard({
       console.error("Failed to load office trip review:", error);
 
       setReviewError(
-        error.response?.data?.detail ||
-          "Failed to load trip review.",
+        error.response?.data?.detail || "Failed to load trip review.",
       );
     } finally {
       setLoadingReview(false);
@@ -85,10 +81,7 @@ export default function OfficePendingTripsCard({
       setSubmitting(true);
       setRemarksError("");
 
-      await forwardTripToFinance(
-        selectedTrip.trip_id,
-        officeRemarks.trim(),
-      );
+      await forwardTripToFinance(selectedTrip.trip_id, officeRemarks.trim());
 
       setShowModal(false);
       setSelectedTrip(null);
@@ -122,20 +115,14 @@ export default function OfficePendingTripsCard({
           log.actual_long !== null &&
           log.actual_long !== undefined,
       )
-      .map((log) => [
-        Number(log.actual_lat),
-        Number(log.actual_long),
-      ]) || [];
+      .map((log) => [Number(log.actual_lat), Number(log.actual_long)]) || [];
 
   const getMapCenter = () => {
     if (routePoints.length > 0) {
       return routePoints[0];
     }
 
-    if (
-      selectedTrip?.origin_lat &&
-      selectedTrip?.origin_long
-    ) {
+    if (selectedTrip?.origin_lat && selectedTrip?.origin_long) {
       return [
         Number(selectedTrip.origin_lat),
         Number(selectedTrip.origin_long),
@@ -149,9 +136,7 @@ export default function OfficePendingTripsCard({
     <>
       {reviewError && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">
-            {reviewError}
-          </p>
+          <p className="text-sm text-red-700">{reviewError}</p>
         </div>
       )}
 
@@ -178,9 +163,7 @@ export default function OfficePendingTripsCard({
             </div>
 
             <div className="mb-3">
-              <p className="text-xs text-gray-400">
-                Driver
-              </p>
+              <p className="text-xs text-gray-400">Driver</p>
 
               <p className="font-medium text-gray-800">
                 {trip.username || "-"}
@@ -189,9 +172,7 @@ export default function OfficePendingTripsCard({
 
             <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
               <div>
-                <p className="text-xs text-gray-400">
-                  Stops
-                </p>
+                <p className="text-xs text-gray-400">Stops</p>
 
                 <p className="font-semibold text-gray-800">
                   {trip.stops_count ?? 0}
@@ -199,9 +180,7 @@ export default function OfficePendingTripsCard({
               </div>
 
               <div>
-                <p className="text-xs text-gray-400">
-                  Status
-                </p>
+                <p className="text-xs text-gray-400">Status</p>
 
                 <p className="text-sm font-medium text-gray-800">
                   {trip.review_status || "office_review"}
@@ -210,9 +189,7 @@ export default function OfficePendingTripsCard({
             </div>
 
             <div className="mt-4 rounded-lg bg-gray-50 p-3">
-              <p className="text-xs text-gray-400">
-                Coordinator Settlement
-              </p>
+              <p className="text-xs text-gray-400">Coordinator Settlement</p>
 
               <p className="mt-1 text-sm font-medium text-gray-700">
                 {trip.coordinator_settlement_date || "-"}
@@ -221,9 +198,7 @@ export default function OfficePendingTripsCard({
 
             {trip.coordinator_remarks && (
               <div className="mt-3">
-                <p className="text-xs text-gray-400">
-                  Coordinator Remarks
-                </p>
+                <p className="text-xs text-gray-400">Coordinator Remarks</p>
 
                 <p className="mt-1 line-clamp-2 text-sm text-gray-600">
                   {trip.coordinator_remarks}
@@ -275,10 +250,7 @@ export default function OfficePendingTripsCard({
                 </h3>
 
                 <div className="grid grid-cols-1 gap-4 rounded-xl bg-gray-50 p-5 md:grid-cols-2 lg:grid-cols-3">
-                  <InfoItem
-                    label="Ticket No."
-                    value={selectedTrip.ticket_no}
-                  />
+                  <InfoItem label="Ticket No." value={selectedTrip.ticket_no} />
 
                   <InfoItem
                     label="Driver"
@@ -287,10 +259,7 @@ export default function OfficePendingTripsCard({
                     }`.trim()}
                   />
 
-                  <InfoItem
-                    label="Origin"
-                    value={selectedTrip.origin_store}
-                  />
+                  <InfoItem label="Origin" value={selectedTrip.origin_store} />
 
                   <InfoItem
                     label="Vehicle Unit"
@@ -307,26 +276,17 @@ export default function OfficePendingTripsCard({
 
                   <InfoItem
                     label="Trip Rate Profile"
-                    value={
-                      selectedTrip.trip_rate_profile
-                        ?.profile_name || "-"
-                    }
+                    value={selectedTrip.trip_rate_profile?.profile_name || "-"}
                   />
 
-                  <InfoItem
-                    label="Trip Status"
-                    value={selectedTrip.status}
-                  />
+                  <InfoItem label="Trip Status" value={selectedTrip.status} />
 
                   <InfoItem
                     label="Start Time"
                     value={selectedTrip.start_time}
                   />
 
-                  <InfoItem
-                    label="End Time"
-                    value={selectedTrip.end_time}
-                  />
+                  <InfoItem label="End Time" value={selectedTrip.end_time} />
 
                   <InfoItem
                     label="Review Status"
@@ -352,9 +312,7 @@ export default function OfficePendingTripsCard({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">
-                    No helpers assigned.
-                  </p>
+                  <p className="text-sm text-gray-500">No helpers assigned.</p>
                 )}
               </section>
 
@@ -424,19 +382,16 @@ export default function OfficePendingTripsCard({
                       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
 
-                    {selectedTrip.origin_lat &&
-                      selectedTrip.origin_long && (
-                        <Marker
-                          position={[
-                            Number(selectedTrip.origin_lat),
-                            Number(selectedTrip.origin_long),
-                          ]}
-                        >
-                          <Popup>
-                            Origin: {selectedTrip.origin_store}
-                          </Popup>
-                        </Marker>
-                      )}
+                    {selectedTrip.origin_lat && selectedTrip.origin_long && (
+                      <Marker
+                        position={[
+                          Number(selectedTrip.origin_lat),
+                          Number(selectedTrip.origin_long),
+                        ]}
+                      >
+                        <Popup>Origin: {selectedTrip.origin_store}</Popup>
+                      </Marker>
+                    )}
 
                     {routePoints.length > 1 && (
                       <Polyline positions={routePoints} />
@@ -481,10 +436,7 @@ export default function OfficePendingTripsCard({
                 {selectedTrip.stops?.length > 0 ? (
                   <div className="space-y-4">
                     {selectedTrip.stops.map((stop, index) => (
-                      <div
-                        key={stop.id}
-                        className="rounded-xl border p-5"
-                      >
+                      <div key={stop.id} className="rounded-xl border p-5">
                         <div className="mb-4">
                           <p className="text-xs font-semibold uppercase text-gray-400">
                             Stop {index + 1}
@@ -516,9 +468,7 @@ export default function OfficePendingTripsCard({
                             <button
                               type="button"
                               onClick={() =>
-                                setSelectedImageUrl(
-                                  stop.delivery_proof_photo,
-                                )
+                                setSelectedImageUrl(stop.delivery_proof_photo)
                               }
                               className="block max-w-full overflow-hidden rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-yellow-400"
                               aria-label={`View proof of delivery for ${stop.store_name}`}
@@ -556,9 +506,9 @@ export default function OfficePendingTripsCard({
                   </label>
 
                   <p className="mb-3 text-xs text-gray-500">
-                    Review the trip details, coordinator remarks, route,
-                    PODs, and supporting documents before forwarding the
-                    trip to Finance.
+                    Review the trip details, coordinator remarks, route, PODs,
+                    and supporting documents before forwarding the trip to
+                    Finance.
                   </p>
 
                   <textarea
@@ -573,16 +523,12 @@ export default function OfficePendingTripsCard({
                     rows={5}
                     placeholder="e.g. Documents and PODs verified. Trip is ready for Finance review."
                     className={`w-full rounded-xl border bg-white p-3 text-sm text-gray-900 outline-none transition focus:ring-2 focus:ring-yellow-400 ${
-                      remarksError
-                        ? "border-red-500"
-                        : "border-gray-200"
+                      remarksError ? "border-red-500" : "border-gray-200"
                     }`}
                   />
 
                   {remarksError && (
-                    <p className="mt-2 text-xs text-red-600">
-                      {remarksError}
-                    </p>
+                    <p className="mt-2 text-xs text-red-600">{remarksError}</p>
                   )}
 
                   <button
@@ -591,9 +537,7 @@ export default function OfficePendingTripsCard({
                     disabled={submitting}
                     className="mt-5 w-full rounded-xl bg-yellow-400 px-5 py-3 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {submitting
-                      ? "Forwarding..."
-                      : "Forward to Finance Review"}
+                    {submitting ? "Forwarding..." : "Forward to Finance Review"}
                   </button>
                 </div>
               </section>
@@ -643,23 +587,15 @@ function InfoItem({ label, value }) {
         {label}
       </p>
 
-      <p className="mt-1 text-sm font-medium text-gray-800">
-        {value || "-"}
-      </p>
+      <p className="mt-1 text-sm font-medium text-gray-800">{value || "-"}</p>
     </div>
   );
 }
 
-function PhotoCard({
-  title,
-  src,
-  onPreview,
-}) {
+function PhotoCard({ title, src, onPreview }) {
   return (
     <div>
-      <p className="mb-2 text-sm font-semibold text-gray-700">
-        {title}
-      </p>
+      <p className="mb-2 text-sm font-semibold text-gray-700">{title}</p>
 
       {src ? (
         <button
@@ -676,9 +612,7 @@ function PhotoCard({
         </button>
       ) : (
         <div className="flex h-48 items-center justify-center rounded-xl border bg-gray-50">
-          <p className="text-sm text-gray-400">
-            No photo available
-          </p>
+          <p className="text-sm text-gray-400">No photo available</p>
         </div>
       )}
     </div>

@@ -30,10 +30,8 @@ delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl:
     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 const STATUS_STYLES = {
@@ -72,10 +70,7 @@ function FitBounds({ coordinates }) {
   return null;
 }
 
-export default function FinanceReviewCard({
-  trips = [],
-  refreshTrips,
-}) {
+export default function FinanceReviewCard({ trips = [], refreshTrips }) {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [activePhoto, setActivePhoto] = useState(null);
@@ -86,10 +81,7 @@ export default function FinanceReviewCard({
   const perPage = 5;
   const totalPages = Math.ceil(trips.length / perPage);
 
-  const paginatedTrips = trips.slice(
-    (page - 1) * perPage,
-    page * perPage,
-  );
+  const paginatedTrips = trips.slice((page - 1) * perPage, page * perPage);
 
   const handleCloseModal = () => {
     if (approving) {
@@ -111,10 +103,7 @@ export default function FinanceReviewCard({
 
       setSelectedTrip(response.data);
     } catch (error) {
-      console.error(
-        "Failed to load Finance trip detail:",
-        error,
-      );
+      console.error("Failed to load Finance trip detail:", error);
 
       setShowModal(false);
       setSelectedTrip(null);
@@ -139,10 +128,7 @@ export default function FinanceReviewCard({
         await refreshTrips();
       }
     } catch (error) {
-      console.error(
-        "Failed to approve Finance trip:",
-        error,
-      );
+      console.error("Failed to approve Finance trip:", error);
     } finally {
       setApproving(false);
     }
@@ -155,10 +141,7 @@ export default function FinanceReviewCard({
 
     const coordinates = [];
 
-    if (
-      selectedTrip.origin_lat != null &&
-      selectedTrip.origin_long != null
-    ) {
+    if (selectedTrip.origin_lat != null && selectedTrip.origin_long != null) {
       coordinates.push([
         Number(selectedTrip.origin_lat),
         Number(selectedTrip.origin_long),
@@ -169,26 +152,18 @@ export default function FinanceReviewCard({
       [...selectedTrip.gps_logs]
         .sort(
           (first, second) =>
-            new Date(first.created_at) -
-            new Date(second.created_at),
+            new Date(first.created_at) - new Date(second.created_at),
         )
         .forEach((log) => {
-          if (
-            log.actual_lat != null &&
-            log.actual_long != null
-          ) {
-            coordinates.push([
-              Number(log.actual_lat),
-              Number(log.actual_long),
-            ]);
+          if (log.actual_lat != null && log.actual_long != null) {
+            coordinates.push([Number(log.actual_lat), Number(log.actual_long)]);
           }
         });
     }
 
     return coordinates.filter(
       ([latitude, longitude]) =>
-        !Number.isNaN(latitude) &&
-        !Number.isNaN(longitude),
+        !Number.isNaN(latitude) && !Number.isNaN(longitude),
     );
   }, [selectedTrip]);
 
@@ -200,8 +175,7 @@ export default function FinanceReviewCard({
   const endIcon = useMemo(
     () =>
       new L.Icon({
-        iconUrl:
-          "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
         iconSize: [32, 32],
         iconAnchor: [16, 32],
       }),
@@ -213,9 +187,7 @@ export default function FinanceReviewCard({
       return "";
     }
 
-    const apiBaseUrl = (
-      import.meta.env.VITE_API_URL || ""
-    ).replace(/\/$/, "");
+    const apiBaseUrl = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
     try {
       const parsedUrl = new URL(rawUrl);
@@ -229,9 +201,7 @@ export default function FinanceReviewCard({
 
       return rawUrl;
     } catch {
-      const cleanPath = rawUrl.startsWith("/")
-        ? rawUrl
-        : `/${rawUrl}`;
+      const cleanPath = rawUrl.startsWith("/") ? rawUrl : `/${rawUrl}`;
 
       return `${apiBaseUrl}${cleanPath}`;
     }
@@ -244,23 +214,13 @@ export default function FinanceReviewCard({
         <table className="w-full text-sm text-white">
           <thead>
             <tr>
-              <th className="px-6 py-3 text-left">
-                Shipment Number
-              </th>
-              <th className="px-6 py-3 text-left">
-                Trip Details
-              </th>
-              <th className="px-6 py-3 text-left">
-                Coordinator Remarks
-              </th>
+              <th className="px-6 py-3 text-left">Shipment Number</th>
+              <th className="px-6 py-3 text-left">Trip Details</th>
+              <th className="px-6 py-3 text-left">Coordinator Remarks</th>
 
-              <th className="px-6 py-3 text-left">
-                Office Personnel Remarks
-              </th>
+              <th className="px-6 py-3 text-left">Office Personnel Remarks</th>
 
-              <th className="px-6 py-3 text-left">
-                Status
-              </th>
+              <th className="px-6 py-3 text-left">Status</th>
               <th />
             </tr>
           </thead>
@@ -293,20 +253,17 @@ export default function FinanceReviewCard({
                   </p>
 
                   <p className="mt-1 text-xs text-gray-700">
-                    {trip.start_time || "-"} →{" "}
-                    {trip.end_time || "-"}
+                    {trip.start_time || "-"} → {trip.end_time || "-"}
                   </p>
 
                   <p className="text-xs text-gray-700">
-                    {trip.stops_count ?? 0} stops ·{" "}
-                    {trip.ticket_no || "-"}
+                    {trip.stops_count ?? 0} stops · {trip.ticket_no || "-"}
                   </p>
                 </td>
 
                 <td className="max-w-xs px-6 py-4">
                   <p className="line-clamp-2 text-sm">
-                    {trip.coordinator_remarks ||
-                      "No coordinator remarks."}
+                    {trip.coordinator_remarks || "No coordinator remarks."}
                   </p>
 
                   <p className="mt-1 text-xs text-gray-600">
@@ -316,8 +273,7 @@ export default function FinanceReviewCard({
 
                 <td className="max-w-xs px-6 py-4">
                   <p className="line-clamp-2 text-sm">
-                    {trip.office_remarks ||
-                      "No Office Personnel remarks."}
+                    {trip.office_remarks || "No Office Personnel remarks."}
                   </p>
 
                   <p className="mt-1 text-xs text-gray-600">
@@ -335,9 +291,7 @@ export default function FinanceReviewCard({
                     onClick={() => handleView(trip.id)}
                     className="cursor-pointer rounded-lg bg-[#2b2b2b] px-4 py-2 text-white hover:bg-black"
                   >
-                    {trip.status === "finance_review"
-                      ? "Review"
-                      : "View"}
+                    {trip.status === "finance_review" ? "Review" : "View"}
                   </button>
                 </td>
               </tr>
@@ -355,15 +309,10 @@ export default function FinanceReviewCard({
         )}
 
         {paginatedTrips.map((trip) => (
-          <div
-            key={trip.id}
-            className="rounded-xl bg-[#2b2b2b] p-4 text-white"
-          >
+          <div key={trip.id} className="rounded-xl bg-[#2b2b2b] p-4 text-white">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs opacity-70">
-                  Shipment Number
-                </p>
+                <p className="text-xs opacity-70">Shipment Number</p>
 
                 <p className="font-semibold uppercase">
                   {trip.shipment_number || "-"}
@@ -377,19 +326,15 @@ export default function FinanceReviewCard({
               <p className="text-xs opacity-70">Driver</p>
 
               <p className="capitalize">
-                {trip.driver_first_name || "-"}{" "}
-                {trip.driver_last_name || ""}
+                {trip.driver_first_name || "-"} {trip.driver_last_name || ""}
               </p>
             </div>
 
             <div className="mt-2 text-sm">
-              <p className="text-xs opacity-70">
-                Coordinator Remarks
-              </p>
+              <p className="text-xs opacity-70">Coordinator Remarks</p>
 
               <p className="line-clamp-2">
-                {trip.coordinator_remarks ||
-                  "No coordinator remarks."}
+                {trip.coordinator_remarks || "No coordinator remarks."}
               </p>
             </div>
 
@@ -399,9 +344,7 @@ export default function FinanceReviewCard({
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-yellow-400 py-2 font-medium text-black"
             >
               <Eye size={16} />
-              {trip.status === "finance_review"
-                ? "Review"
-                : "View"}
+              {trip.status === "finance_review" ? "Review" : "View"}
             </button>
           </div>
         ))}
@@ -413,9 +356,7 @@ export default function FinanceReviewCard({
           <button
             type="button"
             disabled={page === 1}
-            onClick={() =>
-              setPage((currentPage) => currentPage - 1)
-            }
+            onClick={() => setPage((currentPage) => currentPage - 1)}
             className="rounded bg-gray-200 px-3 py-1 disabled:opacity-40"
           >
             Prev
@@ -428,9 +369,7 @@ export default function FinanceReviewCard({
           <button
             type="button"
             disabled={page === totalPages}
-            onClick={() =>
-              setPage((currentPage) => currentPage + 1)
-            }
+            onClick={() => setPage((currentPage) => currentPage + 1)}
             className="rounded bg-gray-200 px-3 py-1 disabled:opacity-40"
           >
             Next
@@ -448,14 +387,10 @@ export default function FinanceReviewCard({
 
                 {detailLoading
                   ? "Loading..."
-                  : `Trip Review — ${
-                      selectedTrip?.shipment_number || "-"
-                    }`}
+                  : `Trip Review — ${selectedTrip?.shipment_number || "-"}`}
 
                 {!detailLoading && selectedTrip && (
-                  <StatusBadge
-                    status={selectedTrip.status}
-                  />
+                  <StatusBadge status={selectedTrip.status} />
                 )}
               </h2>
 
@@ -498,46 +433,33 @@ export default function FinanceReviewCard({
                             Number(selectedTrip.origin_long),
                           ]}
                         >
-                          <Popup>
-                            Origin: {selectedTrip.origin_store}
-                          </Popup>
+                          <Popup>Origin: {selectedTrip.origin_store}</Popup>
                         </Marker>
                       )}
 
                     {selectedTrip.stops?.map((stop, index) => {
-                      if (
-                        stop.lat_in == null ||
-                        stop.long_in == null
-                      ) {
+                      if (stop.lat_in == null || stop.long_in == null) {
                         return null;
                       }
 
                       return (
                         <Marker
                           key={stop.id || index}
-                          position={[
-                            Number(stop.lat_in),
-                            Number(stop.long_in),
-                          ]}
+                          position={[Number(stop.lat_in), Number(stop.long_in)]}
                         >
                           <Popup>
                             <strong>{stop.store_name}</strong>
                             <br />
-                            Check-In:{" "}
-                            {stop.check_in_time || "-"}
+                            Check-In: {stop.check_in_time || "-"}
                             <br />
-                            Check-Out:{" "}
-                            {stop.check_out_time || "-"}
+                            Check-Out: {stop.check_out_time || "-"}
                           </Popup>
                         </Marker>
                       );
                     })}
 
                     {endPoint && (
-                      <Marker
-                        position={endPoint}
-                        icon={endIcon}
-                      >
+                      <Marker position={endPoint} icon={endIcon}>
                         <Popup>Trip End</Popup>
                       </Marker>
                     )}
@@ -561,13 +483,9 @@ export default function FinanceReviewCard({
                 <div className="overflow-y-auto p-6 lg:w-2/5">
                   <div className="mb-6 flex items-center gap-3 text-lg">
                     <User size={18} />
-
                     {selectedTrip.driver_first_name || "-"}{" "}
                     {selectedTrip.driver_last_name || ""}
-
-                    <span className="ml-2 text-sm text-gray-300">
-                      [Driver]
-                    </span>
+                    <span className="ml-2 text-sm text-gray-300">[Driver]</span>
                   </div>
 
                   {selectedTrip.helpers?.length > 0 && (
@@ -580,8 +498,7 @@ export default function FinanceReviewCard({
                             key={helper.id}
                             className="rounded-full bg-gray-200 px-3 py-1 text-sm text-black"
                           >
-                            {helper.first_name}{" "}
-                            {helper.last_name}
+                            {helper.first_name} {helper.last_name}
                           </span>
                         ))}
                       </div>
@@ -590,9 +507,7 @@ export default function FinanceReviewCard({
 
                   <div className="mb-6 space-y-4">
                     <div>
-                      <p className="text-sm text-gray-300">
-                        Origin
-                      </p>
+                      <p className="text-sm text-gray-300">Origin</p>
 
                       <p>{selectedTrip.origin_store || "-"}</p>
                     </div>
@@ -618,9 +533,7 @@ export default function FinanceReviewCard({
                     </div>
 
                     <div>
-                      <p className="mb-2 text-sm text-gray-400">
-                        Attachments
-                      </p>
+                      <p className="mb-2 text-sm text-gray-400">Attachments</p>
 
                       <div className="flex flex-wrap gap-2">
                         {selectedTrip.start_photo && (
@@ -628,9 +541,7 @@ export default function FinanceReviewCard({
                             type="button"
                             onClick={() =>
                               setActivePhoto({
-                                url: resolvePhotoUrl(
-                                  selectedTrip.start_photo,
-                                ),
+                                url: resolvePhotoUrl(selectedTrip.start_photo),
                                 label: "Start Photo",
                               })
                             }
@@ -726,9 +637,7 @@ export default function FinanceReviewCard({
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-400">
-                        No visited stops.
-                      </p>
+                      <p className="text-sm text-gray-400">No visited stops.</p>
                     )}
                   </div>
 
@@ -747,8 +656,8 @@ export default function FinanceReviewCard({
                     </p>
 
                     <p className="mt-2 text-xs text-gray-400">
-                      — {selectedTrip.coordinator_name || "-"},
-                      submitted {selectedTrip.submitted_at || "-"}
+                      — {selectedTrip.coordinator_name || "-"}, submitted{" "}
+                      {selectedTrip.submitted_at || "-"}
                     </p>
                   </div>
 
@@ -767,15 +676,14 @@ export default function FinanceReviewCard({
                     </p>
 
                     <p className="mt-2 text-xs text-gray-300">
-                      Reviewed:{" "}
-                      {selectedTrip.office_reviewed_at || "-"}
+                      Reviewed: {selectedTrip.office_reviewed_at || "-"}
                     </p>
                   </div>
 
                   {selectedTrip.status === "approved" && (
                     <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm">
-                      Approved {selectedTrip.approved_at || "-"} —
-                      reflected on attendance and payroll.
+                      Approved {selectedTrip.approved_at || "-"} — reflected on
+                      attendance and payroll.
                     </div>
                   )}
 
@@ -786,9 +694,7 @@ export default function FinanceReviewCard({
                       disabled={approving}
                       className="mt-6 w-full rounded-xl bg-yellow-400 py-3 font-bold text-black disabled:opacity-60"
                     >
-                      {approving
-                        ? "Approving..."
-                        : "Approve Trip"}
+                      {approving ? "Approving..." : "Approve Trip"}
                     </button>
                   )}
                 </div>

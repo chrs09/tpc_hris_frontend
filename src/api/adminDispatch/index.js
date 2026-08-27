@@ -38,10 +38,7 @@ export const getDispatchDetails = async (dispatchId) => {
 // =====================================================
 
 export const updateDispatch = async (dispatchId, dispatchData) => {
-  const res = await api.put(
-    `/admin/dispatch/${dispatchId}`,
-    dispatchData
-  );
+  const res = await api.put(`/admin/dispatch/${dispatchId}`, dispatchData);
 
   return res.data;
 };
@@ -51,9 +48,7 @@ export const updateDispatch = async (dispatchId, dispatchData) => {
 // =====================================================
 
 export const deleteDispatch = async (dispatchId) => {
-  const res = await api.delete(
-    `/admin/dispatch/${dispatchId}`
-  );
+  const res = await api.delete(`/admin/dispatch/${dispatchId}`);
 
   return res.data;
 };

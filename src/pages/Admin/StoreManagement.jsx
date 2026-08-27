@@ -75,7 +75,7 @@ export default function StoreManagement() {
     // The stores list only returns a resolved profile name (store.profile),
     // not the numeric trip_rate_profile_id, so we look it up here.
     const matchedProfile = tripRateProfiles.find(
-      (p) => p.code === store.profile
+      (p) => p.code === store.profile,
     );
     setEditingStore(store);
     setForm({
@@ -184,7 +184,9 @@ export default function StoreManagement() {
         <td className="px-6 py-4">{store.profile || "Unassigned"}</td>
         <td className="px-6 py-4">{store.required_helper}</td>
         <td className="px-6 py-4">{store.allowed_radius_meters} m</td>
-        <td className="px-6 py-4">{store.latitude}, {store.longitude}</td>
+        <td className="px-6 py-4">
+          {store.latitude}, {store.longitude}
+        </td>
         <td className="px-6 py-4">
           <button
             className="text-blue-600 hover:text-blue-800"
@@ -209,7 +211,8 @@ export default function StoreManagement() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <p className="text-sm text-gray-600">
-            Stores can be created with profile information and helper requirements.
+            Stores can be created with profile information and helper
+            requirements.
           </p>
         </div>
         <button
@@ -277,13 +280,17 @@ export default function StoreManagement() {
               </th>
             </tr>
           </thead>
-          <tbody>{loading ? (
-            <tr>
-              <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                Loading stores...
-              </td>
-            </tr>
-          ) : renderRows()}</tbody>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  Loading stores...
+                </td>
+              </tr>
+            ) : (
+              renderRows()
+            )}
+          </tbody>
         </table>
 
         {!loading && totalItems > 0 && (
@@ -318,7 +325,7 @@ export default function StoreManagement() {
                   (page) =>
                     page === 1 ||
                     page === totalPages ||
-                    Math.abs(page - safePage) <= 1
+                    Math.abs(page - safePage) <= 1,
                 )
                 .reduce((acc, page, idx, arr) => {
                   if (idx > 0 && page - arr[idx - 1] > 1) {
@@ -344,7 +351,7 @@ export default function StoreManagement() {
                     >
                       {page}
                     </button>
-                  )
+                  ),
                 )}
 
               <button
@@ -388,11 +395,15 @@ export default function StoreManagement() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Longitude</label>
+              <label className="block text-sm font-medium mb-1">
+                Longitude
+              </label>
               <input
                 type="number"
                 value={form.longitude}
-                onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, longitude: e.target.value })
+                }
                 className="w-full rounded-lg border px-3 py-2"
                 placeholder="Longitude"
               />
@@ -401,21 +412,29 @@ export default function StoreManagement() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Allowed Radius (meters)</label>
+              <label className="block text-sm font-medium mb-1">
+                Allowed Radius (meters)
+              </label>
               <input
                 type="number"
                 value={form.allowed_radius_meters}
-                onChange={(e) => setForm({ ...form, allowed_radius_meters: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, allowed_radius_meters: e.target.value })
+                }
                 className="w-full rounded-lg border px-3 py-2"
                 placeholder="100"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Required Helper</label>
+              <label className="block text-sm font-medium mb-1">
+                Required Helper
+              </label>
               <input
                 type="number"
                 value={form.required_helper}
-                onChange={(e) => setForm({ ...form, required_helper: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, required_helper: e.target.value })
+                }
                 className="w-full rounded-lg border px-3 py-2"
                 placeholder="0"
               />

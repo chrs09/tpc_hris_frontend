@@ -150,7 +150,11 @@ const DriverDashboard = () => {
       formData.append("long", location.long);
       formData.append("delivery_proof_photo", deliveryProofPhoto);
 
-      await checkOut(tripData.active_trip.id, tripData.latest_stop.id, formData);
+      await checkOut(
+        tripData.active_trip.id,
+        tripData.latest_stop.id,
+        formData,
+      );
       setDeliveryProofPhoto(null);
       await loadTrip();
     } catch (error) {

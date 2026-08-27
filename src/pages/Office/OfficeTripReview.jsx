@@ -4,12 +4,10 @@ import { getPendingOfficeTrips } from "../../api/officeTripManagement/trip";
 
 import OfficePendingTripsCard from "../../components/officeTripManagement/OfficePendingTripsCard";
 
-
 export default function OfficeTripReview() {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
 
   // =========================================================
   // FETCH PENDING OFFICE TRIPS
@@ -23,20 +21,15 @@ export default function OfficeTripReview() {
 
       setTrips(response.data || []);
     } catch (err) {
-      console.error(
-        "Failed to fetch pending office trips:",
-        err,
-      );
+      console.error("Failed to fetch pending office trips:", err);
 
       setError(
-        err.response?.data?.detail ||
-          "Failed to load trips for office review.",
+        err.response?.data?.detail || "Failed to load trips for office review.",
       );
     } finally {
       setLoading(false);
     }
   }, []);
-
 
   // =========================================================
   // INITIAL LOAD
@@ -45,7 +38,6 @@ export default function OfficeTripReview() {
     fetchTrips();
   }, [fetchTrips]);
 
-
   // =========================================================
   // LOADING
   // =========================================================
@@ -53,14 +45,11 @@ export default function OfficeTripReview() {
     return (
       <div className="p-6">
         <div className="bg-white rounded-xl border p-6">
-          <p className="text-gray-500">
-            Loading trips for office review...
-          </p>
+          <p className="text-gray-500">Loading trips for office review...</p>
         </div>
       </div>
     );
   }
-
 
   // =========================================================
   // ERROR
@@ -69,9 +58,7 @@ export default function OfficeTripReview() {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <p className="text-red-700">
-            {error}
-          </p>
+          <p className="text-red-700">{error}</p>
 
           <button
             type="button"
@@ -85,7 +72,6 @@ export default function OfficeTripReview() {
     );
   }
 
-
   // =========================================================
   // PAGE
   // =========================================================
@@ -93,28 +79,19 @@ export default function OfficeTripReview() {
     <div className="p-6">
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Office Trip Review
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-900">Office Trip Review</h1>
 
         <p className="text-sm text-gray-500 mt-1">
-          Review coordinator-approved trips before forwarding
-          them to Finance.
+          Review coordinator-approved trips before forwarding them to Finance.
         </p>
       </div>
-
 
       {/* SUMMARY */}
       <div className="mb-6 bg-white border rounded-xl p-4">
-        <p className="text-sm text-gray-500">
-          Pending Office Reviews
-        </p>
+        <p className="text-sm text-gray-500">Pending Office Reviews</p>
 
-        <p className="text-3xl font-bold mt-1">
-          {trips.length}
-        </p>
+        <p className="text-3xl font-bold mt-1">{trips.length}</p>
       </div>
-
 
       {/* EMPTY */}
       {trips.length === 0 ? (
@@ -128,10 +105,7 @@ export default function OfficeTripReview() {
           </p>
         </div>
       ) : (
-        <OfficePendingTripsCard
-          trips={trips}
-          refreshTrips={fetchTrips}
-        />
+        <OfficePendingTripsCard trips={trips} refreshTrips={fetchTrips} />
       )}
     </div>
   );

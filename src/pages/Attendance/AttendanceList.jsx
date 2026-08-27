@@ -48,6 +48,8 @@ const AttendanceList = () => {
 
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
+  const [activeEmployeeCount, setActiveEmployeeCount] = useState(0);
+
   const [filter, setFilter] = useState("All");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editModal, setEditModal] = useState(null);
@@ -64,35 +66,99 @@ const AttendanceList = () => {
 
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
+
   const [holidays, setHolidays] = useState([]);
 
   const employeesPerPage = 15;
 
   const currentYear = useMemo(() => currentMonth.getFullYear(), [currentMonth]);
-  useEffect(() => {
-      const fetchHolidays = async () => {
-        try {
-          const data = await getHolidays(currentYear);
-          setHolidays(data);
-        } catch (err) {
-          console.error("Failed to fetch holidays:", err);
-        }
-      };
 
-      fetchHolidays();
-    }, [currentYear]);
+  // ---------------------------------------
+  // LOAD ATTENDANCE
+  // ---------------------------------------
+
+  const loadAttendance = async () => {
+    try {
+      const data = await attendanceRecord();
+
+      const records = Array.isArray(data) ? data : data?.records || [];
+
+      const totalActiveEmployees = Array.isArray(data)
+        ? data.active_employee_count || 0
+        : data?.active_employee_count || 0;
+
+      setAttendanceData(records);
+      setActiveEmployeeCount(totalActiveEmployees);
+
+      console.log("Admin Active Employees:", data?.admin_count || 0);
+
+      console.log("Motorpool Active Employees:", data?.motorpool_count || 0);
+
+      console.log("Total Active Employees:", totalActiveEmployees);
+
+      console.log("Attendance Records:", records.length);
+
+      return {
+        records,
+        active_employee_count: totalActiveEmployees,
+        admin_count: data?.admin_count || 0,
+        motorpool_count: data?.motorpool_count || 0,
+      };
+    } catch (err) {
+      console.error("Failed to load attendance:", err);
+
+      setAttendanceData([]);
+      setActiveEmployeeCount(0);
+
+      return {
+        records: [],
+        active_employee_count: 0,
+        admin_count: 0,
+        motorpool_count: 0,
+      };
+    }
+  };
+
+  // ---------------------------------------
+  // LOAD HOLIDAYS
+  // ---------------------------------------
+
+  useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        const data = await getHolidays(currentYear);
+        setHolidays(data);
+      } catch (err) {
+        console.error("Failed to fetch holidays:", err);
+      }
+    };
+
+    fetchHolidays();
+  }, [currentYear]);
+
+  // ---------------------------------------
+  // INITIAL DATA
+  // ---------------------------------------
 
   useEffect(() => {
     const fetchData = async () => {
-      const empData = await getEmployeeList();
-      const attendance = await attendanceRecord();
+      try {
+        const empData = await getEmployeeList();
 
-      setEmployeesFromAPI(empData);
-      setAttendanceData(attendance);
+        setEmployeesFromAPI(empData);
+
+        await loadAttendance();
+      } catch (err) {
+        console.error("Failed to fetch attendance data:", err);
+      }
     };
 
     fetchData();
   }, []);
+
+  // ---------------------------------------
+  // ALERT
+  // ---------------------------------------
 
   useEffect(() => {
     if (!alert) return;
@@ -103,6 +169,10 @@ const AttendanceList = () => {
 
     return () => clearTimeout(timer);
   }, [alert]);
+
+  // ---------------------------------------
+  // EMPLOYEES
+  // ---------------------------------------
 
   const employees = useMemo(() => {
     return employeesFromAPI
@@ -121,6 +191,10 @@ const AttendanceList = () => {
     currentPage * employeesPerPage,
   );
 
+  // ---------------------------------------
+  // DAYS IN MONTH
+  // ---------------------------------------
+
   const daysInMonth = useMemo(() => {
     const allDays = eachDayOfInterval({
       start: startOfMonth(currentMonth),
@@ -132,6 +206,10 @@ const AttendanceList = () => {
     return allDays.filter((day) => day >= fromDate && day <= toDate);
   }, [currentMonth, fromDate, toDate]);
 
+  // ---------------------------------------
+  // ATTENDANCE MAP
+  // ---------------------------------------
+
   const attendanceMap = useMemo(() => {
     const map = {};
 
@@ -142,30 +220,136 @@ const AttendanceList = () => {
     return map;
   }, [attendanceData]);
 
+  // ---------------------------------------
+  // REVIEW RECORDS
+  // ---------------------------------------
+
   const reviewRecords = useMemo(() => {
-    return attendanceData.filter((item) => {
-      const matchesDate = item.attendance_date === reviewDate;
+    // ---------------------------------------
+    // ACTIVE EMPLOYEES
+    // ADMIN + MOTORPOOL
+    // ---------------------------------------
+
+    const activeEmployees = employeesFromAPI.filter((employee) => {
+      const department = (employee.department || "").trim().toLowerCase();
+
+      const isActive = employee.is_active === 1 || employee.is_active === true;
+
+      const isAdminOrMotorpool =
+        department === "admin" || department === "motorpool";
 
       const matchesDepartment =
-        filter === "All" ||
-        item.department === filter ||
-        item.employee_department === filter;
+        filter === "All" || department === filter.trim().toLowerCase();
+
+      return isActive && isAdminOrMotorpool && matchesDepartment;
+    });
+
+    // ---------------------------------------
+    // ATTENDANCE RECORDS FOR SELECTED DATE
+    // ---------------------------------------
+
+    const dateRecords = attendanceData.filter((item) => {
+      const matchesDate = item.attendance_date === reviewDate;
+
+      const itemDepartment = (item.department || item.employee_department || "")
+        .trim()
+        .toLowerCase();
+
+      const matchesDepartment =
+        filter === "All" || itemDepartment === filter.trim().toLowerCase();
 
       return matchesDate && matchesDepartment;
     });
-  }, [attendanceData, reviewDate, filter]);
+
+    // ---------------------------------------
+    // CREATE LOOKUP
+    // ---------------------------------------
+
+    const attendanceByEmployee = new Map(
+      dateRecords.map((record) => [record.employee_id, record]),
+    );
+
+    // ---------------------------------------
+    // MERGE EMPLOYEES + ATTENDANCE
+    //
+    // Employees without attendance will receive
+    // a temporary display record.
+    // ---------------------------------------
+
+    return activeEmployees.map((employee) => {
+      const existingRecord = attendanceByEmployee.get(employee.id);
+
+      if (existingRecord) {
+        return existingRecord;
+      }
+
+      return {
+        id: `missing-${employee.id}-${reviewDate}`,
+
+        employee_id: employee.id,
+
+        employee_name: `${employee.first_name || ""} ${
+          employee.last_name || ""
+        }`.trim(),
+
+        employee_department: employee.department,
+        department: employee.department,
+
+        attendance_date: reviewDate,
+
+        check_in_time: null,
+        check_out_time: null,
+
+        time_in_photo_url: null,
+        time_out_photo_url: null,
+
+        profile_photo_url: employee.profile_photo_url || null,
+
+        time_in_latitude: null,
+        time_in_longitude: null,
+        time_in_address: null,
+
+        time_out_latitude: null,
+        time_out_longitude: null,
+        time_out_address: null,
+
+        face_match_score: null,
+        face_review_status: "NO_ATTENDANCE",
+        face_review_reason: "Employee has not taken attendance for this date.",
+
+        attendance_method: null,
+        status: "NO_ATTENDANCE",
+        remarks: null,
+
+        completed_trips: 0,
+        trip_tickets: [],
+
+        // Important:
+        // This is NOT a real attendance record.
+        is_missing_attendance: true,
+      };
+    });
+  }, [employeesFromAPI, attendanceData, reviewDate, filter]);
+
+  // ---------------------------------------
+  // HOLIDAY MAP
+  // ---------------------------------------
 
   const holidayMap = useMemo(() => {
     const map = {};
+
     holidays.forEach((h) => {
       if (h.is_active) {
         map[h.holiday_date] = h;
       }
     });
+
     return map;
   }, [holidays]);
 
-  
+  // ---------------------------------------
+  // STATUS SYMBOL
+  // ---------------------------------------
 
   const getStatusSymbol = (status) => {
     const map = {
@@ -181,15 +365,23 @@ const AttendanceList = () => {
     return map[status] || "";
   };
 
+  // ---------------------------------------
+  // MONTH NAVIGATION
+  // ---------------------------------------
+
   const handlePrevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
+
   const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
+
+  // ---------------------------------------
+  // SELFIE TIME IN
+  // ---------------------------------------
 
   const handleSelfieTimeIn = async (formData) => {
     try {
       await timeInSelfie(formData);
 
-      const refreshed = await attendanceRecord();
-      setAttendanceData(refreshed);
+      await loadAttendance();
 
       setAlert({
         type: "success",
@@ -204,14 +396,20 @@ const AttendanceList = () => {
     }
   };
 
+  // ---------------------------------------
+  // SAVE ATTENDANCE
+  // ---------------------------------------
+
   const handleSave = async () => {
     if (new Date(editModal.date) > new Date()) {
       setAlert({
         type: "error",
         message: "Cannot save attendance for future dates.",
       });
+
       return;
     }
+
     const checkInTime = editModal.timeIn
       ? `${editModal.date} ${editModal.timeIn}:00`
       : null;
@@ -252,9 +450,11 @@ const AttendanceList = () => {
           remarks: editModal.remarks,
         });
 
-        const refreshed = await attendanceRecord();
+        // Reload data so we can find the
+        // newly created attendance record.
+        const refreshed = await loadAttendance();
 
-        const createdRecord = refreshed.find(
+        const createdRecord = refreshed.records.find(
           (item) =>
             item.employee_id === editModal.employeeId &&
             item.attendance_date === editModal.date,
@@ -273,8 +473,8 @@ const AttendanceList = () => {
         });
       }
 
-      const refreshed = await attendanceRecord();
-      setAttendanceData(refreshed);
+      // Refresh after save.
+      await loadAttendance();
 
       setEditModal(null);
     } catch (err) {
@@ -285,12 +485,17 @@ const AttendanceList = () => {
     }
   };
 
+  // ---------------------------------------
+  // BULK SAVE
+  // ---------------------------------------
+
   const handleBulkSave = async (records) => {
     try {
-      await bulkAttendanceCheck({ attendances: records });
+      await bulkAttendanceCheck({
+        attendances: records,
+      });
 
-      const refreshed = await attendanceRecord();
-      setAttendanceData(refreshed);
+      await loadAttendance();
 
       setAlert({
         type: "success",
@@ -304,10 +509,17 @@ const AttendanceList = () => {
     }
   };
 
+  // ---------------------------------------
+  // REFRESH
+  // ---------------------------------------
+
   const refreshAttendance = async () => {
-    const refreshed = await attendanceRecord();
-    setAttendanceData(refreshed);
+    await loadAttendance();
   };
+
+  // ---------------------------------------
+  // APPROVE
+  // ---------------------------------------
 
   const handleApproveAttendance = async (record) => {
     try {
@@ -323,6 +535,93 @@ const AttendanceList = () => {
     }
   };
 
+  const handleUpdateAttendance = async (record, changes) => {
+    try {
+      // ---------------------------------------
+      // BUILD DATETIME FOR BACKEND
+      // Backend expects:
+      // YYYY-MM-DD HH:MM:SS
+      // ---------------------------------------
+
+      const checkInDateTime = changes.check_in_time
+        ? `${record.attendance_date} ${changes.check_in_time}:00`
+        : null;
+
+      const checkOutDateTime = changes.check_out_time
+        ? `${record.attendance_date} ${changes.check_out_time}:00`
+        : null;
+
+      console.log("Updating attendance:", {
+        attendance_id: record.id,
+        employee_id: record.employee_id,
+        attendance_date: record.attendance_date,
+        check_in_time: checkInDateTime,
+        check_out_time: checkOutDateTime,
+        remarks: changes.remarks,
+      });
+
+      // ---------------------------------------
+      // UPDATE TIME IN / TIME OUT
+      // ---------------------------------------
+
+      const hasTimeChanges =
+        changes.check_in_time !== undefined ||
+        changes.check_out_time !== undefined;
+
+      if (hasTimeChanges) {
+        await adjustAttendanceTime(record.id, {
+          check_in_time: checkInDateTime,
+
+          check_out_time: checkOutDateTime,
+        });
+      }
+
+      // ---------------------------------------
+      // UPDATE ABSENT / LEAVE REASON
+      // ---------------------------------------
+
+      const status = (record.status || "").toUpperCase();
+
+      const isAbsent = status === "ABSENT";
+
+      const isLeave = status === "LEAVE" || status === "ON LEAVE";
+
+      if ((isAbsent || isLeave) && changes.remarks !== undefined) {
+        await updateAttendance({
+          employee_id: record.employee_id,
+
+          attendance_date: record.attendance_date,
+
+          status: record.status,
+
+          remarks: changes.remarks,
+        });
+      }
+
+      // ---------------------------------------
+      // REFRESH
+      // ---------------------------------------
+
+      await loadAttendance();
+
+      toast.success("Attendance details updated successfully.");
+    } catch (error) {
+      console.error("Failed to update attendance:", error);
+
+      console.error("Backend response:", error.response?.data);
+
+      toast.error(
+        error.response?.data?.detail || "Failed to update attendance details.",
+      );
+
+      throw error;
+    }
+  };
+
+  // ---------------------------------------
+  // REJECT
+  // ---------------------------------------
+
   const handleRejectAttendance = async (record) => {
     try {
       const response = await rejectAttendance(record.id);
@@ -335,10 +634,15 @@ const AttendanceList = () => {
     }
   };
 
+  // ---------------------------------------
+  // DISPLAY TIME → INPUT TIME
+  // ---------------------------------------
+
   const convertDisplayTimeToInput = (timeString) => {
     if (!timeString) return "";
 
     const [time, period] = timeString.split(" ");
+
     let [hours, minutes] = time.split(":");
 
     hours = parseInt(hours, 10);
@@ -353,6 +657,11 @@ const AttendanceList = () => {
 
     return `${String(hours).padStart(2, "0")}:${minutes}`;
   };
+
+  // ---------------------------------------
+  // RENDER
+  // ---------------------------------------
+
   return (
     <div className="space-y-5">
       {alert && (
@@ -477,7 +786,10 @@ const AttendanceList = () => {
             isSuperAdmin={isSuperAdmin}
             today={today}
             onPreviewAttendance={(attendance, type) =>
-              setPreviewModal({ attendance, type })
+              setPreviewModal({
+                attendance,
+                type,
+              })
             }
             onCellClick={(emp, date, status, attendance) =>
               console.log("Attendance Clicked:", attendance) ||
@@ -485,15 +797,10 @@ const AttendanceList = () => {
                 employeeId: emp.id,
                 employeeName: emp.name,
                 date,
-
                 status: status || "Present",
-
                 remarks: attendance?.remarks || "",
-
                 attendance,
-
                 timeIn: convertDisplayTimeToInput(attendance?.check_in_time),
-
                 timeOut: convertDisplayTimeToInput(attendance?.check_out_time),
               })
             }
@@ -524,8 +831,10 @@ const AttendanceList = () => {
       ) : (
         <AttendanceGridReview
           records={reviewRecords}
+          activeEmployeeCount={activeEmployeeCount}
           onApproveAttendance={handleApproveAttendance}
           onRejectAttendance={handleRejectAttendance}
+          onUpdateAttendance={handleUpdateAttendance}
         />
       )}
 
