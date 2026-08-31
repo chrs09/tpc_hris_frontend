@@ -1,13 +1,15 @@
 // HolidaysPage.jsx
 import { useState, useEffect, useCallback } from "react";
 import AddHolidayModal from "../../components/holidays/AddHolidayModal";
+import EditHolidayModal from "../../components/holidays/EditHolidayModal";
 import { getHolidays, deleteHoliday, syncHolidays } from "../../api/holidays";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 
 export default function HolidaysPage() {
   const [holidays, setHolidays] = useState([]);
   const [year, setYear] = useState(new Date().getFullYear());
   const [showModal, setShowModal] = useState(false);
+  const [editingHoliday, setEditingHoliday] = useState(null);
   const [syncing, setSyncing] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -216,15 +218,25 @@ export default function HolidaysPage() {
                     </span>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    {h.source === "manual" && (
+                    <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => handleDelete(h.id)}
-                        title="Delete holiday"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        onClick={() => setEditingHoliday(h)}
+                        title="Edit holiday"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Pencil className="w-4 h-4" />
                       </button>
-                    )}
+
+                      {h.source === "manual" && (
+                        <button
+                          onClick={() => handleDelete(h.id)}
+                          title="Delete holiday"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -238,6 +250,17 @@ export default function HolidaysPage() {
           onClose={() => setShowModal(false)}
           onSaved={() => {
             setShowModal(false);
+            fetchHolidays();
+          }}
+        />
+      )}
+
+      {editingHoliday && (
+        <EditHolidayModal
+          holiday={editingHoliday}
+          onClose={() => setEditingHoliday(null)}
+          onSaved={() => {
+            setEditingHoliday(null);
             fetchHolidays();
           }}
         />

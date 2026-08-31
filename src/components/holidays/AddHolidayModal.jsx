@@ -11,7 +11,7 @@ export default function AddHolidayModal({ onClose, onSaved }) {
     province: "",
     city: "",
     remarks: "",
-    override_api: false,
+    // override_api: false,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -134,17 +134,6 @@ export default function AddHolidayModal({ onClose, onSaved }) {
             </div>
           )}
 
-          <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.override_api}
-              onChange={(e) =>
-                setForm({ ...form, override_api: e.target.checked })
-              }
-              className="w-4 h-4 rounded border-slate-300 text-red-600 focus:ring-red-300"
-            />
-            Override API holiday on this date
-          </label>
 
           <div>
             <label className={labelClass}>Remarks</label>
