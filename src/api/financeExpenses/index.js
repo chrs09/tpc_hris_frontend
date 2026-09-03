@@ -38,8 +38,25 @@ export const updateFinanceExpense = (expenseId, formData) =>
   api.patch(`/finance/expenses/${expenseId}`, formData, multipartConfig);
 
 // =========================================================
+// OCR / RECEIPT EXTRACTION
+// =========================================================
+
+export const extractFinanceExpenseReceipt = (file) => {
+  const formData = new FormData();
+
+  formData.append("receipt_image", file);
+
+  return api.post(
+    "/finance/expenses/ocr",
+    formData,
+    multipartConfig,
+  );
+};
+
+// =========================================================
 // DELETE EXPENSE
 // =========================================================
 
 export const deleteFinanceExpense = (expenseId) =>
   api.delete(`/finance/expenses/${expenseId}`);
+

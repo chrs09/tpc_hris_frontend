@@ -270,8 +270,28 @@ export function calculateStandardAttendanceHours({
   //
   // ---------------------------------------------------
   else if (secondHalfAbsent) {
+    // The employee worked only the first half.
+    // Actual worked time must start from the later of:
+    // - scheduled time in
+    // - actual time in
+    //
+    // Example:
+    // Schedule: 07:00 AM
+    // Time In:  08:27 AM
+    // Time Out: 12:00 PM
+    //
+    // Regular Hours:
+    // 08:27 AM → 12:00 PM
+    // = 3 hours 33 minutes
+    // = 3.55 hours
+
+    const effectiveMorningStart = Math.max(
+      actualInMinutes,
+      scheduleInMinutes,
+    );
+
     const morningWorkedMinutes = Math.max(
-      actualOutMinutes - scheduleInMinutes,
+      actualOutMinutes - effectiveMorningStart,
       0,
     );
 

@@ -192,6 +192,15 @@ const PayrollDetailModal = ({
       totals.tardiness += result.tardinessMinutes || 0;
       totals.undertime += result.undertimeMinutes || 0;
 
+      // Half-day absence is a 4-hour scheduled absence.
+      if (result.firstHalfAbsent) {
+        totals.firstHalfAbsentHours += 4;
+      }
+
+      if (result.secondHalfAbsent) {
+        totals.secondHalfAbsentHours += 4;
+      }
+
       totals.total +=
         (result.tardinessMinutes || 0) + (result.undertimeMinutes || 0);
 
@@ -203,6 +212,9 @@ const PayrollDetailModal = ({
 
       tardiness: 0,
       undertime: 0,
+
+      firstHalfAbsentHours: 0,
+      secondHalfAbsentHours: 0,
 
       total: 0,
     },
@@ -456,6 +468,10 @@ const PayrollDetailModal = ({
                       <th className="border px-3 py-2 text-center">Status</th>
 
                       <th className="border px-3 py-2 text-center">
+                        Half Day
+                      </th>
+
+                      <th className="border px-3 py-2 text-center">
                         Hours Rendered
                       </th>
 
@@ -562,6 +578,20 @@ const PayrollDetailModal = ({
                           <td className="border px-3 py-2">{record.status}</td>
 
                           <td className="border px-3 py-2 text-center">
+                            {result.firstHalfAbsent ? (
+                              <span className="font-semibold text-orange-600">
+                                1st Half Absent
+                              </span>
+                            ) : result.secondHalfAbsent ? (
+                              <span className="font-semibold text-orange-600">
+                                2nd Half Absent
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">--</span>
+                            )}
+                          </td>
+
+                          <td className="border px-3 py-2 text-center">
                             {Number(workedHours || 0).toFixed(2)}
                           </td>
 
@@ -632,6 +662,30 @@ const PayrollDetailModal = ({
                     <tr>
                       <td colSpan={4} className="border px-3 py-2">
                         Totals
+                      </td>
+
+                      {/* Half-Day Absence Hours */}
+                      <td className="border px-3 py-2 text-center">
+                        {tableTotals.firstHalfAbsentHours > 0 ||
+                        tableTotals.secondHalfAbsentHours > 0 ? (
+                          <div className="text-sm">
+                            {tableTotals.firstHalfAbsentHours > 0 && (
+                              <div>
+                                1st Half:{" "}
+                                {tableTotals.firstHalfAbsentHours.toFixed(2)} hrs
+                              </div>
+                            )}
+
+                            {tableTotals.secondHalfAbsentHours > 0 && (
+                              <div>
+                                2nd Half:{" "}
+                                {tableTotals.secondHalfAbsentHours.toFixed(2)} hrs
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">--</span>
+                        )}
                       </td>
 
                       {/* Hours Rendered */}

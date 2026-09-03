@@ -54,6 +54,8 @@ const mapExpenseFromApi = (expense) => ({
 
   expenseNumber: expense.expense_number ?? "",
 
+   paymentType: expense.payment_type ?? "PO",
+
   invoiceDate: expense.invoice_date ?? expense.date ?? "",
 
   poNumber: expense.po_number ?? "",
@@ -102,6 +104,11 @@ const mapExpenseFromApi = (expense) => ({
  */
 const buildExpenseFormData = (expense) => {
   const formData = new FormData();
+
+  formData.append(
+    "payment_type",
+    expense.paymentType || "PO",
+  );
 
   formData.append("date", expense.invoiceDate || "");
 

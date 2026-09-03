@@ -161,9 +161,18 @@ const PayrollList = () => {
 
             next[key] = {
               // Seed from the DB first...
-              sssDeduction: record.sss_deduction,
-              philhealthDeduction: record.philhealth_deduction,
-              pagibigDeduction: record.pagibig_deduction,
+              sssDeduction:
+                employees.find((e) => e.id === record.employee_id)?.payroll_type === "Monthly"
+                  ? record.sss_deduction
+                  : 0,
+              philhealthDeduction:
+                employees.find((e) => e.id === record.employee_id)?.payroll_type === "Monthly"
+                  ? record.philhealth_deduction
+                  : 0,
+              pagibigDeduction:
+                employees.find((e) => e.id === record.employee_id)?.payroll_type === "Monthly"
+                  ? record.pagibig_deduction
+                  : 0,
               // ...but let any value already edited locally this session
               // (e.g. the user just typed something) win.
               ...prev[key],
@@ -178,7 +187,7 @@ const PayrollList = () => {
     };
 
     loadSavedDeductions();
-  }, [activePeriod, department]);
+  }, [activePeriod, department, employees]);
 
   const payrollRows = useMemo(() => {
     return employees
@@ -424,6 +433,11 @@ const PayrollList = () => {
         let adjustedBasicPay = 0;
         let adjustedAllowancePay = 0;
 
+        // Unpaid absence: no leave credits, so On Leave is treated like Absent.
+        const absentDays = records.filter(
+          (record) => record.status === "Absent" || record.status === "On Leave",
+        ).length;
+
         // ============================================================
         // BASIC PAY CALCULATION
         // ============================================================
@@ -442,9 +456,16 @@ const PayrollList = () => {
         // Otherwise the same attendance issue would be deducted twice.
         // ------------------------------------------------------------
         if (payrollType === "Daily" || payrollType === "Weekly") {
+          // Records without time-in/time-out (Absent/On Leave) contribute
+          // zero payable hours, so they already receive no basic pay.
           basicPay = regularHours * hourlyRate;
 
           adjustedBasicPay = basicPay;
+
+          // Reference value only; do not subtract again from basicPay.
+          absentBasicDeduction = absentDays * rate;
+          absentAllowanceDeduction = absentDays * dailyAllowanceFromRate;
+          absentDeduction = absentBasicDeduction + absentAllowanceDeduction;
 
           // Daily/Weekly allowance is based on days actually worked.
           adjustedAllowancePay = dailyAllowanceFromRate * daysWorked;
@@ -476,10 +497,6 @@ const PayrollList = () => {
           // ----------------------------------------------------------
           // 2. Count unpaid absence days
           // ----------------------------------------------------------
-          const absentDays = records.filter(
-            (record) => record.status === "Absent",
-          ).length;
-
           // ----------------------------------------------------------
           // 3. Absence deduction for BASIC only
           // ----------------------------------------------------------
@@ -680,7 +697,9 @@ const PayrollList = () => {
         pagibigDeduction =
           adj.pagibigDeduction !== undefined
             ? Number(adj.pagibigDeduction)
-            : computedPagibig;
+            : payrollType === "Monthly"
+              ? computedPagibig
+              : 0;
 
         withholdingTax =
           adj.withholdingTax !== undefined
