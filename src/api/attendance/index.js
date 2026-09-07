@@ -11,6 +11,10 @@ export const attendanceRecord = async ({
   department = "All",
   limit = 5000,
   attendance_date,
+  // Callers that don't render photos (e.g. PayrollList - it only needs
+  // hours/status/trip data) can pass false to skip the profile/time-in/
+  // time-out photo lookups and URL fields on the backend entirely.
+  includePhotos = true,
 } = {}) => {
   const params = new URLSearchParams();
 
@@ -22,6 +26,10 @@ export const attendanceRecord = async ({
 
   if (attendance_date) {
     params.append("attendance_date", attendance_date);
+  }
+
+  if (!includePhotos) {
+    params.append("include_photos", "false");
   }
 
   const res = await api.get(`/attendance/list?${params.toString()}`);

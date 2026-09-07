@@ -192,13 +192,16 @@ const PayrollDetailModal = ({
       totals.tardiness += result.tardinessMinutes || 0;
       totals.undertime += result.undertimeMinutes || 0;
 
-      // Half-day absence is a 4-hour scheduled absence.
+      // Half-day absence is half of THAT day's scheduled hours, not a
+      // fixed 4 hours - a 6-hour-shift employee's half day is 3 hours.
+      const halfDayHours = (result.expectedHours || 0) / 2;
+
       if (result.firstHalfAbsent) {
-        totals.firstHalfAbsentHours += 4;
+        totals.firstHalfAbsentHours += halfDayHours;
       }
 
       if (result.secondHalfAbsent) {
-        totals.secondHalfAbsentHours += 4;
+        totals.secondHalfAbsentHours += halfDayHours;
       }
 
       totals.total +=
@@ -219,6 +222,54 @@ const PayrollDetailModal = ({
       total: 0,
     },
   );
+
+  // Computed once here and reused by both the mobile card list and the
+  // desktop table below, instead of recalculating per record in each.
+  const recordRows =
+    payroll.records?.map((record) => {
+      let workedHours = 0;
+      let regularHours = 0;
+      let otHours = 0;
+
+      let result = {
+        renderedHours: 0,
+        regularHours: 0,
+
+        tardinessMinutes: 0,
+        tardinessHours: 0,
+
+        undertimeMinutes: 0,
+        undertimeHours: 0,
+
+        overtimeHours: 0,
+      };
+
+      if (record.check_in_time_raw && record.check_out_time_raw) {
+        result = calculateAttendanceHours({
+          checkIn: new Date(record.check_in_time_raw),
+          checkOut: new Date(record.check_out_time_raw),
+          schedule: payroll.employee?.schedule_template,
+          attendanceDate: record.attendance_date,
+          payrollType: payroll.employee?.payroll_type,
+        });
+
+        workedHours = result.renderedHours;
+        regularHours = result.regularHours;
+        otHours = result.overtimeHours;
+      }
+
+      const hasAttendanceWarning =
+        (result.undertimeHours || 0) > 0 || (result.tardinessHours || 0) > 0;
+
+      return {
+        record,
+        result,
+        workedHours,
+        regularHours,
+        otHours,
+        hasAttendanceWarning,
+      };
+    }) || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -276,22 +327,24 @@ const PayrollDetailModal = ({
             <div>
               <h3 className="font-semibold mb-3">Trip Payroll Summary</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="border rounded-lg p-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className="border rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-gray-500">Total Trips</p>
-                  <p className="font-bold text-xl">{payroll.totalTrips}</p>
+                  <p className="font-bold text-base sm:text-xl">
+                    {payroll.totalTrips}
+                  </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
+                <div className="border rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-gray-500">Trip Pay</p>
-                  <p className="font-bold text-xl text-green-700">
+                  <p className="font-bold text-base sm:text-xl text-green-700">
                     ₱{Number(payroll.tripPay || 0).toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
+                <div className="border rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-gray-500">Gross Payroll</p>
-                  <p className="font-bold text-xl text-green-700">
+                  <p className="font-bold text-base sm:text-xl text-green-700">
                     ₱{Number(payroll.grossPay || 0).toFixed(2)}
                   </p>
                 </div>
@@ -377,7 +430,69 @@ const PayrollDetailModal = ({
             <div>
               <h3 className="font-semibold mb-3">Trip Breakdown</h3>
 
-              <div className="overflow-x-auto">
+              {/* MOBILE: card list */}
+              <div className="space-y-2 md:hidden">
+                {payroll.tripBreakdown?.map((trip, index) => (
+                  <div
+                    key={index}
+                    className={`rounded-lg border p-3 ${
+                      trip.isFirstTrip ? "" : "bg-yellow-50"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs text-gray-500">{trip.date}</p>
+                        <p className="font-semibold">
+                          #{trip.tripSequence} · {trip.ticket_no}
+                        </p>
+                      </div>
+
+                      {trip.isFirstTrip ? (
+                        <span className="shrink-0 px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">
+                          First Trip
+                        </span>
+                      ) : (
+                        <span className="shrink-0 px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                          Succeeding Trip
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="text-xs text-gray-400">Vehicle</span>
+                        <p>{trip.vehicle_unit}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-gray-400">Plate #</span>
+                        <p>{trip.plate_number}</p>
+                      </div>
+
+                      <div className="col-span-2">
+                        <span className="text-xs text-gray-400">
+                          Rate Profile
+                        </span>
+                        <p>{trip.trip_rate_profile}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-2 border-t pt-2 text-right font-semibold">
+                      ₱{Number(trip.rate || 0).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+
+                <div className="rounded-lg border bg-gray-100 p-3 flex items-center justify-between font-bold">
+                  <span>Total Payroll</span>
+                  <span className="text-green-700">
+                    ₱{Number(payroll.tripPay || 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* DESKTOP: table */}
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full border">
                   <thead className="bg-gray-100">
                     <tr>
@@ -455,7 +570,222 @@ const PayrollDetailModal = ({
             <div>
               <h3 className="font-semibold mb-3">Attendance Breakdown</h3>
 
-              <div className="overflow-x-auto">
+              {/* MOBILE: card list */}
+              <div className="space-y-2 md:hidden">
+                {recordRows.map(
+                  ({ record, result, workedHours, regularHours, otHours, hasAttendanceWarning }) => (
+                    <div
+                      key={record.id}
+                      className={`rounded-lg border p-3 ${
+                        hasAttendanceWarning ? "bg-yellow-50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">
+                            {record.attendance_date}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {new Date(
+                              record.attendance_date + "T00:00:00",
+                            ).toLocaleDateString("en-US", {
+                              weekday: "long",
+                            })}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Schedule:{" "}
+                            <span className="font-semibold">
+                              {result.scheduledTimeIn || "--"} -{" "}
+                              {result.scheduledTimeOut || "--"}
+                            </span>
+                          </p>
+                        </div>
+
+                        <span className="shrink-0 text-xs text-gray-500">
+                          {record.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-xs text-gray-400">
+                            Time In
+                          </span>
+                          <p>
+                            {["On Leave", "Absent"].includes(record.status)
+                              ? "--"
+                              : record.check_in_time || "--"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <span className="text-xs text-gray-400">
+                            Time Out
+                          </span>
+                          <p>
+                            {["On Leave", "Absent"].includes(record.status)
+                              ? "--"
+                              : record.check_out_time || "--"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {(result.firstHalfAbsent || result.secondHalfAbsent) && (
+                        <p className="mt-2 font-semibold text-orange-600 text-sm">
+                          {result.firstHalfAbsent
+                            ? "1st Half Absent"
+                            : "2nd Half Absent"}
+                        </p>
+                      )}
+
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <span className="text-xs text-gray-400">
+                            Hours Rendered
+                          </span>
+                          <p>{Number(workedHours || 0).toFixed(2)}</p>
+                        </div>
+
+                        <div>
+                          <span className="text-xs text-gray-400">
+                            Regular Hours
+                          </span>
+                          <p>{Number(regularHours || 0).toFixed(2)}</p>
+                        </div>
+
+                        <div>
+                          <span className="text-xs text-gray-400">OT</span>
+                          <p>{Number(otHours || 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      {otHours > 0 && (
+                        <div className="mt-2">
+                          <span className="text-xs text-gray-400">
+                            Approved OT
+                          </span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={otHours}
+                            step="0.25"
+                            value={approvedOT[record.id] ?? otHours}
+                            onChange={(e) => {
+                              let value = Number(e.target.value);
+
+                              if (value < 0) {
+                                value = 0;
+                              }
+
+                              if (value > otHours) {
+                                value = otHours;
+                              }
+
+                              setApprovedOT((prev) => ({
+                                ...prev,
+                                [record.id]: value,
+                              }));
+                            }}
+                            className="mt-1 w-full border rounded px-2 py-1"
+                          />
+                        </div>
+                      )}
+
+                      {(result.tardinessMinutes > 0 ||
+                        result.undertimeMinutes > 0) && (
+                        <div className="mt-2 border-t pt-2 grid grid-cols-2 gap-2 text-sm text-red-600">
+                          {result.tardinessMinutes > 0 && (
+                            <div>
+                              <span className="text-xs text-red-400">
+                                Tardiness
+                              </span>
+                              <p>
+                                {result.tardinessMinutes} mins (
+                                {result.tardinessHours.toFixed(2)} hr)
+                              </p>
+                            </div>
+                          )}
+
+                          {result.undertimeMinutes > 0 && (
+                            <div>
+                              <span className="text-xs text-red-400">UT</span>
+                              <p>
+                                {result.undertimeMinutes} mins (
+                                {result.undertimeHours.toFixed(2)} hr)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                )}
+
+                {/* Totals summary card */}
+                <div className="rounded-lg border bg-gray-100 p-3 space-y-1 text-sm font-semibold">
+                  <p>Totals</p>
+
+                  {(tableTotals.firstHalfAbsentHours > 0 ||
+                    tableTotals.secondHalfAbsentHours > 0) && (
+                    <div className="text-orange-600">
+                      {tableTotals.firstHalfAbsentHours > 0 && (
+                        <div>
+                          1st Half: {tableTotals.firstHalfAbsentHours.toFixed(2)}{" "}
+                          hrs
+                        </div>
+                      )}
+
+                      {tableTotals.secondHalfAbsentHours > 0 && (
+                        <div>
+                          2nd Half:{" "}
+                          {tableTotals.secondHalfAbsentHours.toFixed(2)} hrs
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2 font-normal">
+                    <span>
+                      Hours Rendered: {Number(tableTotals.rendered || 0).toFixed(2)}
+                    </span>
+                    <span>
+                      Regular Hours: {Number(tableTotals.regular || 0).toFixed(2)}
+                    </span>
+                    <span>
+                      OT: {Number(payroll.otHours || 0).toFixed(2)}
+                    </span>
+                    <span>Approved OT: {approvedTotalValue.toFixed(2)}</span>
+                  </div>
+
+                  {(tableTotals.tardiness > 0 || tableTotals.undertime > 0) && (
+                    <div className="text-red-600 font-normal">
+                      {tableTotals.tardiness > 0 && (
+                        <div>
+                          Tardiness: {tableTotals.tardiness} mins (
+                          {(tableTotals.tardiness / 60).toFixed(2)} hr)
+                        </div>
+                      )}
+
+                      {tableTotals.undertime > 0 && (
+                        <div>
+                          UT: {tableTotals.undertime} mins (
+                          {(tableTotals.undertime / 60).toFixed(2)} hr)
+                        </div>
+                      )}
+
+                      {tableTotals.total > 0 && (
+                        <div className="font-bold">
+                          Total: {tableTotals.total} mins (
+                          {(tableTotals.total / 60).toFixed(2)} hr)
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* DESKTOP: table */}
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full border">
                   <thead className="bg-gray-100">
                     <tr>
@@ -495,48 +825,15 @@ const PayrollDetailModal = ({
                   </thead>
 
                   <tbody>
-                    {payroll.records?.map((record) => {
-                      let workedHours = 0;
-                      let regularHours = 0;
-                      let otHours = 0;
-
-                      let result = {
-                        renderedHours: 0,
-                        regularHours: 0,
-
-                        tardinessMinutes: 0,
-                        tardinessHours: 0,
-
-                        undertimeMinutes: 0,
-                        undertimeHours: 0,
-
-                        overtimeHours: 0,
-                      };
-
-                      if (
-                        record.check_in_time_raw &&
-                        record.check_out_time_raw
-                      ) {
-                        result = calculateAttendanceHours({
-                          checkIn: new Date(record.check_in_time_raw),
-                          checkOut: new Date(record.check_out_time_raw),
-                          schedule: payroll.employee?.schedule_template,
-                          attendanceDate: record.attendance_date,
-                          payrollType: payroll.employee?.payroll_type,
-                        });
-
-                        workedHours = result.renderedHours;
-
-                        regularHours = result.regularHours;
-
-                        otHours = result.overtimeHours;
-                      }
-
-                      const hasAttendanceWarning =
-                        (result.undertimeHours || 0) > 0 ||
-                        (result.tardinessHours || 0) > 0;
-
-                      return (
+                    {recordRows.map(
+                      ({
+                        record,
+                        result,
+                        workedHours,
+                        regularHours,
+                        otHours,
+                        hasAttendanceWarning,
+                      }) => (
                         <tr
                           key={record.id}
                           className={hasAttendanceWarning ? "bg-yellow-50" : ""}
@@ -655,8 +952,8 @@ const PayrollDetailModal = ({
                                   {record.completed_trips}
                               </td> */}
                         </tr>
-                      );
-                    })}
+                      ),
+                    )}
                   </tbody>
                   <tfoot className="bg-gray-100 font-semibold">
                     <tr>

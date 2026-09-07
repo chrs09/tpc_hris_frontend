@@ -32,9 +32,9 @@ const PayslipValue = ({
       gap-2
       border-b
       border-gray-200
-      py-1
-      text-[9px]
-      leading-tight
+      py-px
+      text-[7.5px]
+      leading-none
       ${bold ? "font-bold" : ""}
       ${italic ? "italic" : ""}
     `}
@@ -62,14 +62,14 @@ const PayslipValue = ({
 const SectionHeader = ({ children }) => (
   <h3
     className="
-      mt-1.5
+      mt-0.5
       bg-[#d9e2f3]
       px-1.5
-      py-0.75
-      text-[9px]
+      py-px
+      text-[7.5px]
       font-bold
       uppercase
-      leading-tight
+      leading-none
     "
   >
     {children}
@@ -114,41 +114,39 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // ===================================================
   // ATTENDANCE HOURS
   //
-  // IMPORTANT:
+  // regularHours is the real, attendance-based figure PayrollList
+  // already computed for this cutoff (via calculateAttendanceHours,
+  // schedule-aware per employee/day) - the same number that produced
+  // basicPay. It is shown directly rather than a hypothetical "full
+  // attendance" estimate, so the payslip can never disagree with
+  // what PayrollList/PayrollDetailModal show for the same employee.
   //
-  // fullRegularHours represents the employee's
-  // scheduled/full-attendance regular hours.
-  //
-  // It is NOT reduced because of:
-  // - absence
-  // - undertime
-  // - tardiness
-  //
-  // Example:
-  // 6 days × 8 hours = 48 hours.
-  //
-  // The attendance deductions are shown separately.
+  // totalScheduledHours is the transparency figure: the sum of every
+  // record's own scheduled hours for the cutoff (present or absent),
+  // i.e. what this payslip would be worth with perfect attendance -
+  // no absences, no half-days, no undertime. regularHours is what was
+  // actually earned; the difference is what the deductions below add
+  // up to.
   // ===================================================
 
-  const scheduledWorkingDays = Number(
-    payroll.scheduledWorkingDays ??
-      payroll.scheduledDays ??
-      payroll.daysWorked ??
-      0,
-  );
+  const totalScheduledHours = Number(payroll.totalScheduledHours ?? 0);
 
-  const fullRegularHours = Number(
-    payroll.fullRegularHours ?? scheduledWorkingDays * 8,
-  );
+  const regularHours = Number(payroll.regularHours ?? 0);
 
-  // const actualRegularHours =
-  //   Number(
-  //     payroll.regularHours ?? 0
-  //   );
-
-  const overtimeHours = Number(payroll.otHours ?? payroll.overtimeHours ?? 0);
+  const absentDays = Number(payroll.absentDays ?? 0);
 
   const absentHours = Number(payroll.absentHours ?? 0);
+
+  const firstHalfAbsentHours = Number(payroll.firstHalfAbsentHours ?? 0);
+
+  const secondHalfAbsentHours = Number(payroll.secondHalfAbsentHours ?? 0);
+
+  // Overtime hours shown must match what Overtime Pay was actually
+  // computed from (approvedOTHours), not the raw detected OT - those
+  // two can differ once OT approval trims the detected hours down.
+  const overtimeHours = Number(
+    payroll.approvedOTHours ?? payroll.otHours ?? payroll.overtimeHours ?? 0,
+  );
 
   const undertimeHours = Number(payroll.undertimeHours ?? 0);
 
@@ -159,8 +157,6 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // ===================================================
 
   const dailyRate = Number(payroll.dailyRate ?? 0);
-
-  const hourlyRate = Number(payroll.hourlyRate ?? dailyRate / 8);
 
   // ===================================================
   // ATTENDANCE DEDUCTIONS
@@ -188,21 +184,6 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
     isMonthly
       ? (payroll.semiMonthlyBasic ?? payroll.basicPay ?? 0)
       : (payroll.basicPay ?? 0),
-  );
-
-  // ===================================================
-  // FULL ATTENDANCE BASIC PAY
-  //
-  // This is mainly useful for transparency on weekly
-  // employees.
-  //
-  // For monthly employees, use the payroll-calculated
-  // semi-monthly basic when available.
-  // ===================================================
-
-  const fullAttendanceBasicPay = Number(
-    payroll.fullAttendanceBasicPay ??
-      (isMonthly ? basicPay : fullRegularHours * hourlyRate),
   );
 
   // ===================================================
@@ -354,14 +335,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
       >
         {/* HEADER */}
 
-        <div className="bg-[#548235] py-1.5 text-center text-[11px] font-bold text-white">
+        <div className="bg-[#548235] py-1 text-center text-[10px] font-bold text-white">
           TYTAN PRIME CORPORATION
         </div>
 
         {/* EMPLOYEE INFORMATION */}
 
-        <div className="grid grid-cols-2 gap-x-4 px-2 pt-1.5">
-          <div className="grid grid-cols-[58px_1fr] gap-y-1">
+        <div className="grid grid-cols-2 gap-x-4 px-2 pt-1">
+          <div className="grid grid-cols-[58px_1fr] gap-y-0.5">
             <span className="font-bold">Employee</span>
 
             <span className="border-b border-black">{employeeName}</span>
@@ -371,7 +352,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
             <span className="border-b border-black">{employeeId}</span>
           </div>
 
-          <div className="grid grid-cols-[58px_1fr] gap-y-1">
+          <div className="grid grid-cols-[58px_1fr] gap-y-0.5">
             <span className="font-bold">Period</span>
 
             <span className="border-b border-black text-right">
@@ -386,7 +367,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
         {/* CONTENT */}
 
-        <div className="grid grid-cols-2 gap-x-4 px-2 pt-2">
+        <div className="grid grid-cols-2 gap-x-4 px-2 pt-1">
           {/* LEFT */}
 
           <section>
@@ -451,23 +432,23 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
         {/* NET PAY */}
 
-        <div className="mx-2 mt-2 grid grid-cols-[1fr_auto] items-center border-2 border-black px-2 py-1.5">
+        <div className="mx-2 mt-1 grid grid-cols-[1fr_auto] items-center border-2 border-black px-2 py-1">
           <span className="font-bold">NET PAY</span>
 
-          <span className="text-[13px] font-bold tabular-nums">
+          <span className="text-[12px] font-bold tabular-nums">
             {formatCurrency(netPay)}
           </span>
         </div>
 
         {/* SIGNATURE */}
 
-        <div className="mt-5 px-2 text-[7px]">
+        <div className="mt-2 px-2 text-[7px]">
           <div className="w-40 border-t border-black pt-0.5">
             Employee Signature
           </div>
         </div>
 
-        <p className="px-2 pb-1 pt-1 text-[6px] text-gray-500">
+        <p className="px-2 pb-0.5 pt-0.5 text-[6px] text-gray-500">
           Payslip #{index + 1}
           {" • "}
           Payout: {activePeriod.payoutDate}
@@ -496,7 +477,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           COMPANY HEADER
       ================================================= */}
 
-      <div className="bg-[#548235] py-1.5 text-center text-[11px] font-bold text-white">
+      <div className="bg-[#548235] py-1 text-center text-[10px] font-bold text-white">
         TYTAN PRIME CORPORATION
       </div>
 
@@ -504,18 +485,18 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           PAYSLIP TITLE
       ================================================= */}
 
-      <div className="px-2 pt-1.5 text-center">
-        <div className="text-[10px] font-bold uppercase">Employee Payslip</div>
+      <div className="px-2 pt-0.5 text-center">
+        <div className="text-[9px] font-bold uppercase">Employee Payslip</div>
       </div>
 
       {/* =================================================
           EMPLOYEE INFORMATION
       ================================================= */}
 
-      <div className="grid grid-cols-2 gap-x-4 px-2 pt-1">
+      <div className="grid grid-cols-2 gap-x-4 px-2 pt-0.5">
         {/* LEFT */}
 
-        <div className="grid grid-cols-[65px_1fr] gap-y-1">
+        <div className="grid grid-cols-[65px_1fr] gap-y-0.5">
           <span className="font-bold">Employee</span>
 
           <span className="border-b border-black">{employeeName}</span>
@@ -531,7 +512,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
         {/* RIGHT */}
 
-        <div className="grid grid-cols-[65px_1fr] gap-y-1">
+        <div className="grid grid-cols-[65px_1fr] gap-y-0.5">
           <span className="font-bold">Payroll Type</span>
 
           <span className="border-b border-black text-right">
@@ -556,7 +537,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           MAIN CONTENT
       ================================================= */}
 
-      <div className="grid grid-cols-2 gap-x-4 px-2 pt-2">
+      <div className="grid grid-cols-2 gap-x-4 px-2 pt-0.5">
         {/* =================================================
             LEFT COLUMN
         ================================================= */}
@@ -572,11 +553,16 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           <PayslipValue label="Daily Rate" value={dailyRate} isMoney />
 
-          {/* FULL ATTENDANCE HOURS */}
+          {/* SCHEDULED / REGULAR HOURS */}
+
+          <PayslipValue
+            label="Total Scheduled Hours"
+            value={formatNumber(totalScheduledHours)}
+          />
 
           <PayslipValue
             label="Total Regular Hours"
-            value={formatNumber(fullRegularHours)}
+            value={formatNumber(regularHours)}
             bold
           />
 
@@ -584,7 +570,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           <PayslipValue
             label={isMonthly ? "Semi-Monthly Basic" : "Basic Pay"}
-            value={fullAttendanceBasicPay}
+            value={basicPay}
             isMoney
             bold
           />
@@ -595,13 +581,37 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           <SectionHeader>Attendance Adjustments</SectionHeader>
 
+          {/* Starting point: the full scheduled hours this cutoff is
+              worth, before any of the deductions below are applied. */}
+          <PayslipValue
+            label="Total Scheduled Hours"
+            value={formatNumber(totalScheduledHours)}
+            italic
+          />
+
           {/* ABSENCE */}
 
+          <PayslipValue label="Absent Days" value={absentDays} />
+
           <PayslipValue
-            label="Total Absent Hours"
+            label="Absent Hours"
             value={formatNumber(absentHours)}
-            bold
+            bold={absentHours > 0}
           />
+
+          {firstHalfAbsentHours > 0 && (
+            <PayslipValue
+              label="1st Half Absent Hours"
+              value={formatNumber(firstHalfAbsentHours)}
+            />
+          )}
+
+          {secondHalfAbsentHours > 0 && (
+            <PayslipValue
+              label="2nd Half Absent Hours"
+              value={formatNumber(secondHalfAbsentHours)}
+            />
+          )}
 
           <PayslipValue
             label="Absent Deduction"
@@ -616,7 +626,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           <PayslipValue
             label="Undertime Hours"
             value={formatNumber(undertimeHours)}
-            bold
+            bold={undertimeHours > 0}
           />
 
           <PayslipValue
@@ -632,7 +642,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           <PayslipValue
             label="Tardiness Hours"
             value={formatNumber(tardinessHours)}
-            bold
+            bold={tardinessHours > 0}
           />
 
           <PayslipValue
@@ -645,7 +655,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           {/* ADJUSTED BASIC */}
 
-          <div className="mt-1 border-t border-black pt-1">
+          <div className="mt-0.5 border-t border-black pt-0.5">
             <PayslipValue
               label="Adjusted Basic Pay"
               value={adjustedBasicPay}
@@ -682,7 +692,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               TOTAL EARNINGS
           ================================================= */}
 
-          <div className="mt-1 border-t-2 border-black pt-1">
+          <div className="mt-0.5 border-t-2 border-black pt-0.5">
             <PayslipValue
               label="TOTAL EARNINGS"
               value={grossPay}
@@ -747,7 +757,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               TOTAL DEDUCTIONS
           ================================================= */}
 
-          <div className="mt-2 border-t-2 border-black pt-1">
+          <div className="mt-0.5 border-t-2 border-black pt-0.5">
             <PayslipValue
               label="TOTAL DEDUCTIONS"
               value={totalDeductions}
@@ -782,33 +792,11 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               NET PAY
           ================================================= */}
 
-          <div className="mt-3 border-2 border-black px-2 py-2">
-            <div className="text-[9px] font-bold uppercase">NET PAY</div>
+          <div className="mt-1 border-2 border-black px-2 py-0.5">
+            <div className="text-[7.5px] font-bold uppercase">NET PAY</div>
 
-            <div className="mt-1 text-right text-[15px] font-bold tabular-nums">
+            <div className="text-right text-[12px] font-bold tabular-nums">
               {formatCurrency(netPay)}
-            </div>
-          </div>
-
-          {/* =================================================
-              EXPLANATION
-          ================================================= */}
-
-          <div className="mt-2 border border-gray-300 px-1.5 py-1.5 text-[7px] leading-tight text-gray-600">
-            <div className="font-bold text-gray-800">PAYROLL SUMMARY</div>
-
-            <div className="mt-0.5">
-              Total Regular Hours represents the scheduled regular hours for the
-              payroll period.
-            </div>
-
-            <div className="mt-0.5">
-              Attendance deductions are shown separately so you can see how
-              absences, undertime, and tardiness affect your pay.
-            </div>
-
-            <div className="mt-0.5">
-              Net Pay is the amount after the applicable deductions.
             </div>
           </div>
         </section>
@@ -818,8 +806,8 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           SIGNATURE
       ================================================= */}
 
-      <div className="mt-5 px-2 text-[7px]">
-        <div className="w-40 border-t border-black pt-0.5">
+      <div className="mt-1 px-2 text-[7px]">
+        <div className="w-40 border-t border-black pt-px">
           Employee Signature
         </div>
       </div>
@@ -828,7 +816,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           FOOTER
       ================================================= */}
 
-      <p className="px-2 pb-1 pt-1 text-[6px] text-gray-500">
+      <p className="px-2 pb-px pt-px text-[6px] text-gray-500">
         Payslip #{index + 1}
         {" • "}
         Payout: {activePeriod.payoutDate}
@@ -847,11 +835,13 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
   }
 
   // ===================================================
-  // TWO PAYSLIPS PER LONG BOND PAPER
+  // THREE PAYSLIPS PER LONG BOND PAPER
   // ===================================================
 
+  const SLIPS_PER_PAGE = 3;
+
   const payslipPages = payrolls.reduce((pages, payroll, index) => {
-    if (index % 2 === 0) {
+    if (index % SLIPS_PER_PAGE === 0) {
       pages.push([]);
     }
 
@@ -882,7 +872,7 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
         @page {
           size: 8.5in 13in;
-          margin: 0.20in;
+          margin: 0.15in;
         }
 
 
@@ -897,6 +887,8 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
             height: 13in !important;
 
             overflow: visible !important;
+
+            position: relative !important;
           }
 
 
@@ -924,7 +916,9 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
            */
 
           .payslip-overlay {
-            position: static !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
 
             display: block !important;
 
@@ -953,7 +947,9 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
           #payslips-print {
 
-            position: static !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
 
             width: 100% !important;
 
@@ -987,14 +983,15 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
 
           /*
-           * TWO PAYSLIPS PER LONG BOND PAPER
+           * THREE PAYSLIPS PER LONG BOND PAPER
            *
-           * Long bond:
+           * Long bond: 8.5 × 13 inches, 0.15in page margin
+           * -> usable height = 12.7in.
            *
-           * 8.5 × 13 inches
+           * 3 rows + 2 row-gaps of 0.08in = 12.61in, leaving a small
+           * safety margin under the 12.7in usable height.
            *
-           * Each payslip:
-           * approximately 6.15 inches
+           * Each payslip: 4.15 inches.
            */
 
           .payslip-print-page {
@@ -1005,15 +1002,15 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
             grid-template-rows:
               repeat(
-                2,
-                5.95in
+                3,
+                4.15in
               );
 
-            row-gap: 0.12in !important;
+            row-gap: 0.08in !important;
 
             width: 100% !important;
 
-            height: 12.02in !important;
+            height: 12.61in !important;
 
             margin: 0 !important;
             padding: 0 !important;
@@ -1050,11 +1047,11 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
           width: 100% !important;
 
-          height: 5.95in !important;
+          height: 4.15in !important;
 
-          min-height: 5.95in !important;
+          min-height: 4.15in !important;
 
-          max-height: 5.95in !important;
+          max-height: 4.15in !important;
 
           margin: 0 !important;
 
@@ -1074,9 +1071,9 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
           page-break-after: auto !important;
 
-          font-size: 9px !important;
+          font-size: 8px !important;
 
-          line-height: 1.15 !important;
+          line-height: 1.1 !important;
         }
 
       `}</style>
@@ -1124,7 +1121,7 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
               {" • "}
               Weekly and Monthly employees
               {" • "}
-              Two slips per long bond-paper page
+              Three slips per long bond-paper page
             </p>
           </div>
 
@@ -1195,7 +1192,7 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
                   key={payroll.employee?.id ?? `${pageIndex}-${payslipIndex}`}
                   payroll={payroll}
                   activePeriod={activePeriod}
-                  index={pageIndex * 2 + payslipIndex}
+                  index={pageIndex * SLIPS_PER_PAGE + payslipIndex}
                 />
               ))}
             </section>

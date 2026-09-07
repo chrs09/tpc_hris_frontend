@@ -203,22 +203,24 @@ export default function TripMaintenance() {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <button
           onClick={() => setActiveTab("units")}
-          className={`rounded-xl p-4 text-left border transition-all duration-200 hover:shadow-md
+          className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
           ${
             activeTab === "units"
               ? "border-black bg-black text-white"
               : "bg-white"
           }`}
         >
-          <div className="flex items-center gap-3">
-            <Truck size={22} />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Truck size={22} className="shrink-0" />
             <div>
-              <h2 className="font-semibold">Vehicle Units</h2>
+              <h2 className="font-semibold text-sm sm:text-base">
+                Vehicle Units
+              </h2>
 
-              <p className="text-sm opacity-70">
+              <p className="text-xs sm:text-sm opacity-70">
                 {vehicleUnits.length} Active Units
               </p>
             </div>
@@ -227,19 +229,21 @@ export default function TripMaintenance() {
 
         <button
           onClick={() => setActiveTab("rates")}
-          className={`rounded-xl p-4 text-left border transition-all duration-200 hover:shadow-md
+          className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
             ${
               activeTab === "rates"
                 ? "border-black bg-black text-white"
                 : "bg-white"
             }`}
         >
-          <div className="flex items-center gap-3">
-            <Tags size={22} />
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Tags size={22} className="shrink-0" />
             <div>
-              <h2 className="font-semibold">Trip Categories & Rates</h2>
+              <h2 className="font-semibold text-sm sm:text-base">
+                Trip Categories & Rates
+              </h2>
 
-              <p className="text-sm opacity-70">
+              <p className="text-xs sm:text-sm opacity-70">
                 {tripRates.length} Rate Profiles
               </p>
             </div>

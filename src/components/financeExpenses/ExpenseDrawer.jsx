@@ -1,8 +1,6 @@
 import { useMemo, useState } from "react";
 
-// import { extractFinanceExpenseReceipt } from "../../api/financeExpenses/index";
-
-import { createWorker } from "tesseract.js";
+import { extractFinanceExpenseReceipt } from "../../api/financeExpenses";
 
 import { parseReceiptText } from "../../utils/expenseReceiptParser";
 
@@ -205,8 +203,12 @@ export default function ExpenseDrawer({
 
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrText, setOcrText] = useState("");
+  const [ocrLines, setOcrLines] = useState([]);
+  const [ocrSupplierCandidates, setOcrSupplierCandidates] = useState([]);
+  const [ocrEnhancedImage, setOcrEnhancedImage] = useState("");
   const [ocrError, setOcrError] = useState("");
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [enhancedModalOpen, setEnhancedModalOpen] = useState(false);
 
   const isView = mode === "view";
 
@@ -361,58 +363,123 @@ export default function ExpenseDrawer({
     return null;
   }, [form.receiptImage]);
 
+  const applyParsedReceiptData = (parsed) => {
+    if (!parsed) {
+      return;
+    }
+
+    setForm((prev) => {
+      const next = { ...prev };
+
+      if (parsed.supplier) {
+        next.supplier = parsed.supplier;
+      }
+
+      if (parsed.invoiceDate) {
+        next.invoiceDate = parsed.invoiceDate;
+      }
+
+      if (parsed.invoiceNumber) {
+        next.invoiceNumber = parsed.invoiceNumber;
+      }
+
+      if (parsed.poNumber) {
+        next.poNumber = parsed.poNumber;
+      }
+
+      if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+        next.items = parsed.items.map((item) => ({
+          id: item.id ?? null,
+          particulars: item.particulars || "",
+          qty: Number(item.qty || 1),
+          unit: item.unit || "Piece",
+          unitPrice: item.unitPrice ?? "",
+          amount: Number(item.amount || 0),
+        }));
+      }
+
+      return next;
+    });
+  };
+
   /*
    * Handle receipt image upload + OCR.
    *
    * The selected image is first stored in the form,
-   * then sent to the OCR endpoint.
-   *
-   * OCR currently returns raw text only.
-   * We will parse that text into fields in the next step.
+   * then sent to the OCR endpoint. Parsed fields are
+   * applied back into the expense form so the user can
+   * review and edit them before saving.
    */
- const handleImageChange = async (event) => {
-  const file = event.target.files?.[0];
+  const handleImageChange = async (event) => {
+    const file = event.target.files?.[0];
 
-  if (!file) {
-    return;
-  }
-
-  update("receiptImage", file);
-
-  setOcrLoading(true);
-  setOcrText("");
-  setOcrError("");
-
-  let worker;
-
-  try {
-    worker = await createWorker("eng", 1);
-
-    const result = await worker.recognize(file);
-
-    const rawText = result?.data?.text?.trim() || "";
-
-    setOcrText(rawText);
-
-    const parsed = parseReceiptText(rawText);
-
-    console.log("OCR Raw Text:", rawText);
-    console.log("Parsed Receipt:", parsed);
-  } catch (error) {
-    console.error("Receipt OCR failed:", error);
-
-    setOcrError(
-      error?.message ||
-        "Unable to extract text from the receipt.",
-    );
-  } finally {
-    if (worker) {
-      await worker.terminate();
+    if (!file) {
+      return;
     }
 
-    setOcrLoading(false);
-  }
-};
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (
+      !allowedTypes.includes(file.type) &&
+      !/\.(jpe?g|png|webp)$/i.test(file.name)
+    ) {
+      setOcrError(
+        "Unsupported receipt image format. Allowed formats: JPEG, PNG, WebP.",
+      );
+      return;
+    }
+
+    // Keep the original uploaded file for final save/upload.
+    // OCR runs on a separate enhanced copy and does not replace the original image.
+    update("receiptImage", file);
+
+    setOcrLoading(true);
+    setOcrText("");
+    setOcrLines([]);
+    setOcrSupplierCandidates([]);
+    setOcrEnhancedImage("");
+    setOcrError("");
+
+    try {
+      const response = await extractFinanceExpenseReceipt(file);
+      const payload = response?.data?.data ?? response?.data ?? {};
+      const rawText = payload.raw_text ?? "";
+      const lines = Array.isArray(payload.lines)
+        ? payload.lines.filter((line) => typeof line === "string" && line.trim())
+        : rawText.split("\n").filter(Boolean);
+
+      setOcrText(rawText);
+      setOcrLines(lines);
+      setOcrEnhancedImage(payload.enhanced_image || "");
+
+      if (!rawText) {
+        setOcrError("No text could be extracted from this receipt image.");
+        return;
+      }
+
+      const parsed = parseReceiptText(rawText);
+      const supplierCandidates = Array.isArray(payload.supplier_candidates)
+        ? payload.supplier_candidates
+        : parsed.supplierCandidates || [];
+
+      setOcrSupplierCandidates(supplierCandidates);
+
+      applyParsedReceiptData({
+        ...parsed,
+        supplier: supplierCandidates[0] || parsed.supplier,
+      });
+    } catch (error) {
+      console.error("Receipt OCR failed:", error);
+
+      setOcrError(
+        error?.response?.data?.detail ||
+          error?.message ||
+          "Unable to extract text from the receipt.",
+      );
+    } finally {
+      setOcrLoading(false);
+    }
+  };
 
   /*
    * Remove selected receipt.
@@ -421,6 +488,9 @@ export default function ExpenseDrawer({
     update("receiptImage", null);
 
     setOcrText("");
+    setOcrLines([]);
+    setOcrSupplierCandidates([]);
+    setOcrEnhancedImage("");
     setOcrError("");
   };
 
@@ -611,16 +681,74 @@ export default function ExpenseDrawer({
                   </div>
                 )}
 
+                {/* Enhanced (contrast-adjusted) preview used for OCR */}
+                {ocrEnhancedImage && (
+                  <div className="mt-3">
+                    <p className="mb-1.5 text-xs font-medium text-slate-500">
+                      Enhanced version (for reading clarity)
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => setEnhancedModalOpen(true)}
+                      className="block w-full cursor-zoom-in overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                      aria-label="View enhanced receipt image"
+                    >
+                      <img
+                        src={ocrEnhancedImage}
+                        alt="Contrast-enhanced receipt used for text extraction"
+                        className="max-h-40 w-full object-contain transition hover:opacity-90"
+                      />
+                    </button>
+
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      This contrast-adjusted copy is only used to help read faint
+                      text. The original uploaded image is what gets saved.
+                    </p>
+                  </div>
+                )}
+
                 {/* OCR Raw Text */}
                 {ocrText && (
                   <div className="mt-3">
+                    {ocrSupplierCandidates.length > 0 && (
+                      <div className="mb-3">
+                        <p className="mb-1.5 text-xs font-medium text-slate-500">
+                          Possible supplier names
+                        </p>
+
+                        <div className="flex flex-wrap gap-2">
+                          {ocrSupplierCandidates.map((candidate) => (
+                            <button
+                              key={candidate}
+                              type="button"
+                              disabled={isView}
+                              onClick={() => update("supplier", candidate)}
+                              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-default disabled:opacity-80"
+                            >
+                              {candidate}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <p className="mb-1.5 text-xs font-medium text-slate-500">
-                      Extracted Text
+                      Extracted receipt lines
                     </p>
 
-                    <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
-                      {ocrText}
-                    </pre>
+                    <ol className="max-h-60 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                      {(ocrLines.length > 0 ? ocrLines : ocrText.split("\n")).map(
+                        (line, index) => (
+                          <li key={`${index}-${line}`} className="flex gap-2">
+                            <span className="select-none text-slate-400">
+                              {index + 1}.
+                            </span>
+                            <span className="whitespace-pre-wrap">{line}</span>
+                          </li>
+                        ),
+                      )}
+                    </ol>
                   </div>
                 )}
               </label>
@@ -1104,6 +1232,40 @@ export default function ExpenseDrawer({
               onClick={() => setImageModalOpen(false)}
               className="absolute right-3 top-3 rounded-full bg-slate-900/80 px-3 py-1.5 text-lg leading-none text-white shadow hover:bg-slate-900"
               aria-label="Close receipt image"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Enhanced Preview Modal */}
+      {enhancedModalOpen && ocrEnhancedImage && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/80 p-4">
+          {/* Modal backdrop */}
+          <button
+            type="button"
+            aria-label="Close enhanced receipt image"
+            onClick={() => setEnhancedModalOpen(false)}
+            className="absolute inset-0 cursor-default"
+          />
+
+          {/* Image container */}
+          <div className="relative z-10 flex max-h-[90vh] max-w-[95vw] flex-col items-center gap-2 rounded-xl bg-white p-3 shadow-2xl">
+            <img
+              src={ocrEnhancedImage}
+              alt="Contrast-enhanced receipt enlarged"
+              className="max-h-[80vh] max-w-[90vw] rounded-lg object-contain"
+            />
+
+            <p className="text-xs text-slate-400">
+              For reading clarity only — the original image is what gets saved.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setEnhancedModalOpen(false)}
+              className="absolute right-3 top-3 rounded-full bg-slate-900/80 px-3 py-1.5 text-lg leading-none text-white shadow hover:bg-slate-900"
+              aria-label="Close enhanced receipt image"
             >
               ×
             </button>

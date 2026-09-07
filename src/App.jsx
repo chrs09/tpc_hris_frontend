@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SessionExpiredModal from "./components/ui/SessionExpiredModal";
+import GlobalLoadingBar from "./components/ui/GlobalLoadingBar";
 import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
@@ -44,6 +45,8 @@ const App = () => {
 
   return (
     <>
+      <GlobalLoadingBar />
+
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/tytan-application-form" element={<ApplicationForm />} />

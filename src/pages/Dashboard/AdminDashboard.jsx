@@ -349,7 +349,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* PROGRESS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <ProgressMiniCard
           title="Attendance"
           value={attendanceRate}

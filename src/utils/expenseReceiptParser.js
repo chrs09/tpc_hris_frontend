@@ -15,7 +15,9 @@ const cleanText = (text) => {
 
   return text
     .replace(/\r/g, "")
-    .replace(/[ \t]+/g, " ")
+    .replace(/[\u00a0]/g, " ")
+    .replace(/[\t]+/g, " ")
+    .replace(/[ ]{2,}/g, " ")
     .trim();
 };
 
@@ -23,48 +25,52 @@ const getLines = (text) => {
   return cleanText(text)
     .split("\n")
     .map((line) => line.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((line) =>
+      line
+        .replace(/\s*[:;]\s*/g, ": ")
+        .replace(/[–—]/g, "-")
+        .replace(/\s+/g, " ")
+        .trim(),
+    );
 };
 
-/**
- * Convert common receipt date formats to YYYY-MM-DD.
- */
+const normalizeCurrencyNumber = (value = "") => {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .replace(/[^\d.,-]/g, "")
+    .replace(/,(?=\d{3}(?:\D|$))/g, "")
+    .replace(/,/g, "")
+    .trim();
+};
+
 const normalizeDate = (value) => {
   if (!value) {
     return "";
   }
 
-  const text = value.trim();
+  let text = value.trim();
+  text = text.replace(/^\s*[:#.-]+\s*/, "").trim();
 
-  // MM/DD/YYYY or MM-DD-YYYY
-  let match = text.match(
+  const monthDayYear = text.match(
     /^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/,
   );
 
-  if (match) {
-    const month = match[1].padStart(2, "0");
-    const day = match[2].padStart(2, "0");
-    const year = match[3];
-
-    return `${year}-${month}-${day}`;
+  if (monthDayYear) {
+    return `${monthDayYear[3]}-${monthDayYear[1].padStart(2, "0")}-${monthDayYear[2].padStart(2, "0")}`;
   }
 
-  // YYYY-MM-DD
-  match = text.match(
+  const yearMonthDay = text.match(
     /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/,
   );
 
-  if (match) {
-    const year = match[1];
-    const month = match[2].padStart(2, "0");
-    const day = match[3].padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
+  if (yearMonthDay) {
+    return `${yearMonthDay[1]}-${yearMonthDay[2].padStart(2, "0")}-${yearMonthDay[3].padStart(2, "0")}`;
   }
 
-  // Example:
-  // January 20, 2023
-  // Jan 20, 2023
   const parsed = new Date(text);
 
   if (!Number.isNaN(parsed.getTime())) {
@@ -78,22 +84,19 @@ const normalizeDate = (value) => {
   return "";
 };
 
-/**
- * Extract a value after a label.
- *
- * Examples:
- *
- * Invoice No: 12345
- * Invoice #: 12345
- * Receipt No. 12345
- */
 const extractAfterLabel = (lines, patterns) => {
   for (const line of lines) {
     for (const pattern of patterns) {
       const match = line.match(pattern);
 
       if (match?.[1]) {
-        return match[1].trim();
+        const value = match[1].trim();
+
+        if (/^(no|number|num)$/i.test(value)) {
+          continue;
+        }
+
+        return value;
       }
     }
   }
@@ -101,68 +104,48 @@ const extractAfterLabel = (lines, patterns) => {
   return "";
 };
 
-/**
- * Extract invoice / receipt number.
- */
 const extractInvoiceNumber = (lines) => {
-  return extractAfterLabel(lines, [
-    /(?:invoice\s*(?:no|number|#)|sales\s*invoice\s*(?:no|number|#))\s*[:#.-]?\s*(.+)$/i,
+  const patterns = [
+    /(?:invoice|inv|sales\s*invoice|sales\s*inv)\s*(?:no|number|num)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
+    /(?:official\s*receipt|or|receipt)\s*(?:no|number|num)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
+    /(?:si)\s*(?:no|number|#)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
+  ];
 
-    /(?:receipt\s*(?:no|number|#)|or\s*(?:no|number|#))\s*[:#.-]?\s*(.+)$/i,
-
-    /(?:si\s*(?:no|number|#))\s*[:#.-]?\s*(.+)$/i,
-  ]);
+  return extractAfterLabel(lines, patterns)
+    .replace(/[\s]+/g, " ")
+    .trim();
 };
 
-/**
- * Extract PO number.
- */
 const extractPONumber = (lines) => {
-  return extractAfterLabel(lines, [
-    /(?:po|p\.o\.)\s*(?:no|number|#)?\s*[:#.-]?\s*([A-Z0-9-]+)/i,
+  const patterns = [
+    /(?:po|p\.o\.|purchase\s*order)\s*(?:no|number|num|#)?\s*[:#.-]?\s*([A-Z0-9/-]+)/i,
+    /(?:purchase\s*order)\s*(?:no|number|num|#)?\s*[:#.-]?\s*([A-Z0-9/-]+)/i,
+  ];
 
-    /purchase\s*order\s*(?:no|number|#)?\s*[:#.-]?\s*([A-Z0-9-]+)/i,
-  ]);
+  return extractAfterLabel(lines, patterns).trim();
 };
 
-/**
- * Extract date from common receipt labels.
- */
 const extractInvoiceDate = (lines) => {
   const labeledDate = extractAfterLabel(lines, [
     /(?:invoice\s*)?date\s*[:#.-]?\s*(.+)$/i,
-
-    /transaction\s*date\s*[:#.-]?\s*(.+)$/i,
-
-    /purchase\s*date\s*[:#.-]?\s*(.+)$/i,
+    /(?:transaction|purchase|sales)\s*date\s*[:#.-]?\s*(.+)$/i,
+    /(?:date\s*issued|date\s*paid)\s*[:#.-]?\s*(.+)$/i,
   ]);
 
   if (labeledDate) {
     const normalized = normalizeDate(labeledDate);
-
-    if (normalized) {
-      return normalized;
-    }
+    if (normalized) return normalized;
   }
 
-  // Look for common numeric dates anywhere in the receipt.
   for (const line of lines) {
-    const match = line.match(
-      /\b(\d{1,2}[/-]\d{1,2}[/-]\d{4})\b/,
-    );
+    const match = line.match(/\b(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/);
 
     if (match) {
       const normalized = normalizeDate(match[1]);
-
-      if (normalized) {
-        return normalized;
-      }
+      if (normalized) return normalized;
     }
   }
 
-  // Look for dates such as:
-  // January 20, 2023
-  // Jan 20, 2023
   for (const line of lines) {
     const match = line.match(
       /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+\d{4}\b/i,
@@ -170,179 +153,148 @@ const extractInvoiceDate = (lines) => {
 
     if (match) {
       const normalized = normalizeDate(match[0]);
-
-      if (normalized) {
-        return normalized;
-      }
+      if (normalized) return normalized;
     }
   }
 
   return "";
 };
 
-/**
- * Extract supplier / vendor name.
- *
- * Most receipts place the business name near the top.
- * We intentionally use a conservative approach here.
- */
-const extractSupplier = (lines) => {
-  const supplierLabels = [
+const extractSupplierCandidates = (lines) => {
+  const explicitLabels = [
     /supplier\s*[:#.-]?\s*(.+)$/i,
     /vendor\s*[:#.-]?\s*(.+)$/i,
     /merchant\s*[:#.-]?\s*(.+)$/i,
+    /from\s*[:#.-]?\s*(.+)$/i,
+    /company\s*[:#.-]?\s*(.+)$/i,
   ];
 
-  const labeledSupplier = extractAfterLabel(
-    lines,
-    supplierLabels,
-  );
+  const labeledSupplier = extractAfterLabel(lines, explicitLabels);
+  const candidates = [];
 
   if (labeledSupplier) {
-    return labeledSupplier;
+    candidates.push(labeledSupplier);
   }
 
-  /*
-   * If there is no explicit "Supplier" or "Vendor" label,
-   * use the first meaningful line as a candidate.
-   *
-   * We skip obvious receipt metadata.
-   */
   const ignoredPatterns = [
-    /^(receipt|invoice|sales invoice|official receipt)/i,
-    /^date\s*[:#]/i,
-    /^tel/i,
-    /^phone/i,
-    /^mobile/i,
-    /^address/i,
-    /^permit/i,
-    /^tin/i,
-    /^vat/i,
-    /^pos/i,
-    /^cashier/i,
-    /^transaction/i,
+    /^(receipt|invoice|official receipt|sales invoice|or|date|tin|tel|phone|mobile|address|permit|vat|pos|cashier|transaction|qty|description|unit price|amount|total|grand total)$/i,
+    /^thank you$/i,
+    /^customer service$/i,
   ];
 
-  for (const line of lines.slice(0, 8)) {
-    if (line.length < 3) {
+  for (const line of lines.slice(0, 12)) {
+    if (line.length < 3) continue;
+    if (ignoredPatterns.some((pattern) => pattern.test(line))) continue;
+
+    const letters = (line.match(/[A-Za-z]/g) || []).length;
+    const numbers = (line.match(/[\d]/g) || []).length;
+
+    if (letters < 3 || (numbers > 0 && letters < 5)) {
       continue;
     }
 
-    if (ignoredPatterns.some((pattern) => pattern.test(line))) {
-      continue;
+    const candidate = line.replace(/^[#:.\-\s]+|[\s]+$/g, "").trim();
+
+    if (!candidates.some((value) => value.toLowerCase() === candidate.toLowerCase())) {
+      candidates.push(candidate);
     }
-
-    // Avoid selecting a line that is mostly numeric.
-    const letters = line.match(/[A-Za-z]/g) || [];
-
-    if (letters.length < 3) {
-      continue;
-    }
-
-    return line;
   }
 
-  return "";
+  return candidates.slice(0, 3);
 };
 
-/**
- * Extract total amount.
- */
+const extractSupplier = (lines) => {
+  return extractSupplierCandidates(lines)[0] || "";
+};
+
 const extractTotal = (lines) => {
-  const totalPatterns = [
+  const patterns = [
     /(?:grand\s*)?total\s*[:#.-]?\s*(?:₱|php|p)?\s*([\d,]+(?:\.\d{1,2})?)/i,
-
     /amount\s*(?:due|payable)\s*[:#.-]?\s*(?:₱|php|p)?\s*([\d,]+(?:\.\d{1,2})?)/i,
-
     /net\s*total\s*[:#.-]?\s*(?:₱|php|p)?\s*([\d,]+(?:\.\d{1,2})?)/i,
+    /(?:total)\s*[:#.-]?\s*(?:₱|php|p)?\s*([\d,]+(?:\.\d{1,2})?)/i,
   ];
 
-  const value = extractAfterLabel(lines, totalPatterns);
-
+  const value = extractAfterLabel(lines, patterns);
   if (!value) {
     return "";
   }
 
-  return value.replace(/,/g, "");
+  return normalizeCurrencyNumber(value);
 };
 
-/**
- * Try to extract an item from a receipt line.
- *
- * This is intentionally conservative.
- *
- * Example supported patterns:
- *
- * Bond Paper 5 200.00 1000.00
- * Ballpen 10 25.00 250.00
- */
 const parseItemLine = (line) => {
   if (!line) {
     return null;
   }
 
-  /*
-   * Ignore lines that are obviously totals or payment information.
-   */
+  const smallText = line.trim();
+
   if (
-    /^(total|grand total|amount due|subtotal|vat|tax|cash|change|payment|balance|tender)/i.test(
-      line,
+    /^(total|grand total|amount due|subtotal|vat|tax|cash|change|payment|balance|tender|qty|description|unit price|amount|thank you)/i.test(
+      smallText,
     )
   ) {
     return null;
   }
 
-  /*
-   * Look for:
-   *
-   * description
-   * qty
-   * unit price
-   * amount
-   */
-  const match = line.match(
-    /^(.+?)\s+(\d+(?:\.\d+)?)\s+(?:₱|php|p)?\s*([\d,]+(?:\.\d{1,2})?)\s+(?:₱|php|p)?\s*([\d,]+(?:\.\d{1,2})?)$/i,
-  );
+  const variants = [
+    /^([0-9]+(?:\.\d+)?)\s+(.+?)\s+([\d,]+(?:\.\d{1,2})?)\s+([\d,]+(?:\.\d{1,2})?)$/,
+    /^(.+?)\s+([0-9]+(?:\.\d+)?)\s+([\d,]+(?:\.\d{1,2})?)\s+([\d,]+(?:\.\d{1,2})?)$/,
+    /^(.+?)\s+([\d,]+(?:\.\d{1,2})?)\s+([\d,]+(?:\.\d{1,2})?)$/,
+  ];
 
-  if (!match) {
-    return null;
+  for (const pattern of variants) {
+    const match = smallText.match(pattern);
+    if (!match) continue;
+
+    let qty = 1;
+    let particulars = "";
+    let unitPrice = "";
+    let amount = "";
+
+    if (pattern.source.startsWith("^([0-9]+")) {
+      qty = Number(match[1]);
+      particulars = match[2].trim();
+      unitPrice = normalizeCurrencyNumber(match[3]);
+      amount = normalizeCurrencyNumber(match[4]);
+    } else if (pattern.source.startsWith("^(.+?)\\s+([0-9]+")) {
+      particulars = match[1].trim();
+      qty = Number(match[2]);
+      unitPrice = normalizeCurrencyNumber(match[3]);
+      amount = normalizeCurrencyNumber(match[4]);
+    } else {
+      particulars = match[1].trim();
+      unitPrice = normalizeCurrencyNumber(match[2]);
+      amount = normalizeCurrencyNumber(match[3]);
+    }
+
+    if (!particulars || !Number.isFinite(qty)) {
+      continue;
+    }
+
+    if (!unitPrice && !amount) {
+      continue;
+    }
+
+    return {
+      id: null,
+      particulars,
+      qty,
+      unit: "Piece",
+      unitPrice: Number(unitPrice || amount || 0),
+      amount: Number(amount || unitPrice || 0),
+    };
   }
 
-  const particulars = match[1].trim();
-
-  const qty = Number(match[2]);
-
-  const unitPrice = Number(
-    match[3].replace(/,/g, ""),
-  );
-
-  const amount = Number(
-    match[4].replace(/,/g, ""),
-  );
-
-  if (!particulars || !Number.isFinite(qty)) {
-    return null;
-  }
-
-  return {
-    id: null,
-    particulars,
-    qty,
-    unit: "Piece",
-    unitPrice,
-    amount,
-  };
+  return null;
 };
 
-/**
- * Extract receipt items.
- */
 const extractItems = (lines) => {
   const items = [];
 
   for (const line of lines) {
     const item = parseItemLine(line);
-
     if (item) {
       items.push(item);
     }
@@ -351,19 +303,6 @@ const extractItems = (lines) => {
   return items;
 };
 
-/**
- * Main receipt parser.
- *
- * @param {string} rawText
- * @returns {{
- *   supplier: string,
- *   invoiceDate: string,
- *   invoiceNumber: string,
- *   poNumber: string,
- *   total: string,
- *   items: Array
- * }}
- */
 export const parseReceiptText = (rawText) => {
   if (!rawText) {
     return {
@@ -373,6 +312,7 @@ export const parseReceiptText = (rawText) => {
       poNumber: "",
       total: "",
       items: [],
+      supplierCandidates: [],
     };
   }
 
@@ -380,15 +320,11 @@ export const parseReceiptText = (rawText) => {
 
   return {
     supplier: extractSupplier(lines),
-
+    supplierCandidates: extractSupplierCandidates(lines),
     invoiceDate: extractInvoiceDate(lines),
-
     invoiceNumber: extractInvoiceNumber(lines),
-
     poNumber: extractPONumber(lines),
-
     total: extractTotal(lines),
-
     items: extractItems(lines),
   };
 };

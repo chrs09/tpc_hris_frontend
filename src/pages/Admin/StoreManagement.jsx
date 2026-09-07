@@ -199,6 +199,60 @@ export default function StoreManagement() {
     ));
   };
 
+  const renderMobileCards = () => {
+    if (!filteredStores.length) {
+      return (
+        <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-gray-500">
+          {stores.length
+            ? "No stores match your search or filter."
+            : "No stores found."}
+        </div>
+      );
+    }
+
+    return paginatedStores.map((store) => (
+      <div
+        key={store.id}
+        className="rounded-2xl border bg-white p-4 shadow-sm"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-semibold text-gray-800">{store.name}</p>
+            <p className="text-xs text-gray-500">
+              {store.profile || "Unassigned"}
+            </p>
+          </div>
+
+          <button
+            className="text-sm text-blue-600 hover:text-blue-800"
+            onClick={() => openEditModal(store)}
+          >
+            Edit
+          </button>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <span className="text-xs text-gray-400">Required Helper</span>
+            <p className="text-gray-700">{store.required_helper}</p>
+          </div>
+
+          <div>
+            <span className="text-xs text-gray-400">Radius</span>
+            <p className="text-gray-700">{store.allowed_radius_meters} m</p>
+          </div>
+
+          <div className="col-span-2">
+            <span className="text-xs text-gray-400">Coordinates</span>
+            <p className="text-gray-700">
+              {store.latitude}, {store.longitude}
+            </p>
+          </div>
+        </div>
+      </div>
+    ));
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div>
@@ -256,42 +310,56 @@ export default function StoreManagement() {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-3xl border bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Store Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Profile
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Required Helper
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Radius
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Coordinates
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
+      <div className="rounded-3xl border bg-white shadow-sm">
+        {/* MOBILE: card list */}
+        <div className="space-y-3 p-4 md:hidden">
+          {loading ? (
+            <div className="p-8 text-center text-gray-500">
+              Loading stores...
+            </div>
+          ) : (
+            renderMobileCards()
+          )}
+        </div>
+
+        {/* DESKTOP: table */}
+        <div className="hidden overflow-x-auto md:block">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                  Loading stores...
-                </td>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Store Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Profile
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Required Helper
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Radius
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Coordinates
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              renderRows()
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    Loading stores...
+                  </td>
+                </tr>
+              ) : (
+                renderRows()
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {!loading && totalItems > 0 && (
           <div className="flex flex-col gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">

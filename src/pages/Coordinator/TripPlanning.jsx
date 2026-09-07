@@ -377,7 +377,7 @@ export default function ShipmentPlanning() {
         </div>
 
         {/* Stats strip */}
-        <div className="grid grid-cols-3 gap-4 sm:max-w-md">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:max-w-md">
           <Stat label="Shipments" value={filled.length} />
           <Stat label="Pallets" value={totalPallets} accent="amber" />
           <Stat label="Cases" value={totalCases} accent="amber" />

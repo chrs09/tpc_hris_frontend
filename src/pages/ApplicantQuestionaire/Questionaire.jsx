@@ -394,72 +394,140 @@ export default function Questionaire() {
               No questions matched your filters.
             </div>
           ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="min-w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left">
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Role
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Question Key
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Question Text
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Type
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Required
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Sort
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Status
-                    </th>
-                    <th className="px-3 py-3 font-semibold text-gray-700">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredQuestions.map((question) => (
-                    <tr key={question.id} className="border-b border-gray-100">
-                      <td className="px-3 py-3">{question.target_role}</td>
-                      <td className="px-3 py-3">{question.question_key}</td>
-                      <td className="px-3 py-3">{question.question_text}</td>
-                      <td className="px-3 py-3">{question.question_type}</td>
-                      <td className="px-3 py-3">
-                        {question.is_required ? "Yes" : "No"}
-                      </td>
-                      <td className="px-3 py-3">{question.sort_order}</td>
-                      <td className="px-3 py-3">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            question.is_active
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {question.is_active ? "Active" : "Inactive"}
+            <>
+              {/* MOBILE: card list */}
+              <div className="mt-4 space-y-3 md:hidden">
+                {filteredQuestions.map((question) => (
+                  <div
+                    key={question.id}
+                    className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-gray-400">
+                          {question.target_role} ·{" "}
+                          {question.question_key}
+                        </p>
+                        <p className="font-medium text-gray-800">
+                          {question.question_text}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+                          question.is_active
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {question.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <span className="text-xs text-gray-400">Type</span>
+                        <p className="text-gray-700">
+                          {question.question_type}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-gray-400">
+                          Required
                         </span>
-                      </td>
-                      <td className="px-3 py-3">
-                        <button
-                          type="button"
-                          onClick={() => handleEditClick(question)}
-                          className="rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                          Edit
-                        </button>
-                      </td>
+                        <p className="text-gray-700">
+                          {question.is_required ? "Yes" : "No"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="text-xs text-gray-400">Sort</span>
+                        <p className="text-gray-700">
+                          {question.sort_order}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleEditClick(question)}
+                      className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                      Edit
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              {/* DESKTOP: table */}
+              <div className="mt-4 hidden overflow-x-auto md:block">
+                <table className="min-w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-left">
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Role
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Question Key
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Question Text
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Type
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Required
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Sort
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Status
+                      </th>
+                      <th className="px-3 py-3 font-semibold text-gray-700">
+                        Actions
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filteredQuestions.map((question) => (
+                      <tr key={question.id} className="border-b border-gray-100">
+                        <td className="px-3 py-3">{question.target_role}</td>
+                        <td className="px-3 py-3">{question.question_key}</td>
+                        <td className="px-3 py-3">{question.question_text}</td>
+                        <td className="px-3 py-3">{question.question_type}</td>
+                        <td className="px-3 py-3">
+                          {question.is_required ? "Yes" : "No"}
+                        </td>
+                        <td className="px-3 py-3">{question.sort_order}</td>
+                        <td className="px-3 py-3">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              question.is_active
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {question.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <button
+                            type="button"
+                            onClick={() => handleEditClick(question)}
+                            className="rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          >
+                            Edit
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>

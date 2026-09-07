@@ -36,8 +36,8 @@ const EditAttendanceModal = ({
   return (
     <>
       {/* MAIN MODAL */}
-      <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-60">
-        <div className="bg-[#2b2b2b] rounded-xl p-6 w-80 shadow-xl">
+      <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-60 p-4">
+        <div className="bg-[#2b2b2b] rounded-xl p-6 w-full max-w-sm shadow-xl">
           <h3 className="text-lg font-bold mb-3 text-white">
             {isUpdate ? "Update Attendance" : "Create Attendance"}
           </h3>

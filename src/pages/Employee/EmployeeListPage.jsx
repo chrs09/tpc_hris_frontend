@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { TailSpin } from "react-loader-spinner";
 import toast from "react-hot-toast";
 import { useEmployees } from "../../hooks/useEmployee";
 import { getEmployeeDetails } from "../../api/employee";
@@ -97,7 +98,18 @@ export default function EmployeeListPage() {
   };
 
   if (loading) {
-    return <div className="p-8">Loading...</div>;
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 p-16 text-gray-500">
+        <TailSpin
+          visible
+          height="60"
+          width="60"
+          color="#2b2b2b"
+          ariaLabel="loading-employees"
+        />
+        <p className="text-sm">Loading employees...</p>
+      </div>
+    );
   }
 
   return (

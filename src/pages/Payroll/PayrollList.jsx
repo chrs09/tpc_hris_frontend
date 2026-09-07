@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { TailSpin } from "react-loader-spinner";
 import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
 import { attendanceRecord } from "../../api/attendance";
@@ -12,6 +13,7 @@ import {
   reverseOT,
 } from "../../api/payroll/overtimeApproval";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
+import { getExpectedHoursForDate } from "../../utils/payroll/attendance/attendanceTimeUtils";
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
 import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
 import PayslipModal from "../../components/payroll/PayslipModal";
@@ -91,7 +93,7 @@ const PayrollList = () => {
 
         const [employeeData, attendanceData, holidayData] = await Promise.all([
           getEmployeeList(),
-          attendanceRecord(),
+          attendanceRecord({ includePhotos: false }),
           getHolidays(currentYear),
         ]);
 
@@ -236,6 +238,14 @@ const PayrollList = () => {
         let undertimeDeduction = 0;
         let tardinessDeduction = 0;
 
+        // Payslip transparency figures: what the cutoff was worth with
+        // perfect attendance (every record's own scheduled hours, present
+        // or absent), and how much of that was lost to half-day absences.
+        let totalScheduledHours = 0;
+        let firstHalfAbsentHours = 0;
+        let secondHalfAbsentHours = 0;
+        let absentHours = 0;
+
         let attendanceCount = records.length;
         let missingTimeouts = 0;
         let warnings = [];
@@ -244,6 +254,20 @@ const PayrollList = () => {
           const isLeave = record.status === "On Leave";
 
           const isAbsent = record.status === "Absent";
+
+          const scheduledHoursForDay = getExpectedHoursForDate(
+            employee.schedule_template,
+            record.attendance_date,
+          );
+
+          totalScheduledHours += scheduledHoursForDay;
+
+          // Unpaid absence: whole-day Absent/On Leave records have no
+          // check-in/out to derive hours from, so use that day's own
+          // schedule instead of a flat 8-hour guess.
+          if (isAbsent || isLeave) {
+            absentHours += scheduledHoursForDay;
+          }
 
           if (
             !isLeave &&
@@ -262,17 +286,6 @@ const PayrollList = () => {
           const checkIn = new Date(record.check_in_time_raw);
 
           const checkOut = new Date(record.check_out_time_raw);
-
-          //  const {
-          //   regularHours,
-          //   overtimeHours,
-          //   undertimeHours:
-          //     recordUndertime,
-          // } =
-          // calculateAttendanceHours(
-          //   checkIn,
-          //   checkOut,
-          // );
 
           const result = calculateAttendanceHours({
             checkIn,
@@ -301,8 +314,6 @@ const PayrollList = () => {
             });
           }
 
-          // end
-
           renderedHours += result.renderedHours;
 
           regularHours += result.regularHours;
@@ -311,19 +322,21 @@ const PayrollList = () => {
 
           undertimeHours += result.undertimeHours;
           tardinessHours += result.tardinessHours || 0;
+
+          const halfDayHours = (result.expectedHours || 0) / 2;
+
+          if (result.firstHalfAbsent) {
+            firstHalfAbsentHours += halfDayHours;
+          }
+
+          if (result.secondHalfAbsent) {
+            secondHalfAbsentHours += halfDayHours;
+          }
         });
 
         //added
         if (isTripBasedEmployee) {
           records.forEach((record) => {
-            console.log(
-              "PAYROLL RECORD",
-              employee.first_name,
-              record.attendance_date,
-              record.completed_trips,
-              record.trip_tickets,
-            );
-
             const trips = record.trip_tickets || [];
 
             if (!trips.length) return;
@@ -363,13 +376,6 @@ const PayrollList = () => {
 
               tripPay += rate;
               totalTrips++;
-
-              console.log(
-                "TRIP SEQUENCE",
-                date,
-                dailyTripCounter[date],
-                trip.ticket_no,
-              );
 
               tripBreakdown.push({
                 date,
@@ -738,10 +744,6 @@ const PayrollList = () => {
           }
         }
 
-        //added
-        if (isTripBasedEmployee) {
-          console.log(employee.first_name, employee.last_name, tripBreakdown);
-        }
         if (isTripBasedEmployee) {
           return {
             employee,
@@ -761,6 +763,11 @@ const PayrollList = () => {
             warnings: [],
 
             daysWorked: Object.keys(tripsByDate).length,
+            absentDays: 0,
+            absentHours: 0,
+            totalScheduledHours: 0,
+            firstHalfAbsentHours: 0,
+            secondHalfAbsentHours: 0,
 
             dailyRate: 0,
 
@@ -807,16 +814,6 @@ const PayrollList = () => {
           };
         }
 
-        console.log("deductions", {
-          grossPay,
-          sssDeduction,
-          philhealthDeduction,
-          pagibigDeduction,
-          withholdingTax,
-          totalDeductions,
-          netPay,
-        });
-
         return {
           employee,
 
@@ -846,6 +843,11 @@ const PayrollList = () => {
           semiMonthlyBasic,
           semiMonthlyAllowance,
 
+          absentDays,
+          absentHours,
+          totalScheduledHours,
+          firstHalfAbsentHours,
+          secondHalfAbsentHours,
           absentBasicDeduction,
           absentAllowanceDeduction,
           absentDeduction,
@@ -1092,10 +1094,11 @@ const PayrollList = () => {
           <p className="text-gray-500">Payroll Preview</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(Number(e.target.value))}
+            className="border rounded-lg px-3 h-10 bg-white"
           >
             {periods.map((period, index) => (
               <option key={index} value={index}>
@@ -1119,7 +1122,7 @@ const PayrollList = () => {
             placeholder="Search employee..."
             value={searchEmployee}
             onChange={(e) => setSearchEmployee(e.target.value)}
-            className="border rounded-lg px-3 h-10 bg-white"
+            className="border rounded-lg px-3 h-10 bg-white w-full sm:w-auto"
           />
 
           <button
@@ -1149,24 +1152,26 @@ const PayrollList = () => {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 sm:p-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div>
             <p className="text-xs text-gray-500">Department</p>
 
-            <p className="font-semibold">{department}</p>
+            <p className="font-semibold text-sm sm:text-base">{department}</p>
           </div>
 
           <div>
             <p className="text-xs text-gray-500">Payroll Type</p>
 
-            <p className="font-semibold">{activePeriod.payrollType}</p>
+            <p className="font-semibold text-sm sm:text-base">
+              {activePeriod.payrollType}
+            </p>
           </div>
 
           <div>
             <p className="text-xs text-gray-500">Cutoff Period</p>
 
-            <p className="font-semibold">
+            <p className="font-semibold text-sm sm:text-base">
               {activePeriod.cutoffStart} → {activePeriod.cutoffEnd}
             </p>
           </div>
@@ -1174,7 +1179,7 @@ const PayrollList = () => {
           <div>
             <p className="text-xs text-gray-500">Payout Date</p>
 
-            <p className="font-semibold text-green-700">
+            <p className="font-semibold text-sm sm:text-base text-green-700">
               {activePeriod.payoutDate}
             </p>
           </div>
@@ -1182,31 +1187,37 @@ const PayrollList = () => {
       </div>
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-gray-500">Employees</p>
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="bg-white border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Employees</p>
 
-          <h2 className="text-2xl font-bold">{summary.employees}</h2>
+          <h2 className="text-lg sm:text-2xl font-bold">
+            {summary.employees}
+          </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-gray-500">Total Regular Hours</p>
+        <div className="bg-white border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">
+            Total Regular Hours
+          </p>
 
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-lg sm:text-2xl font-bold">
             {summary.totalRegularHours.toFixed(2)}
           </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-gray-500">OT Hours</p>
+        <div className="bg-white border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">OT Hours</p>
 
-          <h2 className="text-2xl font-bold">{summary.totalOT.toFixed(2)}</h2>
+          <h2 className="text-lg sm:text-2xl font-bold">
+            {summary.totalOT.toFixed(2)}
+          </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-gray-500">Gross Payroll</p>
+        <div className="bg-white border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Gross Payroll</p>
 
-          <h2 className="text-2xl font-bold text-green-700">
+          <h2 className="text-lg sm:text-2xl font-bold text-green-700">
             ₱
             {summary.totalGross.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -1214,10 +1225,10 @@ const PayrollList = () => {
           </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-4">
-          <p className="text-sm text-gray-500">Net Payroll</p>
+        <div className="bg-white border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Net Payroll</p>
 
-          <h2 className="text-2xl font-bold text-blue-700">
+          <h2 className="text-lg sm:text-2xl font-bold text-blue-700">
             ₱
             {summary.totalNet.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -1229,10 +1240,27 @@ const PayrollList = () => {
       {/* TABLE */}
       <div className="bg-white border rounded-xl overflow-hidden">
         {loading ? (
-          <div className="p-6">Loading...</div>
+          <div className="flex flex-col items-center justify-center gap-3 p-16">
+            <TailSpin
+              visible
+              height="60"
+              width="60"
+              color="#2563eb"
+              ariaLabel="loading-payroll"
+            />
+            <p className="text-sm text-gray-500">Loading payroll data...</p>
+          </div>
         ) : (
           <div className="overflow-auto max-h-[70vh]">
-            <table className="min-w-550 w-full">
+            <table
+              className="
+                min-w-550 w-full
+                text-xs sm:text-sm
+                [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2
+                sm:[&_th]:px-4 sm:[&_th]:py-3 sm:[&_td]:px-4 sm:[&_td]:py-3
+                whitespace-nowrap
+              "
+            >
               <thead className="sticky top-0 z-30 bg-gray-50">
                 <tr>
                   <th className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left min-w-55">

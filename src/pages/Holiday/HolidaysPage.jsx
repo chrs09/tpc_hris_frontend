@@ -61,9 +61,9 @@ export default function HolidaysPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-slate-900">Holidays</h1>
           <div className="relative">
@@ -137,8 +137,84 @@ export default function HolidaysPage() {
         </div>
       </div>
 
-      {/* Table card */}
-      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      {/* MOBILE: card list */}
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-sm text-slate-400">
+            Loading holidays…
+          </div>
+        ) : holidays.length === 0 ? (
+          <div className="bg-white border border-dashed border-slate-300 rounded-xl p-6 text-center text-sm text-slate-400">
+            No holidays found for {year}
+          </div>
+        ) : (
+          holidays.map((h) => (
+            <div
+              key={h.id}
+              className="bg-white border border-slate-200 rounded-xl shadow-sm p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs text-slate-400">{h.holiday_date}</p>
+                  <p className="font-medium text-slate-800">
+                    {h.holiday_name}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => setEditingHoliday(h)}
+                    title="Edit holiday"
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+
+                  {h.source === "manual" && (
+                    <button
+                      onClick={() => handleDelete(h.id)}
+                      title="Delete holiday"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeStyles[h.holiday_type] || "bg-slate-100 text-slate-600"}`}
+                >
+                  {h.holiday_type.replace(/_/g, " ")}
+                </span>
+
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                    h.source === "manual"
+                      ? "bg-red-50 text-red-600"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {h.source === "manual"
+                    ? h.override_api
+                      ? "Manual · override"
+                      : "Manual"
+                    : "API"}
+                </span>
+
+                <span className="text-xs text-slate-500 capitalize">
+                  {h.scope}
+                  {h.city ? ` – ${h.city}` : ""}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* DESKTOP: table */}
+      <div className="hidden md:block bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-left">

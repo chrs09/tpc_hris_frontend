@@ -1,11 +1,13 @@
 import {
   LUNCH_BREAK_START_MINUTES,
-  LUNCH_BREAK_END_MINUTES,
   MORNING_SHIFT_END_MINUTES,
   AFTERNOON_SHIFT_START_MINUTES,
   toLocalMinutes,
   formatLocalTimeFromMinutes,
   crossesLunchBreak,
+  isFirstHalfAbsent,
+  isSecondHalfAbsent,
+  getExpectedHoursForSchedule,
 } from "./attendanceTimeUtils";
 
 // =====================================================
@@ -34,6 +36,7 @@ export function calculateStandardAttendanceHours({
 
   if (!checkIn || !checkOut || !schedule) {
     return {
+      expectedHours: 0,
       renderedHours: 0,
       regularHours: 0,
       overtimeHours: 0,
@@ -72,6 +75,7 @@ export function calculateStandardAttendanceHours({
 
   if (!scheduleInStr || !scheduleOutStr) {
     return {
+      expectedHours: 0,
       renderedHours: 0,
       regularHours: 0,
       overtimeHours: 0,
@@ -169,9 +173,11 @@ export function calculateStandardAttendanceHours({
   //
   // ---------------------------------------------------
 
-  const firstHalfAbsent =
-    actualInMinutes >= LUNCH_BREAK_START_MINUTES &&
-    actualInMinutes < LUNCH_BREAK_END_MINUTES;
+  const firstHalfAbsent = isFirstHalfAbsent(
+    actualInMinutes,
+    scheduleInMinutes,
+    scheduleOutMinutes,
+  );
 
   // ---------------------------------------------------
   // SECOND HALF ABSENT
@@ -186,28 +192,20 @@ export function calculateStandardAttendanceHours({
   //
   // ---------------------------------------------------
 
-  const secondHalfAbsent =
-    actualOutMinutes > 0 && actualOutMinutes <= MORNING_SHIFT_END_MINUTES;
+  const secondHalfAbsent = isSecondHalfAbsent(
+    actualOutMinutes,
+    scheduleInMinutes,
+    scheduleOutMinutes,
+  );
 
   // ===================================================
   // EXPECTED HOURS
   // ===================================================
 
-  let expectedHours;
-
-  if (scheduleOutMinutes <= scheduleInMinutes) {
-    expectedHours = (1440 - scheduleInMinutes + scheduleOutMinutes) / 60;
-  } else {
-    expectedHours = (scheduleOutMinutes - scheduleInMinutes) / 60;
-  }
-
-  // ===================================================
-  // SCHEDULE LUNCH
-  // ===================================================
-
-  if (crossesLunchBreak(scheduleInMinutes, scheduleOutMinutes)) {
-    expectedHours = Math.max(expectedHours - 1, 0);
-  }
+  const expectedHours = getExpectedHoursForSchedule(
+    scheduleInMinutes,
+    scheduleOutMinutes,
+  );
 
   // ===================================================
   // REGULAR HOURS
@@ -501,45 +499,18 @@ export function calculateStandardAttendanceHours({
   }
 
   // ===================================================
-  // DEBUG
-  // ===================================================
-
-  console.log("PAYROLL ATTENDANCE RESULT", {
-    attendanceDate,
-
-    scheduleInStr,
-    scheduleOutStr,
-
-    actualInMinutes,
-    actualOutMinutes,
-
-    renderedHours,
-    expectedHours,
-
-    regularHours,
-
-    overtimeHours,
-
-    tardinessMinutes,
-    tardinessHours,
-
-    undertimeMinutes,
-    undertimeHours,
-
-    firstHalfAbsent,
-    secondHalfAbsent,
-
-    scheduledTimeIn,
-    scheduledTimeOut,
-  });
-
-  // ===================================================
   // RESULT
   // ===================================================
 
   return {
     scheduledTimeIn,
     scheduledTimeOut,
+
+    // Scheduled hours for this specific day (varies with the
+    // employee's own schedule_template) - used by callers that need
+    // to prorate a half-day absence instead of assuming a fixed 4
+    // hours (e.g. a 6-hour-shift employee's "half day" is 3 hours).
+    expectedHours: Number(expectedHours.toFixed(2)),
 
     renderedHours: Number(renderedHours.toFixed(2)),
 

@@ -78,6 +78,7 @@ export function calculateAttendanceHours({
   console.warn("Unknown payroll type:", payrollType);
 
   return {
+    expectedHours: 0,
     renderedHours: 0,
     regularHours: 0,
     overtimeHours: 0,
