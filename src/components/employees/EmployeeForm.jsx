@@ -192,7 +192,7 @@ export default function EmployeeForm({
 
               {(isEditing || Number(formData.is_active) === 0) && (
                 <div className="mt-3 flex items-center gap-3">
-                  <span className="text-sm text-gray-600">Status</span>
+                  <span className="text-sm text-fg-muted">Status</span>
 
                   {isEditing && (
                     <button
@@ -202,12 +202,12 @@ export default function EmployeeForm({
                       }
                       className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
                         Number(formData.is_active) === 1
-                          ? "bg-green-500"
-                          : "bg-gray-400"
+                          ? "bg-success"
+                          : "bg-surface-active"
                       }`}
                     >
                       <div
-                        className={`bg-white w-4 h-4 rounded-full transition ${
+                        className={`bg-surface w-4 h-4 rounded-full transition ${
                           Number(formData.is_active) === 1
                             ? "translate-x-6"
                             : ""
@@ -303,16 +303,16 @@ export default function EmployeeForm({
                   onChange={handleChange}
                 />
                 <div className="space-y-1">
-                  <label className="text-sm text-black font-semibold">
+                  <label className="text-sm text-fg font-semibold">
                     Daily Rate Equivalent
                   </label>
-                  <p className="font-serif text-gray-600">
+                  <p className="font-serif text-fg-muted">
                     ₱
                     {((Number(formData.monthly_basic || 0) * 12) / 313).toFixed(
                       2,
                     )}{" "}
                     / day
-                    <span className="text-xs text-gray-400 ml-2">
+                    <span className="text-xs text-fg-subtle ml-2">
                       (Monthly Basic × 12 ÷ 313 — auto-computed, not stored
                       directly)
                     </span>
@@ -762,12 +762,12 @@ export default function EmployeeForm({
           </Section>
 
           <div className="space-y-4">
-            <div className="border-b pb-1">
-              <h3 className="text-lg font-semibold text-[#2b2b2b]">
+            <div className="border-b border-border pb-1">
+              <h3 className="text-lg font-semibold text-fg">
                 Government Documents
               </h3>
 
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-fg-subtle mt-1">
                 Upload scanned copies or screenshots of government
                 IDs/documents.
               </p>
@@ -810,12 +810,12 @@ export default function EmployeeForm({
           </div>
 
           <div className="space-y-4">
-            <div className="border-b pb-1">
-              <h3 className="text-lg font-semibold text-[#2b2b2b]">
+            <div className="border-b border-border pb-1">
+              <h3 className="text-lg font-semibold text-fg">
                 Bank Details
               </h3>
 
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-fg-subtle mt-1">
                 Employee payroll and banking information.
               </p>
             </div>
@@ -857,7 +857,7 @@ export default function EmployeeForm({
             </div>
 
             <div className="pt-2">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">
+              <h4 className="text-sm font-medium text-fg-muted mb-3">
                 Proof of Account
               </h4>
 
@@ -1012,7 +1012,7 @@ export default function EmployeeForm({
           onClick={() => setPreviewImage(null)}
         >
           <div
-            className="bg-white p-2 rounded-xl max-w-[90vw] max-h-[90vh]"
+            className="bg-surface p-2 rounded-xl max-w-[90vw] max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
             {previewImage.toLowerCase().endsWith(".pdf") ? (
@@ -1038,7 +1038,7 @@ export default function EmployeeForm({
 function Section({ title, children }) {
   return (
     <div>
-      <h3 className="text-lg font-semibold text-[#2b2b2b] mb-4 border-b pb-1">
+      <h3 className="text-lg font-semibold text-fg mb-4 border-b border-border pb-1">
         {title}
       </h3>
 
@@ -1059,14 +1059,14 @@ function EditableArrayField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black font-semibold">{label}</label>
+      <label className="text-sm text-fg font-semibold">{label}</label>
 
       {isEditing ? (
         isSelect ? (
           <select
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+            className="w-full border-b border-border focus:border-fg focus:outline-none py-2 bg-transparent text-fg"
           >
             <option value="">Select {label}</option>
 
@@ -1084,7 +1084,7 @@ function EditableArrayField({
             type={type}
             value={value || ""}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full border-b border-gray-300 focus:border-[#2b2b2b] focus:outline-none py-2 bg-transparent"
+            className="w-full border-b border-border focus:border-fg focus:outline-none py-2 bg-transparent text-fg"
           />
         )
       ) : (
@@ -1107,20 +1107,20 @@ function DynamicSection({
 
   return (
     <div className="space-y-4">
-      <div className="border-b pb-2">
-        <h3 className="text-lg font-semibold text-[#2b2b2b]">{title}</h3>
+      <div className="border-b border-border pb-2">
+        <h3 className="text-lg font-semibold text-fg">{title}</h3>
       </div>
 
       {!hasItems ? (
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">{emptyMessage}</p>
+          <p className="text-sm text-fg-subtle">{emptyMessage}</p>
 
           {isEditing && (
             <div>
               <button
                 type="button"
                 onClick={onAdd}
-                className="px-4 py-2 rounded-lg border border-[#2b2b2b] text-[#2b2b2b] text-sm hover:bg-gray-50"
+                className="px-4 py-2 rounded-lg border border-fg text-fg text-sm hover:bg-surface-hover"
               >
                 {buttonLabel}
               </button>
@@ -1136,7 +1136,7 @@ function DynamicSection({
               <button
                 type="button"
                 onClick={onAdd}
-                className="w-full sm:w-auto px-4 py-2 rounded-lg border border-[#2b2b2b] text-[#2b2b2b] text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto px-4 py-2 rounded-lg border border-fg text-fg text-sm hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {buttonLabel}
               </button>
@@ -1150,15 +1150,15 @@ function DynamicSection({
 
 function CardBlock({ title, isEditing, onRemove, children }) {
   return (
-    <div className="border rounded-xl p-4 bg-gray-50 space-y-4">
+    <div className="border border-border rounded-xl p-4 bg-surface-hover space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="font-semibold text-[#2b2b2b]">{title}</h4>
+        <h4 className="font-semibold text-fg">{title}</h4>
 
         {isEditing && (
           <button
             type="button"
             onClick={onRemove}
-            className="text-sm text-red-600 hover:underline"
+            className="text-sm text-danger hover:underline"
           >
             Remove
           </button>
@@ -1185,10 +1185,10 @@ function EditableField({
 
   return (
     <div className="space-y-1">
-      <label className="text-sm text-black font-semibold">
+      <label className="text-sm text-fg font-semibold">
         {label}
 
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-danger ml-1">*</span>}
       </label>
 
       {isEditing ? (
@@ -1203,8 +1203,8 @@ function EditableField({
                   : e.target.value,
               )
             }
-            className={`w-full border-b focus:outline-none py-2 bg-transparent ${
-              error ? "border-red-500" : "border-gray-300"
+            className={`w-full border-b focus:outline-none py-2 bg-transparent text-fg ${
+              error ? "border-danger" : "border-border"
             }`}
           >
             <option value="">Select {label}</option>
@@ -1223,15 +1223,15 @@ function EditableField({
             type={type}
             value={value || ""}
             onChange={(e) => onChange(field, e.target.value)}
-            className={`w-full border-b focus:outline-none py-2 bg-transparent ${
-              error ? "border-red-500" : "border-gray-300"
+            className={`w-full border-b focus:outline-none py-2 bg-transparent text-fg ${
+              error ? "border-danger" : "border-border"
             }`}
           />
         )
       ) : (
         <p className="font-serif">{value || "-"}</p>
       )}
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-xs text-danger mt-1">{error}</p>}
     </div>
   );
 }
@@ -1279,11 +1279,11 @@ function FilePreview({
     (!isBlob && fileUrl && lowerUrl.endsWith(".pdf"));
 
   return (
-    <div className="border border-gray-200 rounded-xl p-3 bg-white shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition">
-      <p className="text-sm text-gray-600 text-center">{label}</p>
+    <div className="border border-border rounded-xl p-3 bg-surface shadow-sm flex flex-col items-center gap-2 hover:shadow-md transition">
+      <p className="text-sm text-fg-muted text-center">{label}</p>
 
       <div
-        className="relative w-24 h-24 border border-gray-200 rounded-lg flex items-center justify-center overflow-hidden cursor-pointer group bg-gray-50"
+        className="relative w-24 h-24 border border-border rounded-lg flex items-center justify-center overflow-hidden cursor-pointer group bg-surface-hover"
         onClick={() => fileUrl && setPreviewImage(fileUrl)}
       >
         {fileUrl ? (
@@ -1300,20 +1300,20 @@ function FilePreview({
               </div>
             </>
           ) : isPDF ? (
-            <div className="flex flex-col items-center justify-center text-red-600">
+            <div className="flex flex-col items-center justify-center text-danger">
               <span className="text-3xl">📄</span>
               <span className="text-xs mt-1">PDF</span>
             </div>
           ) : (
-            <span className="text-xs text-gray-500">File</span>
+            <span className="text-xs text-fg-subtle">File</span>
           )
         ) : (
-          <span className="text-xs text-gray-400">No File</span>
+          <span className="text-xs text-fg-subtle">No File</span>
         )}
       </div>
 
       {isEditing && (
-        <label className="text-xs px-3 py-1.5 bg-[#2b2b2b] text-white rounded-lg cursor-pointer hover:bg-black transition">
+        <label className="text-xs px-3 py-1.5 bg-primary text-primary-foreground rounded-lg cursor-pointer hover:bg-primary-hover transition">
           Upload
           <input
             type="file"

@@ -6,12 +6,12 @@ const SessionExpiredModal = ({ isOpen, onConfirm }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-fadeIn">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+      <div className="bg-surface border border-border w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-fadeIn">
+        <h2 className="text-2xl font-bold text-fg mb-4">
           Session Expired
         </h2>
 
-        <p className="text-gray-600 mb-6">
+        <p className="text-fg-muted mb-6">
           Your session has ended for security reasons. Please log in again to
           continue.
         </p>

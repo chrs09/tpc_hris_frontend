@@ -2,6 +2,7 @@
 
 import AdminDashboard from "./AdminDashboard";
 import DriverDashboard from "./DriverDashboard";
+import EmployeeDashboard from "./EmployeeDashboard";
 import PWAInstallButton from "../../components/PWAInstallButton";
 
 const ADMIN_DASHBOARD_ROLES = [
@@ -11,6 +12,8 @@ const ADMIN_DASHBOARD_ROLES = [
   "payroll_admin",
   "office_admin",
 ];
+
+const EMPLOYEE_DASHBOARD_ROLES = ["employee", "helper"];
 
 const DashboardHome = () => {
   const role = localStorage.getItem("role");
@@ -23,10 +26,12 @@ const DashboardHome = () => {
 
       {role === "driver" && <DriverDashboard />}
 
+      {EMPLOYEE_DASHBOARD_ROLES.includes(role) && <EmployeeDashboard />}
+
       {ADMIN_DASHBOARD_ROLES.includes(role) && <AdminDashboard />}
 
       {!role && (
-        <div className="p-8 text-red-500 font-semibold">Unauthorized role.</div>
+        <div className="p-8 text-danger font-semibold">Unauthorized role.</div>
       )}
     </div>
   );

@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button/Button";
 import SearchSelect from "../SearchSelect";
 import { getEmployeeList } from "../../api/employee";
-import { createUser, updateUser } from "../../api/users";
+import { createUser, updateUser, getUserRevisions } from "../../api/users";
+
+const formatFieldName = (field) =>
+  field === "is_active" ? "Status" : field.charAt(0).toUpperCase() + field.slice(1);
+
+const formatValue = (field, value) => {
+  if (field !== "is_active") return value;
+  return value === "true" || value === "True" ? "Active" : "Inactive";
+};
 
 const UserDrawer = ({
   isOpen,
@@ -18,8 +26,16 @@ const UserDrawer = ({
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [role, setRole] = useState("driver");
   const [isActive, setIsActive] = useState(true);
+  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [revisions, setRevisions] = useState([]);
+  const [revisionsLoading, setRevisionsLoading] = useState(false);
+
+  // Deactivating (active -> inactive) requires a reason; reactivating or
+  // changing role alone does not. See update_user_service() on the backend.
+  const isDeactivating = isEditMode && editingUser.is_active && !isActive;
 
   useEffect(() => {
     if (isOpen && !isEditMode) {
@@ -31,11 +47,15 @@ const UserDrawer = ({
     if (editingUser) {
       setRole(editingUser.role);
       setIsActive(editingUser.is_active);
+      setReason("");
+      fetchRevisions(editingUser.id);
     } else {
       setRole("driver");
       setEmployeeId("");
       setSelectedEmployee(null);
       setIsActive(true);
+      setReason("");
+      setRevisions([]);
     }
   }, [editingUser]);
 
@@ -48,16 +68,35 @@ const UserDrawer = ({
     }
   };
 
+  const fetchRevisions = async (userId) => {
+    try {
+      setRevisionsLoading(true);
+      const data = await getUserRevisions(userId);
+      setRevisions(data);
+    } catch (err) {
+      console.error("Failed to fetch user revisions", err);
+    } finally {
+      setRevisionsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+
+    if (isDeactivating && !reason.trim()) {
+      setError("A reason is required when deactivating a user.");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       if (isEditMode) {
         await updateUser(editingUser.id, {
           role,
           is_active: isActive,
+          reason: reason.trim() || undefined,
         });
       } else {
         const response = await createUser({
@@ -80,33 +119,33 @@ const UserDrawer = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50">
-      <div className="absolute right-0 top-0 h-full w-full sm:w-96 bg-white shadow-lg p-6 overflow-y-auto">
+      <div className="absolute right-0 top-0 h-full w-full sm:w-96 bg-surface text-fg shadow-lg p-6 overflow-y-auto">
         <h3 className="text-xl font-bold mb-6">
           {isEditMode ? "Edit User" : "Create User"}
         </h3>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {isEditMode && (
-            <div className="bg-gray-50 p-4 rounded-xl border space-y-3">
+            <div className="bg-surface-hover p-4 rounded-xl border border-border space-y-3">
               <div>
-                <p className="text-xs text-gray-500">Username</p>
+                <p className="text-xs text-fg-subtle">Username</p>
                 <p className="font-semibold">{editingUser.username}</p>
               </div>
 
               <div>
-                <p className="text-xs text-gray-500">Email</p>
-                <p className="text-sm text-gray-700">{editingUser.email}</p>
+                <p className="text-xs text-fg-subtle">Email</p>
+                <p className="text-sm text-fg-muted">{editingUser.email}</p>
               </div>
 
               <div>
-                <p className="text-xs text-gray-500 mb-1">Status</p>
+                <p className="text-xs text-fg-subtle mb-1">Status</p>
 
                 <div className="flex items-center justify-between">
                   <span
                     className={`text-xs px-2 py-1 rounded-full ${
                       isActive
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-600"
+                        ? "bg-success/15 text-success"
+                        : "bg-danger/15 text-danger"
                     }`}
                   >
                     {isActive ? "Active" : "Inactive"}
@@ -116,11 +155,11 @@ const UserDrawer = ({
                     type="button"
                     onClick={() => setIsActive(!isActive)}
                     className={`w-12 h-6 flex items-center rounded-full p-1 transition ${
-                      isActive ? "bg-green-400" : "bg-gray-300"
+                      isActive ? "bg-success" : "bg-surface-active"
                     }`}
                   >
                     <div
-                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition ${
+                      className={`bg-surface w-4 h-4 rounded-full shadow-md transform transition ${
                         isActive ? "translate-x-6" : "translate-x-0"
                       }`}
                     />
@@ -132,7 +171,7 @@ const UserDrawer = ({
 
           {!isEditMode && (
             <div>
-              <label className="block text-sm mb-1">Select Employee</label>
+              <label className="block text-sm mb-1 text-fg">Select Employee</label>
               <SearchSelect
                 value={selectedEmployee}
                 options={employees.map((emp) => ({
@@ -155,20 +194,39 @@ const UserDrawer = ({
           )}
 
           <div>
-            <label className="block text-sm mb-1">Role</label>
+            <label className="block text-sm mb-1 text-fg">Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full border rounded-lg p-2"
+              className="w-full border border-border rounded-lg p-2 bg-surface text-fg"
             >
               <option value="admin">Admin</option>
               <option value="driver">Driver</option>
               <option value="helper">Helper</option>
-              <option value="motorpol">Motorpol</option>
+              <option value="employee">Employee</option>
+              <option value="coordinator_admin">Coordinator Admin</option>
+              <option value="payroll_admin">Payroll Admin</option>
+              <option value="office_admin">Office Admin</option>
             </select>
           </div>
 
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {isDeactivating && (
+            <div>
+              <label className="block text-sm mb-1 text-fg">
+                Reason for deactivating <span className="text-danger">*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                placeholder="Why is this account being deactivated?"
+                className="w-full border border-border rounded-lg p-2 bg-surface text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                required
+              />
+            </div>
+          )}
+
+          {error && <div className="text-danger text-sm">{error}</div>}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
@@ -178,12 +236,60 @@ const UserDrawer = ({
             <Button
               type="submit"
               disabled={loading}
-              className="bg-[#2b2b2b] text-white"
+              className="bg-primary text-primary-foreground hover:bg-primary-hover"
             >
               {loading ? "Saving..." : isEditMode ? "Update" : "Create"}
             </Button>
           </div>
         </form>
+
+        {isEditMode && (
+          <div className="mt-8 border-t border-border pt-5">
+            <h4 className="text-sm font-semibold text-fg mb-3">History</h4>
+
+            {revisionsLoading ? (
+              <p className="text-xs text-fg-subtle">Loading history...</p>
+            ) : revisions.length === 0 ? (
+              <p className="text-xs text-fg-subtle">
+                No changes recorded for this account yet.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {revisions.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="rounded-lg border border-border bg-surface-hover p-3 text-xs"
+                  >
+                    <p className="text-fg">
+                      <span className="font-semibold">
+                        {formatFieldName(rev.field_changed)}
+                      </span>{" "}
+                      changed from{" "}
+                      <span className="font-medium">
+                        {formatValue(rev.field_changed, rev.old_value) || "—"}
+                      </span>{" "}
+                      to{" "}
+                      <span className="font-medium">
+                        {formatValue(rev.field_changed, rev.new_value) || "—"}
+                      </span>
+                    </p>
+
+                    <p className="mt-1 text-fg-subtle">
+                      By {rev.changed_by_username || "Unknown"} on{" "}
+                      {new Date(rev.created_at).toLocaleString()}
+                    </p>
+
+                    {rev.reason && (
+                      <p className="mt-1 text-fg-muted">
+                        Reason: {rev.reason}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

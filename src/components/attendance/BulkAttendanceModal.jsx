@@ -125,10 +125,10 @@ const BulkAttendanceModal = ({
                             [emp.id]: e.target.value,
                           }))
                         }
-                        className={`w-full border rounded px-2 h-9 ${
+                        className={`w-full border border-border rounded px-2 h-9 ${
                           alreadyRecorded
                             ? "bg-gray-500 text-gray-300"
-                            : "bg-white text-black"
+                            : "bg-surface text-fg"
                         }`}
                       >
                         {Object.values(attendanceStatus).map((status) => (
@@ -182,10 +182,10 @@ const BulkAttendanceModal = ({
                                 [emp.id]: e.target.value,
                               }))
                             }
-                            className={`w-full border rounded px-2 h-8 ${
+                            className={`w-full border border-border rounded px-2 h-8 ${
                               alreadyRecorded
                                 ? "bg-gray-500 text-gray-300"
-                                : "bg-white text-black"
+                                : "bg-surface text-fg"
                             }`}
                           >
                             {Object.values(attendanceStatus).map((status) => (

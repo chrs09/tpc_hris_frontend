@@ -1,72 +1,90 @@
-/* :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-} */
 @import "tailwindcss";
+
+/* Class-based dark mode: `dark:` utilities activate from the `.dark`
+   class on <html> (set by ThemeProvider), not just OS preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+
+  --background: #f7f7f8;
+  --surface: #ffffff;
+  --surface-hover: #f2f2f4;
+  --surface-active: #e9e9ec;
+  --border: #e4e4e7;
+
+  --fg: #18181b;
+  --fg-muted: #6b6b74;
+  --fg-subtle: #a1a1aa;
+
+  --primary: #f59e0b;
+  --primary-hover: #d97e06;
+  --primary-foreground: #1c1917;
+
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-foreground: #ffffff;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #17171a;
+  --surface: #232326;
+  --surface-hover: #2b2b2f;
+  --surface-active: #323236;
+  --border: #38383e;
+
+  --fg: #f4f4f5;
+  --fg-muted: #a1a1aa;
+  --fg-subtle: #71717a;
+
+  --primary: #fbbf24;
+  --primary-hover: #fcd34d;
+  --primary-foreground: #1c1917;
+
+  --danger: #f87171;
+  --danger-hover: #fca5a5;
+  --danger-foreground: #450a0a;
+
+  --success: #4ade80;
+  --success-foreground: #052e13;
+
+  --warning: #fbbf24;
+  --warning-foreground: #451a03;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-border: var(--border);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-foreground: var(--danger-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+}
 
 html,
 body,
@@ -85,4 +103,12 @@ body {
 *::before,
 *::after {
   font-family: "Century Gothic", Arial, sans-serif !important;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--fg);
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
 }

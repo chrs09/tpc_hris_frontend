@@ -17,12 +17,12 @@ const ConfirmModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-100 p-4">
-      <div className="bg-[#2b2b2b] rounded-xl w-full max-w-sm p-6 shadow-2xl border border-[#fba919]">
-        <h3 className="text-lg font-bold text-[#fba919] mb-3">{title}</h3>
+      <div className="bg-surface rounded-xl w-full max-w-sm p-6 shadow-2xl border border-primary/40">
+        <h3 className="text-lg font-bold text-primary mb-3">{title}</h3>
 
-        <p className="text-sm text-white mb-6">{message}</p>
+        <p className="text-sm text-fg-muted mb-6">{message}</p>
 
-        <div className="flex justify-end gap-3 text-white">
+        <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             {cancelText}
           </Button>

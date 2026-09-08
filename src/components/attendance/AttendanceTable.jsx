@@ -26,11 +26,11 @@ const AttendanceTable = ({
   today,
 }) => {
   return (
-    <div className="overflow-x-auto border rounded shadow">
+    <div className="overflow-x-auto border-border border rounded shadow">
       <table className="min-w-full border-collapse">
         <thead>
           <tr>
-            <th className="sticky left-0 z-30 bg-white border px-4 py-2">
+            <th className="sticky left-0 z-30 bg-surface border-border border px-4 py-2">
               Employee
             </th>
 
@@ -40,25 +40,25 @@ const AttendanceTable = ({
               const isSunday = getDay(day) === 0;
               const holiday = holidayMap[dateKey];
 
-              let headerBg = "bg-white";
+              let headerBg = "bg-surface text-fg";
 
               if (isToday) {
-                headerBg = "bg-blue-500 text-white";
+                headerBg = "bg-primary text-primary-foreground";
               } else if (holiday) {
-                headerBg = "bg-rose-200";
+                headerBg = "bg-danger/15 text-fg";
               } else if (isSunday) {
-                headerBg = "bg-yellow-300";
+                headerBg = "bg-warning/20 text-fg";
               }
 
               return (
                 <th
                   key={dateKey}
                   title={holiday ? holiday.holiday_name : undefined}
-                  className={`border px-2 py-1 text-center ${headerBg}`}
+                  className={`border-border border px-2 py-1 text-center ${headerBg}`}
                 >
                   {format(day, "dd")}
                   {holiday && (
-                    <div className="text-[9px] leading-tight text-rose-700 font-normal whitespace-normal wrap-break-word mt-0.5">
+                    <div className="text-[9px] leading-tight text-danger font-normal whitespace-normal wrap-break-word mt-0.5">
                       ★ {holiday.holiday_name}
                     </div>
                   )}
@@ -72,8 +72,8 @@ const AttendanceTable = ({
           {employees.map((emp) => (
             <tr key={emp.id}>
               <td
-                className={`sticky left-0 z-20 border px-4 py-2 font-medium capitalize ${
-                  departmentColors[emp.role] || "bg-white"
+                className={`sticky left-0 z-20 border-border border px-4 py-2 font-medium capitalize ${
+                  departmentColors[emp.role] || "bg-surface"
                 }`}
               >
                 {emp.name}
@@ -145,21 +145,43 @@ const AttendanceTable = ({
                     ? attendance?.remarks || ""
                     : "";
 
-                let bg = "bg-white";
+                let bg = "bg-surface";
+                // Status pill backgrounds (statusColors) are fixed light
+                // pastels designed to read as a self-contained "sticker" --
+                // they need a fixed dark text color paired with them so
+                // they stay legible even when the surrounding page text
+                // flips to light in dark mode (see statusTextClass below).
+                let hasStatusPastel = false;
 
                 if (status) {
                   bg = statusColors[status];
+                  hasStatusPastel = true;
                 }
 
-                if (status === "Present" && isUndertime) {
+                // "On Leave"/"Absent" must win over the trip-based-employee
+                // treatment below -- a driver or helper who is on leave is
+                // not "no trips today", so their status still needs to show,
+                // not get silently replaced by a blank trip-count tile.
+                const isLeaveOrAbsent = ["On Leave", "Absent"].includes(status);
+
+                if (isLeaveOrAbsent) {
+                  bg = statusColors[status];
+                  hasStatusPastel = true;
+                } else if (status === "Present" && isUndertime) {
                   bg = statusColors["Halfday"];
+                  hasStatusPastel = true;
                 } else if (holiday) {
-                  bg = "bg-rose-50";
+                  bg = "bg-danger/10";
+                  hasStatusPastel = false;
                 } else if (isSunday) {
-                  bg = "bg-yellow-100";
+                  bg = "bg-warning/15";
+                  hasStatusPastel = false;
                 } else if (isTripBasedEmployee) {
-                  bg = "bg-gray-100";
+                  bg = "bg-surface-hover";
+                  hasStatusPastel = false;
                 }
+
+                const statusTextClass = hasStatusPastel ? "text-gray-800" : "";
 
                 return (
                   <td
@@ -167,11 +189,13 @@ const AttendanceTable = ({
                     title={
                       holiday
                         ? holiday.holiday_name
-                        : isTripBasedEmployee
-                          ? tripTooltip
-                          : tooltipText
+                        : isLeaveOrAbsent
+                          ? tooltipText
+                          : isTripBasedEmployee
+                            ? tripTooltip
+                            : tooltipText
                     }
-                    className={`border text-center font-bold min-w-17.5 ${bg} ${
+                    className={`border-border border text-center font-bold min-w-17.5 ${bg} ${statusTextClass} ${
                       editable
                         ? "cursor-pointer hover:brightness-95"
                         : "opacity-80"
@@ -183,16 +207,16 @@ const AttendanceTable = ({
                   >
                     {status ? (
                       <>
-                        {isTripBasedEmployee ? (
-                          <div className="flex items-center justify-center">
-                            <span className="text-base font-extrabold">
-                              {completedTrips > 0 ? completedTrips : ""}
-                            </span>
-                          </div>
-                        ) : ["On Leave", "Absent"].includes(status) ? (
+                        {isLeaveOrAbsent ? (
                           <div className="flex items-center justify-center px-1 py-1">
                             <span className="text-[10px] leading-tight font-semibold whitespace-normal wrap-break-word">
                               {attendance?.remarks || getStatusSymbol(status)}
+                            </span>
+                          </div>
+                        ) : isTripBasedEmployee ? (
+                          <div className="flex items-center justify-center">
+                            <span className="text-base font-extrabold">
+                              {completedTrips > 0 ? completedTrips : ""}
                             </span>
                           </div>
                         ) : [
@@ -269,7 +293,7 @@ const AttendanceTable = ({
                       <div className="flex items-center justify-center h-full">
                         <button
                           type="button"
-                          className="text-gray-400 hover:text-blue-600 text-lg"
+                          className="text-fg-subtle hover:text-blue-600 text-lg"
                           onClick={(e) => {
                             e.stopPropagation();
 

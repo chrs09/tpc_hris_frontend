@@ -31,7 +31,7 @@ const ActiveTripCard = ({ activeTrip }) => {
 
   if (!activeTrip) {
     return (
-      <div className="bg-[#2b2b2b] border p-6 rounded-2xl text-gray-300">
+      <div className="bg-surface border border-border p-6 rounded-2xl text-fg-muted">
         You currently have no active trip.
       </div>
     );
@@ -40,20 +40,20 @@ const ActiveTripCard = ({ activeTrip }) => {
   const duration = calculateDuration(activeTrip.start_time);
 
   return (
-    <div className="bg-[#2b2b2b] text-white p-6 rounded-2xl shadow-lg">
+    <div className="bg-surface border border-border text-fg p-6 rounded-2xl shadow-sm">
       <div className="flex flex-col md:flex-row md:justify-between gap-4">
         <div>
-          <p className="text-sm opacity-80">Ticket</p>
+          <p className="text-sm text-fg-muted">Ticket</p>
           <p className="text-xl font-bold">{activeTrip.ticket_no}</p>
         </div>
 
         <div>
-          <p className="text-sm opacity-80">Started</p>
+          <p className="text-sm text-fg-muted">Started</p>
           <p>{new Date(activeTrip.start_time).toLocaleString()}</p>
         </div>
 
         <div>
-          <p className="text-sm opacity-80">Live Duration</p>
+          <p className="text-sm text-fg-muted">Live Duration</p>
           <p className="font-semibold">{duration}</p>
         </div>
       </div>

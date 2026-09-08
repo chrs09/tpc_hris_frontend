@@ -2,6 +2,7 @@ import { Card, CardContent } from "../components/ui/card/Card";
 import { Button } from "../components/ui/button/Button";
 import { Input } from "../components/ui/input/Input";
 import { Label } from "../components/ui/label/Label";
+import ThemeToggle from "../components/ui/ThemeToggle";
 import TytanLogo from "../assets/logo/tytan-logo.jpg";
 import { userLogin } from "../api/login-api";
 import { useState } from "react";
@@ -61,21 +62,28 @@ export default function Login({ setIsAuthenticated }) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#2b2b2b] p-4">
-      <Card className="w-full max-w-md shadow-xl rounded-2xl">
-        <div className="flex justify-center m-6 space-x-3 items-center">
+    <div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+      <ThemeToggle className="absolute right-4 top-4" />
+
+      <Card className="w-full max-w-md rounded-2xl shadow-xl">
+        <div className="flex flex-col items-center gap-3 pt-6 text-center">
           {TytanLogo ? (
             <img
               src={TytanLogo}
               alt="Tytan Logo"
-              className="w-16 h-16 object-contain"
+              className="h-16 w-16 rounded-xl object-contain"
             />
           ) : (
             "T"
           )}
-          <p className="font-mono font-extrabold uppercase text-[18px] md:text-[20px] text-center">
-            Tytan Prime Corporation
-          </p>
+          <div>
+            <p className="text-lg font-bold uppercase tracking-wide text-fg">
+              Tytan Prime Corporation
+            </p>
+            <p className="mt-1 text-sm text-fg-muted">
+              Sign in to your HRIS account
+            </p>
+          </div>
         </div>
 
         <CardContent>
@@ -109,7 +117,7 @@ export default function Login({ setIsAuthenticated }) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fg-subtle hover:text-fg"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -125,27 +133,22 @@ export default function Login({ setIsAuthenticated }) {
               </button>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full rounded-xl"
-              size="lg"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? "Logging in..." : "Login"}
             </Button>
 
             {errorMessage && (
-              <p className="text-sm text-red-500 text-center">{errorMessage}</p>
+              <p className="text-center text-sm text-danger">{errorMessage}</p>
             )}
           </form>
 
-          {/* add attendance kiosk link button */}
           <div className="mt-4">
-            <p className="mb-2 text-center text-sm text-gray-600">Or</p>
+            <p className="mb-2 text-center text-sm text-fg-muted">Or</p>
 
             <Button
               type="button"
-              className="w-full rounded-xl bg-[#2b2b2b2b] text-gray-700 hover:bg-gray-300"
+              variant="outline"
+              className="w-full"
               size="lg"
               onClick={() => navigate("/attendance-kiosk")}
             >
@@ -153,9 +156,9 @@ export default function Login({ setIsAuthenticated }) {
             </Button>
           </div>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-fg-muted">
             Create account for user{" "}
-            <span className="text-primary hover:underline cursor-pointer font-bold underline">
+            <span className="cursor-pointer font-bold text-primary underline hover:no-underline">
               Click Here
             </span>
           </p>

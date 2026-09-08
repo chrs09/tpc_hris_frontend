@@ -230,15 +230,15 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
 
-      <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
+      <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-surface z-50 shadow-2xl overflow-y-auto">
         {/* HEADER */}
-        <div className="p-6 border-b flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-black">Add Employee</h2>
+        <div className="p-6 border-b border-border flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-fg">Add Employee</h2>
           <button onClick={handleClose}>✕</button>
         </div>
 
         {/* TABS */}
-        <div className="border-b px-6">
+        <div className="border-b border-border px-6">
           <div className="flex space-x-6 overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -246,8 +246,8 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
                 onClick={() => setActiveTab(tab.key)}
                 className={`py-4 text-sm whitespace-nowrap ${
                   activeTab === tab.key
-                    ? "text-[#2b2b2b] font-semibold border-b-2 border-[#2b2b2b]"
-                    : "text-gray-500 hover:text-[#2b2b2b]"
+                    ? "text-fg font-semibold border-b-2 border-fg"
+                    : "text-fg-subtle hover:text-fg"
                 }`}
               >
                 {tab.label}
@@ -283,13 +283,13 @@ export default function AddEmployeeDrawer({ isOpen, onClose, onSuccess }) {
           scheduleTemplates={[]}
         />
 
-        <div className="p-6 border-t flex justify-end gap-3">
-          <button onClick={handleClose} className="px-4 py-2 border rounded">
+        <div className="p-6 border-t border-border flex justify-end gap-3">
+          <button onClick={handleClose} className="px-4 py-2 border border-border rounded">
             Cancel
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2 bg-[#2b2b2b] text-white rounded"
+            className="px-6 py-2 bg-primary text-primary-foreground hover:bg-primary-hover rounded"
           >
             Save Employee
           </button>

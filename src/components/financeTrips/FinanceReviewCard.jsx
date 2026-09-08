@@ -35,8 +35,8 @@ L.Icon.Default.mergeOptions({
 });
 
 const STATUS_STYLES = {
-  finance_review: "bg-yellow-400 text-black",
-  approved: "bg-green-500 text-white",
+  finance_review: "bg-warning/15 text-warning",
+  approved: "bg-success/15 text-success",
 };
 
 const STATUS_LABELS = {
@@ -48,7 +48,7 @@ function StatusBadge({ status }) {
   return (
     <span
       className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
-        STATUS_STYLES[status] || "bg-gray-300 text-black"
+        STATUS_STYLES[status] || "bg-surface-active text-fg-muted"
       }`}
     >
       {STATUS_LABELS[status] || status || "-"}
@@ -210,8 +210,8 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
   return (
     <>
       {/* DESKTOP TABLE */}
-      <div className="hidden overflow-hidden rounded-xl bg-[#2b2b2b] md:block">
-        <table className="w-full text-sm text-white">
+      <div className="hidden overflow-hidden rounded-xl bg-surface md:block">
+        <table className="w-full text-sm text-fg">
           <thead>
             <tr>
               <th className="px-6 py-3 text-left">Shipment Number</th>
@@ -230,7 +230,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
               <tr>
                 <td
                   colSpan={6}
-                  className="bg-[#3a3a3a] px-6 py-10 text-center text-gray-300"
+                  className="bg-surface-hover px-6 py-10 text-center text-fg-muted"
                 >
                   No trips in this list yet.
                 </td>
@@ -240,7 +240,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
             {paginatedTrips.map((trip) => (
               <tr
                 key={trip.id}
-                className="align-top bg-[#b3b3b3] text-black hover:bg-[#a09f9f]"
+                className="align-top border-t border-border hover:bg-surface-hover"
               >
                 <td className="px-6 py-4 font-semibold uppercase">
                   {trip.shipment_number || "-"}
@@ -252,11 +252,11 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     {trip.driver_last_name || ""}
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-700">
+                  <p className="mt-1 text-xs text-fg-muted">
                     {trip.start_time || "-"} → {trip.end_time || "-"}
                   </p>
 
-                  <p className="text-xs text-gray-700">
+                  <p className="text-xs text-fg-muted">
                     {trip.stops_count ?? 0} stops · {trip.ticket_no || "-"}
                   </p>
                 </td>
@@ -266,7 +266,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     {trip.coordinator_remarks || "No coordinator remarks."}
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-600">
+                  <p className="mt-1 text-xs text-fg-muted">
                     — {trip.coordinator_name || "-"}
                   </p>
                 </td>
@@ -276,7 +276,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     {trip.office_remarks || "No Office Personnel remarks."}
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-600">
+                  <p className="mt-1 text-xs text-fg-muted">
                     Reviewed: {trip.office_reviewed_at || "-"}
                   </p>
                 </td>
@@ -289,7 +289,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                   <button
                     type="button"
                     onClick={() => handleView(trip.id)}
-                    className="cursor-pointer rounded-lg bg-[#2b2b2b] px-4 py-2 text-white hover:bg-black"
+                    className="cursor-pointer rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
                   >
                     {trip.status === "finance_review" ? "Review" : "View"}
                   </button>
@@ -303,13 +303,13 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
       {/* MOBILE CARDS */}
       <div className="flex flex-col gap-3 md:hidden">
         {paginatedTrips.length === 0 && (
-          <div className="rounded-xl bg-[#2b2b2b] p-4 text-center text-sm text-gray-300">
+          <div className="rounded-xl border border-border bg-surface p-4 text-center text-sm text-fg-muted">
             No trips in this list yet.
           </div>
         )}
 
         {paginatedTrips.map((trip) => (
-          <div key={trip.id} className="rounded-xl bg-[#2b2b2b] p-4 text-white">
+          <div key={trip.id} className="rounded-xl border border-border bg-surface p-4 text-fg">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs opacity-70">Shipment Number</p>
@@ -341,7 +341,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
             <button
               type="button"
               onClick={() => handleView(trip.id)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-yellow-400 py-2 font-medium text-black"
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 font-medium text-primary-foreground hover:bg-primary-hover"
             >
               <Eye size={16} />
               {trip.status === "finance_review" ? "Review" : "View"}
@@ -357,7 +357,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
             type="button"
             disabled={page === 1}
             onClick={() => setPage((currentPage) => currentPage - 1)}
-            className="rounded bg-gray-200 px-3 py-1 disabled:opacity-40"
+            className="rounded bg-surface-active text-fg hover:bg-surface-hover px-3 py-1 disabled:opacity-40"
           >
             Prev
           </button>
@@ -370,7 +370,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
             type="button"
             disabled={page === totalPages}
             onClick={() => setPage((currentPage) => currentPage + 1)}
-            className="rounded bg-gray-200 px-3 py-1 disabled:opacity-40"
+            className="rounded bg-surface-active text-fg hover:bg-surface-hover px-3 py-1 disabled:opacity-40"
           >
             Next
           </button>
@@ -379,9 +379,9 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
 
       {/* FINANCE REVIEW MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 text-white">
-          <div className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-[#2b2b2b] shadow-2xl">
-            <div className="flex items-center justify-between border-b p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="flex max-h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-surface text-fg shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border p-6">
               <h2 className="flex items-center gap-3 text-xl font-bold">
                 <Package size={20} />
 
@@ -398,14 +398,14 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                 type="button"
                 onClick={handleCloseModal}
                 disabled={approving}
-                className="rounded-lg bg-yellow-400 px-4 py-2 text-black disabled:opacity-50"
+                className="rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
                 Close
               </button>
             </div>
 
             {detailLoading || !selectedTrip ? (
-              <div className="p-10 text-center text-gray-300">
+              <div className="p-10 text-center text-fg-muted">
                 Loading trip details...
               </div>
             ) : (
@@ -485,7 +485,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     <User size={18} />
                     {selectedTrip.driver_first_name || "-"}{" "}
                     {selectedTrip.driver_last_name || ""}
-                    <span className="ml-2 text-sm text-gray-300">[Driver]</span>
+                    <span className="ml-2 text-sm text-fg-muted">[Driver]</span>
                   </div>
 
                   {selectedTrip.helpers?.length > 0 && (
@@ -496,7 +496,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                         {selectedTrip.helpers.map((helper) => (
                           <span
                             key={helper.id}
-                            className="rounded-full bg-gray-200 px-3 py-1 text-sm text-black"
+                            className="rounded-full bg-surface-active px-3 py-1 text-sm text-fg"
                           >
                             {helper.first_name} {helper.last_name}
                           </span>
@@ -507,14 +507,14 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
 
                   <div className="mb-6 space-y-4">
                     <div>
-                      <p className="text-sm text-gray-300">Origin</p>
+                      <p className="text-sm text-fg-muted">Origin</p>
 
                       <p>{selectedTrip.origin_store || "-"}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="flex items-center gap-2 text-sm text-gray-300">
+                        <p className="flex items-center gap-2 text-sm text-fg-muted">
                           <Clock size={14} />
                           Start
                         </p>
@@ -523,7 +523,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                       </div>
 
                       <div>
-                        <p className="flex items-center gap-2 text-sm text-gray-300">
+                        <p className="flex items-center gap-2 text-sm text-fg-muted">
                           <Clock size={14} />
                           End
                         </p>
@@ -533,7 +533,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     </div>
 
                     <div>
-                      <p className="mb-2 text-sm text-gray-400">Attachments</p>
+                      <p className="mb-2 text-sm text-fg-subtle">Attachments</p>
 
                       <div className="flex flex-wrap gap-2">
                         {selectedTrip.start_photo && (
@@ -545,7 +545,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                                 label: "Start Photo",
                               })
                             }
-                            className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20"
+                            className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
                           >
                             <Eye size={14} />
                             Start Photo
@@ -563,7 +563,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                                 label: "Stamped Invoice",
                               })
                             }
-                            className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20"
+                            className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
                           >
                             <Eye size={14} />
                             Stamped Invoice
@@ -572,7 +572,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
 
                         {!selectedTrip.start_photo &&
                           !selectedTrip.stamped_invoice_photo && (
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-fg-subtle">
                               No attachments
                             </span>
                           )}
@@ -592,7 +592,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                       selectedTrip.stops.map((stop, index) => (
                         <div
                           key={stop.id || index}
-                          className="flex items-center justify-between gap-4 rounded-xl bg-white px-4 py-3 text-black"
+                          className="flex items-center justify-between gap-4 rounded-xl bg-surface-hover px-4 py-3 text-fg"
                         >
                           <div>
                             <p className="flex items-center gap-2 text-sm font-semibold">
@@ -600,7 +600,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                               {stop.store_name}
                             </p>
 
-                            <div className="mt-1 space-y-1 text-xs text-gray-500">
+                            <div className="mt-1 space-y-1 text-xs text-fg-subtle">
                               <p className="flex items-center gap-2">
                                 <Clock size={12} />
                                 In: {stop.check_in_time || "-"}
@@ -625,19 +625,19 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                                 })
                               }
                               title="View Proof of Delivery"
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gray-100 transition hover:bg-yellow-400"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-active transition hover:bg-primary"
                             >
                               <Eye size={16} />
                             </button>
                           ) : (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-fg-subtle">
                               No POD
                             </span>
                           )}
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-gray-400">No visited stops.</p>
+                      <p className="text-sm text-fg-subtle">No visited stops.</p>
                     )}
                   </div>
 
@@ -649,13 +649,13 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     Coordinator Remarks
                   </h3>
 
-                  <div className="rounded-xl bg-white/5 p-4 text-sm">
+                  <div className="rounded-xl bg-surface-hover p-4 text-sm">
                     <p className="whitespace-pre-wrap">
                       {selectedTrip.coordinator_remarks ||
                         "No coordinator remarks."}
                     </p>
 
-                    <p className="mt-2 text-xs text-gray-400">
+                    <p className="mt-2 text-xs text-fg-subtle">
                       — {selectedTrip.coordinator_name || "-"}, submitted{" "}
                       {selectedTrip.submitted_at || "-"}
                     </p>
@@ -669,19 +669,19 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     Office Personnel Remarks
                   </h3>
 
-                  <div className="rounded-xl border border-yellow-400/30 bg-yellow-400/10 p-4 text-sm">
+                  <div className="rounded-xl border border-warning/30 bg-warning/10 p-4 text-sm">
                     <p className="whitespace-pre-wrap">
                       {selectedTrip.office_remarks ||
                         "No Office Personnel remarks available."}
                     </p>
 
-                    <p className="mt-2 text-xs text-gray-300">
+                    <p className="mt-2 text-xs text-fg-muted">
                       Reviewed: {selectedTrip.office_reviewed_at || "-"}
                     </p>
                   </div>
 
                   {selectedTrip.status === "approved" && (
-                    <div className="mt-4 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm">
+                    <div className="mt-4 rounded-xl border border-success/30 bg-success/10 p-4 text-sm">
                       Approved {selectedTrip.approved_at || "-"} — reflected on
                       attendance and payroll.
                     </div>
@@ -692,7 +692,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                       type="button"
                       onClick={handleApprove}
                       disabled={approving}
-                      className="mt-6 w-full rounded-xl bg-yellow-400 py-3 font-bold text-black disabled:opacity-60"
+                      className="mt-6 w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
                     >
                       {approving ? "Approving..." : "Approve Trip"}
                     </button>
@@ -711,18 +711,18 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
           onClick={() => setActivePhoto(null)}
         >
           <div
-            className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-white p-4"
+            className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-surface p-4"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-sm font-semibold text-black">
+              <p className="text-sm font-semibold text-fg">
                 {activePhoto.label}
               </p>
 
               <button
                 type="button"
                 onClick={() => setActivePhoto(null)}
-                className="text-xl text-gray-500 hover:text-black"
+                className="text-xl text-fg-subtle hover:text-fg"
                 aria-label="Close image"
               >
                 ×
@@ -738,7 +738,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
             <button
               type="button"
               onClick={() => setActivePhoto(null)}
-              className="mt-4 w-full rounded-lg bg-yellow-400 py-2 font-semibold text-black"
+              className="mt-4 w-full rounded-lg bg-primary py-2 font-semibold text-primary-foreground hover:bg-primary-hover"
             >
               Close
             </button>

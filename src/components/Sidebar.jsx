@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getReminders, createReminder, resolveReminder } from "../api/reminder";
+import ThemeToggle from "./ui/ThemeToggle";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
@@ -59,6 +60,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               "admin",
               "driver",
               "helper",
+              "employee",
               "payroll_admin",
               "coordinator_admin",
               "office_admin",
@@ -73,6 +75,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Attendance",
             path: "/dashboard/attendance",
+            roles: ["superadmin", "admin"],
+          },
+          {
+            label: "Leave Requests",
+            path: "/dashboard/leave",
             roles: ["superadmin", "admin"],
           },
           {
@@ -240,11 +247,17 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   return (
     <>
       {/* MOBILE TOP BAR */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-[#2b2b2b] text-white flex items-center justify-between p-4 z-50">
+      <div className="md:hidden fixed top-0 left-0 right-0 bg-surface text-fg border-b border-border flex items-center justify-between p-4 z-50">
         <h1 className="font-bold">Tytan HRIS</h1>
-        <button onClick={() => setIsMobileOpen(true)}>
-          <Menu size={24} />
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => setIsMobileOpen(true)}
+            className="text-fg-muted hover:text-fg"
+          >
+            <Menu size={24} />
+          </button>
+        </div>
       </div>
 
       {/* OVERLAY */}
@@ -258,23 +271,31 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       {/* SIDEBAR */}
       <aside
         className={`
-          fixed top-0 left-0 h-screen bg-[#2b2b2b] text-white
+          fixed top-0 left-0 h-screen bg-surface text-fg border-r border-border
           flex flex-col p-6 shadow-lg transition-all duration-300
           ${isCollapsed ? "w-20" : "w-64"}
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0 z-50
         `}
       >
-        {/* COLLAPSE BUTTON */}
-        <div className="hidden md:flex justify-end mb-4">
-          <button onClick={() => setIsCollapsed(!isCollapsed)}>
+        {/* COLLAPSE + THEME TOGGLE */}
+        <div
+          className={`hidden md:flex items-center mb-4 ${
+            isCollapsed ? "justify-center" : "justify-between"
+          }`}
+        >
+          {!isCollapsed && <ThemeToggle />}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-fg-muted hover:text-fg"
+          >
             {isCollapsed ? <Menu size={28} /> : <ArrowBigLeftDash size={20} />}
           </button>
         </div>
 
         {/* GREETING */}
         {!isCollapsed && (
-          <div className="text-xl font-extrabold mb-8 capitalize">
+          <div className="text-xl font-extrabold mb-8 capitalize text-fg">
             Hello! {username} ({role})
           </div>
         )}
@@ -297,11 +318,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 {/* PARENT */}
                 <button
                   onClick={() => toggleGroup(group.label)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors
                     ${
                       isGroupActive
-                        ? "bg-[#3a3a3a] text-white"
-                        : "hover:bg-[#3a3a3a]"
+                        ? "bg-primary/10 text-primary"
+                        : "text-fg hover:bg-surface-hover"
                     }`}
                 >
                   <div className="flex items-center gap-2">
@@ -327,11 +348,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                         key={item.path}
                         to={item.path}
                         onClick={() => setIsMobileOpen(false)}
-                        className={`px-3 py-2 rounded-lg text-sm transition
+                        className={`px-3 py-2 rounded-lg text-sm transition-colors
                           ${
                             isRouteActive(item.path)
-                              ? "bg-[#b3b3b3] text-black"
-                              : "hover:bg-[#b3b3b3] hover:text-black"
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-fg-muted hover:bg-surface-hover hover:text-fg"
                           }`}
                       >
                         {item.label}
@@ -348,12 +369,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {isSuperAdmin && !isCollapsed && (
           <div className="mb-6">
             <div className="flex justify-between mb-2">
-              <span className="text-sm font-semibold">
+              <span className="text-sm font-semibold text-fg">
                 Reminders ({reminders.length})
               </span>
               <button
                 onClick={() => setShowModal(true)}
-                className="text-xs bg-yellow-400 text-black px-2 py-1 rounded"
+                className="text-xs font-medium bg-primary text-primary-foreground px-2 py-1 rounded-md hover:bg-primary-hover"
               >
                 + Add
               </button>
@@ -363,15 +384,15 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               {reminders.map((r) => (
                 <div
                   key={r.id}
-                  className="bg-[#3a3a3a] p-2 rounded text-xs flex justify-between"
+                  className="bg-surface-hover p-2 rounded-md text-xs flex justify-between gap-2"
                 >
-                  <span>{r.message}</span>
-                  <span className="text-[10px] text-gray-300 capitalize font-bold">
+                  <span className="text-fg">{r.message}</span>
+                  <span className="text-[10px] text-fg-muted capitalize font-bold whitespace-nowrap">
                     by {r.created_by_username || "Unknown"}
                   </span>
                   <button
                     onClick={() => handleResolve(r.id)}
-                    className="text-red-400"
+                    className="text-danger hover:text-danger-hover"
                   >
                     ✕
                   </button>
@@ -384,22 +405,29 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {/* MODAL */}
         {showModal && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-[#2b2b2b] rounded-xl p-6 w-80">
-              <h2 className="text-lg font-semibold mb-4">Create Reminder</h2>
+            <div className="bg-surface border border-border rounded-xl p-6 w-80 shadow-xl">
+              <h2 className="text-lg font-semibold mb-4 text-fg">
+                Create Reminder
+              </h2>
 
               <textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                className="w-full p-2 rounded text-white mb-4"
+                className="w-full p-2 rounded-lg border border-border bg-background text-fg mb-4 focus:outline-none focus:ring-2 focus:ring-primary/30"
                 rows="3"
               />
 
               <div className="flex justify-end gap-2">
-                <button onClick={() => setShowModal(false)}>Cancel</button>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-3 py-1.5 rounded-lg text-sm text-fg-muted hover:bg-surface-hover"
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={handleCreateReminder}
                   disabled={loading}
-                  className="bg-yellow-400 text-black px-3 py-1 rounded"
+                  className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
                 >
                   {loading ? "Saving..." : "Save"}
                 </button>
@@ -411,7 +439,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {/* LOGOUT */}
         <button
           onClick={logout}
-          className="bg-red-500 px-4 py-2 rounded-lg hover:bg-red-600 mt-auto"
+          className="bg-danger text-danger-foreground px-4 py-2 rounded-lg hover:bg-danger-hover mt-auto transition-colors"
         >
           {isCollapsed ? "⎋" : "Logout"}
         </button>

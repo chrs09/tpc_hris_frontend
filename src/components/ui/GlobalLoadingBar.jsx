@@ -31,7 +31,7 @@ export default function GlobalLoadingBar() {
         isActive ? "opacity-100" : "opacity-0"
       }`}
     >
-      <div className="h-full w-1/3 animate-[global-loading-bar_1.1s_ease-in-out_infinite] bg-gradient-to-r from-blue-500 via-blue-400 to-blue-500" />
+      <div className="h-full w-1/3 animate-[global-loading-bar_1.1s_ease-in-out_infinite] bg-linear-to-r from-primary/70 via-primary to-primary/70" />
 
       <style>{`
         @keyframes global-loading-bar {

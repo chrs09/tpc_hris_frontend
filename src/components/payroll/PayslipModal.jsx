@@ -1090,7 +1090,7 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
           max-h-[94vh]
           overflow-auto
           rounded-xl
-          bg-gray-100
+          bg-background
           shadow-xl
         "
       >
@@ -1108,14 +1108,15 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
             items-center
             justify-between
             border-b
-            bg-white
+            border-border
+            bg-surface
             p-4
           "
         >
           <div>
             <h2 className="text-lg font-bold">Payslip Preview</h2>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-fg-subtle">
               {payrolls.length} payslip
               {payrolls.length === 1 ? "" : "s"}
               {" • "}
@@ -1150,13 +1151,14 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
               onClick={onClose}
               className="
                 rounded-lg
+                border-border
                 border
                 px-4
                 py-2
                 text-sm
                 font-medium
-                text-gray-700
-                hover:bg-gray-50
+                text-fg-muted
+                hover:bg-surface-hover
               "
             >
               Close

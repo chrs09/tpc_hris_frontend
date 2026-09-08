@@ -26,10 +26,10 @@ export default function EmployeeDetailsPage() {
 
   if (loading) return <div className="p-8">Loading employee...</div>;
   if (!employee) return <div className="p-8">Employee not found</div>;
-  if (error) return <div className="p-8 text-red-500">{error}</div>;
+  if (error) return <div className="p-8 text-danger">{error}</div>;
 
   return (
-    <div className="w-full min-h-screen bg-gray-50">
+    <div className="w-full min-h-screen bg-background">
       <div className="w-full px-4 sm:px-6 md:px-8 py-6">
         <EmployeeDetailsCard employee={employee} />
       </div>

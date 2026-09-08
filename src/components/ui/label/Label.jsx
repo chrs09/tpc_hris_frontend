@@ -3,7 +3,7 @@ import React from "react";
 export function Label({ children, className = "", ...props }) {
   return (
     <label
-      className={`block text-md mt-4 font-medium font-mono text-gray-700 ${className}`}
+      className={`mt-4 block text-sm font-medium text-fg-muted ${className}`}
       {...props}
     >
       {children}

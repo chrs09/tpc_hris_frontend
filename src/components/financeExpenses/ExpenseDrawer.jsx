@@ -89,7 +89,7 @@ function Field({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-slate-500">
+      <span className="text-xs font-medium text-fg-subtle">
         {label}
       </span>
 
@@ -99,7 +99,7 @@ function Field({
         disabled={disabled}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
       />
     </label>
   );
@@ -114,7 +114,7 @@ function SelectField({
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-slate-500">
+      <span className="text-xs font-medium text-fg-subtle">
         {label}
       </span>
 
@@ -122,7 +122,7 @@ function SelectField({
         value={value ?? ""}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
       >
         {options.map((option) => (
           <option key={option} value={option}>
@@ -136,8 +136,8 @@ function SelectField({
 
 function Section({ title, children }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-      <h3 className="mb-4 text-sm font-semibold text-slate-800">
+    <section className="rounded-xl border border-border bg-surface-hover p-4">
+      <h3 className="mb-4 text-sm font-semibold text-fg-muted">
         {title}
       </h3>
 
@@ -520,26 +520,26 @@ export default function ExpenseDrawer({
         type="button"
         aria-label="Close expense drawer"
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/30"
+        className="absolute inset-0 bg-black/30"
       />
 
       {/* Drawer */}
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col bg-surface shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-200 px-6 py-5">
+        <div className="flex items-start justify-between border-b border-border px-6 py-5">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
               Finance / Expenses
             </p>
 
-            <h2 className="mt-1 text-xl font-semibold text-slate-900">
+            <h2 className="mt-1 text-xl font-semibold text-fg">
               {mode === "create"
                 ? "Add Expense"
                 : form.receiptNumber ||
                   `Expense #${form.id}`}
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-subtle">
               {mode === "create"
                 ? "Create a new expense record."
                 : isView
@@ -552,7 +552,7 @@ export default function ExpenseDrawer({
             type="button"
             onClick={onClose}
             disabled={saving || ocrLoading}
-            className="rounded-lg px-3 py-2 text-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg px-3 py-2 text-xl text-fg-subtle hover:bg-surface-hover hover:text-fg-muted disabled:cursor-not-allowed disabled:opacity-50"
           >
             ×
           </button>
@@ -615,7 +615,7 @@ export default function ExpenseDrawer({
             {/* Receipt Image */}
             <div className="md:col-span-2">
               <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-slate-500">
+                <span className="text-xs font-medium text-fg-subtle">
                   Receipt / Expense Image
                 </span>
 
@@ -625,24 +625,24 @@ export default function ExpenseDrawer({
                     accept="image/*"
                     disabled={saving || ocrLoading}
                     onChange={handleImageChange}
-                    className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg-muted file:mr-3 file:rounded-md file:border-0 file:bg-surface-active file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-fg-muted hover:file:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 )}
 
                 {ocrLoading && (
-                  <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                  <div className="mt-2 rounded-lg border border-border bg-surface-hover px-3 py-2 text-sm text-fg-muted">
                     Extracting text from receipt...
                   </div>
                 )}
 
                 {ocrError && (
-                  <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                  <div className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
                     {ocrError}
                   </div>
                 )}
 
                 {previewUrl ? (
-                  <div className="relative mt-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  <div className="relative mt-2 overflow-hidden rounded-xl border border-border bg-surface-hover">
                     <button
                       type="button"
                       onClick={() => setImageModalOpen(true)}
@@ -663,20 +663,20 @@ export default function ExpenseDrawer({
                         type="button"
                         onClick={removeImage}
                         disabled={saving}
-                        className="absolute right-2 top-2 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow hover:bg-red-50 disabled:opacity-50"
+                        className="absolute right-2 top-2 rounded-lg bg-surface px-3 py-1.5 text-xs font-medium text-danger shadow hover:bg-danger/10 disabled:opacity-50"
                       >
                         Remove
                       </button>
                     )}
 
                     {isView && (
-                      <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-lg bg-slate-900/75 px-3 py-1.5 text-xs font-medium text-white">
+                      <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded-lg bg-black/75 px-3 py-1.5 text-xs font-medium text-white">
                         Click image to enlarge
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="mt-1 flex h-28 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400">
+                  <div className="mt-1 flex h-28 items-center justify-center rounded-xl border border-dashed border-border bg-surface-hover text-sm text-fg-subtle">
                     No receipt image uploaded.
                   </div>
                 )}
@@ -684,14 +684,14 @@ export default function ExpenseDrawer({
                 {/* Enhanced (contrast-adjusted) preview used for OCR */}
                 {ocrEnhancedImage && (
                   <div className="mt-3">
-                    <p className="mb-1.5 text-xs font-medium text-slate-500">
+                    <p className="mb-1.5 text-xs font-medium text-fg-subtle">
                       Enhanced version (for reading clarity)
                     </p>
 
                     <button
                       type="button"
                       onClick={() => setEnhancedModalOpen(true)}
-                      className="block w-full cursor-zoom-in overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                      className="block w-full cursor-zoom-in overflow-hidden rounded-xl border border-border bg-surface-hover"
                       aria-label="View enhanced receipt image"
                     >
                       <img
@@ -701,7 +701,7 @@ export default function ExpenseDrawer({
                       />
                     </button>
 
-                    <p className="mt-1 text-[11px] text-slate-400">
+                    <p className="mt-1 text-[11px] text-fg-subtle">
                       This contrast-adjusted copy is only used to help read faint
                       text. The original uploaded image is what gets saved.
                     </p>
@@ -713,7 +713,7 @@ export default function ExpenseDrawer({
                   <div className="mt-3">
                     {ocrSupplierCandidates.length > 0 && (
                       <div className="mb-3">
-                        <p className="mb-1.5 text-xs font-medium text-slate-500">
+                        <p className="mb-1.5 text-xs font-medium text-fg-subtle">
                           Possible supplier names
                         </p>
 
@@ -724,7 +724,7 @@ export default function ExpenseDrawer({
                               type="button"
                               disabled={isView}
                               onClick={() => update("supplier", candidate)}
-                              className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-default disabled:opacity-80"
+                              className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-fg-muted transition hover:border-primary hover:bg-surface-hover disabled:cursor-default disabled:opacity-80"
                             >
                               {candidate}
                             </button>
@@ -733,15 +733,15 @@ export default function ExpenseDrawer({
                       </div>
                     )}
 
-                    <p className="mb-1.5 text-xs font-medium text-slate-500">
+                    <p className="mb-1.5 text-xs font-medium text-fg-subtle">
                       Extracted receipt lines
                     </p>
 
-                    <ol className="max-h-60 space-y-1 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+                    <ol className="max-h-60 space-y-1 overflow-auto rounded-lg border border-border bg-surface-hover p-3 text-xs text-fg-muted">
                       {(ocrLines.length > 0 ? ocrLines : ocrText.split("\n")).map(
                         (line, index) => (
                           <li key={`${index}-${line}`} className="flex gap-2">
-                            <span className="select-none text-slate-400">
+                            <span className="select-none text-fg-subtle">
                               {index + 1}.
                             </span>
                             <span className="whitespace-pre-wrap">{line}</span>
@@ -761,11 +761,11 @@ export default function ExpenseDrawer({
             <div className="md:col-span-2">
               <div className="mb-3 flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-800">
+                  <h4 className="text-sm font-semibold text-fg-muted">
                     Particulars
                   </h4>
 
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-xs text-fg-subtle">
                     Add the items included in this invoice.
                   </p>
                 </div>
@@ -775,39 +775,39 @@ export default function ExpenseDrawer({
                     type="button"
                     onClick={addItem}
                     disabled={saving}
-                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium text-fg-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     + Add Particular
                   </button>
                 )}
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto rounded-xl border border-border bg-surface">
                 <table className="w-full min-w-190 text-sm">
-                  <thead className="bg-slate-50">
-                    <tr className="border-b border-slate-200">
-                      <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                  <thead className="bg-surface-hover">
+                    <tr className="border-b border-border">
+                      <th className="px-3 py-3 text-left text-xs font-semibold text-fg-subtle">
                         Particulars
                       </th>
 
-                      <th className="w-24 px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                      <th className="w-24 px-3 py-3 text-left text-xs font-semibold text-fg-subtle">
                         Qty
                       </th>
 
-                      <th className="w-32 px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                      <th className="w-32 px-3 py-3 text-left text-xs font-semibold text-fg-subtle">
                         Unit
                       </th>
 
-                      <th className="w-36 px-3 py-3 text-left text-xs font-semibold text-slate-500">
+                      <th className="w-36 px-3 py-3 text-left text-xs font-semibold text-fg-subtle">
                         Unit Price
                       </th>
 
-                      <th className="w-36 px-3 py-3 text-right text-xs font-semibold text-slate-500">
+                      <th className="w-36 px-3 py-3 text-right text-xs font-semibold text-fg-subtle">
                         Amount
                       </th>
 
                       {!isView && (
-                        <th className="w-16 px-3 py-3 text-center text-xs font-semibold text-slate-500">
+                        <th className="w-16 px-3 py-3 text-center text-xs font-semibold text-fg-subtle">
                           Action
                         </th>
                       )}
@@ -818,12 +818,12 @@ export default function ExpenseDrawer({
                     {(form.items || []).map((item, index) => (
                       <tr
                         key={item.id ?? `new-${index}`}
-                        className="border-b border-slate-100 last:border-b-0"
+                        className="border-b border-border last:border-b-0"
                       >
                         {/* Particulars */}
                         <td className="px-3 py-3">
                           {isView ? (
-                            <span className="text-sm text-slate-800">
+                            <span className="text-sm text-fg-muted">
                               {item.particulars || "—"}
                             </span>
                           ) : (
@@ -839,7 +839,7 @@ export default function ExpenseDrawer({
                                   e.target.value,
                                 )
                               }
-                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                              className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
                             />
                           )}
                         </td>
@@ -847,7 +847,7 @@ export default function ExpenseDrawer({
                         {/* Quantity */}
                         <td className="px-3 py-3">
                           {isView ? (
-                            <span className="text-sm text-slate-800">
+                            <span className="text-sm text-fg-muted">
                               {item.qty ?? "—"}
                             </span>
                           ) : (
@@ -864,7 +864,7 @@ export default function ExpenseDrawer({
                                   e.target.value,
                                 )
                               }
-                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                              className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
                             />
                           )}
                         </td>
@@ -872,7 +872,7 @@ export default function ExpenseDrawer({
                         {/* Unit */}
                         <td className="px-3 py-3">
                           {isView ? (
-                            <span className="text-sm text-slate-800">
+                            <span className="text-sm text-fg-muted">
                               {item.unit || "—"}
                             </span>
                           ) : (
@@ -886,7 +886,7 @@ export default function ExpenseDrawer({
                                   e.target.value,
                                 )
                               }
-                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                              className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
                             >
                               {units.map((unit) => (
                                 <option key={unit} value={unit}>
@@ -900,7 +900,7 @@ export default function ExpenseDrawer({
                         {/* Unit Price */}
                         <td className="px-3 py-3">
                           {isView ? (
-                            <span className="text-sm text-slate-800">
+                            <span className="text-sm text-fg-muted">
                               {Number(
                                 item.unitPrice || 0,
                               ).toLocaleString(undefined, {
@@ -923,14 +923,14 @@ export default function ExpenseDrawer({
                                   e.target.value,
                                 )
                               }
-                              className="h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:bg-slate-50"
+                              className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
                             />
                           )}
                         </td>
 
                         {/* Amount */}
                         <td className="px-3 py-3 text-right">
-                          <span className="font-medium text-slate-800">
+                          <span className="font-medium text-fg-muted">
                             {Number(
                               item.amount || 0,
                             ).toLocaleString(undefined, {
@@ -951,7 +951,7 @@ export default function ExpenseDrawer({
                                 (form.items || []).length <= 1
                               }
                               title="Remove item"
-                              className="rounded-lg px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-lg px-2 py-1.5 text-sm text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               ×
                             </button>
@@ -965,11 +965,11 @@ export default function ExpenseDrawer({
 
               <div className="mt-3 flex items-center justify-end">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-slate-500">
+                  <span className="text-sm font-medium text-fg-subtle">
                     Total
                   </span>
 
-                  <span className="text-lg font-semibold text-slate-900">
+                  <span className="text-lg font-semibold text-fg">
                     ₱
                     {calculatedItemsTotal.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
@@ -1182,12 +1182,12 @@ export default function ExpenseDrawer({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
+        <div className="flex justify-end gap-3 border-t border-border bg-surface px-6 py-4">
           <button
             type="button"
             onClick={onClose}
             disabled={saving || ocrLoading}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isView ? "Close" : "Cancel"}
           </button>
@@ -1197,7 +1197,7 @@ export default function ExpenseDrawer({
               type="button"
               onClick={save}
               disabled={saving || ocrLoading}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving
                 ? "Saving..."
@@ -1210,7 +1210,7 @@ export default function ExpenseDrawer({
       </aside>
       {/* Receipt Image Modal */}
       {imageModalOpen && previewUrl && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/80 p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4">
           {/* Modal backdrop */}
           <button
             type="button"
@@ -1220,7 +1220,7 @@ export default function ExpenseDrawer({
           />
 
           {/* Image container */}
-          <div className="relative z-10 flex max-h-[90vh] max-w-[95vw] items-center justify-center rounded-xl bg-white p-3 shadow-2xl">
+          <div className="relative z-10 flex max-h-[90vh] max-w-[95vw] items-center justify-center rounded-xl bg-surface p-3 shadow-2xl">
             <img
               src={previewUrl}
               alt="Expense receipt enlarged"
@@ -1230,7 +1230,7 @@ export default function ExpenseDrawer({
             <button
               type="button"
               onClick={() => setImageModalOpen(false)}
-              className="absolute right-3 top-3 rounded-full bg-slate-900/80 px-3 py-1.5 text-lg leading-none text-white shadow hover:bg-slate-900"
+              className="absolute right-3 top-3 rounded-full bg-black/80 px-3 py-1.5 text-lg leading-none text-white shadow hover:bg-black"
               aria-label="Close receipt image"
             >
               ×
@@ -1240,7 +1240,7 @@ export default function ExpenseDrawer({
       )}
       {/* Enhanced Preview Modal */}
       {enhancedModalOpen && ocrEnhancedImage && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/80 p-4">
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 p-4">
           {/* Modal backdrop */}
           <button
             type="button"
@@ -1250,21 +1250,21 @@ export default function ExpenseDrawer({
           />
 
           {/* Image container */}
-          <div className="relative z-10 flex max-h-[90vh] max-w-[95vw] flex-col items-center gap-2 rounded-xl bg-white p-3 shadow-2xl">
+          <div className="relative z-10 flex max-h-[90vh] max-w-[95vw] flex-col items-center gap-2 rounded-xl bg-surface p-3 shadow-2xl">
             <img
               src={ocrEnhancedImage}
               alt="Contrast-enhanced receipt enlarged"
               className="max-h-[80vh] max-w-[90vw] rounded-lg object-contain"
             />
 
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-fg-subtle">
               For reading clarity only — the original image is what gets saved.
             </p>
 
             <button
               type="button"
               onClick={() => setEnhancedModalOpen(false)}
-              className="absolute right-3 top-3 rounded-full bg-slate-900/80 px-3 py-1.5 text-lg leading-none text-white shadow hover:bg-slate-900"
+              className="absolute right-3 top-3 rounded-full bg-black/80 px-3 py-1.5 text-lg leading-none text-white shadow hover:bg-black"
               aria-label="Close enhanced receipt image"
             >
               ×

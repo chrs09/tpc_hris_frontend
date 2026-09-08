@@ -1087,18 +1087,18 @@ const PayrollList = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Payroll</h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-fg-subtle">
             Showing {payrollRows.length} employees
           </p>
 
-          <p className="text-gray-500">Payroll Preview</p>
+          <p className="text-fg-subtle">Payroll Preview</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(Number(e.target.value))}
-            className="border rounded-lg px-3 h-10 bg-white"
+            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg"
           >
             {periods.map((period, index) => (
               <option key={index} value={index}>
@@ -1109,7 +1109,7 @@ const PayrollList = () => {
           <select
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            className="border rounded-lg px-3 h-10 bg-white"
+            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg"
           >
             {departments.map((dept) => (
               <option key={dept} value={dept}>
@@ -1122,7 +1122,7 @@ const PayrollList = () => {
             placeholder="Search employee..."
             value={searchEmployee}
             onChange={(e) => setSearchEmployee(e.target.value)}
-            className="border rounded-lg px-3 h-10 bg-white w-full sm:w-auto"
+            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg w-full sm:w-auto"
           />
 
           <button
@@ -1152,16 +1152,16 @@ const PayrollList = () => {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 sm:p-4">
+      <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 sm:p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div>
-            <p className="text-xs text-gray-500">Department</p>
+            <p className="text-xs text-fg-subtle">Department</p>
 
             <p className="font-semibold text-sm sm:text-base">{department}</p>
           </div>
 
           <div>
-            <p className="text-xs text-gray-500">Payroll Type</p>
+            <p className="text-xs text-fg-subtle">Payroll Type</p>
 
             <p className="font-semibold text-sm sm:text-base">
               {activePeriod.payrollType}
@@ -1169,7 +1169,7 @@ const PayrollList = () => {
           </div>
 
           <div>
-            <p className="text-xs text-gray-500">Cutoff Period</p>
+            <p className="text-xs text-fg-subtle">Cutoff Period</p>
 
             <p className="font-semibold text-sm sm:text-base">
               {activePeriod.cutoffStart} → {activePeriod.cutoffEnd}
@@ -1177,7 +1177,7 @@ const PayrollList = () => {
           </div>
 
           <div>
-            <p className="text-xs text-gray-500">Payout Date</p>
+            <p className="text-xs text-fg-subtle">Payout Date</p>
 
             <p className="font-semibold text-sm sm:text-base text-green-700">
               {activePeriod.payoutDate}
@@ -1188,16 +1188,16 @@ const PayrollList = () => {
 
       {/* SUMMARY */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="bg-white border rounded-xl p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Employees</p>
+        <div className="bg-surface border border-border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-fg-subtle">Employees</p>
 
           <h2 className="text-lg sm:text-2xl font-bold">
             {summary.employees}
           </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">
+        <div className="bg-surface border border-border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-fg-subtle">
             Total Regular Hours
           </p>
 
@@ -1206,16 +1206,16 @@ const PayrollList = () => {
           </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">OT Hours</p>
+        <div className="bg-surface border border-border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-fg-subtle">OT Hours</p>
 
           <h2 className="text-lg sm:text-2xl font-bold">
             {summary.totalOT.toFixed(2)}
           </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Gross Payroll</p>
+        <div className="bg-surface border border-border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-fg-subtle">Gross Payroll</p>
 
           <h2 className="text-lg sm:text-2xl font-bold text-green-700">
             ₱
@@ -1225,8 +1225,8 @@ const PayrollList = () => {
           </h2>
         </div>
 
-        <div className="bg-white border rounded-xl p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Net Payroll</p>
+        <div className="bg-surface border border-border rounded-xl p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-fg-subtle">Net Payroll</p>
 
           <h2 className="text-lg sm:text-2xl font-bold text-blue-700">
             ₱
@@ -1238,7 +1238,7 @@ const PayrollList = () => {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white border rounded-xl overflow-hidden">
+      <div className="bg-surface border border-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-3 p-16">
             <TailSpin
@@ -1248,7 +1248,7 @@ const PayrollList = () => {
               color="#2563eb"
               ariaLabel="loading-payroll"
             />
-            <p className="text-sm text-gray-500">Loading payroll data...</p>
+            <p className="text-sm text-fg-muted">Loading payroll data...</p>
           </div>
         ) : (
           <div className="overflow-auto max-h-[70vh]">
@@ -1261,9 +1261,9 @@ const PayrollList = () => {
                 whitespace-nowrap
               "
             >
-              <thead className="sticky top-0 z-30 bg-gray-50">
+              <thead className="sticky top-0 z-30 bg-surface-hover">
                 <tr>
-                  <th className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left min-w-55">
+                  <th className="sticky left-0 z-20 bg-surface-hover px-4 py-3 text-left min-w-55">
                     Employee
                   </th>
 
@@ -1344,8 +1344,8 @@ const PayrollList = () => {
 
               <tbody>
                 {payrollRows.map((row) => (
-                  <tr key={row.employee.id} className="border-t">
-                    <td className="sticky left-0 z-10 bg-white px-4 py-3 min-w-55 border-r">
+                  <tr key={row.employee.id} className="border-t border-border">
+                    <td className="sticky left-0 z-10 bg-surface px-4 py-3 min-w-55 border-r border-border">
                       {row.employee.first_name} {row.employee.last_name}
                     </td>
 
@@ -1364,7 +1364,7 @@ const PayrollList = () => {
                     <td className="px-4 py-3">
                       ₱{row.dailyRate.toFixed(2)}
                       {row.isMonthlyRateType && (
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-fg-subtle">
                           (₱{row.monthlyBasic?.toLocaleString()}/mo ÷ 313)
                         </div>
                       )}
@@ -1481,7 +1481,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-24 border rounded px-2 py-1 text-sm"
+                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.others || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1507,7 +1507,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-24 border rounded px-2 py-1 text-sm"
+                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.sssDeduction || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1528,7 +1528,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-20 border rounded px-2 py-1 text-sm"
+                          className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.philhealthDeduction || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1549,7 +1549,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-20 border rounded px-2 py-1 text-sm"
+                          className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.pagibigDeduction || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1570,7 +1570,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-20 border rounded px-2 py-1 text-sm"
+                          className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.withholdingTax || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1591,7 +1591,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-20 border rounded px-2 py-1 text-sm"
+                          className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.sssLoan || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1612,7 +1612,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-24 border rounded px-2 py-1 text-sm"
+                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.cashAdvance || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1633,7 +1633,7 @@ const PayrollList = () => {
                       ) : (
                         <input
                           type="number"
-                          className="w-24 border rounded px-2 py-1 text-sm"
+                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.personalDeduction || ""}
                           placeholder="0"
                           onChange={(e) =>
@@ -1654,11 +1654,11 @@ const PayrollList = () => {
 
                     <td className="px-4 py-3">
                       {row.needsOTApproval ? (
-                        <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                        <span className="px-2 py-1 rounded-full text-xs bg-warning/15 text-warning">
                           Needs OT Approval
                         </span>
                       ) : (
-                        <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">
+                        <span className="px-2 py-1 rounded-full text-xs bg-success/15 text-success">
                           Ready
                         </span>
                       )}
@@ -1674,17 +1674,17 @@ const PayrollList = () => {
 
                     <td className="px-4 py-3">
                       {row.isTripBasedEmployee ? (
-                        <span className="text-gray-400 text-xs">N/A</span>
+                        <span className="text-fg-subtle text-xs">N/A</span>
                       ) : row.warnings.length > 0 ? (
                         <div className="space-y-1">
                           {row.warnings.map((warning, index) => (
-                            <div key={index} className="text-xs text-red-600">
+                            <div key={index} className="text-xs text-danger">
                               ⚠ {warning}
                             </div>
                           ))}
                         </div>
                       ) : (
-                        <span className="text-green-600 text-xs">
+                        <span className="text-success text-xs">
                           No Issues
                         </span>
                       )}

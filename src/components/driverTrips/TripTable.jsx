@@ -24,28 +24,28 @@ const TripTable = ({ trips = [], title }) => {
 
   return (
     <div className="mb-10">
-      <h2 className="text-lg font-semibold mb-4">{title}</h2>
+      <h2 className="text-lg font-semibold mb-4 text-fg">{title}</h2>
 
       {/* ================= DESKTOP TABLE ================= */}
-      <div className="hidden md:block overflow-hidden border rounded-xl">
+      <div className="hidden md:block overflow-hidden rounded-xl border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-[#2b2b2b] text-white">
+          <thead className="bg-surface-hover text-fg-muted">
             <tr>
-              <th className="p-3 text-left">Ticket</th>
-              <th className="p-3 text-left">Start</th>
-              <th className="p-3 text-left">End</th>
-              <th className="p-3 text-left">Duration</th>
-              <th className="p-3 text-left">Status</th>
+              <th className="p-3 text-left font-medium">Ticket</th>
+              <th className="p-3 text-left font-medium">Start</th>
+              <th className="p-3 text-left font-medium">End</th>
+              <th className="p-3 text-left font-medium">Duration</th>
+              <th className="p-3 text-left font-medium">Status</th>
             </tr>
           </thead>
 
           <tbody>
             {paginatedTrips.map((trip) => (
-              <tr key={trip.id} className="border-t bg-[#2b2b2b]">
-                <td className="p-3 text-white">{trip.ticket_no}</td>
-                <td className="p-3 text-white">{trip.start_time}</td>
-                <td className="p-3 text-white">{trip.end_time || "-"}</td>
-                <td className="p-3 text-white">
+              <tr key={trip.id} className="border-t border-border bg-surface">
+                <td className="p-3 text-fg">{trip.ticket_no}</td>
+                <td className="p-3 text-fg">{trip.start_time}</td>
+                <td className="p-3 text-fg">{trip.end_time || "-"}</td>
+                <td className="p-3 text-fg">
                   {calculateDuration(trip.start_time, trip.end_time)}
                 </td>
                 <td className="p-3">
@@ -53,8 +53,8 @@ const TripTable = ({ trips = [], title }) => {
                     className={`px-3 py-1 text-xs rounded-full font-semibold
                         ${
                           trip.status === "COMPLETED"
-                            ? "bg-green-800 text-white"
-                            : "bg-yellow-100 text-yellow-700"
+                            ? "bg-success/15 text-success"
+                            : "bg-warning/15 text-warning"
                         }`}
                   >
                     {trip.status}
@@ -71,21 +71,21 @@ const TripTable = ({ trips = [], title }) => {
         {paginatedTrips.map((trip) => (
           <div
             key={trip.id}
-            className="bg-[#2b2b2b] text-white rounded-xl p-4 shadow"
+            className="bg-surface border border-border text-fg rounded-xl p-4 shadow-sm"
           >
             <div className="text-sm mb-2">
-              <span className="opacity-70">Ticket</span>
+              <span className="text-fg-muted">Ticket</span>
               <div className="font-semibold">{trip.ticket_no}</div>
             </div>
 
             <div className="flex justify-between text-sm mb-2">
               <div>
-                <span className="opacity-70 block">Start</span>
+                <span className="text-fg-muted block">Start</span>
                 {trip.start_time}
               </div>
 
               <div>
-                <span className="opacity-70 block">End</span>
+                <span className="text-fg-muted block">End</span>
                 {trip.end_time || "-"}
               </div>
             </div>
@@ -95,8 +95,8 @@ const TripTable = ({ trips = [], title }) => {
                 className={`px-3 py-1 text-xs rounded-full font-semibold
                     ${
                       trip.status === "COMPLETED"
-                        ? "bg-green-800 text-white"
-                        : "bg-yellow-100 text-yellow-700"
+                        ? "bg-success/15 text-success"
+                        : "bg-warning/15 text-warning"
                     }`}
               >
                 {trip.status}
@@ -112,19 +112,19 @@ const TripTable = ({ trips = [], title }) => {
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className="px-3 py-1 bg-[#2b2b2b] rounded disabled:opacity-40"
+            className="px-3 py-1 rounded-lg border border-border text-fg hover:bg-surface-hover disabled:opacity-40"
           >
             Prev
           </button>
 
-          <span className="text-sm">
+          <span className="text-sm text-fg-muted">
             Page {page} / {totalPages}
           </span>
 
           <button
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
-            className="px-3 py-1 bg-[#2b2b2b] rounded disabled:opacity-40"
+            className="px-3 py-1 rounded-lg border border-border text-fg hover:bg-surface-hover disabled:opacity-40"
           >
             Next
           </button>

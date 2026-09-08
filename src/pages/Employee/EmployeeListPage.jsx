@@ -99,7 +99,7 @@ export default function EmployeeListPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 p-16 text-gray-500">
+      <div className="flex flex-col items-center justify-center gap-3 p-16 text-fg-muted">
         <TailSpin
           visible
           height="60"
@@ -117,11 +117,11 @@ export default function EmployeeListPage() {
       <div className="mb-6 flex flex-col gap-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-[#2b2b2b] sm:text-3xl">
+            <h1 className="text-2xl font-bold text-fg sm:text-3xl">
               Employees
             </h1>
 
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-fg-subtle">
               Browse employees by department and open any card to view full
               details.
             </p>
@@ -129,15 +129,15 @@ export default function EmployeeListPage() {
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="h-11 w-fit rounded-xl bg-[#2b2b2b] px-5 text-white shadow-sm transition hover:bg-[#4e4e4e]"
+            className="h-11 w-fit rounded-xl bg-primary px-5 text-primary-foreground shadow-sm transition hover:bg-primary-hover"
           >
             + Add Employee
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-fg-muted">
               {isActive === 1 ? "Active Employees" : "Inactive Employees"}
             </span>
 
@@ -148,11 +148,11 @@ export default function EmployeeListPage() {
                 setDepartmentFilter("All");
               }}
               className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                isActive === 1 ? "bg-green-500" : "bg-gray-300"
+                isActive === 1 ? "bg-success" : "bg-surface-active"
               }`}
             >
               <span
-                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-300 ${
+                className={`inline-block h-5 w-5 transform rounded-full bg-surface shadow-md transition-transform duration-300 ${
                   isActive === 1 ? "translate-x-7" : "translate-x-1"
                 }`}
               />
@@ -165,16 +165,16 @@ export default function EmployeeListPage() {
               placeholder="Search employee, department, position..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-11 w-full rounded-xl border border-gray-300 bg-white px-4 focus:outline-none focus:ring-2 focus:ring-[#2b2b2b]/20 lg:max-w-sm"
+              className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-fg focus:outline-none focus:ring-2 focus:ring-primary/30 lg:max-w-sm"
             />
 
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2">
-              <span className="text-sm font-medium text-gray-700">Sort:</span>
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-4 py-2">
+              <span className="text-sm font-medium text-fg-muted">Sort:</span>
 
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none"
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg focus:outline-none"
               >
                 <option value="lastname">Last Name</option>
                 <option value="id">Employee ID</option>
@@ -183,7 +183,7 @@ export default function EmployeeListPage() {
               <select
                 value={sortOrder}
                 onChange={(e) => setSortOrder(e.target.value)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm focus:outline-none"
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg focus:outline-none"
               >
                 <option value="asc">Ascending</option>
                 <option value="desc">Descending</option>
@@ -205,16 +205,16 @@ export default function EmployeeListPage() {
                   onClick={() => setDepartmentFilter(dept)}
                   className={`h-10 rounded-xl border px-4 text-sm font-medium transition ${
                     departmentFilter === dept
-                      ? "border-[#2b2b2b] bg-[#2b2b2b] text-white"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-100"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-surface text-fg-muted hover:border-border hover:bg-surface-hover"
                   }`}
                 >
                   {dept}{" "}
                   <span
                     className={`ml-1 text-xs ${
                       departmentFilter === dept
-                        ? "text-gray-200"
-                        : "text-gray-400"
+                        ? "text-primary-foreground/70"
+                        : "text-fg-subtle"
                     }`}
                   >
                     ({count})
@@ -227,9 +227,9 @@ export default function EmployeeListPage() {
       </div>
 
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-fg-subtle">
           Showing{" "}
-          <span className="font-semibold text-[#2b2b2b]">
+          <span className="font-semibold text-fg">
             {filteredAndSortedEmployees.length}
           </span>{" "}
           {isActive === 1 ? "active" : "inactive"} employee
@@ -238,12 +238,12 @@ export default function EmployeeListPage() {
       </div>
 
       {filteredAndSortedEmployees.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center shadow-sm">
-          <p className="text-lg font-semibold text-[#2b2b2b]">
+        <div className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center shadow-sm">
+          <p className="text-lg font-semibold text-fg">
             No employees found
           </p>
 
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-fg-subtle">
             Try changing your search or department filter.
           </p>
         </div>

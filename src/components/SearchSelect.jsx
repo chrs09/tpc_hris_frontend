@@ -85,15 +85,15 @@ export default function SearchSelect({
         onClick={() => !disabled && setOpen((prev) => !prev)}
         className={`flex min-h-10 w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${
           disabled
-            ? "cursor-not-allowed bg-slate-100 text-slate-400"
-            : "border-gray-300 bg-white hover:border-[#2b2b2b]"
+            ? "cursor-not-allowed bg-surface-hover text-fg-subtle border-border"
+            : "border-border bg-surface hover:border-primary"
         }`}
       >
-        <span className={selectedLabel ? "text-gray-800" : "text-gray-400"}>
+        <span className={selectedLabel ? "text-fg" : "text-fg-subtle"}>
           {selectedLabel || placeholder}
         </span>
 
-        <span className="text-gray-400">▾</span>
+        <span className="text-fg-subtle">▾</span>
       </button>
 
       {open &&
@@ -107,21 +107,21 @@ export default function SearchSelect({
               left: rect.left,
               width: Math.max(rect.width, 260),
             }}
-            className="z-9999 rounded-lg border bg-white shadow-lg"
+            className="z-9999 rounded-lg border border-border bg-surface shadow-lg"
           >
-            <div className="border-b p-2">
+            <div className="border-b border-border p-2">
               <input
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full rounded border px-2 py-1 text-sm focus:outline-none"
+                className="w-full rounded border border-border bg-background px-2 py-1 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             <div className="max-h-60 overflow-auto">
               {filtered.length === 0 ? (
-                <div className="p-3 text-sm text-slate-400">No results</div>
+                <div className="p-3 text-sm text-fg-subtle">No results</div>
               ) : (
                 filtered.map((option) => {
                   const isActive =
@@ -133,12 +133,12 @@ export default function SearchSelect({
                       key={getOptionValue(option)}
                       type="button"
                       onClick={() => handleSelect(option)}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 ${
-                        isActive ? "bg-gray-50 font-medium" : ""
+                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm text-fg hover:bg-surface-hover ${
+                        isActive ? "bg-surface-hover font-medium" : ""
                       }`}
                     >
                       <span>{getOptionLabel(option)}</span>
-                      {isActive && <span className="text-[#2b2b2b]">✓</span>}
+                      {isActive && <span className="text-primary">✓</span>}
                     </button>
                   );
                 })

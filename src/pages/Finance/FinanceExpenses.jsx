@@ -449,7 +449,7 @@ export default function FinanceExpenses() {
    */
 
   return (
-    <div className="min-h-full bg-slate-50 p-4 md:p-6">
+    <div className="min-h-full bg-background p-4 md:p-6">
       <div className="mx-auto max-w-400">
         {/* ======================================
             HEADER
@@ -457,13 +457,13 @@ export default function FinanceExpenses() {
 
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-500">Finance</p>
+            <p className="text-sm font-medium text-fg-subtle">Finance</p>
 
-            <h1 className="mt-1 text-2xl font-semibold text-slate-900">
+            <h1 className="mt-1 text-2xl font-semibold text-fg">
               Expenses
             </h1>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-subtle">
               Track expense entries, countering, payments, and accounts payable.
             </p>
           </div>
@@ -471,7 +471,7 @@ export default function FinanceExpenses() {
           <button
             type="button"
             onClick={openCreate}
-            className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover"
           >
             + Add Expense
           </button>
@@ -482,13 +482,13 @@ export default function FinanceExpenses() {
         ====================================== */}
 
         {error && (
-          <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-5 flex items-center justify-between rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
             <span>{error}</span>
 
             <button
               type="button"
               onClick={() => setError("")}
-              className="ml-4 font-semibold text-red-600 hover:text-red-800"
+              className="ml-4 font-semibold text-danger hover:opacity-80"
             >
               ×
             </button>
@@ -511,15 +511,15 @@ export default function FinanceExpenses() {
             TABLE CARD
         ====================================== */}
 
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="rounded-xl border border-border bg-surface shadow-sm">
           {/* Filters */}
-          <div className="border-b border-slate-200 p-4">
+          <div className="border-b border-border p-4">
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-5">
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search receipt, supplier, particulars..."
-                className="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 lg:col-span-2"
+                className="h-10 rounded-lg border border-border px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 lg:col-span-2"
               />
 
               <Filter
@@ -542,7 +542,7 @@ export default function FinanceExpenses() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-slate-500">
+              <span className="text-xs font-medium text-fg-subtle">
                 Posting month:
               </span>
 
@@ -552,7 +552,7 @@ export default function FinanceExpenses() {
                 options={["All Months", ...months]}
               />
 
-              <span className="ml-auto text-xs text-slate-400">
+              <span className="ml-auto text-xs text-fg-subtle">
                 Showing {filtered.length} of {rows.length} expenses
               </span>
             </div>
@@ -560,7 +560,7 @@ export default function FinanceExpenses() {
 
           {/* Loading */}
           {loading && (
-            <div className="border-b border-slate-200 px-4 py-3 text-sm text-slate-500">
+            <div className="border-b border-border px-4 py-3 text-sm text-fg-subtle">
               Loading expenses...
             </div>
           )}
@@ -568,12 +568,12 @@ export default function FinanceExpenses() {
           {/* MOBILE: card list */}
           <div className="space-y-3 p-4 md:hidden">
             {!loading && filtered.length === 0 && (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                <p className="text-sm font-medium text-slate-700">
+              <div className="rounded-xl border border-dashed border-border bg-surface-hover p-6 text-center">
+                <p className="text-sm font-medium text-fg-muted">
                   {rows.length === 0 ? "No expenses yet" : "No expenses found"}
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-fg-subtle">
                   {rows.length === 0
                     ? "Click Add Expense to create your first expense."
                     : "Try changing your filters or search term."}
@@ -585,17 +585,17 @@ export default function FinanceExpenses() {
               filtered.map((row) => (
                 <div
                   key={row.id}
-                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                  className="rounded-xl border border-border bg-surface p-4 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-fg-subtle">
                         {dateOnly(row.invoiceDate)}
                       </p>
-                      <p className="font-medium text-slate-800">
+                      <p className="font-medium text-fg-muted">
                         {row.invoiceNumber || "—"}
                       </p>
-                      <p className="text-sm text-slate-600">
+                      <p className="text-sm text-fg-muted">
                         {row.supplier || "—"}
                       </p>
                     </div>
@@ -604,7 +604,7 @@ export default function FinanceExpenses() {
                   </div>
 
                   <p
-                    className="mt-2 truncate text-sm text-slate-700"
+                    className="mt-2 truncate text-sm text-fg-muted"
                     title={row.particulars || ""}
                   >
                     {row.particulars || "—"}
@@ -612,34 +612,34 @@ export default function FinanceExpenses() {
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-fg-subtle">
                         Category
                       </span>
-                      <p className="text-slate-700">{row.category || "—"}</p>
+                      <p className="text-fg-muted">{row.category || "—"}</p>
                     </div>
 
                     <div>
-                      <span className="text-xs text-slate-400">Account</span>
-                      <p className="text-slate-700">{row.account || "—"}</p>
+                      <span className="text-xs text-fg-subtle">Account</span>
+                      <p className="text-fg-muted">{row.account || "—"}</p>
                     </div>
 
                     <div>
-                      <span className="text-xs text-slate-400">Qty.</span>
-                      <p className="text-slate-700">{row.qty ?? "—"}</p>
+                      <span className="text-xs text-fg-subtle">Qty.</span>
+                      <p className="text-fg-muted">{row.qty ?? "—"}</p>
                     </div>
 
                     <div>
-                      <span className="text-xs text-slate-400">
+                      <span className="text-xs text-fg-subtle">
                         Unit Price
                       </span>
-                      <p className="text-slate-700">
+                      <p className="text-fg-muted">
                         {money(row.unitPrice)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span className="font-semibold text-slate-800">
+                  <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+                    <span className="font-semibold text-fg-muted">
                       {money(getExpenseAmount(row))}
                     </span>
 
@@ -647,7 +647,7 @@ export default function FinanceExpenses() {
                       <button
                         type="button"
                         onClick={() => openView(row)}
-                        className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                        className="rounded-md px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                       >
                         View
                       </button>
@@ -655,7 +655,7 @@ export default function FinanceExpenses() {
                       <button
                         type="button"
                         onClick={() => openEdit(row)}
-                        className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                        className="rounded-md px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                       >
                         Edit
                       </button>
@@ -668,7 +668,7 @@ export default function FinanceExpenses() {
           {/* DESKTOP: table */}
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-275 text-left">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <thead className="bg-surface-hover text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                 <tr>
                   <th className="px-4 py-3">Invoice Date</th>
 
@@ -694,45 +694,45 @@ export default function FinanceExpenses() {
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border">
                 {!loading &&
                   filtered.map((row) => (
-                    <tr key={row.id} className="hover:bg-slate-50">
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
+                    <tr key={row.id} className="hover:bg-surface-hover">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-fg-muted">
                         {dateOnly(row.invoiceDate)}
                       </td>
 
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-slate-800">
+                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-fg-muted">
                         {row.invoiceNumber || "—"}
                       </td>
 
-                      <td className="px-4 py-3 text-sm text-slate-600">
+                      <td className="px-4 py-3 text-sm text-fg-muted">
                         {row.supplier || "—"}
                       </td>
 
-                      <td className="max-w-70 px-4 py-3 text-sm text-slate-700">
+                      <td className="max-w-70 px-4 py-3 text-sm text-fg-muted">
                         <div className="truncate" title={row.particulars || ""}>
                           {row.particulars || "—"}
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 text-sm text-slate-600">
+                      <td className="px-4 py-3 text-sm text-fg-muted">
                         {row.category || "—"}
                       </td>
 
-                      <td className="px-4 py-3 text-sm text-slate-600">
+                      <td className="px-4 py-3 text-sm text-fg-muted">
                         {row.account || "—"}
                       </td>
 
-                      <td className="px-4 py-3 text-right text-sm text-slate-600">
+                      <td className="px-4 py-3 text-right text-sm text-fg-muted">
                         {row.qty ?? "—"}
                       </td>
 
-                      <td className="px-4 py-3 text-right text-sm text-slate-600">
+                      <td className="px-4 py-3 text-right text-sm text-fg-muted">
                         {money(row.unitPrice)}
                       </td>
 
-                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-fg-muted">
                         {money(getExpenseAmount(row))}
                       </td>
 
@@ -745,7 +745,7 @@ export default function FinanceExpenses() {
                           <button
                             type="button"
                             onClick={() => openView(row)}
-                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                           >
                             View
                           </button>
@@ -753,7 +753,7 @@ export default function FinanceExpenses() {
                           <button
                             type="button"
                             onClick={() => openEdit(row)}
-                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                            className="rounded-md px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                           >
                             Edit
                           </button>
@@ -765,13 +765,13 @@ export default function FinanceExpenses() {
                 {!loading && filtered.length === 0 && (
                   <tr>
                     <td colSpan={11} className="px-4 py-16 text-center">
-                      <p className="text-sm font-medium text-slate-700">
+                      <p className="text-sm font-medium text-fg-muted">
                         {rows.length === 0
                           ? "No expenses yet"
                           : "No expenses found"}
                       </p>
 
-                      <p className="mt-1 text-xs text-slate-400">
+                      <p className="mt-1 text-xs text-fg-subtle">
                         {rows.length === 0
                           ? "Click Add Expense to create your first expense."
                           : "Try changing your filters or search term."}
@@ -813,12 +813,12 @@ export default function FinanceExpenses() {
 
 function SummaryCard({ label, value }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
         {label}
       </p>
 
-      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="mt-2 text-2xl font-semibold text-fg">{value}</p>
     </div>
   );
 }
@@ -834,7 +834,7 @@ function Filter({ value, onChange, options }) {
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+      className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
     >
       {options.map((option) => (
         <option key={option} value={option}>
@@ -853,11 +853,11 @@ function Filter({ value, onChange, options }) {
 
 function StatusBadge({ status }) {
   const styles = {
-    Paid: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    Paid: "bg-success/15 text-success border-success/30",
 
-    Pending: "bg-amber-50 text-amber-700 border-amber-100",
+    Pending: "bg-warning/15 text-warning border-warning/30",
 
-    Cancelled: "bg-red-50 text-red-700 border-red-100",
+    Cancelled: "bg-danger/15 text-danger border-danger/30",
   };
 
   return (

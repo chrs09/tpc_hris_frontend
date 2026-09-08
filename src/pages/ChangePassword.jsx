@@ -37,12 +37,14 @@ const ChangePassword = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 sm:px-6">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 sm:px-6">
       <div className="w-full max-w-md">
         <form
           onSubmit={handleSubmit}
           className="
-            bg-white
+            bg-surface
+            border
+            border-border
             rounded-2xl
             shadow-lg
             p-6
@@ -50,7 +52,7 @@ const ChangePassword = () => {
             space-y-5
           "
         >
-          <h2 className="text-xl sm:text-2xl font-bold text-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-center text-fg">
             Change Your Password
           </h2>
 
@@ -61,15 +63,17 @@ const ChangePassword = () => {
               placeholder="New Password"
               className="
                 w-full
-                border
-                border-gray-300
-                focus:ring-2
-                focus:ring-yellow-400
-                focus:outline-none
                 rounded-lg
+                border
+                border-border
+                bg-background
                 px-3
                 py-2
                 text-sm
+                text-fg
+                focus:outline-none
+                focus:ring-2
+                focus:ring-primary/30
                 sm:text-base
               "
               value={password}
@@ -85,15 +89,17 @@ const ChangePassword = () => {
               placeholder="Confirm Password"
               className="
                 w-full
-                border
-                border-gray-300
-                focus:ring-2
-                focus:ring-yellow-400
-                focus:outline-none
                 rounded-lg
+                border
+                border-border
+                bg-background
                 px-3
                 py-2
                 text-sm
+                text-fg
+                focus:outline-none
+                focus:ring-2
+                focus:ring-primary/30
                 sm:text-base
               "
               value={confirmPassword}
@@ -103,12 +109,12 @@ const ChangePassword = () => {
           </div>
 
           {/* Show Password Checkbox */}
-          <label className="flex items-center gap-2 text-sm text-gray-600">
+          <label className="flex items-center gap-2 text-sm text-fg-muted">
             <input
               type="checkbox"
               checked={showPassword}
               onChange={() => setShowPassword(!showPassword)}
-              className="accent-yellow-500"
+              className="accent-primary"
             />
             Show Password
           </label>
@@ -117,21 +123,17 @@ const ChangePassword = () => {
           {confirmPassword && (
             <p
               className={`text-sm ${
-                passwordsMatch ? "text-green-600" : "text-red-500"
+                passwordsMatch ? "text-success" : "text-danger"
               }`}
             >
               {passwordsMatch ? "Passwords match ✓" : "Passwords do not match"}
             </p>
           )}
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-danger text-sm">{error}</p>}
 
           {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={!passwordsMatch}
-            className="w-full bg-yellow-500 text-black"
-          >
+          <Button type="submit" disabled={!passwordsMatch} className="w-full">
             Update Password
           </Button>
         </form>

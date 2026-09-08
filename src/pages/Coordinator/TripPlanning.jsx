@@ -235,7 +235,7 @@ export default function ShipmentPlanning() {
   if (loading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
-        <div className="text-sm text-slate-500">
+        <div className="text-sm text-fg-muted">
           Loading shipment planning...
         </div>
       </div>
@@ -243,21 +243,21 @@ export default function ShipmentPlanning() {
   }
 
   return (
-    <div className="bg-slate-50 p-8">
+    <div className="bg-background p-8">
       <div className="mx-auto max-w-350 space-y-6">
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">
               Shipment Planning
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-fg-muted">
               Assign dealers, haulers, and load counts before dispatch.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm">
+            <label className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg-muted shadow-sm">
               <svg
                 width="16"
                 height="16"
@@ -267,7 +267,7 @@ export default function ShipmentPlanning() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-slate-400"
+                className="text-fg-subtle"
               >
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <path d="M16 2v4" />
@@ -278,11 +278,11 @@ export default function ShipmentPlanning() {
                 type="date"
                 value={planDate}
                 onChange={(e) => setPlanDate(e.target.value)}
-                className="bg-transparent text-sm text-slate-800 focus:outline-none"
+                className="bg-transparent text-sm text-fg focus:outline-none"
               />
             </label>
 
-            <button className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 active:bg-slate-100">
+            <button className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-fg-muted shadow-sm transition hover:bg-surface-hover active:bg-surface-active">
               <svg
                 width="16"
                 height="16"
@@ -301,7 +301,7 @@ export default function ShipmentPlanning() {
             </button>
 
             <button
-              className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-700 shadow-sm transition hover:bg-amber-100 active:bg-amber-200"
+              className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary shadow-sm transition hover:bg-primary/20 active:bg-primary/25"
               onClick={() => {
                 const last = rows[rows.length - 1];
 
@@ -331,7 +331,7 @@ export default function ShipmentPlanning() {
 
             <button
               onClick={handleSave}
-              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg bg-fg px-4 py-2 text-sm font-medium text-background shadow-sm transition hover:opacity-90 disabled:opacity-60"
             >
               {saveState === "saved" ? (
                 <>
@@ -399,13 +399,13 @@ export default function ShipmentPlanning() {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+    <div className="rounded-xl border border-border bg-surface px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-fg-subtle">
         {label}
       </p>
       <p
         className={`mt-1 text-xl font-semibold tabular-nums ${
-          accent === "amber" ? "text-amber-600" : "text-slate-900"
+          accent === "amber" ? "text-primary" : "text-fg"
         }`}
       >
         {value}

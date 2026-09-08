@@ -168,15 +168,15 @@ export default function Questionaire() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8">
+    <div className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-7xl space-y-6">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-fg">
                 Applicant Questions
               </h1>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-fg-subtle">
                 Manage onboarding questions for applicants.
               </p>
             </div>
@@ -184,7 +184,7 @@ export default function Questionaire() {
             <button
               type="button"
               onClick={handleAddClick}
-              className="rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
+              className="rounded-2xl bg-fg px-5 py-3 text-sm font-medium text-background hover:opacity-90"
             >
               Add Question
             </button>
@@ -192,20 +192,20 @@ export default function Questionaire() {
         </div>
 
         {showForm && (
-          <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-gray-900">
+          <div className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-fg">
               {editingQuestion ? "Edit Question" : "Create Applicant Question"}
             </h2>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-fg-muted">
                   Target Role
                 </label>
                 <select
                   value={form.target_role}
                   onChange={(e) => handleChange("target_role", e.target.value)}
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                  className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
                 >
                   <option value="admin">Admin</option>
                   <option value="driver">Driver</option>
@@ -216,7 +216,7 @@ export default function Questionaire() {
 
               {!editingQuestion && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-fg-muted">
                     Key Suffix
                   </label>
                   <input
@@ -224,9 +224,9 @@ export default function Questionaire() {
                     value={form.key_suffix}
                     onChange={(e) => handleChange("key_suffix", e.target.value)}
                     placeholder="e.g. multitask"
-                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                    className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
                   />
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-fg-subtle">
                     Question key preview:{" "}
                     <span className="font-semibold">{questionKeyPreview}</span>
                   </p>
@@ -235,20 +235,20 @@ export default function Questionaire() {
 
               {editingQuestion && (
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <label className="mb-2 block text-sm font-medium text-fg-muted">
                     Question Key
                   </label>
                   <input
                     type="text"
                     value={editingQuestion.question_key}
                     disabled
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3 text-sm text-gray-500"
+                    className="w-full rounded-2xl border border-border bg-surface-active px-4 py-3 text-sm text-fg-subtle"
                   />
                 </div>
               )}
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-fg-muted">
                   Question Text
                 </label>
                 <textarea
@@ -258,12 +258,12 @@ export default function Questionaire() {
                     handleChange("question_text", e.target.value)
                   }
                   placeholder="Enter the question to show to applicants"
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                  className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-fg-muted">
                   Question Type
                 </label>
                 <select
@@ -271,7 +271,7 @@ export default function Questionaire() {
                   onChange={(e) =>
                     handleChange("question_type", e.target.value)
                   }
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                  className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
                 >
                   <option value="text">Text</option>
                   <option value="textarea">Textarea</option>
@@ -281,7 +281,7 @@ export default function Questionaire() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
+                <label className="mb-2 block text-sm font-medium text-fg-muted">
                   Sort Order
                 </label>
                 <input
@@ -289,12 +289,12 @@ export default function Questionaire() {
                   value={form.sort_order}
                   onChange={(e) => handleChange("sort_order", e.target.value)}
                   placeholder="Leave blank to auto-generate"
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                  className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
                 />
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <label className="inline-flex items-center gap-2 text-sm text-fg-muted">
                   <input
                     type="checkbox"
                     checked={form.is_required}
@@ -305,7 +305,7 @@ export default function Questionaire() {
                   Required
                 </label>
 
-                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <label className="inline-flex items-center gap-2 text-sm text-fg-muted">
                   <input
                     type="checkbox"
                     checked={form.is_active}
@@ -321,7 +321,7 @@ export default function Questionaire() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+                  className="rounded-2xl bg-fg px-6 py-3 text-sm font-medium text-background hover:opacity-90 disabled:opacity-50"
                 >
                   {submitting
                     ? editingQuestion
@@ -335,7 +335,7 @@ export default function Questionaire() {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="rounded-2xl border border-gray-300 px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="rounded-2xl border border-border px-6 py-3 text-sm font-medium text-fg-muted hover:bg-surface-hover"
                 >
                   Cancel
                 </button>
@@ -344,11 +344,11 @@ export default function Questionaire() {
           </div>
         )}
 
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Question List</h2>
-              <p className="mt-1 text-sm text-gray-500">
+              <h2 className="text-lg font-bold text-fg">Question List</h2>
+              <p className="mt-1 text-sm text-fg-subtle">
                 Search and filter applicant questions below.
               </p>
             </div>
@@ -359,13 +359,13 @@ export default function Questionaire() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search question text or key"
-                className="rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                className="rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
               />
 
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                className="rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
               >
                 <option value="all">All Roles</option>
                 <option value="admin">Admin</option>
@@ -376,7 +376,7 @@ export default function Questionaire() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-2xl border border-gray-300 px-4 py-3 text-sm"
+                className="rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
               >
                 <option value="all">All Status</option>
                 <option value="active">Active Only</option>
@@ -386,11 +386,11 @@ export default function Questionaire() {
           </div>
 
           {loading ? (
-            <div className="mt-4 text-sm text-gray-500">
+            <div className="mt-4 text-sm text-fg-subtle">
               Loading questions...
             </div>
           ) : filteredQuestions.length === 0 ? (
-            <div className="mt-4 rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+            <div className="mt-4 rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
               No questions matched your filters.
             </div>
           ) : (
@@ -400,15 +400,15 @@ export default function Questionaire() {
                 {filteredQuestions.map((question) => (
                   <div
                     key={question.id}
-                    className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+                    className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-fg-subtle">
                           {question.target_role} ·{" "}
                           {question.question_key}
                         </p>
-                        <p className="font-medium text-gray-800">
+                        <p className="font-medium text-fg">
                           {question.question_text}
                         </p>
                       </div>
@@ -417,7 +417,7 @@ export default function Questionaire() {
                         className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
                           question.is_active
                             ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
+                            : "bg-surface-active text-fg-muted"
                         }`}
                       >
                         {question.is_active ? "Active" : "Inactive"}
@@ -426,24 +426,24 @@ export default function Questionaire() {
 
                     <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
                       <div>
-                        <span className="text-xs text-gray-400">Type</span>
-                        <p className="text-gray-700">
+                        <span className="text-xs text-fg-subtle">Type</span>
+                        <p className="text-fg-muted">
                           {question.question_type}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-fg-subtle">
                           Required
                         </span>
-                        <p className="text-gray-700">
+                        <p className="text-fg-muted">
                           {question.is_required ? "Yes" : "No"}
                         </p>
                       </div>
 
                       <div>
-                        <span className="text-xs text-gray-400">Sort</span>
-                        <p className="text-gray-700">
+                        <span className="text-xs text-fg-subtle">Sort</span>
+                        <p className="text-fg-muted">
                           {question.sort_order}
                         </p>
                       </div>
@@ -452,7 +452,7 @@ export default function Questionaire() {
                     <button
                       type="button"
                       onClick={() => handleEditClick(question)}
-                      className="mt-3 w-full rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      className="mt-3 w-full rounded-xl border border-border px-3 py-2 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                     >
                       Edit
                     </button>
@@ -464,36 +464,36 @@ export default function Questionaire() {
               <div className="mt-4 hidden overflow-x-auto md:block">
                 <table className="min-w-full border-collapse text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200 text-left">
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                    <tr className="border-b border-border text-left">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Role
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Question Key
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Question Text
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Type
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Required
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Sort
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Status
                       </th>
-                      <th className="px-3 py-3 font-semibold text-gray-700">
+                      <th className="px-3 py-3 font-semibold text-fg-muted">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredQuestions.map((question) => (
-                      <tr key={question.id} className="border-b border-gray-100">
+                      <tr key={question.id} className="border-b border-border">
                         <td className="px-3 py-3">{question.target_role}</td>
                         <td className="px-3 py-3">{question.question_key}</td>
                         <td className="px-3 py-3">{question.question_text}</td>
@@ -507,7 +507,7 @@ export default function Questionaire() {
                             className={`rounded-full px-3 py-1 text-xs font-medium ${
                               question.is_active
                                 ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-600"
+                                : "bg-surface-active text-fg-muted"
                             }`}
                           >
                             {question.is_active ? "Active" : "Inactive"}
@@ -517,7 +517,7 @@ export default function Questionaire() {
                           <button
                             type="button"
                             onClick={() => handleEditClick(question)}
-                            className="rounded-xl border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            className="rounded-xl border border-border px-3 py-2 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                           >
                             Edit
                           </button>

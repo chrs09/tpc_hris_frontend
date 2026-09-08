@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { approveTrip, reviewTrip } from "../../api/adminTripManagement/trips";
 import {
   MapContainer,
@@ -84,6 +84,18 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   // URL + label to display, so the same viewer works for start photo,
   // delivery proof photos, or any future photo type.
   const [activePhoto, setActivePhoto] = useState(null); // { url, label } | null
+  const [photoZoom, setPhotoZoom] = useState(1);
+
+  // Opens the shared photo viewer, always starting at 100% zoom so the
+  // previous photo's zoom level doesn't carry over to the next one.
+  const openPhoto = useCallback((photo) => {
+    setPhotoZoom(1);
+    setActivePhoto(photo);
+  }, []);
+
+  const zoomIn = () => setPhotoZoom((prev) => Math.min(prev + 0.25, 3));
+  const zoomOut = () => setPhotoZoom((prev) => Math.max(prev - 0.25, 0.5));
+  const resetZoom = () => setPhotoZoom(1);
 
   const [page, setPage] = useState(1);
   const perPage = 5;
@@ -188,15 +200,15 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   return (
     <>
       {/* ======================= DESKTOP TABLE ======================= */}
-      <div className="hidden md:block bg-[#2b2b2b] rounded-xl overflow-hidden">
-        <table className="w-full text-sm text-white">
-          <thead>
+      <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
+        <table className="w-full text-sm text-fg">
+          <thead className="bg-surface-hover text-fg-muted">
             <tr>
-              <th className="px-6 py-3 text-left">Trip ID</th>
-              <th className="px-6 py-3 text-left">Driver</th>
-              <th className="px-6 py-3 text-left">Ticket</th>
-              <th className="px-6 py-3 text-left">Start</th>
-              <th className="px-6 py-3 text-left">Stops</th>
+              <th className="px-6 py-3 text-left font-medium">Trip ID</th>
+              <th className="px-6 py-3 text-left font-medium">Driver</th>
+              <th className="px-6 py-3 text-left font-medium">Ticket</th>
+              <th className="px-6 py-3 text-left font-medium">Start</th>
+              <th className="px-6 py-3 text-left font-medium">Stops</th>
               <th></th>
             </tr>
           </thead>
@@ -205,7 +217,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
             {paginatedTrips.map((trip) => (
               <tr
                 key={trip.id}
-                className="hover:bg-[#a09f9f] bg-[#b3b3b3] text-black"
+                className="border-t border-border hover:bg-surface-hover"
               >
                 <td className="px-6 py-4">{trip.id}</td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
@@ -216,7 +228,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 <td className="px-6 py-4 text-right">
                   <button
                     onClick={() => handleReview(trip.id)}
-                    className="bg-[#2b2b2b] text-white px-4 py-2 rounded-lg cursor-pointer"
+                    className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg cursor-pointer transition-colors"
                   >
                     {mode === "pending" ? "Review" : "View"}
                   </button>
@@ -230,34 +242,37 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
       {/* ======================= MOBILE CARDS ======================= */}
       <div className="md:hidden flex flex-col gap-3">
         {paginatedTrips.map((trip) => (
-          <div key={trip.id} className="bg-[#2b2b2b] text-white p-4 rounded-xl">
+          <div
+            key={trip.id}
+            className="bg-surface border border-border text-fg p-4 rounded-xl"
+          >
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-xs opacity-70">Driver</p>
+                <p className="text-xs text-fg-muted">Driver</p>
                 <p className="font-semibold capitalize">{trip.username}</p>
               </div>
 
               <button
                 onClick={() => handleReview(trip.id)}
-                className="bg-yellow-400 text-black p-2 rounded-lg"
+                className="bg-primary text-primary-foreground p-2 rounded-lg"
               >
                 <FontAwesomeIcon icon={faEye} />
               </button>
             </div>
 
             <div className="mt-2 text-sm">
-              <p className="opacity-70">Ticket</p>
+              <p className="text-fg-muted">Ticket</p>
               {trip.ticket_no}
             </div>
 
             <div className="flex justify-between mt-2 text-sm">
               <div>
-                <p className="opacity-70">Start</p>
+                <p className="text-fg-muted">Start</p>
                 {trip.start_time}
               </div>
 
               <div>
-                <p className="opacity-70">Stops</p>
+                <p className="text-fg-muted">Stops</p>
                 {trip.stops_count}
               </div>
             </div>
@@ -271,19 +286,19 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className="px-3 py-1 bg-gray-200 rounded"
+            className="px-3 py-1 bg-surface-active text-fg rounded hover:bg-surface-hover disabled:opacity-40"
           >
             Prev
           </button>
 
-          <span>
+          <span className="text-fg">
             Page {page} / {totalPages}
           </span>
 
           <button
             disabled={page === totalPages}
             onClick={() => setPage(page + 1)}
-            className="px-3 py-1 bg-gray-200 rounded"
+            className="px-3 py-1 bg-surface-active text-fg rounded hover:bg-surface-hover disabled:opacity-40"
           >
             Next
           </button>
@@ -292,10 +307,10 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
 
       {/* ======================= REVIEW MODAL ======================= */}
       {showModal && selectedTrip && (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center p-4 z-50 text-white">
-          <div className="bg-[#2b2b2b] w-full max-w-6xl max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center p-4 z-50">
+          <div className="bg-surface border border-border text-fg w-full max-w-6xl max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
             {/* HEADER */}
-            <div className="flex justify-between items-center p-6 border-b">
+            <div className="flex justify-between items-center p-6 border-b border-border">
               <h2 className="text-xl font-bold flex items-center gap-3">
                 <FontAwesomeIcon icon={faRoute} />
                 Trip Review — {selectedTrip.ticket_no}
@@ -303,7 +318,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
 
               <button
                 onClick={() => setShowModal(false)}
-                className="bg-yellow-400 text-black px-4 py-2 rounded-lg"
+                className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg"
               >
                 Close
               </button>
@@ -383,7 +398,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                   <FontAwesomeIcon icon={faUser} />
                   {selectedTrip.driver_first_name}{" "}
                   {selectedTrip.driver_last_name}
-                  <span className="text-gray-300 text-sm ml-2">[ Driver ]</span>
+                  <span className="text-fg-muted text-sm ml-2">[ Driver ]</span>
                 </div>
 
                 {/* HELPERS */}
@@ -395,7 +410,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                       {selectedTrip.helpers.map((helper) => (
                         <span
                           key={helper.id}
-                          className="bg-gray-200 text-black px-3 py-1 rounded-full text-sm"
+                          className="bg-surface-active text-fg px-3 py-1 rounded-full text-sm"
                         >
                           {helper.first_name} {helper.last_name}
                         </span>
@@ -408,13 +423,13 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 <div className="space-y-4 mb-6">
                   {/* ORIGIN */}
                   <div>
-                    <p className="text-sm text-gray-300">Origin</p>
+                    <p className="text-sm text-fg-muted">Origin</p>
                     <p>{selectedTrip.origin_store}</p>
                   </div>
 
                   {/* START TIME */}
                   <div>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-fg-muted">
                       <FontAwesomeIcon icon={faUserClock} className="mr-2" />
                       Start
                     </p>
@@ -423,7 +438,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
 
                   {/* END TIME */}
                   <div>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-fg-muted">
                       <FontAwesomeIcon icon={faUserClock} className="mr-2" />
                       End
                     </p>
@@ -431,13 +446,13 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                   </div>
 
                   {/* ======================= START PHOTO ======================= */}
-                  <div className="flex items-center justify-between gap-4 bg-[#3a3a3a] p-3 rounded-xl">
+                  <div className="flex items-center justify-between gap-4 bg-surface-hover p-3 rounded-xl">
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-fg">
                         Start Trip Photo
                       </p>
 
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-fg-subtle">
                         Photo uploaded when the trip started
                       </p>
                     </div>
@@ -446,29 +461,29 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                       <button
                         type="button"
                         onClick={() =>
-                          setActivePhoto({
+                          openPhoto({
                             url: resolvePhotoUrl(selectedTrip.start_photo),
                             label: "Start Trip Photo",
                           })
                         }
                         title="View start trip photo"
-                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-400 text-black rounded-lg hover:bg-yellow-300"
+                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
                       >
                         <FontAwesomeIcon icon={faEye} />
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-400">No Photo</span>
+                      <span className="text-xs text-fg-subtle">No Photo</span>
                     )}
                   </div>
 
                   {/* ======================= END PHOTO ======================= */}
-                  <div className="flex items-center justify-between gap-4 bg-[#3a3a3a] p-3 rounded-xl">
+                  <div className="flex items-center justify-between gap-4 bg-surface-hover p-3 rounded-xl">
                     <div>
-                      <p className="text-sm font-semibold text-white">
+                      <p className="text-sm font-semibold text-fg">
                         End Trip Photo
                       </p>
 
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-fg-subtle">
                         Stamped invoice uploaded when trip was completed
                       </p>
                     </div>
@@ -477,7 +492,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                       <button
                         type="button"
                         onClick={() =>
-                          setActivePhoto({
+                          openPhoto({
                             url: resolvePhotoUrl(
                               selectedTrip.stamped_invoice_photo,
                             ),
@@ -485,17 +500,17 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                           })
                         }
                         title="View end trip photo"
-                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-400 text-black rounded-lg hover:bg-yellow-300"
+                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
                       >
                         <FontAwesomeIcon icon={faEye} />
                       </button>
                     ) : (
-                      <span className="text-xs text-gray-400">No Photo</span>
+                      <span className="text-xs text-fg-subtle">No Photo</span>
                     )}
                   </div>
                 </div>
 
-                <hr className="mb-6" />
+                <hr className="mb-6 border-border" />
 
                 {/* ======================= VISITED STOPS ======================= */}
                 <h3 className="font-semibold text-lg mb-4">Visited Stops</h3>
@@ -505,7 +520,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                     selectedTrip.stops.map((stop, index) => (
                       <div
                         key={stop.id || index}
-                        className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-black"
+                        className="bg-surface-hover border border-border rounded-xl p-4 text-fg"
                       >
                         {/* STORE HEADER */}
                         <div className="flex justify-between items-start gap-4">
@@ -541,7 +556,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                             <button
                               type="button"
                               onClick={() =>
-                                setActivePhoto({
+                                openPhoto({
                                   url: resolvePhotoUrl(
                                     stop.delivery_proof_photo,
                                   ),
@@ -549,13 +564,13 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                                 })
                               }
                               title="View Proof of Delivery"
-                              className="shrink-0 w-10 h-10 flex items-center justify-center bg-yellow-400 text-black rounded-lg hover:bg-yellow-300"
+                              className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
                             >
                               <FontAwesomeIcon icon={faEye} />
                             </button>
                           ) : (
                             <div className="shrink-0 text-right">
-                              <span className="text-xs text-gray-400">
+                              <span className="text-xs text-fg-subtle">
                                 No POD
                               </span>
                             </div>
@@ -563,8 +578,8 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                         </div>
 
                         {/* POD STATUS */}
-                        <div className="mt-3 pt-3 border-t border-gray-200 flex justify-between items-center">
-                          <span className="text-xs text-gray-500">
+                        <div className="mt-3 pt-3 border-t border-border flex justify-between items-center">
+                          <span className="text-xs text-fg-subtle">
                             Proof of Delivery
                           </span>
 
@@ -572,19 +587,19 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                             <button
                               type="button"
                               onClick={() =>
-                                setActivePhoto({
+                                openPhoto({
                                   url: resolvePhotoUrl(
                                     stop.delivery_proof_photo,
                                   ),
                                   label: `${stop.store_name} - Proof of Delivery`,
                                 })
                               }
-                              className="text-xs font-semibold underline"
+                              className="text-xs font-semibold underline text-primary"
                             >
                               View Attached Photo
                             </button>
                           ) : (
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-fg-subtle">
                               Not available
                             </span>
                           )}
@@ -592,7 +607,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                       </div>
                     ))
                   ) : (
-                    <div className="bg-gray-50 text-gray-500 p-4 rounded-xl text-sm">
+                    <div className="bg-surface-hover text-fg-subtle p-4 rounded-xl text-sm">
                       No visited stops found.
                     </div>
                   )}
@@ -602,14 +617,14 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 {/* ===== COORDINATOR REMARKS ===== */}
                 {mode === "pending" && (
                   <>
-                    <hr className="my-6" />
+                    <hr className="my-6 border-border" />
 
                     <div>
-                      <label className="font-semibold text-lg mb-2 block text-white">
+                      <label className="font-semibold text-lg mb-2 block text-fg">
                         Coordinator Remarks
                       </label>
 
-                      <p className="text-xs text-gray-300 mb-3">
+                      <p className="text-xs text-fg-muted mb-3">
                         Add your remarks after reviewing the trip details,
                         route, stops, invoices, and proof of delivery. Once
                         approved, the trip will be settled and forwarded to
@@ -627,13 +642,13 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                         }}
                         rows={4}
                         placeholder="e.g. All stops, PODs, and trip details verified. No discrepancies found."
-                        className={`w-full rounded-xl p-3 text-sm text-black bg-gray-50 border ${
-                          remarksError ? "border-red-500" : "border-gray-200"
-                        } focus:outline-none focus:ring-2 focus:ring-yellow-400`}
+                        className={`w-full rounded-xl p-3 text-sm text-fg bg-background border ${
+                          remarksError ? "border-danger" : "border-border"
+                        } focus:outline-none focus:ring-2 focus:ring-primary/30`}
                       />
 
                       {remarksError && (
-                        <p className="text-red-400 text-xs mt-1">
+                        <p className="text-danger text-xs mt-1">
                           {remarksError}
                         </p>
                       )}
@@ -642,7 +657,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                     <button
                       onClick={handleApprove}
                       disabled={submitting}
-                      className="mt-6 bg-yellow-400 text-black py-3 w-full rounded-xl font-bold disabled:opacity-60"
+                      className="mt-6 bg-primary text-primary-foreground hover:bg-primary-hover py-3 w-full rounded-xl font-bold disabled:opacity-60"
                     >
                       {submitting
                         ? "Approving..."
@@ -658,27 +673,69 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
 
       {/* ======================= SHARED PHOTO VIEWER ======================= */}
       {activePhoto && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-xl max-w-lg w-full">
-            <p className="text-sm font-semibold text-black mb-2">
-              {activePhoto.label}
-            </p>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface rounded-xl max-w-3xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+              <p className="text-sm font-semibold text-fg truncate">
+                {activePhoto.label}
+              </p>
 
-            <img
-              src={activePhoto.url}
-              alt={activePhoto.label}
-              className="w-full rounded-lg"
-              onError={() => {
-                console.log("Image failed to load:", activePhoto.url);
-              }}
-            />
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  disabled={photoZoom <= 0.5}
+                  title="Zoom out"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover disabled:opacity-40"
+                >
+                  −
+                </button>
 
-            <button
-              onClick={() => setActivePhoto(null)}
-              className="mt-4 bg-yellow-400 w-full py-2 rounded-lg"
-            >
-              Close
-            </button>
+                <span className="w-14 text-center text-sm text-fg-muted">
+                  {Math.round(photoZoom * 100)}%
+                </span>
+
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  disabled={photoZoom >= 3}
+                  title="Zoom in"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover disabled:opacity-40"
+                >
+                  +
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetZoom}
+                  title="Reset zoom"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4">
+              <img
+                src={activePhoto.url}
+                alt={activePhoto.label}
+                style={{ width: `${photoZoom * 100}%`, maxWidth: "none" }}
+                className="mx-auto h-auto rounded-lg transition-[width]"
+                onError={() => {
+                  console.log("Image failed to load:", activePhoto.url);
+                }}
+              />
+            </div>
+
+            <div className="border-t border-border p-4">
+              <button
+                onClick={() => setActivePhoto(null)}
+                className="bg-primary text-primary-foreground hover:bg-primary-hover w-full py-2 rounded-lg"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

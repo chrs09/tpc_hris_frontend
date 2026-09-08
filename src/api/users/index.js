@@ -17,6 +17,12 @@ export const updateUser = async (userId, payload) => {
   return res.data;
 };
 
+// Audit trail of role/active-status changes for a user (superadmin only).
+export const getUserRevisions = async (userId) => {
+  const res = await api.get(`/users/${userId}/revisions`);
+  return res.data;
+};
+
 // Deactivate user (future feature)
 export const deactivateUser = async (userId) => {
   const res = await api.patch(`/users/${userId}/deactivate`);

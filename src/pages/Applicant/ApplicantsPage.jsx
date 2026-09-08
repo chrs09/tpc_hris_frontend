@@ -57,7 +57,7 @@ const columnStyles = {
   for_pooling: "border-orange-200 bg-orange-50/70",
   hired: "border-green-200 bg-green-50/70",
   rejected: "border-red-200 bg-red-50/70",
-  withdrawn: "border-gray-300 bg-gray-100/80",
+  withdrawn: "border-border bg-surface-active/80",
   no_show: "border-pink-200 bg-pink-50/70",
 };
 
@@ -68,7 +68,7 @@ const badgeStyles = {
   for_pooling: "bg-orange-100 text-orange-800 border-orange-200",
   hired: "bg-green-100 text-green-800 border-green-200",
   rejected: "bg-red-100 text-red-800 border-red-200",
-  withdrawn: "bg-gray-200 text-gray-700 border-gray-300",
+  withdrawn: "bg-surface-active text-fg-muted border-border",
   no_show: "bg-pink-100 text-pink-800 border-pink-200",
 };
 
@@ -125,7 +125,7 @@ function FormStatusBadge({ applicant }) {
   const status = getApplicantFormStatus(applicant);
 
   const styles = {
-    not_generated: "bg-gray-100 text-gray-700 border-gray-200",
+    not_generated: "bg-surface-active text-fg-muted border-border",
     generated: "bg-indigo-100 text-indigo-700 border-indigo-200",
     in_progress: "bg-amber-100 text-amber-700 border-amber-200",
     submitted: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -146,7 +146,7 @@ function StatusBadge({ status }) {
   return (
     <span
       className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold capitalize ${
-        badgeStyles[status] || "bg-gray-100 text-gray-700 border-gray-200"
+        badgeStyles[status] || "bg-surface-active text-fg-muted border-border"
       }`}
     >
       {prettifyStatus(status)}
@@ -156,9 +156,9 @@ function StatusBadge({ status }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-gray-900">{value}</p>
+    <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+      <p className="text-sm font-medium text-fg-subtle">{label}</p>
+      <p className="mt-2 text-3xl font-bold text-fg">{value}</p>
     </div>
   );
 }
@@ -174,34 +174,34 @@ function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
 
   return (
     <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4">
-      <div className="relative h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="text-lg font-semibold text-gray-900">CV Preview</h2>
+      <div className="relative h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl bg-surface shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h2 className="text-lg font-semibold text-fg">CV Preview</h2>
 
           <div className="flex items-center gap-2">
             {isImage && (
               <>
                 <button
                   onClick={zoomOut}
-                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
+                  className="rounded-lg border border-border px-3 py-1 text-sm hover:bg-surface-hover"
                 >
                   -
                 </button>
 
-                <span className="w-16 text-center text-sm font-medium text-gray-700">
+                <span className="w-16 text-center text-sm font-medium text-fg-muted">
                   {Math.round(zoom * 100)}%
                 </span>
 
                 <button
                   onClick={zoomIn}
-                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
+                  className="rounded-lg border border-border px-3 py-1 text-sm hover:bg-surface-hover"
                 >
                   +
                 </button>
 
                 <button
                   onClick={resetZoom}
-                  className="rounded-lg border border-gray-300 px-3 py-1 text-sm hover:bg-gray-100"
+                  className="rounded-lg border border-border px-3 py-1 text-sm hover:bg-surface-hover"
                 >
                   Reset
                 </button>
@@ -210,14 +210,14 @@ function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
 
             <button
               onClick={onClose}
-              className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+              className="rounded-lg px-3 py-1 text-fg-muted hover:bg-surface-hover"
             >
               ✕
             </button>
           </div>
         </div>
 
-        <div className="h-[calc(90vh-60px)] overflow-auto bg-gray-50">
+        <div className="h-[calc(90vh-60px)] overflow-auto bg-surface-hover">
           {isImage ? (
             <div className="flex min-h-full justify-center p-6">
               <img
@@ -245,11 +245,11 @@ function CVPreviewModal({ isOpen, fileUrl, zoom, setZoom, onClose }) {
 
 function InfoCard({ label, value }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">
         {label}
       </p>
-      <p className="mt-2 wrap-break-word text-sm text-gray-900 capitalize">
+      <p className="mt-2 wrap-break-word text-sm text-fg capitalize">
         {value || "-"}
       </p>
     </div>
@@ -272,13 +272,13 @@ function GenerateEmploymentFormModal({
 
   return (
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-xl rounded-3xl bg-surface p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-xl font-bold text-fg">
               Employment Form Access
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-fg-subtle">
               Generate a secure form link for the applicant to fill up the
               employment details.
             </p>
@@ -287,23 +287,23 @@ function GenerateEmploymentFormModal({
           <button
             onClick={onClose}
             disabled={generating}
-            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+            className="rounded-lg px-3 py-1 text-fg-muted hover:bg-surface-hover disabled:opacity-50"
           >
             ✕
           </button>
         </div>
 
         <div className="mt-6 space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm text-gray-700">
+          <div className="rounded-2xl border border-border bg-surface-hover p-4">
+            <p className="text-sm text-fg-muted">
               <span className="font-semibold">Applicant:</span>{" "}
               {applicant.first_name} {applicant.last_name}
             </p>
-            <p className="mt-1 text-sm text-gray-700">
+            <p className="mt-1 text-sm text-fg-muted">
               <span className="font-semibold">Status:</span>{" "}
               {prettifyStatus(applicant.status)}
             </p>
-            <p className="mt-1 text-sm text-gray-700">
+            <p className="mt-1 text-sm text-fg-muted">
               <span className="font-semibold">Form Status:</span>{" "}
               {prettifyFormStatus(formStatus)}
             </p>
@@ -328,7 +328,7 @@ function GenerateEmploymentFormModal({
 
           {generatedLink && (
             <div>
-              <label className="mb-2 block text-sm font-semibold text-gray-700">
+              <label className="mb-2 block text-sm font-semibold text-fg-muted">
                 Generated Link
               </label>
               <div className="flex gap-2">
@@ -336,11 +336,11 @@ function GenerateEmploymentFormModal({
                   type="text"
                   readOnly
                   value={generatedLink}
-                  className="w-full rounded-2xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm outline-none"
+                  className="w-full rounded-2xl border border-border bg-surface-hover px-4 py-3 text-sm text-fg outline-none"
                 />
                 <button
                   onClick={onCopy}
-                  className="shrink-0 rounded-2xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="shrink-0 rounded-2xl border border-border px-4 py-3 text-sm font-medium text-fg-muted hover:bg-surface-hover"
                 >
                   Copy
                 </button>
@@ -353,7 +353,7 @@ function GenerateEmploymentFormModal({
           <button
             onClick={onClose}
             disabled={generating}
-            className="rounded-2xl border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-fg-muted hover:bg-surface-hover disabled:opacity-50"
           >
             Close
           </button>
@@ -392,45 +392,45 @@ function ConvertApplicantModal({
 
   return (
     <div className="fixed inset-0 z-80 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-lg rounded-3xl bg-surface p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">
+            <h3 className="text-xl font-bold text-fg">
               Convert to Employee
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-fg-subtle">
               This will create a new employee record from the hired applicant.
             </p>
           </div>
           <button
             onClick={onClose}
             disabled={converting}
-            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+            className="rounded-lg px-3 py-1 text-fg-muted hover:bg-surface-hover disabled:opacity-50"
           >
             ✕
           </button>
         </div>
 
         <div className="mt-6 space-y-4">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-sm text-gray-700">
+          <div className="rounded-2xl border border-border bg-surface-hover p-4">
+            <p className="text-sm text-fg-muted">
               <span className="font-semibold">Applicant:</span>{" "}
               {applicant.first_name} {applicant.last_name}
             </p>
-            <p className="mt-1 text-sm text-gray-700">
+            <p className="mt-1 text-sm text-fg-muted">
               <span className="font-semibold">Applied Position:</span>{" "}
               {applicant.position_applied || "-"}
             </p>
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-fg-muted">
               Department
             </label>
             <select
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+              className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             >
               <option value="">Select department</option>
               {Object.entries(employeeRoleConvert).map(([key, label]) => (
@@ -442,16 +442,16 @@ function ConvertApplicantModal({
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-gray-700">
+            <label className="mb-2 block text-sm font-semibold text-fg-muted">
               Position Override{" "}
-              <span className="text-gray-400">(optional)</span>
+              <span className="text-fg-subtle">(optional)</span>
             </label>
             <input
               type="text"
               value={position}
               onChange={(e) => setPosition(e.target.value)}
               placeholder="Leave blank to use applied position"
-              className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10"
+              className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
         </div>
@@ -460,7 +460,7 @@ function ConvertApplicantModal({
           <button
             onClick={onClose}
             disabled={converting}
-            className="rounded-2xl border border-gray-300 px-5 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-2xl border border-border px-5 py-3 text-sm font-medium text-fg-muted hover:bg-surface-hover disabled:opacity-50"
           >
             Cancel
           </button>
@@ -510,19 +510,19 @@ function ApplicantDrawer({
     <div className="fixed inset-0 z-60 flex">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-      <div className="relative ml-auto h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-4">
+      <div className="relative ml-auto h-full w-full max-w-2xl overflow-y-auto bg-surface shadow-2xl">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-surface px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">
+            <h2 className="text-xl font-bold text-fg">
               Applicant Details
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-fg-subtle">
               Review applicant information, remarks, and status
             </p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+            className="rounded-lg px-3 py-1 text-fg-muted hover:bg-surface-hover"
           >
             ✕
           </button>
@@ -530,7 +530,7 @@ function ApplicantDrawer({
 
         <div className="p-6">
           {loading ? (
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-gray-500">
+            <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-fg-subtle">
               Loading applicant details...
             </div>
           ) : !applicant ? (
@@ -539,16 +539,16 @@ function ApplicantDrawer({
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="rounded-3xl border border-gray-200 bg-linear-to-br from-white to-gray-50 p-5 shadow-sm">
+              <div className="rounded-3xl border border-border bg-linear-to-br from-surface to-surface-hover p-5 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-2xl font-bold text-gray-900 capitalize">
+                    <h3 className="text-2xl font-bold text-fg capitalize">
                       {applicant.first_name} {applicant.middle_name}{" "}
                       {applicant.last_name} {applicant.suffix || ""}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-fg-subtle">
                       Applied for{" "}
-                      <span className="font-medium text-gray-800">
+                      <span className="font-medium text-fg">
                         {applicant.position_applied || "-"}
                       </span>
                     </p>
@@ -595,8 +595,8 @@ function ApplicantDrawer({
                 />
               </div>
 
-              <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-fg-subtle">
                   Actions
                 </h4>
 
@@ -604,12 +604,12 @@ function ApplicantDrawer({
                   {applicant.cv_url ? (
                     <button
                       onClick={() => onPreviewCV(applicant.cv_url)}
-                      className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                      className="rounded-xl bg-fg px-4 py-2 text-sm font-medium text-background hover:opacity-90"
                     >
                       Preview CV
                     </button>
                   ) : (
-                    <span className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400">
+                    <span className="rounded-xl bg-surface-active px-4 py-2 text-sm font-medium text-fg-subtle">
                       No CV Available
                     </span>
                   )}
@@ -659,8 +659,8 @@ function ApplicantDrawer({
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-fg-subtle">
                   Update Status
                 </h4>
 
@@ -668,7 +668,7 @@ function ApplicantDrawer({
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none focus:border-black focus:ring-2 focus:ring-black/10 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-surface-active"
                     disabled={isLocked}
                   >
                     {STATUS_OPTIONS.map((option) => (
@@ -685,15 +685,15 @@ function ApplicantDrawer({
                       selectedStatus === applicant.status ||
                       isLocked
                     }
-                    className="rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-2xl bg-fg px-5 py-3 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {changingStatus ? "Updating..." : "Update Status"}
                   </button>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-fg-subtle">
                   HR Remarks
                 </h4>
 
@@ -705,20 +705,20 @@ function ApplicantDrawer({
                       if (remarkError) setRemarkError("");
                     }}
                     placeholder="Write HR remarks here..."
-                    className={`min-h-30 w-full rounded-2xl border px-4 py-3 outline-none focus:ring-2 ${
+                    className={`min-h-30 w-full rounded-2xl border bg-surface px-4 py-3 text-fg outline-none focus:ring-2 ${
                       remarkError
                         ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                        : "border-gray-300 focus:border-black focus:ring-black/10"
+                        : "border-border focus:border-primary focus:ring-primary/20"
                     }`}
                   />
                   {remarkError && (
                     <p className="text-sm text-red-600">{remarkError}</p>
                   )}
 
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4">
+                    <label className="mb-2 block text-sm font-medium text-fg-muted">
                       Upload Image{" "}
-                      <span className="text-gray-400">(optional)</span>
+                      <span className="text-fg-subtle">(optional)</span>
                     </label>
 
                     <input
@@ -735,21 +735,21 @@ function ApplicantDrawer({
                           setRemarkImagePreview("");
                         }
                       }}
-                      className="block w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm outline-none"
+                      className="block w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm outline-none"
                     />
 
-                    <p className="mt-2 text-xs text-gray-500">
+                    <p className="mt-2 text-xs text-fg-subtle">
                       You can save a text remark, an image, or both.
                     </p>
 
                     {remarkImage && (
-                      <div className="mt-4 rounded-2xl border border-gray-200 bg-white p-3">
+                      <div className="mt-4 rounded-2xl border border-border bg-surface p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-gray-900">
+                            <p className="truncate text-sm font-medium text-fg">
                               {remarkImage.name}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-fg-subtle">
                               {(remarkImage.size / 1024 / 1024).toFixed(2)} MB
                             </p>
                           </div>
@@ -760,7 +760,7 @@ function ApplicantDrawer({
                               setRemarkImage(null);
                               setRemarkImagePreview("");
                             }}
-                            className="rounded-lg px-3 py-1 text-sm text-gray-600 hover:bg-gray-100"
+                            className="rounded-lg px-3 py-1 text-sm text-fg-muted hover:bg-surface-hover"
                           >
                             Remove
                           </button>
@@ -771,7 +771,7 @@ function ApplicantDrawer({
                             <img
                               src={remarkImagePreview}
                               alt="Selected remark upload"
-                              className="max-h-60 rounded-2xl border border-gray-200 object-contain"
+                              className="max-h-60 rounded-2xl border border-border object-contain"
                             />
                           </div>
                         )}
@@ -783,7 +783,7 @@ function ApplicantDrawer({
                     <button
                       onClick={onSaveRemark}
                       disabled={savingRemark}
-                      className="rounded-xl bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="rounded-xl bg-fg px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {savingRemark ? "Saving..." : "Save Remark"}
                     </button>
@@ -791,8 +791,8 @@ function ApplicantDrawer({
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+                <h4 className="mb-4 text-sm font-semibold uppercase tracking-wide text-fg-subtle">
                   Remark History
                 </h4>
 
@@ -801,21 +801,21 @@ function ApplicantDrawer({
                     {applicant.remarks.map((remark) => (
                       <div
                         key={remark.id}
-                        className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                        className="rounded-2xl border border-border bg-surface-hover p-4"
                       >
                         <div className="mb-2 flex items-center justify-between gap-3">
-                          <span className="text-md font-extrabold underline uppercase tracking-wide text-black">
+                          <span className="text-md font-extrabold underline uppercase tracking-wide text-fg">
                             {remark.status
                               ? prettifyStatus(remark.status)
                               : "Remark"}
                           </span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-fg-subtle">
                             {formatDate(remark.created_at)}
                           </span>
                         </div>
 
                         {remark.remark && (
-                          <p className="text-sm text-gray-700">
+                          <p className="text-sm text-fg-muted">
                             {remark.remark}
                           </p>
                         )}
@@ -832,10 +832,10 @@ function ApplicantDrawer({
                               <img
                                 src={getFileUrl(remark.image_url)}
                                 alt="Remark attachment"
-                                className="max-h-72 rounded-2xl border border-gray-200 object-contain transition hover:opacity-90"
+                                className="max-h-72 rounded-2xl border border-border object-contain transition hover:opacity-90"
                               />
                             </button>
-                            <p className="mt-2 text-xs text-gray-500">
+                            <p className="mt-2 text-xs text-fg-subtle">
                               Click image to preview
                             </p>
                           </div>
@@ -844,7 +844,7 @@ function ApplicantDrawer({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
                     No remarks yet.
                   </div>
                 )}
@@ -878,7 +878,7 @@ function ApplicantCard({
         if (!canDrag) return;
         onDragStart(applicant);
       }}
-      className={`rounded-2xl border border-gray-200 bg-white p-4 shadow-sm transition hover:shadow-md ${
+      className={`rounded-2xl border border-border bg-surface p-4 shadow-sm transition hover:shadow-md ${
         canDrag
           ? "cursor-grab active:cursor-grabbing"
           : "cursor-not-allowed opacity-90"
@@ -889,18 +889,18 @@ function ApplicantCard({
           <img
             src={selfieUrl || DefaultThumbnail}
             alt={`${applicant.first_name} ${applicant.middle_name} ${applicant.last_name} ${applicant.suffix || ""}`}
-            className="h-14 w-14 shrink-0 rounded-xl border border-gray-200 object-cover bg-gray-100"
+            className="h-14 w-14 shrink-0 rounded-xl border border-border object-cover bg-surface-hover"
             onError={(e) => {
               e.currentTarget.src = DefaultThumbnail;
             }}
           />
 
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold leading-tight text-gray-900 capitalize">
+            <h3 className="text-sm font-semibold leading-tight text-fg capitalize">
               {applicant.first_name} {applicant.middle_name}{" "}
               {applicant.last_name} {applicant.suffix || ""}
             </h3>
-            <p className="mt-1 truncate text-xs text-gray-500">
+            <p className="mt-1 truncate text-xs text-fg-subtle">
               {applicant.email}
             </p>
           </div>
@@ -915,7 +915,7 @@ function ApplicantCard({
         </div>
       )}
 
-      <div className="mt-4 space-y-2 text-sm text-gray-700">
+      <div className="mt-4 space-y-2 text-sm text-fg-muted">
         <p>
           <span className="font-medium">Position:</span>{" "}
           {applicant.position_applied || "-"}
@@ -943,7 +943,7 @@ function ApplicantCard({
       >
         <button
           onClick={() => onView(applicant.id)}
-          className="rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          className="rounded-xl border border-border px-3 py-2 text-sm font-medium text-fg-muted transition hover:bg-surface-hover"
         >
           View
         </button>
@@ -951,12 +951,12 @@ function ApplicantCard({
         {applicant.cv_url ? (
           <button
             onClick={() => onPreviewCV(applicant.cv_url)}
-            className="rounded-xl bg-black px-3 py-2 text-center text-sm font-medium text-white transition hover:bg-gray-800"
+            className="rounded-xl bg-fg px-3 py-2 text-center text-sm font-medium text-background transition hover:opacity-90"
           >
             CV
           </button>
         ) : (
-          <span className="rounded-xl bg-gray-100 px-3 py-2 text-center text-sm font-medium text-gray-400">
+          <span className="rounded-xl bg-surface-active px-3 py-2 text-center text-sm font-medium text-fg-subtle">
             No CV
           </span>
         )}
@@ -1017,13 +1017,13 @@ function ApplicantColumn({
       onDrop={() => onDropApplicant(columnKey)}
       className={`w-full rounded-3xl border p-4 transition ${
         columnStyles[columnKey]
-      } ${activeDropColumn === columnKey ? "ring-2 ring-black/20" : ""}`}
+      } ${activeDropColumn === columnKey ? "ring-2 ring-primary/20" : ""}`}
     >
-      <div className="sticky top-0 z-10 mb-4 rounded-2xl bg-white/80 px-1 py-1 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 mb-4 rounded-2xl bg-surface/80 px-1 py-1 backdrop-blur-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-lg font-bold text-fg">{title}</h2>
+            <p className="text-sm text-fg-subtle">
               {applicants.length} applicant(s)
             </p>
           </div>
@@ -1032,7 +1032,7 @@ function ApplicantColumn({
 
       <div className="min-h-55 max-h-160 space-y-3 overflow-y-auto pr-1">
         {applicants.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white/70 p-5 text-center text-sm text-gray-500">
+          <div className="rounded-2xl border border-dashed border-border bg-surface/70 p-5 text-center text-sm text-fg-subtle">
             No applicants here yet
           </div>
         ) : (
@@ -1053,7 +1053,7 @@ function ApplicantColumn({
 
       {applicants.length > COLUMN_INITIAL_LIMIT && (
         <div className="mt-4 flex items-center justify-between gap-2">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-fg-subtle">
             Showing {Math.min(visibleCount, applicants.length)} of{" "}
             {applicants.length}
           </p>
@@ -1062,7 +1062,7 @@ function ApplicantColumn({
             {canShowLess && (
               <button
                 onClick={onShowLess}
-                className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover"
               >
                 Show Less
               </button>
@@ -1071,7 +1071,7 @@ function ApplicantColumn({
             {hasMore && (
               <button
                 onClick={onShowMore}
-                className="rounded-xl bg-white px-3 py-2 text-sm font-medium text-gray-900 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50"
+                className="rounded-xl bg-surface px-3 py-2 text-sm font-medium text-fg shadow-sm ring-1 ring-border hover:bg-surface-hover"
               >
                 Show More
               </button>
@@ -1109,13 +1109,13 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
 
   return (
     <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/50 p-4">
-      <div className="h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="sticky top-0 z-10 mb-6 flex items-center justify-between border-b bg-white pb-4">
+      <div className="h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-surface p-6 shadow-2xl">
+        <div className="sticky top-0 z-10 mb-6 flex items-center justify-between border-b border-border bg-surface pb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-fg">
               Onboarding Form Review
             </h2>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-fg-subtle">
               {applicant?.first_name} {applicant?.last_name} •{" "}
               {applicant?.position_applied || "-"}
             </p>
@@ -1123,14 +1123,14 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
 
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+            className="rounded-lg px-3 py-1 text-fg-muted hover:bg-surface-hover"
           >
             ✕
           </button>
         </div>
 
         {loading ? (
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-gray-500">
+          <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-fg-subtle">
             Loading onboarding form...
           </div>
         ) : !data || !onboarding ? (
@@ -1139,8 +1139,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Applicant Summary
               </h3>
 
@@ -1181,8 +1181,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Basic / Personal Information
               </h3>
 
@@ -1259,8 +1259,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Family Information
               </h3>
 
@@ -1280,8 +1280,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Emergency Contact
               </h3>
 
@@ -1301,8 +1301,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Education
               </h3>
 
@@ -1311,9 +1311,9 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   education.map((item, index) => (
                     <div
                       key={item.id || index}
-                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      className="rounded-2xl border border-border bg-surface-hover p-4"
                     >
-                      <div className="mb-3 text-sm font-semibold text-gray-900">
+                      <div className="mb-3 text-sm font-semibold text-fg">
                         Record #{index + 1}
                       </div>
 
@@ -1346,15 +1346,15 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
                     No education records.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Employment History
               </h3>
 
@@ -1363,9 +1363,9 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   employment.map((item, index) => (
                     <div
                       key={item.id || index}
-                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      className="rounded-2xl border border-border bg-surface-hover p-4"
                     >
-                      <div className="mb-3 text-sm font-semibold text-gray-900">
+                      <div className="mb-3 text-sm font-semibold text-fg">
                         Record #{index + 1}
                       </div>
 
@@ -1402,15 +1402,15 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
                     No employment history.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Government Information
               </h3>
 
@@ -1428,8 +1428,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 References
               </h3>
 
@@ -1438,9 +1438,9 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   references.map((item, index) => (
                     <div
                       key={item.id || index}
-                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      className="rounded-2xl border border-border bg-surface-hover p-4"
                     >
-                      <div className="mb-3 text-sm font-semibold text-gray-900">
+                      <div className="mb-3 text-sm font-semibold text-fg">
                         Record #{index + 1}
                       </div>
 
@@ -1462,15 +1462,15 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
                     No references.
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Salary Information
               </h3>
 
@@ -1490,8 +1490,8 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-gray-900">
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">
                 Additional Questions
               </h3>
 
@@ -1500,19 +1500,19 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   questions.map((q, index) => (
                     <div
                       key={q.id || index}
-                      className="rounded-2xl border border-gray-200 bg-gray-50 p-4"
+                      className="rounded-2xl border border-border bg-surface-hover p-4"
                     >
-                      <p className="text-sm font-semibold text-gray-900">
+                      <p className="text-sm font-semibold text-fg">
                         {q.question_text}
                       </p>
-                      <p className="mt-2 text-sm text-gray-700">
+                      <p className="mt-2 text-sm text-fg-muted">
                         <span className="font-medium">Answer:</span>{" "}
                         {renderValue(responseMap[q.question_key])}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-500">
+                  <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
                     No additional questions.
                   </div>
                 )}
@@ -1530,18 +1530,18 @@ function ImagePreviewModal({ isOpen, imageUrl, onClose }) {
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/70 p-4">
-      <div className="relative w-full max-w-5xl rounded-3xl bg-white p-4 shadow-2xl">
+      <div className="relative w-full max-w-5xl rounded-3xl bg-surface p-4 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Image Preview</h2>
+          <h2 className="text-lg font-semibold text-fg">Image Preview</h2>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1 text-gray-700 hover:bg-gray-100"
+            className="rounded-lg px-3 py-1 text-fg-muted hover:bg-surface-hover"
           >
             ✕
           </button>
         </div>
 
-        <div className="flex max-h-[80vh] items-center justify-center overflow-auto rounded-2xl bg-gray-50 p-4">
+        <div className="flex max-h-[80vh] items-center justify-center overflow-auto rounded-2xl bg-surface-hover p-4">
           <img
             src={imageUrl}
             alt="Preview"
@@ -2006,13 +2006,13 @@ export default function ApplicantsPage() {
   return (
     <div>
       <div className="mx-auto max-w-450 space-y-6 px-4 py-4">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-fg">
                 Applicant Board
               </h1>
-              <p className="mt-1 text-gray-500">
+              <p className="mt-1 text-fg-subtle">
                 Manage and track applicants through the hiring pipeline.
               </p>
             </div>
@@ -2023,22 +2023,22 @@ export default function ApplicantsPage() {
                 placeholder="Search by name, email, position, contact..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-2xl border border-gray-300 px-4 py-3 outline-none transition focus:border-black focus:ring-2 focus:ring-black/10 sm:w-96"
+                className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-96"
               />
 
               <button
                 onClick={loadApplicants}
-                className="rounded-2xl bg-black px-5 py-3 font-medium text-white transition hover:bg-gray-800"
+                className="rounded-2xl bg-fg px-5 py-3 font-medium text-background transition hover:opacity-90"
               >
                 Refresh
               </button>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-gray-500">
+          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-fg-subtle">
             <span>
               Total records:{" "}
-              <span className="font-semibold text-gray-900">{stats.total}</span>
+              <span className="font-semibold text-fg">{stats.total}</span>
             </span>
 
             {search.trim() && (
@@ -2046,7 +2046,7 @@ export default function ApplicantsPage() {
                 <span>•</span>
                 <span>
                   Search results:{" "}
-                  <span className="font-semibold text-gray-900">
+                  <span className="font-semibold text-fg">
                     {filteredTotal}
                   </span>
                 </span>
@@ -2068,17 +2068,17 @@ export default function ApplicantsPage() {
         </div>
 
         {loading ? (
-          <div className="rounded-3xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
+          <div className="rounded-3xl border border-border bg-surface p-10 text-center text-fg-subtle shadow-sm">
             Loading applicants...
           </div>
         ) : (
           <div className="space-y-6">
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-fg">
                   Active Pipeline
                 </h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-fg-subtle">
                   New applicants and candidates in process
                 </p>
               </div>
@@ -2109,8 +2109,8 @@ export default function ApplicantsPage() {
 
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold text-gray-900">Outcomes</h2>
-                <p className="text-sm text-gray-500">
+                <h2 className="text-lg font-bold text-fg">Outcomes</h2>
+                <p className="text-sm text-fg-subtle">
                   Final or inactive candidate states
                 </p>
               </div>

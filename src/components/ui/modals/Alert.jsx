@@ -5,9 +5,9 @@ const Alert = ({ type = "success", message, onClose }) => {
     "px-4 py-3 rounded-lg shadow-md flex justify-between items-center";
 
   const variants = {
-    success: "bg-green-100 text-green-800 border border-green-400",
-    error: "bg-red-100 text-red-800 border border-red-400",
-    warning: "bg-yellow-100 text-yellow-800 border border-yellow-400",
+    success: "bg-success/15 text-success border border-success/30",
+    error: "bg-danger/15 text-danger border border-danger/30",
+    warning: "bg-warning/15 text-warning border border-warning/30",
   };
 
   return (

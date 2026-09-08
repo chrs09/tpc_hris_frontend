@@ -85,18 +85,18 @@ export default function SearchableMultiSelect({
         onClick={() => !disabled && setOpen(true)}
         className={`min-h-9.5 w-full rounded-md border px-2 py-1 cursor-pointer ${
           disabled
-            ? "bg-slate-100 text-slate-400"
-            : "border-transparent bg-transparent hover:border-amber-300"
+            ? "bg-surface-hover text-fg-subtle border-border"
+            : "border-transparent bg-transparent hover:border-primary/50"
         }`}
       >
         {value.length === 0 ? (
-          <span className="text-slate-400">{placeholder}</span>
+          <span className="text-fg-subtle">{placeholder}</span>
         ) : (
           <div className="flex flex-wrap gap-1">
             {value.map((item) => (
               <span
                 key={item.id}
-                className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-700"
+                className="rounded bg-primary/15 px-2 py-0.5 text-xs text-primary"
               >
                 {item.label}
               </span>
@@ -116,21 +116,21 @@ export default function SearchableMultiSelect({
               left: rect.left,
               width: Math.max(rect.width, 260),
             }}
-            className="z-9999 rounded-lg border bg-white shadow-lg"
+            className="z-9999 rounded-lg border border-border bg-surface shadow-lg"
           >
-            <div className="border-b p-2">
+            <div className="border-b border-border p-2">
               <input
                 autoFocus
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search..."
-                className="w-full rounded border px-2 py-1 text-sm focus:outline-none"
+                className="w-full rounded border border-border bg-background px-2 py-1 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             <div className="max-h-60 overflow-auto">
               {filtered.length === 0 ? (
-                <div className="p-3 text-sm text-slate-400">No results</div>
+                <div className="p-3 text-sm text-fg-subtle">No results</div>
               ) : (
                 filtered.map((option) => {
                   const checked = isSelected(option);
@@ -143,7 +143,7 @@ export default function SearchableMultiSelect({
                       type="button"
                       onClick={() => toggleOption(option)}
                       disabled={limitReached}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-amber-50 ${
+                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-fg hover:bg-primary/10 ${
                         limitReached ? "cursor-not-allowed opacity-40" : ""
                       }`}
                     >
@@ -156,7 +156,7 @@ export default function SearchableMultiSelect({
               )}
             </div>
 
-            <div className="border-t px-3 py-2 text-xs text-slate-500">
+            <div className="border-t border-border px-3 py-2 text-xs text-fg-subtle">
               {disabled
                 ? "No helper required"
                 : `${value.length} / ${maxSelection} selected`}

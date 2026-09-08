@@ -195,9 +195,9 @@ export default function TripMaintenance() {
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold">Trip Management Maintenance</h1>
+        <h1 className="text-3xl font-bold text-fg">Trip Management Maintenance</h1>
 
-        <p className="text-gray-500 mt-1">
+        <p className="text-fg-muted mt-1">
           Manage vehicle units, trip categories, and future trip rates.
         </p>
       </div>
@@ -209,8 +209,8 @@ export default function TripMaintenance() {
           className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
           ${
             activeTab === "units"
-              ? "border-black bg-black text-white"
-              : "bg-white"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-surface text-fg"
           }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
@@ -232,8 +232,8 @@ export default function TripMaintenance() {
           className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
             ${
               activeTab === "rates"
-                ? "border-black bg-black text-white"
-                : "bg-white"
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-surface text-fg"
             }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
@@ -264,12 +264,12 @@ export default function TripMaintenance() {
               <div className="relative">
                 <Search
                   size={18}
-                  className="absolute left-3 top-3 text-gray-400"
+                  className="absolute left-3 top-3 text-fg-subtle"
                 />
                 <input
                   type="text"
                   placeholder="Search unit..."
-                  className="border rounded-lg pl-10 pr-4 py-2"
+                  className="border border-border rounded-lg pl-10 pr-4 py-2 bg-surface text-fg"
                 />
               </div>
 
@@ -285,7 +285,7 @@ export default function TripMaintenance() {
 
                   setShowUnitModal(true);
                 }}
-                className="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg flex items-center gap-2"
               >
                 <Plus size={18} />
                 Add Unit
@@ -299,8 +299,9 @@ export default function TripMaintenance() {
               <div
                 key={unit.id}
                 className="
-                    bg-white
+                    bg-surface
                     border
+                    border-border
                     rounded-2xl
                     p-5
                     hover:shadow-lg
@@ -308,6 +309,7 @@ export default function TripMaintenance() {
                     transition-all
                     duration-200
                     overflow-hidden
+                    text-fg
                   "
               >
                 <div className="h-1 bg-blue-500 -mx-5 -mt-5 mb-4" />
@@ -316,7 +318,7 @@ export default function TripMaintenance() {
                   <h3 className="font-bold text-lg">{unit.unit_code}</h3>
 
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-400">Plate:</span>
+                    <span className="text-xs text-fg-subtle">Plate:</span>
 
                     <span className="font-medium">{unit.plate_number}</span>
                   </div>
@@ -324,8 +326,8 @@ export default function TripMaintenance() {
                   <Truck size={20} />
                 </div>
 
-                <div className="mt-4 bg-gray-50 rounded-xl p-3">
-                  <p className="text-xs text-gray-500 mb-1">Description</p>
+                <div className="mt-4 bg-surface-hover rounded-xl p-3">
+                  <p className="text-xs text-fg-subtle mb-1">Description</p>
 
                   <p className="text-sm">{unit.description || "N/A"}</p>
                 </div>
@@ -336,8 +338,8 @@ export default function TripMaintenance() {
                         px-3 py-1
                         rounded-full
                         text-xs
-                        bg-green-100
-                        text-green-700
+                        bg-success/15
+                        text-success
                       "
                   >
                     Active
@@ -346,8 +348,8 @@ export default function TripMaintenance() {
                   <button
                     onClick={() => handleEditUnit(unit)}
                     className="
-                        text-blue-600
-                        hover:text-blue-800
+                        text-primary
+                        hover:text-primary-hover
                       "
                   >
                     <Pencil size={16} />
@@ -382,7 +384,7 @@ export default function TripMaintenance() {
 
                 setShowCategoryModal(true);
               }}
-              className="bg-black text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg flex items-center gap-2"
             >
               <Plus size={18} />
               Add Category
@@ -395,8 +397,9 @@ export default function TripMaintenance() {
               <div
                 key={rate.id}
                 className="
-                    bg-white
+                    bg-surface
                     border
+                    border-border
                     rounded-2xl
                     p-5
                     hover:shadow-lg
@@ -404,6 +407,7 @@ export default function TripMaintenance() {
                     transition-all
                     duration-200
                     overflow-hidden
+                    text-fg
                   "
               >
                 <div className="h-1 bg-emerald-500 -mx-5 -mt-5 mb-4" />
@@ -412,7 +416,7 @@ export default function TripMaintenance() {
                   <div>
                     <h3 className="font-bold text-lg">{rate.profile_name}</h3>
 
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-fg-muted">
                       {rate.helper_count} Helper(s)
                     </p>
                   </div>
@@ -421,32 +425,32 @@ export default function TripMaintenance() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-500">Driver 1st</p>
+                  <div className="bg-surface-hover rounded-xl p-3">
+                    <p className="text-xs text-fg-subtle">Driver 1st</p>
 
                     <p className="font-bold">
                       {formatCurrency(rate.driver_first_trip_rate)}
                     </p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-500">Driver Next Trip</p>
+                  <div className="bg-surface-hover rounded-xl p-3">
+                    <p className="text-xs text-fg-subtle">Driver Next Trip</p>
 
                     <p className="font-bold">
                       {formatCurrency(rate.driver_next_trip_rate)}
                     </p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-500">Helper First Trip</p>
+                  <div className="bg-surface-hover rounded-xl p-3">
+                    <p className="text-xs text-fg-subtle">Helper First Trip</p>
 
                     <p className="font-bold">
                       {formatCurrency(rate.helper_first_trip_rate)}
                     </p>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-500">Helper Next Trip</p>
+                  <div className="bg-surface-hover rounded-xl p-3">
+                    <p className="text-xs text-fg-subtle">Helper Next Trip</p>
 
                     <p className="font-bold">
                       {formatCurrency(rate.helper_next_trip_rate)}
@@ -460,8 +464,8 @@ export default function TripMaintenance() {
                     className="
                         p-2
                         rounded-lg
-                        hover:bg-blue-50
-                        text-blue-600
+                        hover:bg-primary/10
+                        text-primary
                       "
                   >
                     <Pencil size={18} />
@@ -481,7 +485,7 @@ export default function TripMaintenance() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Unit Code</label>
+            <label className="block text-sm font-medium mb-1 text-fg">Unit Code</label>
 
             <input
               value={vehicleForm.unit_code}
@@ -491,13 +495,13 @@ export default function TripMaintenance() {
                   unit_code: e.target.value,
                 })
               }
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="ELF-01"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 text-fg">
               Plate Number
             </label>
 
@@ -509,13 +513,13 @@ export default function TripMaintenance() {
                   plate_number: e.target.value,
                 })
               }
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="ABC-1234"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block text-sm font-medium mb-1 text-fg">
               Description
             </label>
 
@@ -527,7 +531,7 @@ export default function TripMaintenance() {
                   description: e.target.value,
                 })
               }
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="Isuzu Elf"
             />
           </div>
@@ -543,7 +547,7 @@ export default function TripMaintenance() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Category</label>
+            <label className="block text-sm font-medium mb-1 text-fg">Category</label>
 
             <input
               value={rateForm.profile_name}
@@ -553,13 +557,13 @@ export default function TripMaintenance() {
                   profile_name: e.target.value,
                 })
               }
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="CPDC"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Helpers</label>
+            <label className="block text-sm font-medium mb-1 text-fg">Helpers</label>
 
             <select
               value={rateForm.helper_count}
@@ -569,7 +573,7 @@ export default function TripMaintenance() {
                   helper_count: parseInt(e.target.value),
                 })
               }
-              className="w-full border rounded-lg px-3 py-2"
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
             >
               <option value="0">0</option>
               <option value="1">1</option>
@@ -579,7 +583,7 @@ export default function TripMaintenance() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Driver 1st Trip
               </label>
 
@@ -592,13 +596,13 @@ export default function TripMaintenance() {
                     driver_first_trip_rate: e.target.value,
                   })
                 }
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                 placeholder="565"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Driver Next Trip
               </label>
 
@@ -611,13 +615,13 @@ export default function TripMaintenance() {
                     driver_next_trip_rate: e.target.value,
                   })
                 }
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                 placeholder="300"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Helper 1st Trip
               </label>
 
@@ -630,13 +634,13 @@ export default function TripMaintenance() {
                     helper_first_trip_rate: e.target.value,
                   })
                 }
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                 placeholder="217"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Helper Next Trip
               </label>
 
@@ -649,7 +653,7 @@ export default function TripMaintenance() {
                     helper_next_trip_rate: e.target.value,
                   })
                 }
-                className="w-full border rounded-lg px-3 py-2"
+                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                 placeholder="100"
               />
             </div>

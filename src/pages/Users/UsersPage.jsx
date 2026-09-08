@@ -71,34 +71,34 @@ const UsersPage = () => {
 
   if (!isSuperAdmin) {
     return (
-      <div className="p-8 text-red-500 font-semibold">
+      <div className="p-8 text-danger font-semibold">
         Access Denied. Superadmin only.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#f8fafc_0%,#f3f4f6_40%,#eef2f7_100%)] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl space-y-6">
         {/* ================= HEADER ================= */}
-        <div className="flex flex-col gap-4 rounded-3xl border border-gray-200 bg-white/90 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-3xl border border-border bg-surface/90 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-medium uppercase tracking-[0.24em] text-gray-500">
+            <p className="text-sm font-medium uppercase tracking-[0.24em] text-fg-subtle">
               Administration
             </p>
-            <h2 className="mt-1 text-2xl font-bold text-[#2b2b2b]">
+            <h2 className="mt-1 text-2xl font-bold text-fg">
               User Management
             </h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-fg-subtle">
               Manage access, roles, and account status in one place.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div className="flex items-center rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 shadow-sm">
+            <div className="flex items-center rounded-xl border border-border bg-surface-hover px-3 py-2 shadow-sm">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="mr-2 h-4 w-4 text-gray-400"
+                className="mr-2 h-4 w-4 text-fg-subtle"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -118,7 +118,7 @@ const UsersPage = () => {
                   setSearch(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-40 bg-transparent text-sm outline-none"
+                className="w-40 bg-transparent text-sm text-fg outline-none"
               />
             </div>
 
@@ -128,7 +128,7 @@ const UsersPage = () => {
                 setRoleFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none"
+              className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
             >
               <option value="all">All Roles</option>
               <option value="superadmin">Superadmin</option>
@@ -142,7 +142,7 @@ const UsersPage = () => {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm shadow-sm outline-none"
+              className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -150,7 +150,7 @@ const UsersPage = () => {
             </select>
 
             <Button
-              className="bg-[#2b2b2b] px-4 py-2 text-white shadow-sm transition hover:bg-[#4a4a4a]"
+              className="bg-primary px-4 py-2 text-primary-foreground shadow-sm transition hover:bg-primary-hover"
               onClick={() => {
                 setEditingUser(null);
                 setDrawerOpen(true);
@@ -163,7 +163,7 @@ const UsersPage = () => {
 
         {/* ================= SUCCESS BANNER ================= */}
         {generatedCredentials && (
-          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-green-800 shadow-sm">
+          <div className="rounded-2xl border border-success/30 bg-success/10 p-4 text-success shadow-sm">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="font-semibold">User Created Successfully</div>
@@ -187,35 +187,35 @@ const UsersPage = () => {
         )}
 
         {/* ================= USERS CONTAINER ================= */}
-        <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
           {/* ================= MOBILE ================= */}
           <div className="space-y-4 p-4 sm:hidden">
             {loading ? (
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+              <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-sm text-fg-subtle">
                 Loading users...
               </div>
             ) : paginatedUsers.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-sm text-gray-500">
+              <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-6 text-center text-sm text-fg-subtle">
                 No users match the current filters.
               </div>
             ) : (
               paginatedUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm"
+                  className="rounded-2xl border border-border bg-surface-hover p-4 shadow-sm"
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-semibold text-gray-800">
+                      <div className="font-semibold text-fg">
                         {user.username}
                       </div>
-                      <div className="text-xs text-gray-400">{user.email}</div>
+                      <div className="text-xs text-fg-subtle">{user.email}</div>
                     </div>
                     <span
                       className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
                         user.is_active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-600"
+                          ? "bg-success/15 text-success"
+                          : "bg-danger/15 text-danger"
                       }`}
                     >
                       {user.is_active ? "Active" : "Inactive"}
@@ -223,15 +223,15 @@ const UsersPage = () => {
                   </div>
 
                   <div className="mb-4 flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Role</span>
-                    <span className="text-sm font-medium capitalize text-gray-700">
+                    <span className="text-sm text-fg-subtle">Role</span>
+                    <span className="text-sm font-medium capitalize text-fg-muted">
                       {user.role}
                     </span>
                   </div>
 
                   <Button
                     size="sm"
-                    className="w-full bg-[#2b2b2b] text-white transition hover:bg-[#4a4a4a]"
+                    className="w-full bg-primary text-primary-foreground transition hover:bg-primary-hover"
                     onClick={() => {
                       setEditingUser(user);
                       setDrawerOpen(true);
@@ -247,14 +247,14 @@ const UsersPage = () => {
           {/* ================= DESKTOP ================= */}
           <div className="hidden p-6 sm:block">
             {loading ? (
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-10 text-center text-sm text-gray-500">
+              <div className="rounded-2xl border border-border bg-surface-hover p-10 text-center text-sm text-fg-subtle">
                 Loading users...
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-gray-200">
+              <div className="overflow-hidden rounded-2xl border border-border">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#2b2b2b] text-white">
-                    <tr className="text-xs uppercase tracking-wide text-white">
+                  <thead className="bg-surface-hover text-fg-muted">
+                    <tr className="text-xs uppercase tracking-wide">
                       <th className="px-6 py-4 text-left font-medium">User</th>
                       <th className="px-6 text-left font-medium">Role</th>
                       <th className="px-6 text-left font-medium">Status</th>
@@ -267,7 +267,7 @@ const UsersPage = () => {
                       <tr>
                         <td
                           colSpan="4"
-                          className="px-6 py-12 text-center text-gray-400"
+                          className="px-6 py-12 text-center text-fg-subtle"
                         >
                           No users found
                         </td>
@@ -276,26 +276,26 @@ const UsersPage = () => {
                       paginatedUsers.map((user) => (
                         <tr
                           key={user.id}
-                          className="border-t border-gray-200 transition hover:bg-gray-50"
+                          className="border-t border-border transition hover:bg-surface-hover"
                         >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-sm font-semibold text-gray-600">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-active text-sm font-semibold text-fg-muted">
                                 {user.username.charAt(0).toUpperCase()}
                               </div>
 
                               <div>
-                                <div className="font-medium text-gray-800 capitalize">
+                                <div className="font-medium text-fg capitalize">
                                   {user.username}
                                 </div>
-                                <div className="text-xs text-gray-400">
+                                <div className="text-xs text-fg-subtle">
                                   {user.email}
                                 </div>
                               </div>
                             </div>
                           </td>
 
-                          <td className="px-6 text-gray-600 capitalize">
+                          <td className="px-6 text-fg-muted capitalize">
                             {user.role}
                           </td>
 
@@ -303,8 +303,8 @@ const UsersPage = () => {
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                                 user.is_active
-                                  ? "bg-green-50 text-green-600"
-                                  : "bg-gray-100 text-gray-500"
+                                  ? "bg-success/15 text-success"
+                                  : "bg-surface-active text-fg-subtle"
                               }`}
                             >
                               {user.is_active ? "Active" : "Inactive"}
@@ -313,7 +313,7 @@ const UsersPage = () => {
 
                           <td className="px-6 text-right">
                             <button
-                              className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm transition hover:bg-gray-100"
+                              className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg transition hover:bg-surface-hover"
                               onClick={() => {
                                 setEditingUser(user);
                                 setDrawerOpen(true);
@@ -335,19 +335,19 @@ const UsersPage = () => {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((prev) => prev - 1)}
-                className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg-muted transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Prev
               </button>
 
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-fg-muted">
                 Page {currentPage} of {totalPages}
               </span>
 
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((prev) => prev + 1)}
-                className="rounded-lg border border-gray-300 px-4 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg-muted transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Next
               </button>

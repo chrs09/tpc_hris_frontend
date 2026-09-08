@@ -27,12 +27,12 @@ export default function EmployeeCard({ employee, onView }) {
     <button
       type="button"
       onClick={() => onView(employee.id)}
-      className="w-full text-left bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:bg-gray-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 hover:cursor-pointer"
+      className="w-full text-left bg-surface rounded-2xl border border-border p-5 shadow-sm hover:bg-surface-hover hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 hover:cursor-pointer"
     >
       {/* TOP */}
       <div className="flex items-center gap-4">
         {/* IMAGE */}
-        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-200 flex items-center justify-center text-sm font-bold text-gray-600">
+        <div className="w-14 h-14 rounded-2xl overflow-hidden bg-surface-active flex items-center justify-center text-sm font-bold text-fg-muted">
           {imageSrc ? (
             <img
               src={imageSrc}
@@ -51,11 +51,11 @@ export default function EmployeeCard({ employee, onView }) {
 
         {/* INFO */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-base font-semibold text-[#2b2b2b] truncate capitalize">
+          <h3 className="text-base font-semibold text-fg truncate capitalize">
             {fullName || "Unnamed Employee"}
           </h3>
 
-          <p className="text-sm text-gray-500 truncate">
+          <p className="text-sm text-fg-subtle truncate">
             {employee.position || "-"}
           </p>
         </div>
@@ -63,15 +63,15 @@ export default function EmployeeCard({ employee, onView }) {
 
       {/* TAGS */}
       <div className="mt-4 flex items-center justify-between">
-        <span className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600">
+        <span className="text-xs px-2 py-1 rounded-lg bg-surface-active text-fg-muted">
           {employee.department || "No Department"}
         </span>
 
         <span
           className={`text-xs px-2 py-1 rounded-lg ${
             employee.is_active
-              ? "bg-green-100 text-green-700"
-              : "bg-red-100 text-red-700"
+              ? "bg-success/15 text-success"
+              : "bg-danger/15 text-danger"
           }`}
         >
           {employee.is_active ? "Active" : "Inactive"}
@@ -79,9 +79,9 @@ export default function EmployeeCard({ employee, onView }) {
       </div>
 
       {/* FOOTER */}
-      <div className="mt-3 pt-3 border-t text-xs text-gray-400 flex justify-between">
+      <div className="mt-3 pt-3 border-t border-border text-xs text-fg-subtle flex justify-between">
         <span>ID: {employee.id}</span>
-        <span className="text-[#2b2b2b] font-medium">View →</span>
+        <span className="text-fg font-medium">View →</span>
       </div>
     </button>
   );

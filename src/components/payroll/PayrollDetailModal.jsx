@@ -273,18 +273,18 @@ const PayrollDetailModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
         {/* Header */}
-        <div className="flex justify-between items-center border-b p-5">
+        <div className="flex justify-between items-center border-b border-border p-5">
           <div>
             <h2 className="text-xl font-bold">Payroll Details</h2>
 
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-fg-subtle">
               {payroll.employee.first_name} {payroll.employee.last_name}
             </p>
           </div>
 
-          <button onClick={onClose} className="text-gray-500 hover:text-black">
+          <button onClick={onClose} className="text-fg-subtle hover:text-fg">
             ✕
           </button>
         </div>
@@ -293,28 +293,28 @@ const PayrollDetailModal = ({
         <div className="p-5 space-y-6">
           {/* Payroll Information */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="border rounded-lg p-3">
-              <p className="text-xs text-gray-500">Payroll Type</p>
+            <div className="border border-border rounded-lg p-3">
+              <p className="text-xs text-fg-subtle">Payroll Type</p>
 
               <p className="font-semibold">{payroll.payrollType}</p>
             </div>
 
-            <div className="border rounded-lg p-3">
-              <p className="text-xs text-gray-500">Cutoff</p>
+            <div className="border border-border rounded-lg p-3">
+              <p className="text-xs text-fg-subtle">Cutoff</p>
 
               <p className="font-semibold">{activePeriod.cutoffStart}</p>
 
               <p className="font-semibold">{activePeriod.cutoffEnd}</p>
             </div>
 
-            <div className="border rounded-lg p-3">
-              <p className="text-xs text-gray-500">Payout Date</p>
+            <div className="border border-border rounded-lg p-3">
+              <p className="text-xs text-fg-subtle">Payout Date</p>
 
               <p className="font-semibold">{activePeriod.payoutDate}</p>
             </div>
 
-            <div className="border rounded-lg p-3">
-              <p className="text-xs text-gray-500">Daily Rate</p>
+            <div className="border border-border rounded-lg p-3">
+              <p className="text-xs text-fg-subtle">Daily Rate</p>
 
               <p className="font-semibold">
                 ₱{Number(payroll.dailyRate).toLocaleString()}
@@ -328,22 +328,22 @@ const PayrollDetailModal = ({
               <h3 className="font-semibold mb-3">Trip Payroll Summary</h3>
 
               <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                <div className="border rounded-lg p-2 sm:p-3">
-                  <p className="text-xs text-gray-500">Total Trips</p>
+                <div className="border border-border rounded-lg p-2 sm:p-3">
+                  <p className="text-xs text-fg-subtle">Total Trips</p>
                   <p className="font-bold text-base sm:text-xl">
                     {payroll.totalTrips}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-2 sm:p-3">
-                  <p className="text-xs text-gray-500">Trip Pay</p>
+                <div className="border border-border rounded-lg p-2 sm:p-3">
+                  <p className="text-xs text-fg-subtle">Trip Pay</p>
                   <p className="font-bold text-base sm:text-xl text-green-700">
                     ₱{Number(payroll.tripPay || 0).toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-2 sm:p-3">
-                  <p className="text-xs text-gray-500">Gross Payroll</p>
+                <div className="border border-border rounded-lg p-2 sm:p-3">
+                  <p className="text-xs text-fg-subtle">Gross Payroll</p>
                   <p className="font-bold text-base sm:text-xl text-green-700">
                     ₱{Number(payroll.grossPay || 0).toFixed(2)}
                   </p>
@@ -355,60 +355,60 @@ const PayrollDetailModal = ({
               <h3 className="font-semibold mb-3">Payroll Summary</h3>
 
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Days Worked</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Days Worked</p>
 
                   <p className="font-bold">{payroll.daysWorked}</p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Hours Rendered</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Hours Rendered</p>
 
                   <p className="font-bold">
                     {Number(payroll.renderedHours || 0).toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Regular Hours</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Regular Hours</p>
 
                   <p className="font-bold">
                     {Number(payroll.regularHours || 0).toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Undertime</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Undertime</p>
 
                   <p className="font-bold text-red-600">
                     {payroll.undertimeHours?.toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">UT Deduction</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">UT Deduction</p>
 
                   <p className="font-bold text-red-600">
                     ₱{payroll.undertimeDeduction?.toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">OT Hours</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">OT Hours</p>
 
                   <p className="font-bold">
                     {Number(payroll.otHours || 0).toFixed(2)}
                   </p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">Basic Pay</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Basic Pay</p>
 
                   <p className="font-bold">₱{payroll.basicPay.toFixed(2)}</p>
                 </div>
 
-                <div className="border rounded-lg p-3">
-                  <p className="text-xs text-gray-500">OT Pay</p>
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">OT Pay</p>
 
                   <p className="font-bold">₱{payroll.otPay.toFixed(2)}</p>
                 </div>
@@ -417,8 +417,8 @@ const PayrollDetailModal = ({
           )}
 
           {/* Gross */}
-          <div className="border rounded-xl p-5 bg-green-50">
-            <p className="text-sm text-gray-500">Gross Payroll</p>
+          <div className="border border-success/30 rounded-xl p-5 bg-success/10">
+            <p className="text-sm text-fg-subtle">Gross Payroll</p>
 
             <p className="text-3xl font-bold text-green-700">
               ₱{payroll.grossPay.toFixed(2)}
@@ -435,24 +435,24 @@ const PayrollDetailModal = ({
                 {payroll.tripBreakdown?.map((trip, index) => (
                   <div
                     key={index}
-                    className={`rounded-lg border p-3 ${
-                      trip.isFirstTrip ? "" : "bg-yellow-50"
+                    className={`rounded-lg border border-border p-3 ${
+                      trip.isFirstTrip ? "" : "bg-warning/10"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="text-xs text-gray-500">{trip.date}</p>
+                        <p className="text-xs text-fg-subtle">{trip.date}</p>
                         <p className="font-semibold">
                           #{trip.tripSequence} · {trip.ticket_no}
                         </p>
                       </div>
 
                       {trip.isFirstTrip ? (
-                        <span className="shrink-0 px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">
+                        <span className="shrink-0 px-2 py-1 rounded bg-success/15 text-success text-xs font-semibold">
                           First Trip
                         </span>
                       ) : (
-                        <span className="shrink-0 px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                        <span className="shrink-0 px-2 py-1 rounded bg-warning/15 text-warning text-xs font-semibold">
                           Succeeding Trip
                         </span>
                       )}
@@ -460,30 +460,30 @@ const PayrollDetailModal = ({
 
                     <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                       <div>
-                        <span className="text-xs text-gray-400">Vehicle</span>
+                        <span className="text-xs text-fg-subtle">Vehicle</span>
                         <p>{trip.vehicle_unit}</p>
                       </div>
 
                       <div>
-                        <span className="text-xs text-gray-400">Plate #</span>
+                        <span className="text-xs text-fg-subtle">Plate #</span>
                         <p>{trip.plate_number}</p>
                       </div>
 
                       <div className="col-span-2">
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-fg-subtle">
                           Rate Profile
                         </span>
                         <p>{trip.trip_rate_profile}</p>
                       </div>
                     </div>
 
-                    <div className="mt-2 border-t pt-2 text-right font-semibold">
+                    <div className="mt-2 border-t border-border pt-2 text-right font-semibold">
                       ₱{Number(trip.rate || 0).toFixed(2)}
                     </div>
                   </div>
                 ))}
 
-                <div className="rounded-lg border bg-gray-100 p-3 flex items-center justify-between font-bold">
+                <div className="rounded-lg border border-border bg-surface-hover p-3 flex items-center justify-between font-bold">
                   <span>Total Payroll</span>
                   <span className="text-green-700">
                     ₱{Number(payroll.tripPay || 0).toFixed(2)}
@@ -493,17 +493,17 @@ const PayrollDetailModal = ({
 
               {/* DESKTOP: table */}
               <div className="hidden overflow-x-auto md:block">
-                <table className="w-full border">
-                  <thead className="bg-gray-100">
+                <table className="w-full border border-border">
+                  <thead className="bg-surface-hover">
                     <tr>
-                      <th className="border px-3 py-2">Date</th>
-                      <th className="border px-3 py-2">Trip #</th>
-                      <th className="border px-3 py-2">Ticket No</th>
-                      <th className="border px-3 py-2">Vehicle</th>
-                      <th className="border px-3 py-2">Plate Number</th>
-                      <th className="border px-3 py-2">Rate Profile</th>
-                      <th className="border px-3 py-2">Trip Sequence</th>
-                      <th className="border px-3 py-2">Rate</th>
+                      <th className="border border-border px-3 py-2">Date</th>
+                      <th className="border border-border px-3 py-2">Trip #</th>
+                      <th className="border border-border px-3 py-2">Ticket No</th>
+                      <th className="border border-border px-3 py-2">Vehicle</th>
+                      <th className="border border-border px-3 py-2">Plate Number</th>
+                      <th className="border border-border px-3 py-2">Rate Profile</th>
+                      <th className="border border-border px-3 py-2">Trip Sequence</th>
+                      <th className="border border-border px-3 py-2">Rate</th>
                     </tr>
                   </thead>
 
@@ -511,41 +511,41 @@ const PayrollDetailModal = ({
                     {payroll.tripBreakdown?.map((trip, index) => (
                       <tr
                         key={index}
-                        className={trip.isFirstTrip ? "" : "bg-yellow-50"}
+                        className={trip.isFirstTrip ? "" : "bg-warning/10"}
                       >
-                        <td className="border px-3 py-2">{trip.date}</td>
+                        <td className="border border-border px-3 py-2">{trip.date}</td>
 
-                        <td className="border px-3 py-2 text-center font-semibold">
+                        <td className="border border-border px-3 py-2 text-center font-semibold">
                           #{trip.tripSequence}
                         </td>
 
-                        <td className="border px-3 py-2">{trip.ticket_no}</td>
+                        <td className="border border-border px-3 py-2">{trip.ticket_no}</td>
 
-                        <td className="border px-3 py-2">
+                        <td className="border border-border px-3 py-2">
                           {trip.vehicle_unit}
                         </td>
 
-                        <td className="border px-3 py-2">
+                        <td className="border border-border px-3 py-2">
                           {trip.plate_number}
                         </td>
 
-                        <td className="border px-3 py-2">
+                        <td className="border border-border px-3 py-2">
                           {trip.trip_rate_profile}
                         </td>
 
-                        <td className="border px-3 py-2">
+                        <td className="border border-border px-3 py-2">
                           {trip.isFirstTrip ? (
-                            <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-semibold">
+                            <span className="px-2 py-1 rounded bg-success/15 text-success text-xs font-semibold">
                               First Trip
                             </span>
                           ) : (
-                            <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-700 text-xs font-semibold">
+                            <span className="px-2 py-1 rounded bg-warning/15 text-warning text-xs font-semibold">
                               Succeeding Trip
                             </span>
                           )}
                         </td>
 
-                        <td className="border px-3 py-2 font-semibold">
+                        <td className="border border-border px-3 py-2 font-semibold">
                           ₱{Number(trip.rate || 0).toFixed(2)}
                         </td>
                       </tr>
@@ -554,11 +554,11 @@ const PayrollDetailModal = ({
 
                   <tfoot>
                     <tr>
-                      <td colSpan={7} className="border px-3 py-2 font-bold">
+                      <td colSpan={7} className="border border-border px-3 py-2 font-bold">
                         Total Payroll
                       </td>
 
-                      <td className="border px-3 py-2 font-bold text-green-700">
+                      <td className="border border-border px-3 py-2 font-bold text-green-700">
                         ₱{Number(payroll.tripPay || 0).toFixed(2)}
                       </td>
                     </tr>
@@ -576,8 +576,8 @@ const PayrollDetailModal = ({
                   ({ record, result, workedHours, regularHours, otHours, hasAttendanceWarning }) => (
                     <div
                       key={record.id}
-                      className={`rounded-lg border p-3 ${
-                        hasAttendanceWarning ? "bg-yellow-50" : ""
+                      className={`rounded-lg border border-border p-3 ${
+                        hasAttendanceWarning ? "bg-warning/10" : ""
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
@@ -585,14 +585,14 @@ const PayrollDetailModal = ({
                           <p className="font-semibold">
                             {record.attendance_date}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-fg-subtle">
                             {new Date(
                               record.attendance_date + "T00:00:00",
                             ).toLocaleDateString("en-US", {
                               weekday: "long",
                             })}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-fg-subtle">
                             Schedule:{" "}
                             <span className="font-semibold">
                               {result.scheduledTimeIn || "--"} -{" "}
@@ -601,14 +601,14 @@ const PayrollDetailModal = ({
                           </p>
                         </div>
 
-                        <span className="shrink-0 text-xs text-gray-500">
+                        <span className="shrink-0 text-xs text-fg-subtle">
                           {record.status}
                         </span>
                       </div>
 
                       <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                         <div>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-fg-subtle">
                             Time In
                           </span>
                           <p>
@@ -619,7 +619,7 @@ const PayrollDetailModal = ({
                         </div>
 
                         <div>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-fg-subtle">
                             Time Out
                           </span>
                           <p>
@@ -640,28 +640,28 @@ const PayrollDetailModal = ({
 
                       <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
                         <div>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-fg-subtle">
                             Hours Rendered
                           </span>
                           <p>{Number(workedHours || 0).toFixed(2)}</p>
                         </div>
 
                         <div>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-fg-subtle">
                             Regular Hours
                           </span>
                           <p>{Number(regularHours || 0).toFixed(2)}</p>
                         </div>
 
                         <div>
-                          <span className="text-xs text-gray-400">OT</span>
+                          <span className="text-xs text-fg-subtle">OT</span>
                           <p>{Number(otHours || 0).toFixed(2)}</p>
                         </div>
                       </div>
 
                       {otHours > 0 && (
                         <div className="mt-2">
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-fg-subtle">
                             Approved OT
                           </span>
                           <input
@@ -686,14 +686,14 @@ const PayrollDetailModal = ({
                                 [record.id]: value,
                               }));
                             }}
-                            className="mt-1 w-full border rounded px-2 py-1"
+                            className="mt-1 w-full border border-border rounded px-2 py-1 bg-surface text-fg"
                           />
                         </div>
                       )}
 
                       {(result.tardinessMinutes > 0 ||
                         result.undertimeMinutes > 0) && (
-                        <div className="mt-2 border-t pt-2 grid grid-cols-2 gap-2 text-sm text-red-600">
+                        <div className="mt-2 border-t border-border pt-2 grid grid-cols-2 gap-2 text-sm text-red-600">
                           {result.tardinessMinutes > 0 && (
                             <div>
                               <span className="text-xs text-red-400">
@@ -722,7 +722,7 @@ const PayrollDetailModal = ({
                 )}
 
                 {/* Totals summary card */}
-                <div className="rounded-lg border bg-gray-100 p-3 space-y-1 text-sm font-semibold">
+                <div className="rounded-lg border border-border bg-surface-hover p-3 space-y-1 text-sm font-semibold">
                   <p>Totals</p>
 
                   {(tableTotals.firstHalfAbsentHours > 0 ||
@@ -786,39 +786,39 @@ const PayrollDetailModal = ({
 
               {/* DESKTOP: table */}
               <div className="hidden overflow-x-auto md:block">
-                <table className="w-full border">
-                  <thead className="bg-gray-100">
+                <table className="w-full border border-border">
+                  <thead className="bg-surface-hover">
                     <tr>
-                      <th className="border px-3 py-2 text-center">Date</th>
+                      <th className="border border-border px-3 py-2 text-center">Date</th>
 
-                      <th className="border px-3 py-2 text-center">Time In</th>
+                      <th className="border border-border px-3 py-2 text-center">Time In</th>
 
-                      <th className="border px-3 py-2 text-center">Time Out</th>
+                      <th className="border border-border px-3 py-2 text-center">Time Out</th>
 
-                      <th className="border px-3 py-2 text-center">Status</th>
+                      <th className="border border-border px-3 py-2 text-center">Status</th>
 
-                      <th className="border px-3 py-2 text-center">
+                      <th className="border border-border px-3 py-2 text-center">
                         Half Day
                       </th>
 
-                      <th className="border px-3 py-2 text-center">
+                      <th className="border border-border px-3 py-2 text-center">
                         Hours Rendered
                       </th>
 
-                      <th className="border px-3 py-2 text-center">
+                      <th className="border border-border px-3 py-2 text-center">
                         Regular Hours
                       </th>
 
-                      <th className="border px-3 py-2 text-center">OT</th>
-                      <th className="border px-3 py-2 text-center">
+                      <th className="border border-border px-3 py-2 text-center">OT</th>
+                      <th className="border border-border px-3 py-2 text-center">
                         Approved OT
                       </th>
-                      <th className="border px-3 py-2 text-center">
+                      <th className="border border-border px-3 py-2 text-center">
                         Tardiness
                       </th>
-                      <th className="border px-3 py-2 text-center">UT</th>
-                      <th className="border px-3 py-2 text-center">Total</th>
-                      {/* <th className="border px-3 py-2 text-left">
+                      <th className="border border-border px-3 py-2 text-center">UT</th>
+                      <th className="border border-border px-3 py-2 text-center">Total</th>
+                      {/* <th className="border border-border px-3 py-2 text-left">
                           Trips
                       </th> */}
                     </tr>
@@ -836,13 +836,13 @@ const PayrollDetailModal = ({
                       }) => (
                         <tr
                           key={record.id}
-                          className={hasAttendanceWarning ? "bg-yellow-50" : ""}
+                          className={hasAttendanceWarning ? "bg-warning/10" : ""}
                         >
-                          <td className="border px-3 py-2">
+                          <td className="border border-border px-3 py-2">
                             <div className="flex flex-col gap-1">
                               <span>{record.attendance_date}</span>
 
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-fg-subtle">
                                 {new Date(
                                   record.attendance_date + "T00:00:00",
                                 ).toLocaleDateString("en-US", {
@@ -850,7 +850,7 @@ const PayrollDetailModal = ({
                                 })}
                               </span>
 
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-fg-subtle">
                                 Schedule:
                                 <p className="font-semibold inline-block ml-1">
                                   {result.scheduledTimeIn || "--"} -{" "}
@@ -860,21 +860,21 @@ const PayrollDetailModal = ({
                             </div>
                           </td>
 
-                          <td className="border px-3 py-2">
+                          <td className="border border-border px-3 py-2">
                             {["On Leave", "Absent"].includes(record.status)
                               ? "--"
                               : record.check_in_time || "--"}
                           </td>
 
-                          <td className="border px-3 py-2">
+                          <td className="border border-border px-3 py-2">
                             {["On Leave", "Absent"].includes(record.status)
                               ? "--"
                               : record.check_out_time || "--"}
                           </td>
 
-                          <td className="border px-3 py-2">{record.status}</td>
+                          <td className="border border-border px-3 py-2">{record.status}</td>
 
-                          <td className="border px-3 py-2 text-center">
+                          <td className="border border-border px-3 py-2 text-center">
                             {result.firstHalfAbsent ? (
                               <span className="font-semibold text-orange-600">
                                 1st Half Absent
@@ -884,22 +884,22 @@ const PayrollDetailModal = ({
                                 2nd Half Absent
                               </span>
                             ) : (
-                              <span className="text-gray-400">--</span>
+                              <span className="text-fg-subtle">--</span>
                             )}
                           </td>
 
-                          <td className="border px-3 py-2 text-center">
+                          <td className="border border-border px-3 py-2 text-center">
                             {Number(workedHours || 0).toFixed(2)}
                           </td>
 
-                          <td className="border px-3 py-2 text-center">
+                          <td className="border border-border px-3 py-2 text-center">
                             {Number(regularHours || 0).toFixed(2)}
                           </td>
 
-                          <td className="border px-3 py-2 text-center">
+                          <td className="border border-border px-3 py-2 text-center">
                             {Number(otHours || 0).toFixed(2)}
                           </td>
-                          <td className="border px-3 py-2 text-center">
+                          <td className="border border-border px-3 py-2 text-center">
                             {otHours > 0 ? (
                               <input
                                 type="number"
@@ -923,46 +923,46 @@ const PayrollDetailModal = ({
                                     [record.id]: value,
                                   }));
                                 }}
-                                className="w-20 border rounded px-2 py-1 text-center"
+                                className="w-20 border border-border rounded px-2 py-1 text-center bg-surface text-fg"
                               />
                             ) : (
                               "--"
                             )}
                           </td>
 
-                          <td className="border px-3 py-2 text-red-600">
+                          <td className="border border-border px-3 py-2 text-red-600">
                             {result.tardinessMinutes > 0
                               ? `${result.tardinessMinutes} mins (${result.tardinessHours.toFixed(2)} hr)`
                               : "--"}
                           </td>
 
-                          <td className="border px-3 py-2 text-red-600">
+                          <td className="border border-border px-3 py-2 text-red-600">
                             {result.undertimeMinutes > 0
                               ? `${result.undertimeMinutes} mins (${result.undertimeHours.toFixed(2)} hr)`
                               : "--"}
                           </td>
 
-                          <td className="border px-3 py-2 font-bold text-red-700">
+                          <td className="border border-border px-3 py-2 font-bold text-red-700">
                             {result.tardinessMinutes + result.undertimeMinutes >
                             0
                               ? `${result.tardinessMinutes + result.undertimeMinutes} mins (${((result.tardinessMinutes + result.undertimeMinutes) / 60).toFixed(2)} hr)`
                               : "--"}
                           </td>
-                          {/* <td className="border px-3 py-2">
+                          {/* <td className="border border-border px-3 py-2">
                                   {record.completed_trips}
                               </td> */}
                         </tr>
                       ),
                     )}
                   </tbody>
-                  <tfoot className="bg-gray-100 font-semibold">
+                  <tfoot className="bg-surface-hover font-semibold">
                     <tr>
-                      <td colSpan={4} className="border px-3 py-2">
+                      <td colSpan={4} className="border border-border px-3 py-2">
                         Totals
                       </td>
 
                       {/* Half-Day Absence Hours */}
-                      <td className="border px-3 py-2 text-center">
+                      <td className="border border-border px-3 py-2 text-center">
                         {tableTotals.firstHalfAbsentHours > 0 ||
                         tableTotals.secondHalfAbsentHours > 0 ? (
                           <div className="text-sm">
@@ -981,44 +981,44 @@ const PayrollDetailModal = ({
                             )}
                           </div>
                         ) : (
-                          <span className="text-gray-400">--</span>
+                          <span className="text-fg-subtle">--</span>
                         )}
                       </td>
 
                       {/* Hours Rendered */}
-                      <td className="border px-3 py-2">
+                      <td className="border border-border px-3 py-2">
                         {Number(tableTotals.rendered || 0).toFixed(2)}
                       </td>
 
                       {/* Regular Hours */}
-                      <td className="border px-3 py-2">
+                      <td className="border border-border px-3 py-2">
                         {Number(tableTotals.regular || 0).toFixed(2)}
                       </td>
 
                       {/* OT */}
-                      <td className="border px-3 py-2">
+                      <td className="border border-border px-3 py-2">
                         {Number(payroll.otHours || 0).toFixed(2)}
                       </td>
 
                       {/* Approved OT */}
-                      <td className="border px-3 py-2">
+                      <td className="border border-border px-3 py-2">
                         {approvedTotalValue.toFixed(2)}
                       </td>
 
                       {/* Deduction */}
-                      <td className="border px-3 py-2">
+                      <td className="border border-border px-3 py-2">
                         {tableTotals.tardiness > 0
                           ? `${tableTotals.tardiness} mins (${(tableTotals.tardiness / 60).toFixed(2)} hr)`
                           : "--"}
                       </td>
 
-                      <td className="border px-3 py-2">
+                      <td className="border border-border px-3 py-2">
                         {tableTotals.undertime > 0
                           ? `${tableTotals.undertime} mins (${(tableTotals.undertime / 60).toFixed(2)} hr)`
                           : "--"}
                       </td>
 
-                      <td className="border px-3 py-2 font-bold">
+                      <td className="border border-border px-3 py-2 font-bold">
                         {tableTotals.total > 0
                           ? `${tableTotals.total} mins (${(tableTotals.total / 60).toFixed(2)} hr)`
                           : "--"}
@@ -1047,7 +1047,7 @@ const PayrollDetailModal = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t p-4 flex justify-end gap-2">
+        <div className="border-t border-border p-4 flex justify-end gap-2">
           {!isTripBasedEmployee && (
             <button
               onClick={handleSaveOTApproval}
@@ -1058,7 +1058,7 @@ const PayrollDetailModal = ({
           )}
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+            className="px-4 py-2 rounded-lg bg-surface-hover hover:bg-surface-active"
           >
             Close
           </button>

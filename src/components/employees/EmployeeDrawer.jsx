@@ -250,14 +250,14 @@ export default function EmployeeDrawer({
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={handleClose} />
 
-      <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-white z-50 shadow-2xl overflow-y-auto">
-        <div className="p-6 border-b flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-black">Employee Details</h2>
+      <div className="fixed right-0 top-0 h-full w-full sm:w-175 bg-surface z-50 shadow-2xl overflow-y-auto">
+        <div className="p-6 border-b border-border flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-fg">Employee Details</h2>
 
           {employee.updated_at && (
-            <div className="mt-3 rounded-lg border bg-gray-50 px-4 py-2 text-xs text-gray-600">
+            <div className="mt-3 rounded-lg border border-border bg-surface-hover px-4 py-2 text-xs text-fg-muted">
               Updated by{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-fg">
                 {employee.updated_by_name || "Unknown"}
               </span>
               <br />
@@ -270,7 +270,7 @@ export default function EmployeeDrawer({
               <button
                 type="button"
                 onClick={handleEdit}
-                className="px-4 py-2 rounded-lg bg-[#2b2b2b] text-white hover:bg-[#444]"
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover"
               >
                 Edit
               </button>
@@ -279,7 +279,7 @@ export default function EmployeeDrawer({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-4 py-2 rounded-lg bg-[#2b2b2b] text-white hover:bg-[#444]"
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover"
                 >
                   Save
                 </button>
@@ -287,7 +287,7 @@ export default function EmployeeDrawer({
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 rounded-lg bg-gray-200 text-black hover:bg-gray-300"
+                  className="px-4 py-2 rounded-lg bg-surface-active text-fg hover:opacity-90"
                 >
                   Cancel
                 </button>
@@ -297,14 +297,14 @@ export default function EmployeeDrawer({
             <button
               type="button"
               onClick={handleClose}
-              className="text-xl text-gray-600 hover:text-black"
+              className="text-xl text-fg-muted hover:text-fg"
             >
               ✕
             </button>
           </div>
         </div>
 
-        <div className="border-b px-6">
+        <div className="border-b border-border px-6">
           <div className="flex space-x-6 overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -313,8 +313,8 @@ export default function EmployeeDrawer({
                 onClick={() => setActiveTab(tab.key)}
                 className={`py-4 text-sm whitespace-nowrap ${
                   activeTab === tab.key
-                    ? "text-[#2b2b2b] border-b-2 border-[#2b2b2b] font-semibold"
-                    : "text-gray-500 hover:text-[#2b2b2b]"
+                    ? "text-fg border-b-2 border-fg font-semibold"
+                    : "text-fg-subtle hover:text-fg"
                 }`}
               >
                 {tab.label}
@@ -338,26 +338,26 @@ export default function EmployeeDrawer({
 
       {showInactiveModal && (
         <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-semibold text-[#2b2b2b]">
+          <div className="w-full max-w-lg rounded-2xl bg-surface p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-fg">
               Set Employee as Inactive
             </h3>
 
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-fg-subtle">
               Please provide the required details before saving.
             </p>
 
             <div className="mt-5 space-y-4">
               <div>
-                <label className="mb-1 block text-sm text-black">
-                  Inactive Reason <span className="text-red-500">*</span>
+                <label className="mb-1 block text-sm text-fg">
+                  Inactive Reason <span className="text-danger">*</span>
                 </label>
                 <select
                   value={formData.inactive_reason || ""}
                   onChange={(e) =>
                     handleChange("inactive_reason", e.target.value)
                   }
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                 >
                   <option value="">Select reason</option>
                   <option value="RESIGNED">Resigned</option>
@@ -370,8 +370,8 @@ export default function EmployeeDrawer({
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-black">
-                  Inactive Date <span className="text-red-500">*</span>
+                <label className="mb-1 block text-sm text-fg">
+                  Inactive Date <span className="text-danger">*</span>
                 </label>
                 <input
                   type="date"
@@ -379,19 +379,19 @@ export default function EmployeeDrawer({
                   onChange={(e) =>
                     handleChange("inactive_date", e.target.value)
                   }
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-sm text-black">Remarks</label>
+                <label className="mb-1 block text-sm text-fg">Remarks</label>
                 <textarea
                   rows={3}
                   value={formData.inactive_remarks || ""}
                   onChange={(e) =>
                     handleChange("inactive_remarks", e.target.value)
                   }
-                  className="w-full border rounded-lg px-3 py-2"
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
                   placeholder="Optional remarks..."
                 />
               </div>
@@ -410,7 +410,7 @@ export default function EmployeeDrawer({
                     inactive_remarks: "",
                   }));
                 }}
-                className="px-4 py-2 rounded-lg bg-gray-200 text-black hover:bg-gray-300"
+                className="px-4 py-2 rounded-lg bg-surface-active text-fg hover:opacity-90"
               >
                 Cancel
               </button>
@@ -418,7 +418,7 @@ export default function EmployeeDrawer({
               <button
                 type="button"
                 onClick={() => setShowInactiveModal(false)}
-                className="px-4 py-2 rounded-lg bg-[#2b2b2b] text-white hover:bg-[#444]"
+                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover"
               >
                 Done
               </button>

@@ -4,7 +4,7 @@ import React from "react";
 export function Card({ children, className = "", ...props }) {
   return (
     <div
-      className={`border-0 rounded-lg shadow p-4 bg-white ${className}`}
+      className={`rounded-xl border border-border bg-surface p-4 text-fg shadow-sm ${className}`}
       {...props}
     >
       {children}
@@ -26,9 +26,17 @@ export function CardFooter({ children, className = "" }) {
 }
 
 export function CardDescription({ children, className = "" }) {
-  return <div className={`mt-2 text-2xl ${className}`}>{children}</div>;
+  return (
+    <div className={`mt-2 text-sm text-fg-muted ${className}`}>
+      {children}
+    </div>
+  );
 }
 
 export function CardTitle({ children, className = "" }) {
-  return <div className={`mt-2 ${className}`}>{children}</div>;
+  return (
+    <div className={`mt-2 text-lg font-semibold ${className}`}>
+      {children}
+    </div>
+  );
 }

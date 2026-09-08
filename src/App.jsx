@@ -112,8 +112,9 @@ const App = () => {
           duration: 3000,
           style: {
             borderRadius: "12px",
-            background: "#111",
-            color: "#fff",
+            background: "var(--surface)",
+            color: "var(--fg)",
+            border: "1px solid var(--border)",
             fontSize: "14px",
           },
           success: {

@@ -353,13 +353,13 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-60 px-3">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl p-5">
+      <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl p-5">
         <h2 className="text-lg font-bold mb-4">Selfie Attendance</h2>
 
         <select
           value={employeeId}
           onChange={(e) => setEmployeeId(e.target.value)}
-          className="w-full border rounded h-10 px-3 mb-3"
+          className="w-full border border-border bg-surface text-fg rounded h-10 px-3 mb-3"
         >
           <option value="">Select Employee</option>
 
@@ -376,13 +376,13 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
             autoPlay
             playsInline
             muted
-            className="w-full h-80 object-cover rounded-lg border bg-black"
+            className="w-full h-80 object-cover rounded-lg border border-border bg-black"
           />
         ) : (
           <img
             src={previewUrl}
             alt="Captured attendance proof"
-            className="w-full h-80 object-cover rounded-lg border"
+            className="w-full h-80 object-cover rounded-lg border border-border"
           />
         )}
 
@@ -402,7 +402,7 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
             value={detectingAddress ? "Detecting address..." : address}
             readOnly
             placeholder="Detecting address..."
-            className="w-full border rounded px-3 py-2 bg-gray-100 min-h-20 resize-none"
+            className="w-full border border-border bg-surface-hover rounded px-3 py-2 min-h-20 resize-none"
           />
         </div>
 

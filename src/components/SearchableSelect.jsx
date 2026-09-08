@@ -68,7 +68,7 @@ export default function SearchableSelect({
         onChange={(e) => {
           setQuery(e.target.value);
         }}
-        className="w-full rounded-md border border-transparent bg-transparent px-2.5 py-1.5 text-sm text-slate-800 focus:border-amber-400 focus:bg-amber-50/40 focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+        className="w-full rounded-md border border-transparent bg-transparent px-2.5 py-1.5 text-sm text-fg focus:border-primary focus:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
 
       {open &&
@@ -82,10 +82,10 @@ export default function SearchableSelect({
               left: rect.left,
               width: Math.max(rect.width, 220),
             }}
-            className="z-9999 max-h-60 overflow-auto rounded-lg border bg-white shadow-lg"
+            className="z-9999 max-h-60 overflow-auto rounded-lg border border-border bg-surface shadow-lg"
           >
             {filtered.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-gray-400">No results</div>
+              <div className="px-3 py-2 text-sm text-fg-subtle">No results</div>
             ) : (
               filtered.map((opt) => (
                 <button
@@ -96,8 +96,8 @@ export default function SearchableSelect({
                     setOpen(false);
                     setQuery("");
                   }}
-                  className={`block w-full px-3 py-2 text-left hover:bg-amber-50 ${
-                    value?.id === opt.id ? "bg-amber-50 text-amber-700" : ""
+                  className={`block w-full px-3 py-2 text-left text-fg hover:bg-primary/10 ${
+                    value?.id === opt.id ? "bg-primary/10 text-primary" : ""
                   }`}
                 >
                   {opt.label}

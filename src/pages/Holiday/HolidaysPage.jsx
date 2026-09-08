@@ -55,9 +55,9 @@ export default function HolidaysPage() {
   };
 
   const typeStyles = {
-    regular: "bg-slate-100 text-slate-600",
-    special_non_working: "bg-amber-50 text-amber-700",
-    special_working: "bg-sky-50 text-sky-700",
+    regular: "bg-surface-active text-fg-muted",
+    special_non_working: "bg-warning/15 text-warning",
+    special_working: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
   };
 
   return (
@@ -65,12 +65,12 @@ export default function HolidaysPage() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-slate-900">Holidays</h1>
+          <h1 className="text-xl font-semibold text-fg">Holidays</h1>
           <div className="relative">
             <select
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="appearance-none text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-full pl-3 pr-7 py-1 cursor-pointer hover:bg-slate-200 transition-colors focus:outline-none focus:ring-2 focus:ring-red-200"
+              className="appearance-none text-sm font-medium text-fg-muted bg-surface-hover border border-border rounded-full pl-3 pr-7 py-1 cursor-pointer hover:bg-surface-active transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
             >
               {Array.from({ length: 10 }, (_, i) => 2024 + i).map((y) => (
                 <option key={y} value={y}>
@@ -79,7 +79,7 @@ export default function HolidaysPage() {
               ))}
             </select>
             <svg
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-fg-subtle pointer-events-none"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -98,7 +98,7 @@ export default function HolidaysPage() {
           <button
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-600 border border-slate-300 rounded-lg px-3.5 py-2 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium text-fg-muted border border-border rounded-lg px-3.5 py-2 hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <svg
               className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`}
@@ -140,23 +140,23 @@ export default function HolidaysPage() {
       {/* MOBILE: card list */}
       <div className="space-y-3 md:hidden">
         {loading ? (
-          <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-sm text-slate-400">
+          <div className="bg-surface border border-border rounded-xl p-6 text-center text-sm text-fg-subtle">
             Loading holidays…
           </div>
         ) : holidays.length === 0 ? (
-          <div className="bg-white border border-dashed border-slate-300 rounded-xl p-6 text-center text-sm text-slate-400">
+          <div className="bg-surface border border-dashed border-border rounded-xl p-6 text-center text-sm text-fg-subtle">
             No holidays found for {year}
           </div>
         ) : (
           holidays.map((h) => (
             <div
               key={h.id}
-              className="bg-white border border-slate-200 rounded-xl shadow-sm p-4"
+              className="bg-surface border border-border rounded-xl shadow-sm p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs text-slate-400">{h.holiday_date}</p>
-                  <p className="font-medium text-slate-800">
+                  <p className="text-xs text-fg-subtle">{h.holiday_date}</p>
+                  <p className="font-medium text-fg">
                     {h.holiday_name}
                   </p>
                 </div>
@@ -165,7 +165,7 @@ export default function HolidaysPage() {
                   <button
                     onClick={() => setEditingHoliday(h)}
                     title="Edit holiday"
-                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-primary hover:bg-primary/10 transition-colors"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
@@ -174,7 +174,7 @@ export default function HolidaysPage() {
                     <button
                       onClick={() => handleDelete(h.id)}
                       title="Delete holiday"
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-danger hover:bg-danger/10 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -184,7 +184,7 @@ export default function HolidaysPage() {
 
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeStyles[h.holiday_type] || "bg-slate-100 text-slate-600"}`}
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeStyles[h.holiday_type] || "bg-surface-active text-fg-muted"}`}
                 >
                   {h.holiday_type.replace(/_/g, " ")}
                 </span>
@@ -192,8 +192,8 @@ export default function HolidaysPage() {
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                     h.source === "manual"
-                      ? "bg-red-50 text-red-600"
-                      : "bg-slate-100 text-slate-500"
+                      ? "bg-danger/15 text-danger"
+                      : "bg-surface-active text-fg-subtle"
                   }`}
                 >
                   {h.source === "manual"
@@ -203,7 +203,7 @@ export default function HolidaysPage() {
                     : "API"}
                 </span>
 
-                <span className="text-xs text-slate-500 capitalize">
+                <span className="text-xs text-fg-subtle capitalize">
                   {h.scope}
                   {h.city ? ` – ${h.city}` : ""}
                 </span>
@@ -214,23 +214,23 @@ export default function HolidaysPage() {
       </div>
 
       {/* DESKTOP: table */}
-      <div className="hidden md:block bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="hidden md:block bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-left">
-              <th className="px-5 py-3 font-medium text-slate-500 text-xs uppercase tracking-wide">
+            <tr className="bg-surface-hover border-b border-border text-left">
+              <th className="px-5 py-3 font-medium text-fg-subtle text-xs uppercase tracking-wide">
                 Date
               </th>
-              <th className="px-5 py-3 font-medium text-slate-500 text-xs uppercase tracking-wide">
+              <th className="px-5 py-3 font-medium text-fg-subtle text-xs uppercase tracking-wide">
                 Name
               </th>
-              <th className="px-5 py-3 font-medium text-slate-500 text-xs uppercase tracking-wide">
+              <th className="px-5 py-3 font-medium text-fg-subtle text-xs uppercase tracking-wide">
                 Type
               </th>
-              <th className="px-5 py-3 font-medium text-slate-500 text-xs uppercase tracking-wide">
+              <th className="px-5 py-3 font-medium text-fg-subtle text-xs uppercase tracking-wide">
                 Scope
               </th>
-              <th className="px-5 py-3 font-medium text-slate-500 text-xs uppercase tracking-wide">
+              <th className="px-5 py-3 font-medium text-fg-subtle text-xs uppercase tracking-wide">
                 Source
               </th>
               <th className="px-5 py-3"></th>
@@ -241,7 +241,7 @@ export default function HolidaysPage() {
               <tr>
                 <td
                   colSpan={6}
-                  className="px-5 py-10 text-center text-slate-400"
+                  className="px-5 py-10 text-center text-fg-subtle"
                 >
                   Loading holidays…
                 </td>
@@ -250,7 +250,7 @@ export default function HolidaysPage() {
               <tr>
                 <td
                   colSpan={6}
-                  className="px-5 py-10 text-center text-slate-400"
+                  className="px-5 py-10 text-center text-fg-subtle"
                 >
                   No holidays found for {year}
                 </td>
@@ -259,22 +259,22 @@ export default function HolidaysPage() {
               holidays.map((h) => (
                 <tr
                   key={h.id}
-                  className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60 transition-colors"
+                  className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors"
                 >
-                  <td className="px-5 py-3 text-slate-500 whitespace-nowrap">
+                  <td className="px-5 py-3 text-fg-subtle whitespace-nowrap">
                     {h.holiday_date}
                   </td>
-                  <td className="px-5 py-3 text-slate-800 font-medium">
+                  <td className="px-5 py-3 text-fg font-medium">
                     {h.holiday_name}
                   </td>
                   <td className="px-5 py-3">
                     <span
-                      className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeStyles[h.holiday_type] || "bg-slate-100 text-slate-600"}`}
+                      className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeStyles[h.holiday_type] || "bg-surface-active text-fg-muted"}`}
                     >
                       {h.holiday_type.replace(/_/g, " ")}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-slate-500 capitalize">
+                  <td className="px-5 py-3 text-fg-subtle capitalize">
                     {h.scope}
                     {h.city ? ` – ${h.city}` : ""}
                   </td>
@@ -282,8 +282,8 @@ export default function HolidaysPage() {
                     <span
                       className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                         h.source === "manual"
-                          ? "bg-red-50 text-red-600"
-                          : "bg-slate-100 text-slate-500"
+                          ? "bg-danger/15 text-danger"
+                          : "bg-surface-active text-fg-subtle"
                       }`}
                     >
                       {h.source === "manual"
@@ -298,7 +298,7 @@ export default function HolidaysPage() {
                       <button
                         onClick={() => setEditingHoliday(h)}
                         title="Edit holiday"
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-primary hover:bg-primary/10 transition-colors"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
@@ -307,7 +307,7 @@ export default function HolidaysPage() {
                         <button
                           onClick={() => handleDelete(h.id)}
                           title="Delete holiday"
-                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-danger hover:bg-danger/10 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

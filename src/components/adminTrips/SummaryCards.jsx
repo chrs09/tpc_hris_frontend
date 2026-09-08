@@ -1,12 +1,14 @@
 const SummaryCard = ({ label, value }) => (
   <div
     className="
-    bg-[#2b2b2b]
+    bg-surface
+    border
+    border-border
     rounded-xl
     px-4 py-4
     sm:px-5 sm:py-5
     md:px-6 md:py-6
-    shadow
+    shadow-sm
     transition-all
   "
   >
@@ -16,7 +18,7 @@ const SummaryCard = ({ label, value }) => (
       sm:text-2xl
       md:text-3xl
       font-bold
-      text-white
+      text-fg
     "
     >
       {value ?? 0}
@@ -26,7 +28,7 @@ const SummaryCard = ({ label, value }) => (
       className="
       text-xs
       sm:text-sm
-      text-gray-200
+      text-fg-muted
       mt-1
     "
     >

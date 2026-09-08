@@ -181,9 +181,9 @@ const getStatusStyle = (status) => {
   if (status === "No Attendance") {
     return {
       badge: "bg-gray-500 text-white",
-      border: "border-gray-300",
-      text: "text-gray-700",
-      card: "bg-gray-100",
+      border: "border-border",
+      text: "text-fg-muted",
+      card: "bg-surface-hover",
     };
   }
 
@@ -395,9 +395,9 @@ const AttendanceGridReview = ({
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Attendance Review</h2>
+        <h2 className="text-2xl font-bold text-fg">Attendance Review</h2>
 
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-fg-subtle">
           Review attendance selfies, profile photo comparison, and location
           details.
         </p>
@@ -467,7 +467,7 @@ const AttendanceGridReview = ({
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-5">
         <div>
           {!visibleRecords.length ? (
-            <div className="bg-white border rounded-xl p-10 text-center text-gray-500">
+            <div className="bg-surface border border-border rounded-xl p-10 text-center text-fg-subtle">
               No attendance records found.
             </div>
           ) : (
@@ -494,7 +494,7 @@ const AttendanceGridReview = ({
                       isSelected ? "ring-2 ring-blue-500" : ""
                     } ${style.card}`}
                   >
-                    <div className="relative h-32 sm:h-36 bg-gray-100">
+                    <div className="relative h-32 sm:h-36 bg-surface-hover">
                       {photo ? (
                         <img
                           src={photo}
@@ -507,7 +507,7 @@ const AttendanceGridReview = ({
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm text-gray-400">
+                        <div className="w-full h-full flex items-center justify-center text-sm text-fg-subtle">
                           {record.is_missing_attendance
                             ? "No Attendance"
                             : "No Selfie"}
@@ -522,7 +522,7 @@ const AttendanceGridReview = ({
 
                       {record.face_match_score !== null &&
                         record.face_match_score !== undefined && (
-                          <span className="absolute top-3 right-3 text-xs font-semibold rounded-full px-3 py-1 bg-white/90 text-blue-700">
+                          <span className="absolute top-3 right-3 text-xs font-semibold rounded-full px-3 py-1 bg-surface/90 text-blue-700">
                             {record.face_match_score}%
                           </span>
                         )}
@@ -530,16 +530,16 @@ const AttendanceGridReview = ({
 
                     <div className="flex flex-1 flex-col p-3 space-y-2 text-sm">
                       <div>
-                        <h3 className="font-bold text-gray-900 line-clamp-1">
+                        <h3 className="font-bold text-fg line-clamp-1">
                           {getName(record)}
                         </h3>
 
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-fg-subtle">
                           {getDepartment(record)}
                         </p>
                       </div>
 
-                      <div className="text-sm text-gray-600 space-y-1">
+                      <div className="text-sm text-fg-muted space-y-1">
                         <p>
                           <span className="font-medium">Time In:</span>{" "}
                           {getTimeIn(record)}
@@ -568,7 +568,7 @@ const AttendanceGridReview = ({
                             event.stopPropagation();
                             openRecordModal(record);
                           }}
-                          className="block w-full text-center rounded-lg bg-gray-900 text-white text-sm py-2"
+                          className="block w-full text-center rounded-lg bg-fg text-background hover:opacity-90 text-sm py-2"
                         >
                           View Details
                         </button>
@@ -581,21 +581,21 @@ const AttendanceGridReview = ({
           )}
         </div>
 
-        <aside className="hidden xl:block bg-white border rounded-xl h-fit overflow-hidden xl:sticky xl:top-5">
-          <div className="h-14 px-5 border-b flex items-center justify-between">
+        <aside className="hidden xl:block bg-surface border border-border rounded-xl h-fit overflow-hidden xl:sticky xl:top-5">
+          <div className="h-14 px-5 border-b border-border flex items-center justify-between">
             <h3 className="font-bold text-lg">Attendance Detail</h3>
 
             <button
               type="button"
               onClick={() => setSelectedRecordId(null)}
-              className="text-gray-400 hover:text-gray-700"
+              className="text-fg-subtle hover:text-fg-muted"
             >
               ✕
             </button>
           </div>
 
           {!activeRecord ? (
-            <div className="p-6 text-sm text-gray-500">
+            <div className="p-6 text-sm text-fg-subtle">
               Select an attendance record.
             </div>
           ) : (
@@ -611,16 +611,16 @@ const AttendanceGridReview = ({
 
       {modalRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:p-6">
-          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-surface shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <h3 className="text-lg font-semibold text-fg">
                 Attendance Detail
               </h3>
 
               <button
                 type="button"
                 onClick={closeRecordModal}
-                className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
+                className="rounded-lg bg-surface-hover px-3 py-2 text-sm font-medium text-fg-muted hover:bg-surface-active"
               >
                 Close
               </button>
@@ -643,25 +643,25 @@ const AttendanceGridReview = ({
 
 const AttendancePhotoBox = ({ label, photo, onClick }) => {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-      <div className="px-4 py-3 border-b bg-gray-50">
-        <h5 className="font-semibold text-gray-800">{label}</h5>
+    <div className="rounded-xl border border-border bg-surface overflow-hidden">
+      <div className="px-4 py-3 border-b border-border bg-surface-hover">
+        <h5 className="font-semibold text-fg">{label}</h5>
       </div>
 
       <button
         type="button"
         onClick={onClick}
         disabled={!photo}
-        className={`w-full aspect-video bg-gray-100 flex items-center justify-center ${
+        className={`w-full aspect-video bg-surface-hover flex items-center justify-center ${
           photo
-            ? "cursor-pointer hover:bg-gray-200 transition"
+            ? "cursor-pointer hover:bg-surface-active transition"
             : "cursor-default"
         }`}
       >
         {photo ? (
           <img src={photo} alt={label} className="w-full h-full object-cover" />
         ) : (
-          <span className="text-sm text-gray-400">No photo available</span>
+          <span className="text-sm text-fg-subtle">No photo available</span>
         )}
       </button>
     </div>
@@ -759,7 +759,7 @@ const AttendanceDetail = ({
     >
       {/* Employee Header */}
       <div className="flex gap-4 items-center">
-        <div className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100">
+        <div className="w-20 h-20 rounded-xl overflow-hidden bg-surface-hover">
           {profilePhoto || photo ? (
             <img
               src={profilePhoto || photo}
@@ -767,18 +767,18 @@ const AttendanceDetail = ({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+            <div className="w-full h-full flex items-center justify-center text-xs text-fg-subtle">
               No Photo
             </div>
           )}
         </div>
 
         <div>
-          <h4 className="font-bold text-gray-900">{getName(record)}</h4>
+          <h4 className="font-bold text-fg">{getName(record)}</h4>
 
-          <p className="text-sm text-gray-500">{getDepartment(record)}</p>
+          <p className="text-sm text-fg-subtle">{getDepartment(record)}</p>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-fg-subtle">
             Employee ID: {record.employee_id}
           </p>
         </div>
@@ -790,7 +790,7 @@ const AttendanceDetail = ({
       >
         <span className={`text-sm font-semibold ${style.text}`}>{status}</span>
 
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-fg-subtle">
           {record.attendance_method || "N/A"}
         </span>
       </div>
@@ -802,7 +802,7 @@ const AttendanceDetail = ({
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <PhotoBox label="Profile Photo" photo={profilePhoto} />
 
-          <span className="font-bold text-gray-900 text-lg">VS</span>
+          <span className="font-bold text-fg text-lg">VS</span>
 
           <PhotoBox label="Attendance Selfie" photo={photo} />
         </div>
@@ -811,9 +811,9 @@ const AttendanceDetail = ({
       {/* Attendance Photos */}
       <div className="border-t border-b py-4">
         <div>
-          <h4 className="font-bold text-gray-900">Attendance Photos</h4>
+          <h4 className="font-bold text-fg">Attendance Photos</h4>
 
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-fg-subtle mt-1">
             Click a photo to view it in full size.
           </p>
         </div>
@@ -860,7 +860,7 @@ const AttendanceDetail = ({
         {/* Editable Time */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-fg-muted mb-1">
               Time In
             </label>
 
@@ -869,12 +869,12 @@ const AttendanceDetail = ({
               value={editTimeIn}
               onChange={(event) => setEditTimeIn(event.target.value)}
               disabled={record.is_missing_attendance}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg disabled:bg-surface-hover disabled:text-fg-subtle"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-fg-muted mb-1">
               Time Out
             </label>
 
@@ -883,7 +883,7 @@ const AttendanceDetail = ({
               value={editTimeOut}
               onChange={(event) => setEditTimeOut(event.target.value)}
               disabled={record.is_missing_attendance}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg disabled:bg-surface-hover disabled:text-fg-subtle"
             />
           </div>
         </div>
@@ -897,7 +897,7 @@ const AttendanceDetail = ({
         {/* Absent / Leave Reason */}
         {isReasonEditable && (
           <div className="mt-3">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="block text-sm font-semibold text-fg-muted mb-1">
               Reason
             </label>
 
@@ -908,7 +908,7 @@ const AttendanceDetail = ({
               placeholder={`Enter reason for ${
                 getIsAbsent(record) ? "absence" : "leave"
               }...`}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 bg-white resize-none"
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg resize-none"
             />
           </div>
         )}
@@ -968,23 +968,23 @@ const AttendanceDetail = ({
           onClick={() => setSelectedAttendancePhoto(null)}
         >
           <div
-            className="relative bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
+            className="relative bg-surface rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
             onClick={(event) => event.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <div>
                 <h3 className="font-bold text-lg">
                   {selectedAttendancePhoto.title}
                 </h3>
 
-                <p className="text-sm text-gray-500">{getName(record)}</p>
+                <p className="text-sm text-fg-subtle">{getName(record)}</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSelectedAttendancePhoto(null)}
-                className="w-10 h-10 rounded-full hover:bg-gray-100 text-xl"
+                className="w-10 h-10 rounded-full hover:bg-surface-hover text-xl"
                 aria-label="Close photo"
               >
                 ×
@@ -992,7 +992,7 @@ const AttendanceDetail = ({
             </div>
 
             {/* Large Image */}
-            <div className="p-4 bg-gray-100 flex items-center justify-center">
+            <div className="p-4 bg-surface-hover flex items-center justify-center">
               <img
                 src={selectedAttendancePhoto.url}
                 alt={selectedAttendancePhoto.title}
@@ -1098,10 +1098,10 @@ const FaceReviewMessage = ({ record }) => {
 
   if (record.is_missing_attendance) {
     return (
-      <div className="rounded-lg border border-gray-300 bg-gray-50 p-3">
-        <p className="font-semibold text-gray-700">No Attendance</p>
+      <div className="rounded-lg border border-border bg-surface-hover p-3">
+        <p className="font-semibold text-fg-muted">No Attendance</p>
 
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-fg-subtle mt-1">
           This employee has not taken attendance for this date.
         </p>
       </div>
@@ -1109,10 +1109,10 @@ const FaceReviewMessage = ({ record }) => {
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-      <p className="font-semibold text-gray-700">Verification Pending</p>
+    <div className="rounded-lg border border-border bg-surface-hover p-3">
+      <p className="font-semibold text-fg-muted">Verification Pending</p>
 
-      <p className="text-xs text-gray-500 mt-1">
+      <p className="text-xs text-fg-subtle mt-1">
         Attendance record has not been processed yet.
       </p>
     </div>
@@ -1128,20 +1128,20 @@ const StatCard = ({ label, value, color, onClick, isActive }) => {
         : color === "red"
           ? "text-red-600"
           : color === "gray"
-            ? "text-gray-600"
-            : "text-gray-900";
+            ? "text-fg-muted"
+            : "text-fg";
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-xl border bg-white p-3 text-left transition sm:p-4 ${
+      className={`w-full rounded-xl border border-border bg-surface p-3 text-left transition sm:p-4 ${
         isActive
           ? "border-blue-500 ring-2 ring-blue-200"
-          : "border-gray-200 hover:border-blue-300"
+          : "border-border hover:border-blue-300"
       }`}
     >
-      <p className="text-xs sm:text-sm text-gray-500">{label}</p>
+      <p className="text-xs sm:text-sm text-fg-subtle">{label}</p>
 
       <h3 className={`mt-2 text-2xl sm:text-3xl font-bold ${colorClass}`}>
         {value}
@@ -1153,9 +1153,9 @@ const StatCard = ({ label, value, color, onClick, isActive }) => {
 const DetailRow = ({ label, value }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-3 py-2 text-sm">
-      <span className="text-gray-500">{label}</span>
+      <span className="text-fg-subtle">{label}</span>
 
-      <span className="text-gray-900 wrap-break-word">{value || "--"}</span>
+      <span className="text-fg wrap-break-word">{value || "--"}</span>
     </div>
   );
 };
@@ -1163,17 +1163,17 @@ const DetailRow = ({ label, value }) => {
 const PhotoBox = ({ label, photo }) => {
   return (
     <div className="text-center">
-      <div className="h-32 rounded-xl bg-gray-100 overflow-hidden border">
+      <div className="h-32 rounded-xl bg-surface-hover overflow-hidden border border-border">
         {photo ? (
           <img src={photo} alt={label} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+          <div className="w-full h-full flex items-center justify-center text-xs text-fg-subtle">
             No Photo
           </div>
         )}
       </div>
 
-      <p className="mt-2 text-xs text-gray-500">{label}</p>
+      <p className="mt-2 text-xs text-fg-subtle">{label}</p>
     </div>
   );
 };

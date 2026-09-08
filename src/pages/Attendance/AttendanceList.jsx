@@ -51,6 +51,7 @@ const AttendanceList = () => {
   const [activeEmployeeCount, setActiveEmployeeCount] = useState(0);
 
   const [filter, setFilter] = useState("All");
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editModal, setEditModal] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -175,14 +176,19 @@ const AttendanceList = () => {
   // ---------------------------------------
 
   const employees = useMemo(() => {
+    const searchTerm = employeeSearch.trim().toLowerCase();
+
     return employeesFromAPI
       .map((emp) => ({
         id: emp.id,
         name: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
         role: emp.department,
       }))
-      .filter((emp) => filter === "All" || emp.role === filter);
-  }, [employeesFromAPI, filter]);
+      .filter((emp) => filter === "All" || emp.role === filter)
+      .filter(
+        (emp) => !searchTerm || emp.name.toLowerCase().includes(searchTerm),
+      );
+  }, [employeesFromAPI, filter, employeeSearch]);
 
   const totalPages = Math.ceil(employees.length / employeesPerPage);
 
@@ -672,7 +678,7 @@ const AttendanceList = () => {
         />
       )}
 
-      <div className="hidden text-sm text-gray-600">
+      <div className="hidden text-sm text-fg-muted">
         Editable Week: {formattedRange} (Mon–Sat)
       </div>
 
@@ -691,7 +697,7 @@ const AttendanceList = () => {
           )}
 
           <select
-            className="border rounded-lg px-3 h-10 bg-white text-sm"
+            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg text-sm"
             value={filter}
             onChange={(e) => {
               setFilter(e.target.value);
@@ -704,6 +710,19 @@ const AttendanceList = () => {
               </option>
             ))}
           </select>
+
+          {viewMode === "table" && (
+            <input
+              type="text"
+              value={employeeSearch}
+              onChange={(e) => {
+                setEmployeeSearch(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Search employee..."
+              className="border border-border rounded-lg px-3 h-10 bg-surface text-fg text-sm placeholder:text-fg-subtle focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          )}
         </div>
 
         {viewMode === "table" && (
@@ -733,24 +752,24 @@ const AttendanceList = () => {
         <div className="ml-auto flex items-center gap-3">
           {viewMode === "grid" && (
             <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-500">Review Date</label>
+              <label className="text-sm text-fg-subtle">Review Date</label>
 
               <input
                 type="date"
                 value={reviewDate}
                 onChange={(e) => setReviewDate(e.target.value)}
-                className="h-10 rounded-lg border px-3 text-sm bg-white"
+                className="h-10 rounded-lg border border-border px-3 text-sm bg-surface text-fg"
               />
             </div>
           )}
 
-          <div className="flex border rounded-lg overflow-hidden h-10 bg-white">
+          <div className="flex border border-border rounded-lg overflow-hidden h-10 bg-surface">
             <button
               type="button"
               className={`px-4 text-sm ${
                 viewMode === "table"
                   ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700"
+                  : "bg-surface text-fg-muted"
               }`}
               onClick={() => setViewMode("table")}
             >
@@ -762,7 +781,7 @@ const AttendanceList = () => {
               className={`px-4 text-sm ${
                 viewMode === "grid"
                   ? "bg-blue-600 text-white"
-                  : "bg-white text-gray-700"
+                  : "bg-surface text-fg-muted"
               }`}
               onClick={() => setViewMode("grid")}
             >
@@ -869,7 +888,7 @@ const AttendanceList = () => {
 
       {showDateModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+          <div className="bg-surface p-6 rounded-xl shadow-xl w-full max-w-sm">
             <h2 className="text-lg font-semibold mb-4">Select Date Range</h2>
 
             <LocalizationProvider dateAdapter={AdapterDayjs}>

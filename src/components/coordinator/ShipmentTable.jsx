@@ -73,14 +73,14 @@ export default function ShipmentTable({
   // };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-xl border border-border bg-surface shadow-sm">
       <table className="w-full min-w-275 border-collapse text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50/80">
+          <tr className="border-b border-border bg-surface-hover">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500"
+                className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-fg-subtle"
               >
                 {col.label}
               </th>
@@ -89,7 +89,7 @@ export default function ShipmentTable({
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {rows.length === 0 ? (
             <tr>
               <td colSpan={columns.length + 1} className="px-4 py-12">
@@ -101,15 +101,15 @@ export default function ShipmentTable({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.5"
-                    className="text-slate-300"
+                    className="text-fg-subtle"
                   >
                     <rect x="3" y="7" width="18" height="13" rx="2" />
                     <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                   </svg>
-                  <p className="text-sm font-medium text-slate-600">
+                  <p className="text-sm font-medium text-fg-muted">
                     No shipments planned yet
                   </p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-fg-subtle">
                     Add a row or upload a load plan to get started.
                   </p>
                 </div>

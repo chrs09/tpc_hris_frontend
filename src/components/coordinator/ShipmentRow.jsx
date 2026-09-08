@@ -2,7 +2,7 @@ import SearchableSelect from "../SearchableSelect";
 import SearchableMultiSelect from "../SearchableMultiSelect";
 
 const fieldStyle =
-  "w-full rounded-md border border-transparent bg-transparent px-2.5 py-1.5 text-slate-800 transition focus:border-amber-400 focus:bg-amber-50/40 focus:outline-none focus:ring-2 focus:ring-amber-400/30 placeholder:text-slate-350";
+  "w-full rounded-md border border-transparent bg-transparent px-2.5 py-1.5 text-fg transition focus:border-primary focus:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-fg-subtle";
 
 export default function ShipmentRow({
   row,
@@ -16,7 +16,7 @@ export default function ShipmentRow({
   tripProfiles,
 }) {
   return (
-    <tr className="group transition hover:bg-slate-50">
+    <tr className="group transition hover:bg-surface-hover">
       <td className="px-2 py-1.5">
         <input
           value={row.shipmentNo}
@@ -116,7 +116,7 @@ export default function ShipmentRow({
       <td className="px-2 py-1.5 text-center">
         <button
           onClick={() => deleteRow(index)}
-          className="rounded-md p-1.5 text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+          className="rounded-md p-1.5 text-fg-subtle opacity-0 transition hover:bg-danger/10 hover:text-danger group-hover:opacity-100"
           aria-label="Remove row"
         >
           <svg

@@ -8,3 +8,11 @@ export const getActiveTrip = () =>
 
 export const getMyTrips = () =>
   api.get("/driver/trips/my-trips").then((res) => res.data);
+
+export const getWalletCutoffs = () =>
+  api.get("/driver/trips/wallet/cutoffs").then((res) => res.data);
+
+export const getWallet = (cutoff) =>
+  api
+    .get("/driver/trips/wallet", { params: cutoff ? { cutoff } : {} })
+    .then((res) => res.data);

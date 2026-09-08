@@ -17,6 +17,7 @@ import HolidaysPage from "../Holiday/HolidaysPage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
+import LeaveManagement from "../Leave/LeaveManagement";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -24,7 +25,7 @@ const Dashboard = () => {
   const passwordChanged = location.state?.passwordChanged || false;
 
   return (
-    <div className="bg-[#F5F7FA] min-h-screen">
+    <div className="min-h-screen bg-background">
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 
       {/* Content */}
@@ -38,7 +39,7 @@ const Dashboard = () => {
         `}
       >
         {passwordChanged && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-800 p-4 rounded-xl">
+          <div className="mb-6 rounded-xl border border-success/30 bg-success/10 p-4 text-success">
             <div className="font-semibold">
               Password updated successfully 🎉
             </div>
@@ -50,6 +51,7 @@ const Dashboard = () => {
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="attendance" element={<AttendanceList />} />
+          <Route path="leave" element={<LeaveManagement />} />
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="users" element={<UsersPage />} />

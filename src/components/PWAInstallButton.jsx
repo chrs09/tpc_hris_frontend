@@ -8,7 +8,7 @@ const PWAInstallButton = () => {
   return (
     <button
       onClick={installApp}
-      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+      className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary-hover transition-colors"
     >
       Install App
     </button>

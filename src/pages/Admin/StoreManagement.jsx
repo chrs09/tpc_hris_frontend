@@ -169,7 +169,7 @@ export default function StoreManagement() {
     if (!filteredStores.length) {
       return (
         <tr>
-          <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+          <td colSpan={6} className="px-6 py-4 text-center text-fg-subtle">
             {stores.length
               ? "No stores match your search or filter."
               : "No stores found."}
@@ -179,17 +179,17 @@ export default function StoreManagement() {
     }
 
     return paginatedStores.map((store) => (
-      <tr key={store.id} className="border-b last:border-b-0">
-        <td className="px-6 py-4">{store.name}</td>
-        <td className="px-6 py-4">{store.profile || "Unassigned"}</td>
-        <td className="px-6 py-4">{store.required_helper}</td>
-        <td className="px-6 py-4">{store.allowed_radius_meters} m</td>
-        <td className="px-6 py-4">
+      <tr key={store.id} className="border-b border-border last:border-b-0">
+        <td className="px-6 py-4 text-fg">{store.name}</td>
+        <td className="px-6 py-4 text-fg-muted">{store.profile || "Unassigned"}</td>
+        <td className="px-6 py-4 text-fg-muted">{store.required_helper}</td>
+        <td className="px-6 py-4 text-fg-muted">{store.allowed_radius_meters} m</td>
+        <td className="px-6 py-4 text-fg-muted">
           {store.latitude}, {store.longitude}
         </td>
         <td className="px-6 py-4">
           <button
-            className="text-blue-600 hover:text-blue-800"
+            className="text-primary hover:text-primary-hover"
             onClick={() => openEditModal(store)}
           >
             Edit
@@ -202,7 +202,7 @@ export default function StoreManagement() {
   const renderMobileCards = () => {
     if (!filteredStores.length) {
       return (
-        <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-gray-500">
+        <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-fg-subtle">
           {stores.length
             ? "No stores match your search or filter."
             : "No stores found."}
@@ -213,18 +213,18 @@ export default function StoreManagement() {
     return paginatedStores.map((store) => (
       <div
         key={store.id}
-        className="rounded-2xl border bg-white p-4 shadow-sm"
+        className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-semibold text-gray-800">{store.name}</p>
-            <p className="text-xs text-gray-500">
+            <p className="font-semibold text-fg">{store.name}</p>
+            <p className="text-xs text-fg-subtle">
               {store.profile || "Unassigned"}
             </p>
           </div>
 
           <button
-            className="text-sm text-blue-600 hover:text-blue-800"
+            className="text-sm text-primary hover:text-primary-hover"
             onClick={() => openEditModal(store)}
           >
             Edit
@@ -233,18 +233,18 @@ export default function StoreManagement() {
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div>
-            <span className="text-xs text-gray-400">Required Helper</span>
-            <p className="text-gray-700">{store.required_helper}</p>
+            <span className="text-xs text-fg-subtle">Required Helper</span>
+            <p className="text-fg-muted">{store.required_helper}</p>
           </div>
 
           <div>
-            <span className="text-xs text-gray-400">Radius</span>
-            <p className="text-gray-700">{store.allowed_radius_meters} m</p>
+            <span className="text-xs text-fg-subtle">Radius</span>
+            <p className="text-fg-muted">{store.allowed_radius_meters} m</p>
           </div>
 
           <div className="col-span-2">
-            <span className="text-xs text-gray-400">Coordinates</span>
-            <p className="text-gray-700">
+            <span className="text-xs text-fg-subtle">Coordinates</span>
+            <p className="text-fg-muted">
               {store.latitude}, {store.longitude}
             </p>
           </div>
@@ -256,21 +256,21 @@ export default function StoreManagement() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Store Management</h1>
-        <p className="text-gray-500 mt-1">
+        <h1 className="text-3xl font-bold text-fg">Store Management</h1>
+        <p className="text-fg-muted mt-1">
           Create and manage stores used in trip management.
         </p>
       </div>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-fg-muted">
             Stores can be created with profile information and helper
             requirements.
           </p>
         </div>
         <button
-          className="inline-flex items-center rounded-lg bg-black px-4 py-2 text-white hover:bg-gray-900"
+          className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
           onClick={openCreateModal}
         >
           Add Store
@@ -283,12 +283,12 @@ export default function StoreManagement() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search by store name..."
-          className="w-full sm:max-w-xs rounded-lg border px-3 py-2"
+          className="w-full sm:max-w-xs rounded-lg border border-border px-3 py-2 bg-surface text-fg"
         />
         <select
           value={profileFilter}
           onChange={(e) => setProfileFilter(e.target.value)}
-          className="w-full sm:w-56 rounded-lg border px-3 py-2"
+          className="w-full sm:w-56 rounded-lg border border-border px-3 py-2 bg-surface text-fg"
         >
           <option value="ALL">All Profiles</option>
           {tripRateProfiles.map((profile) => (
@@ -299,7 +299,7 @@ export default function StoreManagement() {
         </select>
         {(searchTerm || profileFilter !== "ALL") && (
           <button
-            className="text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2 sm:ml-auto"
+            className="text-sm text-fg-muted hover:text-fg underline underline-offset-2 sm:ml-auto"
             onClick={() => {
               setSearchTerm("");
               setProfileFilter("ALL");
@@ -310,11 +310,11 @@ export default function StoreManagement() {
         )}
       </div>
 
-      <div className="rounded-3xl border bg-white shadow-sm">
+      <div className="rounded-3xl border border-border bg-surface shadow-sm">
         {/* MOBILE: card list */}
         <div className="space-y-3 p-4 md:hidden">
           {loading ? (
-            <div className="p-8 text-center text-gray-500">
+            <div className="p-8 text-center text-fg-subtle">
               Loading stores...
             </div>
           ) : (
@@ -324,25 +324,25 @@ export default function StoreManagement() {
 
         {/* DESKTOP: table */}
         <div className="hidden overflow-x-auto md:block">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-surface-hover">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Store Name
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Profile
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Required Helper
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Radius
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Coordinates
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Actions
                 </th>
               </tr>
@@ -350,7 +350,7 @@ export default function StoreManagement() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center text-fg-subtle">
                     Loading stores...
                   </td>
                 </tr>
@@ -362,15 +362,15 @@ export default function StoreManagement() {
         </div>
 
         {!loading && totalItems > 0 && (
-          <div className="flex flex-col gap-3 border-t px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex flex-col gap-3 border-t border-border px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 text-sm text-fg-muted">
               <span>
                 Showing {startIndex + 1}–{endIndex} of {totalItems} stores
               </span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="ml-2 rounded-lg border px-2 py-1 text-sm"
+                className="ml-2 rounded-lg border border-border px-2 py-1 text-sm bg-surface text-fg"
               >
                 <option value={10}>10 / page</option>
                 <option value={25}>25 / page</option>
@@ -381,7 +381,7 @@ export default function StoreManagement() {
 
             <div className="flex items-center gap-1">
               <button
-                className="rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-50"
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg disabled:cursor-not-allowed disabled:opacity-40 hover:bg-surface-hover"
                 onClick={() => goToPage(safePage - 1)}
                 disabled={safePage === 1}
               >
@@ -404,7 +404,7 @@ export default function StoreManagement() {
                 }, [])
                 .map((page) =>
                   typeof page === "string" ? (
-                    <span key={page} className="px-2 text-sm text-gray-400">
+                    <span key={page} className="px-2 text-sm text-fg-subtle">
                       …
                     </span>
                   ) : (
@@ -413,8 +413,8 @@ export default function StoreManagement() {
                       onClick={() => goToPage(page)}
                       className={`rounded-lg border px-3 py-1.5 text-sm ${
                         page === safePage
-                          ? "border-black bg-black text-white"
-                          : "hover:bg-gray-50"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border text-fg hover:bg-surface-hover"
                       }`}
                     >
                       {page}
@@ -423,7 +423,7 @@ export default function StoreManagement() {
                 )}
 
               <button
-                className="rounded-lg border px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40 hover:bg-gray-50"
+                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg disabled:cursor-not-allowed disabled:opacity-40 hover:bg-surface-hover"
                 onClick={() => goToPage(safePage + 1)}
                 disabled={safePage === totalPages}
               >
@@ -442,28 +442,28 @@ export default function StoreManagement() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Store Name</label>
+            <label className="block text-sm font-medium mb-1 text-fg">Store Name</label>
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full rounded-lg border px-3 py-2"
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
               placeholder="Store Name"
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">Latitude</label>
+              <label className="block text-sm font-medium mb-1 text-fg">Latitude</label>
               <input
                 type="number"
                 value={form.latitude}
                 onChange={(e) => setForm({ ...form, latitude: e.target.value })}
-                className="w-full rounded-lg border px-3 py-2"
+                className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
                 placeholder="Latitude"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Longitude
               </label>
               <input
@@ -472,7 +472,7 @@ export default function StoreManagement() {
                 onChange={(e) =>
                   setForm({ ...form, longitude: e.target.value })
                 }
-                className="w-full rounded-lg border px-3 py-2"
+                className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
                 placeholder="Longitude"
               />
             </div>
@@ -480,7 +480,7 @@ export default function StoreManagement() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Allowed Radius (meters)
               </label>
               <input
@@ -489,12 +489,12 @@ export default function StoreManagement() {
                 onChange={(e) =>
                   setForm({ ...form, allowed_radius_meters: e.target.value })
                 }
-                className="w-full rounded-lg border px-3 py-2"
+                className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
                 placeholder="100"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1 text-fg">
                 Required Helper
               </label>
               <input
@@ -503,24 +503,24 @@ export default function StoreManagement() {
                 onChange={(e) =>
                   setForm({ ...form, required_helper: e.target.value })
                 }
-                className="w-full rounded-lg border px-3 py-2"
+                className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
                 placeholder="0"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-fg-subtle mt-1">
                 Auto-filled based on profile — you can still override it.
               </p>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Profile</label>
+            <label className="block text-sm font-medium mb-1 text-fg">Profile</label>
             {profilesLoading ? (
-              <p className="text-sm text-gray-400">Loading profiles...</p>
+              <p className="text-sm text-fg-subtle">Loading profiles...</p>
             ) : (
               <select
                 value={form.trip_rate_profile_id}
                 onChange={(e) => handleProfileChange(e.target.value)}
-                className="w-full rounded-lg border px-3 py-2"
+                className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
               >
                 <option value="">Select a profile</option>
                 {tripRateProfiles.map((profile) => (

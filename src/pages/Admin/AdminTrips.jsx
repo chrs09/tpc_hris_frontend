@@ -65,16 +65,16 @@ const AdminTrips = () => {
 
   if (loading)
     return (
-      <div className="flex items-center justify-center min-h-screen text-gray-500 text-sm">
+      <div className="flex items-center justify-center min-h-screen text-fg-subtle text-sm">
         Loading trip data...
       </div>
     );
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 bg-gray-50 min-h-screen space-y-8">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 bg-background min-h-screen space-y-8">
       {/* SUCCESS MESSAGE */}
       {successMessage && (
-        <div className="bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-xl shadow-sm">
+        <div className="bg-success/15 border border-success text-success px-4 py-3 rounded-xl shadow-sm">
           {successMessage}
         </div>
       )}
@@ -89,7 +89,7 @@ const AdminTrips = () => {
 
       {/* PENDING */}
       <div>
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
           Pending Trip Approvals
         </h2>
 
@@ -98,8 +98,8 @@ const AdminTrips = () => {
             onClick={() => setActiveTab("pending")}
             className={`px-4 py-2 rounded-lg ${
               activeTab === "pending"
-                ? "bg-yellow-400 text-black"
-                : "bg-gray-200"
+                ? "bg-primary text-primary-foreground"
+                : "bg-surface-active text-fg-muted"
             }`}
           >
             Pending ({pendingTrips.length})
@@ -109,8 +109,8 @@ const AdminTrips = () => {
             onClick={() => setActiveTab("completed")}
             className={`px-4 py-2 rounded-lg ${
               activeTab === "completed"
-                ? "bg-yellow-400 text-black"
-                : "bg-gray-200"
+                ? "bg-primary text-primary-foreground"
+                : "bg-surface-active text-fg-muted"
             }`}
           >
             Completed ({completedTrips.length})
@@ -127,7 +127,7 @@ const AdminTrips = () => {
       {/* ACTIVE + UNKNOWN */}
       <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 xl:gap-5">
         <div className="xl:col-span-2">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
             Active Trips Monitoring
           </h2>
 
@@ -135,7 +135,7 @@ const AdminTrips = () => {
         </div>
 
         <div className="xl:col-span-1">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
             Unknown Store Check-ins
           </h2>
 

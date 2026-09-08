@@ -44,8 +44,8 @@ export default function OfficeTripReview() {
   if (loading) {
     return (
       <div className="p-6">
-        <div className="bg-white rounded-xl border p-6">
-          <p className="text-gray-500">Loading trips for office review...</p>
+        <div className="bg-surface rounded-xl border border-border p-6">
+          <p className="text-fg-subtle">Loading trips for office review...</p>
         </div>
       </div>
     );
@@ -57,8 +57,8 @@ export default function OfficeTripReview() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <p className="text-red-700">{error}</p>
+        <div className="bg-danger/15 border border-danger rounded-xl p-6">
+          <p className="text-danger">{error}</p>
 
           <button
             type="button"
@@ -79,28 +79,28 @@ export default function OfficeTripReview() {
     <div className="p-6">
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Office Trip Review</h1>
+        <h1 className="text-2xl font-bold text-fg">Office Trip Review</h1>
 
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-fg-subtle mt-1">
           Review coordinator-approved trips before forwarding them to Finance.
         </p>
       </div>
 
       {/* SUMMARY */}
-      <div className="mb-6 bg-white border rounded-xl p-4">
-        <p className="text-sm text-gray-500">Pending Office Reviews</p>
+      <div className="mb-6 bg-surface border border-border rounded-xl p-4">
+        <p className="text-sm text-fg-subtle">Pending Office Reviews</p>
 
-        <p className="text-3xl font-bold mt-1">{trips.length}</p>
+        <p className="text-3xl font-bold mt-1 text-fg">{trips.length}</p>
       </div>
 
       {/* EMPTY */}
       {trips.length === 0 ? (
-        <div className="bg-white border rounded-xl p-10 text-center">
-          <p className="font-semibold text-gray-700">
+        <div className="bg-surface border border-border rounded-xl p-10 text-center">
+          <p className="font-semibold text-fg-muted">
             No trips pending office review
           </p>
 
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-fg-subtle mt-1">
             Coordinator-approved trips will appear here.
           </p>
         </div>

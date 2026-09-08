@@ -3,9 +3,9 @@ import React from "react";
 import clsx from "clsx";
 
 /**
- * ShadCN-style Button
+ * Themed button using the design tokens in src/index.css.
  * Props:
- *  - variant: "default" | "outline" | "ghost" | "destructive"
+ *  - variant: "default" | "secondary" | "outline" | "ghost" | "destructive"
  *  - size: "sm" | "md" | "lg"
  *  - className: custom tailwind classes
  */
@@ -17,19 +17,21 @@ export function Button({
   ...props
 }) {
   const baseStyles =
-    "inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
 
   const variants = {
-    default: "bg-[#2b2b2b] text-white hover:bg-[#a09f9f] cursor-pointer",
-    outline: "border border-gray-300 text-gray-700 hover:bg-gray-100 ",
-    ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
-    destructive: "bg-red-500 text-white hover:bg-red-600",
+    default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+    secondary: "bg-surface-active text-fg hover:bg-surface-hover",
+    outline:
+      "border border-border bg-transparent text-fg hover:bg-surface-hover",
+    ghost: "bg-transparent text-fg hover:bg-surface-hover",
+    destructive: "bg-danger text-danger-foreground hover:bg-danger-hover",
   };
 
   const sizes = {
-    sm: "px-2 py-1 text-sm",
-    md: "px-4 py-2 text-md",
-    lg: "px-6 py-3 text-lg",
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2 text-sm",
+    lg: "px-6 py-3 text-base",
   };
 
   return (

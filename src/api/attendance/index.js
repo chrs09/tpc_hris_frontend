@@ -64,6 +64,13 @@ export const attendanceRecord = async ({
   return [];
 };
 
+// Attendance history for the logged-in user's own employee record
+export const getMyAttendanceHistory = async (month) => {
+  const params = month ? `?month=${month}` : "";
+  const res = await api.get(`/attendance/my-history${params}`);
+  return res.data;
+};
+
 // Bulk attendance check
 export const bulkAttendanceCheck = async (records) => {
   const res = await api.post("/attendance/bulk-mixed/", records);

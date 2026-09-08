@@ -39,15 +39,15 @@ const AttendancePreviewModal = ({ previewModal, setPreviewModal }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-60 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[95vh] overflow-hidden">
-        <div className="flex justify-between items-center p-4 border-b">
+      <div className="bg-surface rounded-2xl shadow-xl w-full max-w-5xl max-h-[95vh] overflow-hidden">
+        <div className="flex justify-between items-center p-4 border-b border-border">
           <h2 className="text-lg font-bold">
             {isTimeIn ? "Time In Preview" : "Time Out Preview"}
           </h2>
 
           <button
             onClick={() => setPreviewModal(null)}
-            className="bg-black text-white px-4 py-2 rounded-lg"
+            className="bg-fg text-background px-4 py-2 rounded-lg hover:opacity-90"
           >
             Close
           </button>
@@ -59,17 +59,17 @@ const AttendancePreviewModal = ({ previewModal, setPreviewModal }) => {
               <img
                 src={photoUrl}
                 alt="Attendance proof"
-                className="w-full h-105 object-cover rounded-xl border"
+                className="w-full h-105 object-cover rounded-xl border border-border"
               />
             ) : (
-              <div className="w-full h-105 rounded-xl border flex items-center justify-center text-gray-500">
+              <div className="w-full h-105 rounded-xl border border-border flex items-center justify-center text-fg-subtle">
                 No photo available
               </div>
             )}
           </div>
 
           <div className="space-y-4">
-            <div className="h-70 rounded-xl overflow-hidden border">
+            <div className="h-70 rounded-xl overflow-hidden border border-border">
               {hasLocation ? (
                 <MapContainer
                   center={[latitude, longitude]}
@@ -86,13 +86,13 @@ const AttendancePreviewModal = ({ previewModal, setPreviewModal }) => {
                   </Marker>
                 </MapContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-500">
+                <div className="h-full flex items-center justify-center text-fg-subtle">
                   No location available
                 </div>
               )}
             </div>
 
-            <div className="bg-gray-100 rounded-xl p-4 text-sm space-y-2">
+            <div className="bg-surface-hover rounded-xl p-4 text-sm space-y-2">
               <p>
                 <strong>Time:</strong> {time || "--"}
               </p>
