@@ -1,7 +1,44 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  Popup,
+  useMap,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { reviewTrip } from "../../api/adminTripManagement/trips";
+
+/* Leaflet icon fix -- same as PendingTripsCard.jsx/FinanceReviewCard.jsx */
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+const latestPingIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+  iconSize: [34, 34],
+  iconAnchor: [17, 34],
+});
+
+const FitBounds = ({ coordinates }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (coordinates.length > 0) {
+      map.fitBounds(coordinates, { padding: [50, 50] });
+    }
+  }, [coordinates, map]);
+
+  return null;
+};
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -33,12 +70,25 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
     loadLogs();
   }, [loadLogs]);
 
-  const logs = [...(data?.gps_logs || [])].reverse(); // most recent first
-  const latest = logs[0];
+  const sortedLogs = useMemo(() => {
+    return [...(data?.gps_logs || [])]
+      .filter((log) => log.actual_lat != null && log.actual_long != null)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  }, [data]);
+
+  const routeCoordinates = useMemo(
+    () => sortedLogs.map((log) => [Number(log.actual_lat), Number(log.actual_long)]),
+    [sortedLogs],
+  );
+
+  const latest = sortedLogs[sortedLogs.length - 1];
+  const latestPosition = latest
+    ? [Number(latest.actual_lat), Number(latest.actual_long)]
+    : null;
 
   return (
     <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4">
-      <div className="flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl">
+      <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="text-lg font-semibold text-fg">GPS Logs</h2>
@@ -71,13 +121,13 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
             <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-sm text-fg-subtle">
               Loading GPS logs...
             </div>
-          ) : logs.length === 0 ? (
+          ) : !latest ? (
             <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-6 text-center text-sm text-fg-subtle">
               No GPS pings recorded for this trip yet.
             </div>
           ) : (
             <div className="space-y-4">
-              {/* LATEST PING */}
+              {/* LATEST PING SUMMARY */}
               <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-primary">
                   Latest Ping
@@ -92,11 +142,11 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-fg-muted sm:grid-cols-4">
                   <div>
                     <span className="block text-xs text-fg-subtle">Lat</span>
-                    {latest.actual_lat ?? "—"}
+                    {latest.actual_lat}
                   </div>
                   <div>
                     <span className="block text-xs text-fg-subtle">Long</span>
-                    {latest.actual_long ?? "—"}
+                    {latest.actual_long}
                   </div>
                   <div>
                     <span className="block text-xs text-fg-subtle">Speed</span>
@@ -111,33 +161,59 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                 </div>
               </div>
 
-              {/* HISTORY */}
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
-                  Recent History ({logs.length})
-                </p>
-                <div className="space-y-2">
-                  {logs.slice(0, 100).map((log) => (
-                    <div
-                      key={log.id}
-                      className="flex items-center justify-between rounded-xl border border-border bg-surface-hover px-3 py-2 text-sm"
+              {/* MAP */}
+              <div className="h-96 overflow-hidden rounded-2xl border border-border">
+                <MapContainer
+                  center={latestPosition}
+                  zoom={15}
+                  style={{ height: "100%", width: "100%" }}
+                >
+                  <TileLayer
+                    attribution="© OpenStreetMap"
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+
+                  {data.origin_lat != null && (
+                    <Marker
+                      position={[
+                        Number(data.origin_lat),
+                        Number(data.origin_long),
+                      ]}
                     >
-                      <span className="text-fg-muted">
-                        {log.created_at
-                          ? new Date(log.created_at).toLocaleString()
-                          : "—"}
-                      </span>
-                      <span className="text-fg-subtle">
-                        {log.actual_lat}, {log.actual_long}
-                      </span>
-                    </div>
-                  ))}
-                  {logs.length > 100 && (
-                    <p className="text-center text-xs text-fg-subtle">
-                      Showing the latest 100 of {logs.length} pings.
-                    </p>
+                      <Popup>🚛 Origin: {data.origin_store}</Popup>
+                    </Marker>
                   )}
-                </div>
+
+                  {routeCoordinates.length > 1 && (
+                    <Polyline
+                      positions={routeCoordinates}
+                      pathOptions={{ color: "blue", weight: 4, dashArray: "6,8" }}
+                    />
+                  )}
+
+                  {/* LATEST PING PINPOINT */}
+                  {latestPosition && (
+                    <Marker position={latestPosition} icon={latestPingIcon}>
+                      <Popup>
+                        📍 Latest ping
+                        <br />
+                        {formatDistanceToNow(new Date(latest.created_at))} ago
+                        <br />
+                        {latest.actual_lat}, {latest.actual_long}
+                      </Popup>
+                    </Marker>
+                  )}
+
+                  <FitBounds
+                    coordinates={
+                      routeCoordinates.length > 0
+                        ? routeCoordinates
+                        : latestPosition
+                          ? [latestPosition]
+                          : []
+                    }
+                  />
+                </MapContainer>
               </div>
             </div>
           )}
