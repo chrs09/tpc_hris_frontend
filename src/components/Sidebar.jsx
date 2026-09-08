@@ -19,7 +19,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [openGroup, setOpenGroup] = useState(null);
+  // Which multi-page group's breadcrumb switcher flyout is open (null = none).
+  const [openSwitcherGroup, setOpenSwitcherGroup] = useState(null);
 
   const role = localStorage.getItem("role");
   const username = localStorage.getItem("username");
@@ -213,17 +214,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   }, [isSuperAdmin]);
 
   // =========================
-  // AUTO OPEN ACTIVE GROUP
-  // =========================
-  useEffect(() => {
-    navGroups.forEach((group) => {
-      if (group.children.some((item) => isRouteActive(item.path))) {
-        setOpenGroup(group.label);
-      }
-    });
-  }, [location.pathname, navGroups, isRouteActive]);
-
-  // =========================
   // REMINDER ACTIONS
   // =========================
   const handleCreateReminder = async () => {
@@ -243,10 +233,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const handleResolve = async (id) => {
     await resolveReminder(id);
     await loadReminders();
-  };
-
-  const toggleGroup = (label) => {
-    setOpenGroup(openGroup === label ? null : label);
   };
 
   return (
@@ -314,45 +300,101 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
             if (!visibleChildren.length) return null;
 
-            const isGroupActive = visibleChildren.some((item) =>
+            // A single-page group (e.g. Dashboard, Payroll) is just a
+            // plain link -- there's no separate section to break out of.
+            if (visibleChildren.length === 1) {
+              const only = visibleChildren[0];
+              const active = isRouteActive(only.path);
+
+              return (
+                <Link
+                  key={group.label}
+                  to={only.path}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "text-fg hover:bg-surface-hover"
+                  }`}
+                >
+                  {group.icon}
+                  {!isCollapsed && <span>{group.label}</span>}
+                </Link>
+              );
+            }
+
+            const activeChild = visibleChildren.find((item) =>
               isRouteActive(item.path),
             );
+            const isGroupActive = Boolean(activeChild);
+            const isSwitcherOpen = openSwitcherGroup === group.label;
 
             return (
               <div key={group.label}>
-                {/* PARENT */}
-                <button
-                  onClick={() => toggleGroup(group.label)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors
-                    ${
-                      isGroupActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-fg hover:bg-surface-hover"
-                    }`}
-                >
-                  <div className="flex items-center gap-2">
+                {isGroupActive ? (
+                  // BREADCRUMB: "Group / current page" instead of a
+                  // click-to-expand dropdown. The breadcrumb itself links
+                  // back to the group's first page; the chevron opens a
+                  // small flyout to switch to a sibling page.
+                  <div className="flex items-center justify-between gap-1 rounded-lg bg-primary/10 px-3 py-2 text-primary">
+                    <Link
+                      to={visibleChildren[0].path}
+                      onClick={() => setIsMobileOpen(false)}
+                      title={`${group.label} / ${activeChild.label}`}
+                      className="flex min-w-0 items-center gap-2"
+                    >
+                      {group.icon}
+                      {!isCollapsed && (
+                        <span className="truncate text-sm font-medium">
+                          {group.label}
+                          <span className="mx-1 text-primary/50">/</span>
+                          {activeChild.label}
+                        </span>
+                      )}
+                    </Link>
+
+                    {!isCollapsed && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenSwitcherGroup(isSwitcherOpen ? null : group.label)
+                        }
+                        aria-label={`Switch page within ${group.label}`}
+                        className="shrink-0 rounded p-1 hover:bg-primary/15"
+                      >
+                        <ChevronDown
+                          size={14}
+                          className={`transition-transform duration-200 ${
+                            isSwitcherOpen ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  // Not currently inside this group -- clicking it takes
+                  // you to its first page.
+                  <Link
+                    to={visibleChildren[0].path}
+                    onClick={() => setIsMobileOpen(false)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-fg transition-colors hover:bg-surface-hover"
+                  >
                     {group.icon}
                     {!isCollapsed && <span>{group.label}</span>}
-                  </div>
+                  </Link>
+                )}
 
-                  {!isCollapsed && (
-                    <ChevronDown
-                      size={16}
-                      className={`transition-transform duration-300 ${
-                        openGroup === group.label ? "rotate-180" : ""
-                      }`}
-                    />
-                  )}
-                </button>
-
-                {/* CHILDREN */}
-                {!isCollapsed && openGroup === group.label && (
+                {/* SWITCHER FLYOUT */}
+                {isGroupActive && !isCollapsed && isSwitcherOpen && (
                   <div className="ml-6 mt-2 flex flex-col gap-2">
                     {visibleChildren.map((item) => (
                       <Link
                         key={item.path}
                         to={item.path}
-                        onClick={() => setIsMobileOpen(false)}
+                        onClick={() => {
+                          setIsMobileOpen(false);
+                          setOpenSwitcherGroup(null);
+                        }}
                         className={`px-3 py-2 rounded-lg text-sm transition-colors
                           ${
                             isRouteActive(item.path)

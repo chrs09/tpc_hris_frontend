@@ -250,7 +250,7 @@ const DriverDashboard = () => {
       const formData = new FormData();
       formData.append("lat", location.lat);
       formData.append("long", location.long);
-      formData.append("delivery_proof_photo", deliveryProofPhoto);
+      formData.append("proof_photo", deliveryProofPhoto);
 
       await checkOut(
         tripData.active_trip.id,

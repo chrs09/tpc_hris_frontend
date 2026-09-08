@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
+import TripGpsLogsModal from "./TripGpsLogsModal";
 
 const ActiveTripsMonitor = ({ trips = [] }) => {
+  const [selectedTripId, setSelectedTripId] = useState(null);
+
   return (
     <>
       {/* DESKTOP TABLE */}
@@ -13,13 +16,14 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               <th className="px-4 py-3 text-left font-medium">Started</th>
               <th className="px-4 py-3 text-left font-medium">Current Stop</th>
               <th className="px-4 py-3 text-right font-medium">Duration</th>
+              <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="5" className="text-center py-6 text-fg-subtle">
+                <td colSpan="6" className="text-center py-6 text-fg-subtle">
                   No active trips
                 </td>
               </tr>
@@ -38,6 +42,14 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                     {trip.current_stop || "In Transit"}
                   </td>
                   <td className="px-4 py-4 text-right">{trip.duration}</td>
+                  <td className="px-4 py-4 text-right">
+                    <button
+                      onClick={() => setSelectedTripId(trip.id)}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-hover"
+                    >
+                      View
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -55,7 +67,15 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               key={trip.id}
               className="bg-surface border border-border text-fg p-4 rounded-xl"
             >
-              <p className="font-semibold capitalize">{trip.username}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-semibold capitalize">{trip.username}</p>
+                <button
+                  onClick={() => setSelectedTripId(trip.id)}
+                  className="shrink-0 rounded-lg border border-border px-3 py-1 text-xs font-medium text-fg-muted transition hover:bg-surface-hover"
+                >
+                  View
+                </button>
+              </div>
 
               <div className="text-sm mt-2">
                 <span className="text-fg-muted block capitalize">Ticket</span>
@@ -81,6 +101,13 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
           ))
         )}
       </div>
+
+      {selectedTripId && (
+        <TripGpsLogsModal
+          tripId={selectedTripId}
+          onClose={() => setSelectedTripId(null)}
+        />
+      )}
     </>
   );
 };

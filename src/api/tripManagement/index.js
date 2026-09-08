@@ -91,7 +91,7 @@ export const checkIn = async (tripId, payload) => {
 // ========================================
 // CHECK OUT
 // Requires stopId
-// Form data: { lat, long, delivery_proof_photo }
+// Form data: { lat, long, proof_photo }
 // ========================================
 export const checkOut = async (tripId, stopId, payload) => {
   try {
