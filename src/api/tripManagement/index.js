@@ -42,8 +42,24 @@ export const getAvailableVehicleUnits = async () => {
 };
 
 // ========================================
+// GET AVAILABLE HELPERS
+// Helpers eligible for the logged-in driver's department (mirrors the
+// mobile app's getAvailableHelpers)
+// ========================================
+export const getAvailableHelpers = async (driverId) => {
+  try {
+    const params = driverId ? `?driver_id=${driverId}` : "";
+    const response = await api.get(`/driver/trips/available-helpers${params}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching helpers:", error);
+    throw error;
+  }
+};
+
+// ========================================
 // START TRIP
-// Form data: { shipment_no, vehicle_unit_id, store_id, lat, long, invoice_photo }
+// Form data: { shipment_no, vehicle_unit_id, store_id, lat, long, photo, helper_ids }
 // ========================================
 export const startTrip = async (formData) => {
   try {

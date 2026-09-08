@@ -128,6 +128,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             roles: ["superadmin", "coordinator_admin", "office_admin"],
           },
           {
+            label: "Start Trip (Bypass)",
+            path: "/dashboard/admin/trip-bypass",
+            roles: ["superadmin", "coordinator_admin"],
+          },
+          {
             label: "Maintenance",
             path: "/dashboard/admin/trip-maintenance",
             roles: ["superadmin", "coordinator_admin"],

@@ -5,6 +5,7 @@ import DashboardHome from "./DashboardHome";
 import AttendanceList from "../Attendance/AttendanceList";
 import UsersPage from "../Users/UsersPage";
 import AdminTrips from "../Admin/AdminTrips";
+import TripBypass from "../Admin/TripBypass";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripPlanning from "../Coordinator/TripPlanning";
@@ -57,6 +58,7 @@ const Dashboard = () => {
           <Route path="users" element={<UsersPage />} />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
+          <Route path="admin/trip-bypass" element={<TripBypass />} />
           <Route path="admin/stores" element={<StoreManagement />} />
           <Route path="applicants" element={<ApplicantsPage />} />
           <Route path="applicant/questionaire" element={<Questionaire />} />

@@ -311,7 +311,9 @@ function GenerateEmploymentFormModal({
 
           {isSubmitted && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              This applicant already submitted the onboarding form.
+              This applicant already submitted the onboarding form. You can
+              still generate a new link if they need to complete or correct
+              any missing fields.
             </div>
           )}
 
@@ -360,15 +362,15 @@ function GenerateEmploymentFormModal({
 
           <button
             onClick={onGenerate}
-            disabled={generating || isSubmitted}
+            disabled={generating}
             className="rounded-2xl bg-purple-600 px-5 py-3 text-sm font-medium text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitted
-              ? "Application Filled"
-              : generating
-                ? "Generating..."
-                : generatedLink
-                  ? "Regenerate Link"
+            {generating
+              ? "Generating..."
+              : generatedLink
+                ? "Regenerate Link"
+                : isSubmitted
+                  ? "Get New Link"
                   : "Generate Form Link"}
           </button>
         </div>
@@ -557,7 +559,7 @@ function ApplicantDrawer({
                   <StatusBadge status={applicant.status} />
                 </div>
 
-                {applicant.status === "interview" && (
+                {applicant.status === "reviewed" && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <FormStatusBadge applicant={applicant} />
                   </div>
@@ -614,32 +616,27 @@ function ApplicantDrawer({
                     </span>
                   )}
 
-                  {applicant.status === "interview" &&
-                    (() => {
-                      const isSubmitted =
-                        applicant?.onboarding_is_submitted === true;
-
-                      return (
+                  {applicant.status === "reviewed" && (
+                    <>
+                      {applicant?.onboarding_is_submitted === true && (
                         <button
-                          onClick={() => {
-                            if (isSubmitted) {
-                              onViewSubmittedForm(applicant);
-                            } else {
-                              onOpenGenerateForm(applicant);
-                            }
-                          }}
-                          className={`rounded-xl px-4 py-2 text-sm font-medium ${
-                            isSubmitted
-                              ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                              : "bg-purple-600 text-white hover:bg-purple-700"
-                          }`}
+                          onClick={() => onViewSubmittedForm(applicant)}
+                          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
                         >
-                          {isSubmitted
-                            ? "View Form"
-                            : "Generate Employment Form"}
+                          View Form
                         </button>
-                      );
-                    })()}
+                      )}
+
+                      <button
+                        onClick={() => onOpenGenerateForm(applicant)}
+                        className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+                      >
+                        {applicant?.onboarding_is_submitted === true
+                          ? "Get Form Link"
+                          : "Generate Employment Form"}
+                      </button>
+                    </>
+                  )}
 
                   {applicant.status === "hired" &&
                     !applicant.is_converted_to_employee && (
@@ -909,7 +906,7 @@ function ApplicantCard({
         <StatusBadge status={applicant.status} />
       </div>
 
-      {applicant.status === "interview" && (
+      {applicant.status === "reviewed" && (
         <div className="mt-3">
           <FormStatusBadge applicant={applicant} />
         </div>
@@ -938,7 +935,7 @@ function ApplicantCard({
 
       <div
         className={`mt-4 grid gap-2 ${
-          applicant.status === "interview" ? "grid-cols-3" : "grid-cols-2"
+          applicant.status === "reviewed" ? "grid-cols-3" : "grid-cols-2"
         }`}
       >
         <button
@@ -961,7 +958,7 @@ function ApplicantCard({
           </span>
         )}
 
-        {applicant.status === "interview" && (
+        {applicant.status === "reviewed" && (
           <button
             onClick={() => {
               if (isSubmitted) {
@@ -1900,7 +1897,6 @@ export default function ApplicantsPage() {
 
   const handleGenerateFormLink = async () => {
     if (!generateFormApplicant) return;
-    if (generateFormApplicant?.onboarding_is_submitted === true) return;
 
     try {
       setGeneratingFormLink(true);

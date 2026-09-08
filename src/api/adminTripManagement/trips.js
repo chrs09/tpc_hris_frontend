@@ -14,3 +14,7 @@ export const approveTrip = (tripId, remarks) =>
 export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
 
 export const getCompletedTrips = () => api.get("/admin/trips/completed");
+
+// Drivers with no trip currently in progress -- for the trip manager's
+// "Start Trip for Driver" bypass (see POST /driver/trips/start driver_id).
+export const getAvailableDrivers = () => api.get("/admin/trips/available-drivers");

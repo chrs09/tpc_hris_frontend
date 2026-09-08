@@ -4,6 +4,7 @@ import {
   checkOut,
   completeTrip,
   getActiveTrip,
+  getAvailableHelpers,
   getAvailableStores,
   getAvailableVehicleUnits,
   startTrip,
@@ -33,6 +34,8 @@ const DriverDashboard = () => {
   const [stores, setStores] = useState([]);
   const [vehicleUnitId, setVehicleUnitId] = useState("");
   const [storeId, setStoreId] = useState("");
+  const [helpers, setHelpers] = useState([]);
+  const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [invoicePhoto, setInvoicePhoto] = useState(null);
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState(null);
   const [stampedInvoicePhoto, setStampedInvoicePhoto] = useState(null);
@@ -102,13 +105,17 @@ const DriverDashboard = () => {
       setTripData(activeTripData);
 
       if (!activeTripData.active_trip) {
-        const [storeData, vehicleData] = await Promise.all([
+        const [storeData, vehicleData, helperData] = await Promise.all([
           getAvailableStores(),
           getAvailableVehicleUnits(),
+          getAvailableHelpers(),
         ]);
         setStores(Array.isArray(storeData) ? storeData : storeData.items || []);
         setVehicleUnits(
           Array.isArray(vehicleData) ? vehicleData : vehicleData.items || [],
+        );
+        setHelpers(
+          Array.isArray(helperData) ? helperData : helperData.items || [],
         );
       }
     } catch (error) {
@@ -154,12 +161,38 @@ const DriverDashboard = () => {
 
   const selectedStore = stores.find((store) => String(store.id) === storeId);
   const selectedStoreHelperCount =
-    selectedStore?.helper_count ?? selectedStore?.required_helper_count;
+    selectedStore?.helper_count ?? selectedStore?.required_helper_count ?? 0;
+  const helpersRequired = selectedStoreHelperCount > 0;
+  const helpersSatisfied =
+    !helpersRequired ||
+    (selectedHelperIds.length >= 1 &&
+      selectedHelperIds.length <= selectedStoreHelperCount);
+
+  const toggleHelper = (helperId) => {
+    setSelectedHelperIds((prev) => {
+      if (prev.includes(helperId)) {
+        return prev.filter((id) => id !== helperId);
+      }
+      if (prev.length >= selectedStoreHelperCount) return prev;
+      return [...prev, helperId];
+    });
+  };
+
+  const handleStoreChange = (value) => {
+    setStoreId(value);
+    setSelectedHelperIds([]);
+  };
 
   const handleStartTrip = async () => {
-    if (!shipmentNo.trim() || !vehicleUnitId || !storeId || !invoicePhoto) {
+    if (
+      !shipmentNo.trim() ||
+      !vehicleUnitId ||
+      !storeId ||
+      !invoicePhoto ||
+      !helpersSatisfied
+    ) {
       alert(
-        "Shipment number, vehicle unit, store, and invoice photo are required.",
+        "Shipment number, vehicle unit, store, invoice photo, and helpers (if required) are all required.",
       );
       return;
     }
@@ -174,13 +207,15 @@ const DriverDashboard = () => {
       formData.append("store_id", storeId);
       formData.append("lat", location.lat);
       formData.append("long", location.long);
-      formData.append("invoice_photo", invoicePhoto);
+      formData.append("photo", invoicePhoto);
+      formData.append("helper_ids", JSON.stringify(selectedHelperIds));
 
       await startTrip(formData);
 
       setShipmentNo("");
       setVehicleUnitId("");
       setStoreId("");
+      setSelectedHelperIds([]);
       setInvoicePhoto(null);
       await loadTrip();
     } catch (error) {
@@ -317,7 +352,7 @@ const DriverDashboard = () => {
                 <label className="mb-1 block text-sm font-medium text-fg">Store</label>
                 <select
                   value={storeId}
-                  onChange={(event) => setStoreId(event.target.value)}
+                  onChange={(event) => handleStoreChange(event.target.value)}
                   className={inputStyles}
                 >
                   <option value="">Select store</option>
@@ -327,13 +362,58 @@ const DriverDashboard = () => {
                     </option>
                   ))}
                 </select>
-                {selectedStoreHelperCount !== undefined && (
+                {helpersRequired && (
                   <p className="mt-1 text-xs text-fg-muted">
-                    This store requires {selectedStoreHelperCount} helper
-                    {selectedStoreHelperCount === 1 ? "" : "s"}.
+                    This store requires up to {selectedStoreHelperCount} helper
+                    {selectedStoreHelperCount === 1 ? "" : "s"}. Select at
+                    least 1.
                   </p>
                 )}
               </div>
+
+              {helpersRequired && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-fg">
+                    Helpers ({selectedHelperIds.length}/
+                    {selectedStoreHelperCount})
+                  </label>
+                  {helpers.length === 0 ? (
+                    <p className="text-xs text-fg-subtle">
+                      No available helpers found.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {helpers.map((helper) => {
+                        const isSelected = selectedHelperIds.includes(
+                          helper.id,
+                        );
+                        const isDisabled =
+                          !isSelected &&
+                          selectedHelperIds.length >= selectedStoreHelperCount;
+                        return (
+                          <label
+                            key={helper.id}
+                            className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
+                              isSelected
+                                ? "border-primary bg-primary/10 text-fg"
+                                : "border-border text-fg-muted"
+                            } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isDisabled}
+                              onChange={() => toggleHelper(helper.id)}
+                              className="h-4 w-4 rounded border-border"
+                            />
+                            {helper.first_name} {helper.last_name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <PhotoInput
                 id="invoice-photo"
@@ -348,7 +428,8 @@ const DriverDashboard = () => {
                   !shipmentNo.trim() ||
                   !vehicleUnitId ||
                   !storeId ||
-                  !invoicePhoto
+                  !invoicePhoto ||
+                  !helpersSatisfied
                 }
                 className="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
