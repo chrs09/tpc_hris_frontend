@@ -43,6 +43,17 @@ const FitBounds = ({ coordinates }) => {
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
 
+// The backend sends GPS log timestamps as a raw UTC isoformat() string with
+// no "Z"/offset marker, so the browser's Date parser would otherwise treat
+// it as already being local time instead of UTC -- shifting displayed
+// times by the local UTC offset (e.g. 8 hours off in PH). Appending "Z"
+// (only if the string doesn't already carry a zone marker) fixes that.
+const parseUtc = (isoString) => {
+  if (!isoString) return null;
+  const hasZone = /Z|[+-]\d{2}:\d{2}$/.test(isoString);
+  return new Date(hasZone ? isoString : `${isoString}Z`);
+};
+
 export default function TripGpsLogsModal({ tripId, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -73,7 +84,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
   const sortedLogs = useMemo(() => {
     return [...(data?.gps_logs || [])]
       .filter((log) => log.actual_lat != null && log.actual_long != null)
-      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      .sort((a, b) => parseUtc(a.created_at) - parseUtc(b.created_at));
   }, [data]);
 
   const routeCoordinates = useMemo(
@@ -134,10 +145,10 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                 </p>
                 <p className="mt-1 text-sm text-fg">
                   {latest.created_at
-                    ? `${formatDistanceToNow(new Date(latest.created_at))} ago`
+                    ? `${formatDistanceToNow(parseUtc(latest.created_at))} ago`
                     : "Unknown time"}
                   {" · "}
-                  {new Date(latest.created_at).toLocaleString()}
+                  {parseUtc(latest.created_at).toLocaleString()}
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-fg-muted sm:grid-cols-4">
                   <div>
@@ -197,7 +208,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                       <Popup>
                         📍 Latest ping
                         <br />
-                        {formatDistanceToNow(new Date(latest.created_at))} ago
+                        {formatDistanceToNow(parseUtc(latest.created_at))} ago
                         <br />
                         {latest.actual_lat}, {latest.actual_long}
                       </Popup>
