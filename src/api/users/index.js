@@ -28,3 +28,10 @@ export const deactivateUser = async (userId) => {
   const res = await api.patch(`/users/${userId}/deactivate`);
   return res.data;
 };
+
+// Issues a short-lived token for another user's account so superadmin
+// can see exactly what they see (Sidebar, module access, dashboards).
+export const impersonateUser = async (userId) => {
+  const res = await api.post(`/users/${userId}/impersonate`);
+  return res.data;
+};

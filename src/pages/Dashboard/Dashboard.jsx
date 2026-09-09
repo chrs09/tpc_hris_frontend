@@ -6,6 +6,11 @@ import AttendanceList from "../Attendance/AttendanceList";
 import UsersPage from "../Users/UsersPage";
 import AdminTrips from "../Admin/AdminTrips";
 import TripBypass from "../Admin/TripBypass";
+import OrgHierarchy from "../Admin/OrgHierarchy";
+import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
+import ModuleAssignment from "../Admin/ModuleAssignment";
+import RoleAccess from "../Admin/RoleAccess";
+import OvertimeApprovals from "../Overtime/OvertimeApprovals";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripPlanning from "../Coordinator/TripPlanning";
@@ -19,22 +24,59 @@ import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
 import LeaveManagement from "../Leave/LeaveManagement";
+import {
+  isImpersonating,
+  getImpersonatorUsername,
+  stopImpersonation,
+} from "../../utils/impersonation";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const location = useLocation();
   const passwordChanged = location.state?.passwordChanged || false;
+  const impersonating = isImpersonating();
+  const currentUsername = localStorage.getItem("username");
+  const impersonatorUsername = getImpersonatorUsername();
+
+  const handleReturnToSuperadmin = () => {
+    stopImpersonation();
+    window.location.href = "/dashboard/users";
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+
+      {impersonating && (
+        <div
+          className={`
+            fixed top-0 z-40 flex flex-wrap items-center justify-center gap-3 bg-warning px-4 py-2 text-center text-sm font-semibold text-warning-foreground shadow-md
+            left-0 right-0
+            md:left-64
+          `}
+        >
+          <span>
+            {impersonatorUsername && (
+              <span className="capitalize">{impersonatorUsername}</span>
+            )}{" "}
+            is viewing as{" "}
+            <span className="capitalize">{currentUsername}</span> (read-only)
+          </span>
+          <button
+            onClick={handleReturnToSuperadmin}
+            className="rounded-lg bg-black/20 px-3 py-1 text-xs font-bold hover:bg-black/30"
+          >
+            Return to Superadmin
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       <div
         className={`
           transition-all duration-300
           ${isCollapsed ? "md:ml-20" : "md:ml-64"}
-          pt-20 md:pt-6
+          ${impersonating ? "pt-32 md:pt-16" : "pt-20 md:pt-6"}
           p-4 md:p-6
           overflow-x-auto
         `}
@@ -56,6 +98,14 @@ const Dashboard = () => {
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="users" element={<UsersPage />} />
+          <Route path="hierarchy" element={<OrgHierarchy />} />
+          <Route
+            path="cash-advance-settings"
+            element={<CashAdvanceSettings />}
+          />
+          <Route path="module-assignment" element={<ModuleAssignment />} />
+          <Route path="role-access" element={<RoleAccess />} />
+          <Route path="overtime-approvals" element={<OvertimeApprovals />} />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="admin/trip-bypass" element={<TripBypass />} />

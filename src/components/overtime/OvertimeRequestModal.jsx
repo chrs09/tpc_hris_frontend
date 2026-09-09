@@ -1,58 +1,69 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
-import {
-  fileOvertimeRequest,
-  getOvertimeApprovers,
-} from "../../api/overtimeRequests";
+import { clockInOvertime } from "../../api/overtimeRequests";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
 
-const computePreviewHours = (otDate, timeIn, timeOut) => {
-  if (!otDate || !timeIn || !timeOut) return null;
-  const start = new Date(`${otDate}T${timeIn}:00`);
-  let end = new Date(`${otDate}T${timeOut}:00`);
-  if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
-  return Math.round(((end - start) / (1000 * 60 * 60)) * 100) / 100;
-};
+// Best-effort location for the selfie's geofence watermark -- unlike
+// trips, this is never required to clock in. If permission is denied or
+// unavailable, clock-in still proceeds with no location.
+const getCurrentLocationOptional = () =>
+  new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          lat: position.coords.latitude,
+          long: position.coords.longitude,
+        }),
+      () => resolve(null),
+      { timeout: 5000 },
+    );
+  });
 
+// Clock-in capture: a live selfie (front camera) + reason. No date/time
+// fields -- the server stamps the clock-in time itself. Location is only
+// captured (best-effort, non-blocking) to label the geofence on the
+// selfie's watermark.
 export default function OvertimeRequestModal({ onClose, onFiled }) {
-  const [approvers, setApprovers] = useState([]);
-  const [loadingApprovers, setLoadingApprovers] = useState(true);
-  const [requestedBy, setRequestedBy] = useState("");
-  const [otDate, setOtDate] = useState("");
-  const [timeIn, setTimeIn] = useState("");
-  const [timeOut, setTimeOut] = useState("");
+  const [photo, setPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState("");
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    getOvertimeApprovers()
-      .then(setApprovers)
-      .catch(() => toast.error("Failed to load approver list."))
-      .finally(() => setLoadingApprovers(false));
-  }, []);
-
-  const previewHours = computePreviewHours(otDate, timeIn, timeOut);
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setPhoto(file);
+    setPhotoPreview(file ? URL.createObjectURL(file) : "");
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!requestedBy || !otDate || !timeIn || !timeOut || !reason.trim()) {
-      toast.error("Please fill in all fields.");
+    if (!photo) {
+      toast.error("Take a selfie to clock in.");
+      return;
+    }
+
+    if (!reason.trim()) {
+      toast.error("Reason is required.");
       return;
     }
 
     try {
       setSubmitting(true);
-      await fileOvertimeRequest({
-        requested_by_user_id: Number(requestedBy),
-        ot_date: otDate,
-        time_in: timeIn,
-        time_out: timeOut,
+      const location = await getCurrentLocationOptional();
+      await clockInOvertime({
+        photo,
         reason: reason.trim(),
+        lat: location?.lat,
+        long: location?.long,
       });
-      toast.success("Overtime request submitted.");
+      toast.success("Clocked in to overtime.");
       onFiled?.();
       onClose();
     } catch (error) {
@@ -69,7 +80,7 @@ export default function OvertimeRequestModal({ onClose, onFiled }) {
         className="w-full max-w-md rounded-t-3xl border border-border bg-surface p-6 shadow-xl sm:rounded-3xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-fg">File Overtime Request</h2>
+          <h2 className="text-lg font-bold text-fg">Overtime In</h2>
           <button
             type="button"
             onClick={onClose}
@@ -79,78 +90,32 @@ export default function OvertimeRequestModal({ onClose, onFiled }) {
           </button>
         </div>
 
+        <p className="mb-4 rounded-xl bg-primary/10 p-3 text-xs text-fg-muted">
+          Take a selfie and tell your department head why you're staying for
+          overtime. This goes to them automatically.
+        </p>
+
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-fg-muted">
-              Requested By (Approver)
-            </label>
-            <select
-              value={requestedBy}
-              onChange={(e) => setRequestedBy(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
-              required
-            >
-              <option value="" disabled>
-                {loadingApprovers ? "Loading..." : "Select who requested this OT"}
-              </option>
-              {approvers.map((a) => (
-                <option key={a.id} value={a.user_id}>
-                  {a.username}
-                </option>
-              ))}
-            </select>
-            {!loadingApprovers && approvers.length === 0 && (
-              <p className="mt-1 text-xs text-danger">
-                No overtime approvers have been set up yet. Contact your admin.
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-fg-muted">
-              Date
+              Selfie
             </label>
             <input
-              type="date"
-              value={otDate}
-              onChange={(e) => setOtDate(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              type="file"
+              accept="image/*"
+              capture="user"
+              onChange={handlePhotoChange}
               required
+              className="w-full rounded-lg border border-border bg-background p-2 text-sm text-fg"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-fg-muted">
-                Time In
-              </label>
-              <input
-                type="time"
-                value={timeIn}
-                onChange={(e) => setTimeIn(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
-                required
+            {photoPreview && (
+              <img
+                src={photoPreview}
+                alt="Selfie preview"
+                className="mt-3 h-32 w-32 rounded-xl border border-border object-cover"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-fg-muted">
-                Time Out
-              </label>
-              <input
-                type="time"
-                value={timeOut}
-                onChange={(e) => setTimeOut(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
-                required
-              />
-            </div>
+            )}
           </div>
-
-          {previewHours !== null && (
-            <p className="text-xs text-fg-subtle">
-              Computed hours: <span className="font-semibold text-fg">{previewHours}</span>
-            </p>
-          )}
 
           <div>
             <label className="mb-1 block text-sm font-medium text-fg-muted">
@@ -169,10 +134,10 @@ export default function OvertimeRequestModal({ onClose, onFiled }) {
 
         <button
           type="submit"
-          disabled={submitting || (!loadingApprovers && approvers.length === 0)}
+          disabled={submitting}
           className="mt-6 w-full rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground hover:bg-primary-hover transition-colors disabled:opacity-50"
         >
-          {submitting ? "Submitting..." : "Submit Overtime Request"}
+          {submitting ? "Clocking in..." : "Clock In"}
         </button>
       </form>
     </div>

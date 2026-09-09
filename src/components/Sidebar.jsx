@@ -13,7 +13,11 @@ import {
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getReminders, createReminder, resolveReminder } from "../api/reminder";
+import { getMyModuleAccess } from "../api/employeeModuleAccess";
+import { getUserList, impersonateUser } from "../api/users";
+import { startImpersonation } from "../utils/impersonation";
 import ThemeToggle from "./ui/ThemeToggle";
+import toast from "react-hot-toast";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
@@ -30,6 +34,79 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [showModal, setShowModal] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Per-employee submodule grants (Module Assignment page). Once
+  // superadmin has explicitly configured an employee (hasCustomAccess),
+  // their access to the assignable groups (items with a moduleKey) comes
+  // ONLY from grantedModules -- role no longer grants anything for those
+  // items, even if the granted set is empty. Until configured, role-based
+  // access applies as before. Not needed for superadmin, who always sees
+  // everything.
+  const [grantedModules, setGrantedModules] = useState(new Set());
+  const [hasCustomAccess, setHasCustomAccess] = useState(false);
+
+  // "View As" -- superadmin picks another user to see their live,
+  // read-only view (Sidebar, dashboards, data), lives in the greeting
+  // area instead of the Users table. All writes are blocked centrally
+  // in api/services/api.js while a view-as session is active.
+  const [showViewAsModal, setShowViewAsModal] = useState(false);
+  const [viewAsUsers, setViewAsUsers] = useState([]);
+  const [viewAsLoading, setViewAsLoading] = useState(false);
+  const [viewAsSearch, setViewAsSearch] = useState("");
+  // Set once a candidate is picked, turning the modal into a confirm
+  // step (in-modal, no browser confirm()) before actually switching.
+  const [viewAsPendingUser, setViewAsPendingUser] = useState(null);
+  const [viewAsSubmitting, setViewAsSubmitting] = useState(false);
+
+  const openViewAsModal = () => {
+    setShowViewAsModal(true);
+    setViewAsSearch("");
+    setViewAsPendingUser(null);
+    setViewAsLoading(true);
+    getUserList()
+      .then((data) => setViewAsUsers(data))
+      .catch(() => toast.error("Failed to load users."))
+      .finally(() => setViewAsLoading(false));
+  };
+
+  const closeViewAsModal = () => {
+    setShowViewAsModal(false);
+    setViewAsPendingUser(null);
+  };
+
+  const confirmViewAs = async () => {
+    if (!viewAsPendingUser) return;
+    setViewAsSubmitting(true);
+    try {
+      const data = await impersonateUser(viewAsPendingUser.id);
+      startImpersonation(data);
+      window.location.href = "/dashboard";
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to view as user.");
+      setViewAsSubmitting(false);
+    }
+  };
+
+  const viewAsCandidates = viewAsUsers.filter(
+    (u) =>
+      u.role !== "superadmin" &&
+      u.is_active &&
+      (u.username.toLowerCase().includes(viewAsSearch.toLowerCase()) ||
+        u.email.toLowerCase().includes(viewAsSearch.toLowerCase())),
+  );
+
+  useEffect(() => {
+    if (isSuperAdmin) return;
+    getMyModuleAccess()
+      .then((data) => {
+        setGrantedModules(new Set(data.module_keys || []));
+        setHasCustomAccess(Boolean(data.has_custom_access));
+      })
+      .catch(() => {
+        setGrantedModules(new Set());
+        setHasCustomAccess(false);
+      });
+  }, [isSuperAdmin]);
 
   // =========================
   // ✅ ROUTE MATCH HELPER (CLEAN FIX)
@@ -77,26 +154,31 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             label: "Attendance",
             path: "/dashboard/attendance",
             roles: ["superadmin", "admin"],
+            moduleKey: "hris.attendance",
           },
           {
             label: "Leave Requests",
             path: "/dashboard/leave",
             roles: ["superadmin", "admin"],
+            moduleKey: "hris.leave",
           },
           {
             label: "Employees",
             path: "/dashboard/employees",
             roles: ["superadmin", "admin"],
+            moduleKey: "hris.employees",
           },
           {
             label: "Applicants", // ✅ ADD THIS
             path: "/dashboard/applicants",
             roles: ["superadmin", "admin"],
+            moduleKey: "hris.applicants",
           },
           {
             label: "Questionaire", // ✅ ADD THIS
             path: "/dashboard/applicant/questionaire",
             roles: ["superadmin", "admin"],
+            moduleKey: "hris.questionnaire",
           },
         ],
       },
@@ -108,6 +190,30 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             label: "Payroll",
             path: "/dashboard/payroll",
             roles: ["superadmin", "payroll_admin"],
+            moduleKey: "payroll.payroll",
+          },
+        ],
+      },
+      {
+        label: "OT Approvals",
+        icon: <Users size={18} />,
+        children: [
+          {
+            label: "OT Approvals",
+            path: "/dashboard/overtime-approvals",
+            // Visible to everyone -- eligibility is data-driven (you're
+            // either the request's designated approver or the requester's
+            // department head), not role-based.
+            roles: [
+              "superadmin",
+              "admin",
+              "driver",
+              "helper",
+              "employee",
+              "payroll_admin",
+              "coordinator_admin",
+              "office_admin",
+            ],
           },
         ],
       },
@@ -122,26 +228,31 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 ? "/dashboard/driver/trips"
                 : "/dashboard/admin/trips",
             roles: ["superadmin", "driver", "coordinator_admin"],
+            moduleKey: "trip_management.trips",
           },
           {
             label: "Office Trip Review",
             path: "/dashboard/office/trips",
             roles: ["superadmin", "coordinator_admin", "office_admin"],
+            moduleKey: "trip_management.office_trip_review",
           },
           {
             label: "Start Trip (Bypass)",
             path: "/dashboard/admin/trip-bypass",
             roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "trip_management.trip_bypass",
           },
           {
             label: "Maintenance",
             path: "/dashboard/admin/trip-maintenance",
             roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "trip_management.maintenance",
           },
           {
             label: "Stores",
             path: "/dashboard/admin/stores",
             roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "trip_management.stores",
           },
           // {
           //   label: "Shipment Planning",
@@ -152,6 +263,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             label: "Daily Dispatch Board",
             path: "/dashboard/admin/daily-deliveries",
             roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "trip_management.daily_dispatch",
           },
         ],
       },
@@ -164,11 +276,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             label: "Trip Review",
             path: "/dashboard/finance/trips",
             roles: ["superadmin"],
+            moduleKey: "finance.finance_trips",
           },
           {
             label: "Expenses",
             path: "/dashboard/finance/expenses",
             roles: ["superadmin"],
+            moduleKey: "finance.finance_expenses",
           },
         ],
       },
@@ -179,6 +293,26 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {
             label: "Users",
             path: "/dashboard/users",
+            roles: ["superadmin"],
+          },
+          {
+            label: "Hierarchy",
+            path: "/dashboard/hierarchy",
+            roles: ["superadmin"],
+          },
+          {
+            label: "Module Assignment",
+            path: "/dashboard/module-assignment",
+            roles: ["superadmin"],
+          },
+          {
+            label: "Role Access",
+            path: "/dashboard/role-access",
+            roles: ["superadmin"],
+          },
+          {
+            label: "Cash Advance Settings",
+            path: "/dashboard/cash-advance-settings",
             roles: ["superadmin"],
           },
           {
@@ -286,17 +420,37 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
         {/* GREETING */}
         {!isCollapsed && (
-          <div className="text-xl font-extrabold mb-8 capitalize text-fg">
-            Hello! {username} ({role})
+          <div className="mb-8">
+            <div className="text-xl font-extrabold capitalize text-fg">
+              Hello! {username} ({role})
+            </div>
+            {isSuperAdmin && (
+              <button
+                onClick={openViewAsModal}
+                className="mt-1 text-xs font-medium text-primary hover:underline"
+              >
+                View As...
+              </button>
+            )}
           </div>
         )}
 
         {/* NAVIGATION */}
         <nav className="flex flex-col gap-4 flex-1">
           {navGroups.map((group) => {
-            const visibleChildren = group.children.filter((item) =>
-              item.roles.includes(role),
-            );
+            // Items without a moduleKey (Dashboard, OT Approvals,
+            // Administrator) are always role-based, unaffected by Module
+            // Assignment. For items WITH a moduleKey: once this employee
+            // has been explicitly configured (hasCustomAccess), their
+            // role grants nothing here -- only grantedModules decides,
+            // so a restriction (e.g. Trips only) actually restricts.
+            // Until configured, role-based access applies as before.
+            const visibleChildren = group.children.filter((item) => {
+              if (role === "superadmin") return true;
+              if (!item.moduleKey) return item.roles.includes(role);
+              if (hasCustomAccess) return grantedModules.has(item.moduleKey);
+              return item.roles.includes(role);
+            });
 
             if (!visibleChildren.length) return null;
 
@@ -479,6 +633,120 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   {loading ? "Saving..." : "Save"}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW AS MODAL */}
+        {showViewAsModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-sm shadow-xl">
+              {viewAsPendingUser ? (
+                // ================= CONFIRM STEP =================
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-fg">
+                      Confirm View As
+                    </h2>
+                    <button
+                      onClick={closeViewAsModal}
+                      disabled={viewAsSubmitting}
+                      className="text-fg-muted hover:text-fg disabled:opacity-40"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p className="text-sm text-fg mb-2">
+                    View as{" "}
+                    <span className="font-semibold capitalize">
+                      {viewAsPendingUser.username}
+                    </span>{" "}
+                    <span className="text-fg-subtle capitalize">
+                      ({viewAsPendingUser.role})
+                    </span>
+                    ?
+                  </p>
+                  <p className="text-xs text-fg-subtle mb-6">
+                    You'll see their live data exactly as they see it, in
+                    read-only mode -- no changes can be saved. Use "Return to
+                    Superadmin" in the banner to come back.
+                  </p>
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setViewAsPendingUser(null)}
+                      disabled={viewAsSubmitting}
+                      className="px-3 py-1.5 rounded-lg text-sm text-fg-muted hover:bg-surface-hover disabled:opacity-40"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={confirmViewAs}
+                      disabled={viewAsSubmitting}
+                      className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
+                    >
+                      {viewAsSubmitting ? "Switching..." : "View As"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                // ================= PICK USER STEP =================
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-fg">View As</h2>
+                    <button
+                      onClick={closeViewAsModal}
+                      className="text-fg-muted hover:text-fg"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-fg-subtle mb-3">
+                    You'll see their live data in read-only mode. No changes
+                    can be made while viewing as another account.
+                  </p>
+
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Search username or email..."
+                    value={viewAsSearch}
+                    onChange={(e) => setViewAsSearch(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-border bg-background text-fg mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+
+                  <div className="max-h-64 overflow-y-auto space-y-1">
+                    {viewAsLoading ? (
+                      <div className="text-sm text-fg-subtle text-center py-4">
+                        Loading users...
+                      </div>
+                    ) : viewAsCandidates.length === 0 ? (
+                      <div className="text-sm text-fg-subtle text-center py-4">
+                        No matching users.
+                      </div>
+                    ) : (
+                      viewAsCandidates.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => setViewAsPendingUser(u)}
+                          className="w-full flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-surface-hover"
+                        >
+                          <span>
+                            <span className="font-medium text-fg capitalize">
+                              {u.username}
+                            </span>
+                            <span className="ml-2 text-xs text-fg-subtle capitalize">
+                              ({u.role})
+                            </span>
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

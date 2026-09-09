@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_URL } from "../config";
+import { isImpersonating } from "../../utils/impersonation";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -48,6 +49,31 @@ const settleRequest = () => {
   activeRequestCount = Math.max(activeRequestCount - 1, 0);
   notifyLoadingChange();
 };
+
+// While a superadmin is "viewing as" another user, that session is
+// strictly read-only: live data loads normally (GET requests pass
+// through untouched), but any request that would change something is
+// blocked here before it leaves the browser. The rejected error mimics
+// the shape backend error responses already have (`err.response.data.detail`)
+// so every existing `catch` block's toast shows this message for free,
+// with no per-page changes needed.
+const READ_ONLY_METHODS = new Set(["get", "head", "options"]);
+
+api.interceptors.request.use((config) => {
+  const method = (config.method || "get").toLowerCase();
+  if (isImpersonating() && !READ_ONLY_METHODS.has(method)) {
+    const blockedError = new Error("Viewing in read-only mode.");
+    blockedError.response = {
+      status: 403,
+      data: {
+        detail:
+          "You're viewing this account in read-only mode. Return to your own account to make changes.",
+      },
+    };
+    return Promise.reject(blockedError);
+  }
+  return config;
+});
 
 // ✅ Global response interceptor
 api.interceptors.response.use(

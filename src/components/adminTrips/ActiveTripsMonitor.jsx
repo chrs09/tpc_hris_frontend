@@ -33,7 +33,17 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                   key={trip.id}
                   className="border-t border-border hover:bg-surface-hover"
                 >
-                  <td className="px-4 py-4 capitalize">{trip.username}</td>
+                  <td className="px-4 py-4 capitalize">
+                    {trip.username}
+                    {trip.started_outside_hub_range && (
+                      <span
+                        title="Started outside any hub's GPS range"
+                        className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-warning"
+                      >
+                        ⚠ Outside Hub
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-4 capitalize">{trip.ticket_no}</td>
                   <td className="px-4 py-4">
                     {new Date(trip.start_time).toLocaleString()}
@@ -68,7 +78,17 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               className="bg-surface border border-border text-fg p-4 rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="font-semibold capitalize">{trip.username}</p>
+                <p className="font-semibold capitalize">
+                  {trip.username}
+                  {trip.started_outside_hub_range && (
+                    <span
+                      title="Started outside any hub's GPS range"
+                      className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-warning"
+                    >
+                      ⚠ Outside Hub
+                    </span>
+                  )}
+                </p>
                 <button
                   onClick={() => setSelectedTripId(trip.id)}
                   className="shrink-0 rounded-lg border border-border px-3 py-1 text-xs font-medium text-fg-muted transition hover:bg-surface-hover"

@@ -8,7 +8,7 @@ import AttendanceHistoryList from "../../components/employeeDashboard/Attendance
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
 import OvertimeHistoryList from "../../components/overtime/OvertimeHistoryList";
-import OvertimeRequestModal from "../../components/overtime/OvertimeRequestModal";
+import OvertimeActionButton from "../../components/overtime/OvertimeActionButton";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import useIsDesktop from "../../hooks/useIsDesktop";
 
@@ -30,7 +30,6 @@ const EmployeeDashboard = () => {
   const [overtimeRequests, setOvertimeRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
-  const [showOvertimeModal, setShowOvertimeModal] = useState(false);
   const isDesktop = useIsDesktop();
 
   const employeeName = localStorage.getItem("username") || "there";
@@ -99,14 +98,7 @@ const EmployeeDashboard = () => {
     </button>
   );
 
-  const fileOvertimeButton = (
-    <button
-      onClick={() => setShowOvertimeModal(true)}
-      className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors"
-    >
-      + File Overtime
-    </button>
-  );
+  const overtimeActionButton = <OvertimeActionButton onChanged={loadData} />;
 
   const attendanceMonthNav = (
     <div className="flex items-center gap-1">
@@ -211,7 +203,7 @@ const EmployeeDashboard = () => {
 
           <DashboardCard
             title="Overtime Requests"
-            action={fileOvertimeButton}
+            action={overtimeActionButton}
           >
             {overtimeContent}
           </DashboardCard>
@@ -246,7 +238,7 @@ const EmployeeDashboard = () => {
               <h2 className="text-base font-bold text-fg">
                 Overtime Requests
               </h2>
-              {fileOvertimeButton}
+              {overtimeActionButton}
             </div>
             {overtimeContent}
           </section>
@@ -256,13 +248,6 @@ const EmployeeDashboard = () => {
       {showLeaveModal && (
         <LeaveRequestModal
           onClose={() => setShowLeaveModal(false)}
-          onFiled={loadData}
-        />
-      )}
-
-      {showOvertimeModal && (
-        <OvertimeRequestModal
-          onClose={() => setShowOvertimeModal(false)}
           onFiled={loadData}
         />
       )}

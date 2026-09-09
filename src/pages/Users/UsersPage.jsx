@@ -229,16 +229,18 @@ const UsersPage = () => {
                     </span>
                   </div>
 
-                  <Button
-                    size="sm"
-                    className="w-full bg-primary text-primary-foreground transition hover:bg-primary-hover"
-                    onClick={() => {
-                      setEditingUser(user);
-                      setDrawerOpen(true);
-                    }}
-                  >
-                    View Details
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-primary text-primary-foreground transition hover:bg-primary-hover"
+                      onClick={() => {
+                        setEditingUser(user);
+                        setDrawerOpen(true);
+                      }}
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </div>
               ))
             )}
@@ -312,15 +314,17 @@ const UsersPage = () => {
                           </td>
 
                           <td className="px-6 text-right">
-                            <button
-                              className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg transition hover:bg-surface-hover"
-                              onClick={() => {
-                                setEditingUser(user);
-                                setDrawerOpen(true);
-                              }}
-                            >
-                              View
-                            </button>
+                            <div className="flex justify-end gap-2">
+                              <button
+                                className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg transition hover:bg-surface-hover"
+                                onClick={() => {
+                                  setEditingUser(user);
+                                  setDrawerOpen(true);
+                                }}
+                              >
+                                View
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
