@@ -108,7 +108,7 @@ export default function ApplicationForm() {
               placeholder="First Name"
               value={form.first_name}
               onChange={(e) => handleChange("first_name", e.target.value)}
-              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
               required
             />
 
@@ -116,7 +116,7 @@ export default function ApplicationForm() {
               placeholder="Middle Name"
               value={form.middle_name}
               onChange={(e) => handleChange("middle_name", e.target.value)}
-              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
               required
             />
 
@@ -124,16 +124,15 @@ export default function ApplicationForm() {
               placeholder="Last Name"
               value={form.last_name}
               onChange={(e) => handleChange("last_name", e.target.value)}
-              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
               required
             />
 
             <input
-              placeholder="Suffix"
+              placeholder="Suffix (optional)"
               value={form.suffix}
               onChange={(e) => handleChange("suffix", e.target.value)}
-              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
-              required
+              className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
             />
           </div>
 
@@ -142,7 +141,7 @@ export default function ApplicationForm() {
             placeholder="Email Address"
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
-            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
             required
           />
 
@@ -150,7 +149,7 @@ export default function ApplicationForm() {
             placeholder="Contact Number"
             value={form.contact_number}
             onChange={(e) => handleChange("contact_number", e.target.value)}
-            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
             required
           />
 
@@ -158,7 +157,7 @@ export default function ApplicationForm() {
             placeholder="Position Applied"
             value={form.position_applied}
             onChange={(e) => handleChange("position_applied", e.target.value)}
-            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition"
+            className="w-full border border-gray-400 focus:border-black focus:ring-1 focus:ring-black p-3 rounded-lg outline-none transition bg-white text-gray-900 placeholder-gray-400"
             required
           />
 

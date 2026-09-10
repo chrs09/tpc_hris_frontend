@@ -657,7 +657,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           <div className="mt-0.5 border-t border-black pt-0.5">
             <PayslipValue
-              label="Adjusted Basic Pay"
+              label="Basic Pay"
               value={adjustedBasicPay}
               isMoney
               bold

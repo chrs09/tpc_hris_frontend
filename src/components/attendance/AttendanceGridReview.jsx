@@ -528,18 +528,26 @@ const AttendanceGridReview = ({
                         )}
                     </div>
 
+                    {/* This card's background (style.card, e.g. bg-emerald-100)
+                        is a fixed light pastel by design -- a self-contained
+                        "sticker" that doesn't follow the app theme (see the
+                        same pattern/comment in AttendanceTable.jsx). So its
+                        text must use fixed dark colors here, NOT the
+                        text-fg/text-fg-subtle/text-fg-muted theme tokens --
+                        those turn near-white in dark mode and would be
+                        unreadable against this always-light card. */}
                     <div className="flex flex-1 flex-col p-3 space-y-2 text-sm">
                       <div>
-                        <h3 className="font-bold text-fg line-clamp-1">
+                        <h3 className="font-bold text-gray-900 line-clamp-1">
                           {getName(record)}
                         </h3>
 
-                        <p className="text-sm text-fg-subtle">
+                        <p className="text-sm text-gray-600">
                           {getDepartment(record)}
                         </p>
                       </div>
 
-                      <div className="text-sm text-fg-muted space-y-1">
+                      <div className="text-sm text-gray-700 space-y-1">
                         <p>
                           <span className="font-medium">Time In:</span>{" "}
                           {getTimeIn(record)}
@@ -754,6 +762,14 @@ const AttendanceDetail = ({
   };
 
   return (
+    // NOTE: this whole panel's background (style.card) is a fixed light
+    // pastel by design (see the matching comment on the grid card tile
+    // above) -- every direct child text below uses fixed dark colors
+    // instead of the text-fg/text-fg-subtle theme tokens, which would
+    // turn near-white and unreadable here in dark mode. Text inside a
+    // nested box with its own adaptive background (e.g. bg-surface-hover
+    // photo placeholders, PhotoBox/AttendancePhotoBox) is unaffected and
+    // left as-is.
     <div
       className={`p-5 space-y-5 rounded-xl border-2 ${style.border} ${style.card}`}
     >
@@ -774,11 +790,11 @@ const AttendanceDetail = ({
         </div>
 
         <div>
-          <h4 className="font-bold text-fg">{getName(record)}</h4>
+          <h4 className="font-bold text-gray-900">{getName(record)}</h4>
 
-          <p className="text-sm text-fg-subtle">{getDepartment(record)}</p>
+          <p className="text-sm text-gray-600">{getDepartment(record)}</p>
 
-          <p className="text-sm text-fg-subtle">
+          <p className="text-sm text-gray-600">
             Employee ID: {record.employee_id}
           </p>
         </div>
@@ -790,19 +806,19 @@ const AttendanceDetail = ({
       >
         <span className={`text-sm font-semibold ${style.text}`}>{status}</span>
 
-        <span className="text-sm text-fg-subtle">
+        <span className="text-sm text-gray-600">
           {record.attendance_method || "N/A"}
         </span>
       </div>
 
       {/* Photo Comparison */}
       <div>
-        <h4 className="font-bold mb-3">Photo Comparison</h4>
+        <h4 className="font-bold mb-3 text-gray-900">Photo Comparison</h4>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           <PhotoBox label="Profile Photo" photo={profilePhoto} />
 
-          <span className="font-bold text-fg text-lg">VS</span>
+          <span className="font-bold text-gray-900 text-lg">VS</span>
 
           <PhotoBox label="Attendance Selfie" photo={photo} />
         </div>
@@ -811,9 +827,9 @@ const AttendanceDetail = ({
       {/* Attendance Photos */}
       <div className="border-t border-b py-4">
         <div>
-          <h4 className="font-bold text-fg">Attendance Photos</h4>
+          <h4 className="font-bold text-gray-900">Attendance Photos</h4>
 
-          <p className="text-xs text-fg-subtle mt-1">
+          <p className="text-xs text-gray-600 mt-1">
             Click a photo to view it in full size.
           </p>
         </div>
@@ -853,14 +869,14 @@ const AttendanceDetail = ({
 
       {/* Attendance Details */}
       <div>
-        <h4 className="font-bold mb-3">Attendance Details</h4>
+        <h4 className="font-bold mb-3 text-gray-900">Attendance Details</h4>
 
         <DetailRow label="Date" value={record.attendance_date} />
 
         {/* Editable Time */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-fg-muted mb-1">
+            <label className="block text-sm font-semibold text-gray-600 mb-1">
               Time In
             </label>
 
@@ -874,7 +890,7 @@ const AttendanceDetail = ({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-fg-muted mb-1">
+            <label className="block text-sm font-semibold text-gray-600 mb-1">
               Time Out
             </label>
 
@@ -897,7 +913,7 @@ const AttendanceDetail = ({
         {/* Absent / Leave Reason */}
         {isReasonEditable && (
           <div className="mt-3">
-            <label className="block text-sm font-semibold text-fg-muted mb-1">
+            <label className="block text-sm font-semibold text-gray-600 mb-1">
               Reason
             </label>
 
@@ -1150,12 +1166,15 @@ const StatCard = ({ label, value, color, onClick, isActive }) => {
   );
 };
 
+// Only ever rendered inside AttendanceDetail's fixed light-pastel card
+// (style.card) -- fixed dark text, not the text-fg/text-fg-subtle theme
+// tokens, for the same reason noted on that card's wrapper above.
 const DetailRow = ({ label, value }) => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[130px_1fr] gap-3 py-2 text-sm">
-      <span className="text-fg-subtle">{label}</span>
+      <span className="text-gray-600">{label}</span>
 
-      <span className="text-fg wrap-break-word">{value || "--"}</span>
+      <span className="text-gray-900 wrap-break-word">{value || "--"}</span>
     </div>
   );
 };
