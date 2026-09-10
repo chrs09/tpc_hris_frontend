@@ -261,6 +261,7 @@ function GenerateEmploymentFormModal({
   applicant,
   generating,
   generatedLink,
+  emailSent,
   onClose,
   onGenerate,
   onCopy,
@@ -347,6 +348,22 @@ function GenerateEmploymentFormModal({
                   Copy
                 </button>
               </div>
+
+              {/* email_sent tells HR whether the backend actually emailed
+                  this link to the applicant, so they know whether they
+                  still need to share it manually (e.g. SMTP not
+                  configured yet, or applicant has no email on file). */}
+              {emailSent === true && (
+                <p className="mt-2 text-sm text-emerald-700">
+                  ✓ Emailed to {applicant.email || "the applicant"}.
+                </p>
+              )}
+              {emailSent === false && (
+                <p className="mt-2 text-sm text-amber-700">
+                  ⚠ Could not email this link automatically — please share
+                  it with the applicant manually.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -1095,13 +1112,23 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
     questionResponses.map((item) => [item.question_key, item.answer_text]),
   );
 
+  // Plain text/number display -- deliberately does NOT auto-format
+  // numeric-looking strings with commas. Fields like contact number,
+  // SSS/TIN/Pag-IBIG, and emergency contact number are digit strings,
+  // not quantities, so comma-grouping them (e.g. "9276646453" ->
+  // "9,276,646,453") is wrong and misleading. Only genuine currency
+  // fields should be comma-formatted -- use renderCurrency for those.
   const renderValue = (value) => {
     if (value === null || value === undefined || value === "") return "-";
+    return String(value);
+  };
 
-    if (!isNaN(value)) {
-      return Number(value).toLocaleString("en-US");
-    }
-    return value;
+  // For actual money amounts only (expected/current salary, salary
+  // history) -- comma-grouping is correct and expected here.
+  const renderCurrency = (value) => {
+    if (value === null || value === undefined || value === "") return "-";
+    if (isNaN(value)) return String(value);
+    return Number(value).toLocaleString("en-US");
   };
 
   return (
@@ -1389,7 +1416,7 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                         />
                         <InfoCard
                           label="Salary History"
-                          value={renderValue(item.salary_history)}
+                          value={renderCurrency(item.salary_history)}
                         />
                         <InfoCard
                           label="Salary Type"
@@ -1474,11 +1501,11 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <InfoCard
                   label="Expected Salary"
-                  value={renderValue(onboarding.expected_salary)}
+                  value={renderCurrency(onboarding.expected_salary)}
                 />
                 <InfoCard
                   label="Current Salary"
-                  value={renderValue(onboarding.current_salary)}
+                  value={renderCurrency(onboarding.current_salary)}
                 />
                 <InfoCard
                   label="Salary Type "
@@ -1582,6 +1609,10 @@ export default function ApplicantsPage() {
   const [generateFormApplicant, setGenerateFormApplicant] = useState(null);
   const [generatingFormLink, setGeneratingFormLink] = useState(false);
   const [generatedFormLink, setGeneratedFormLink] = useState("");
+  // Whether the backend actually emailed the link to the applicant (it's
+  // best-effort -- null before a link has been generated, then true/false
+  // once we know; see generate_employment_form in app/api/admin/applicants.py).
+  const [generatedFormEmailSent, setGeneratedFormEmailSent] = useState(null);
 
   const [onboardingViewOpen, setOnboardingViewOpen] = useState(false);
   const [onboardingViewLoading, setOnboardingViewLoading] = useState(false);
@@ -1885,6 +1916,7 @@ export default function ApplicantsPage() {
   const handleOpenGenerateForm = (applicant) => {
     setGenerateFormApplicant(applicant);
     setGeneratedFormLink("");
+    setGeneratedFormEmailSent(null);
     setGenerateFormOpen(true);
   };
 
@@ -1893,6 +1925,7 @@ export default function ApplicantsPage() {
     setGenerateFormOpen(false);
     setGenerateFormApplicant(null);
     setGeneratedFormLink("");
+    setGeneratedFormEmailSent(null);
   };
 
   const handleGenerateFormLink = async () => {
@@ -1903,6 +1936,11 @@ export default function ApplicantsPage() {
 
       const data = await generateEmploymentForm(generateFormApplicant.id);
       setGeneratedFormLink(data.form_url);
+      // email_sent is best-effort on the backend (e.g. false if SMTP
+      // isn't configured yet, or the applicant has no email on file) --
+      // surface it so HR knows whether they still need to share the link
+      // manually.
+      setGeneratedFormEmailSent(Boolean(data.email_sent));
 
       await loadApplicants();
 
@@ -2189,6 +2227,7 @@ export default function ApplicantsPage() {
         applicant={generateFormApplicant}
         generating={generatingFormLink}
         generatedLink={generatedFormLink}
+        emailSent={generatedFormEmailSent}
         onClose={handleCloseGenerateForm}
         onGenerate={handleGenerateFormLink}
         onCopy={handleCopyGeneratedLink}

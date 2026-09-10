@@ -8,6 +8,7 @@ import AdminTrips from "../Admin/AdminTrips";
 import TripBypass from "../Admin/TripBypass";
 import OrgHierarchy from "../Admin/OrgHierarchy";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
+import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
 import ModuleAssignment from "../Admin/ModuleAssignment";
 import RoleAccess from "../Admin/RoleAccess";
 import OvertimeApprovals from "../Overtime/OvertimeApprovals";
@@ -102,6 +103,10 @@ const Dashboard = () => {
           <Route
             path="cash-advance-settings"
             element={<CashAdvanceSettings />}
+          />
+          <Route
+            path="cash-advance-approvals"
+            element={<CashAdvanceApprovals />}
           />
           <Route path="module-assignment" element={<ModuleAssignment />} />
           <Route path="role-access" element={<RoleAccess />} />

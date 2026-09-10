@@ -85,6 +85,7 @@ export const ROLE_ACCESS_GROUPS = [
     children: [
       { label: "Trip Review", roles: ["superadmin"] },
       { label: "Expenses", roles: ["superadmin"] },
+      { label: "Cash Advance Approvals", roles: ["superadmin"] },
     ],
   },
   {

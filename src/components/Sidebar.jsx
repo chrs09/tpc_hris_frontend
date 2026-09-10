@@ -17,6 +17,8 @@ import { getMyModuleAccess } from "../api/employeeModuleAccess";
 import { getUserList, impersonateUser } from "../api/users";
 import { startImpersonation } from "../utils/impersonation";
 import ThemeToggle from "./ui/ThemeToggle";
+import HubAlertsBell from "./adminTrips/HubAlertsBell";
+import CashAdvanceAlertsBell from "./adminTrips/CashAdvanceAlertsBell";
 import toast from "react-hot-toast";
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
@@ -284,6 +286,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             roles: ["superadmin"],
             moduleKey: "finance.finance_expenses",
           },
+          {
+            label: "Cash Advance Approvals",
+            path: "/dashboard/cash-advance-approvals",
+            roles: ["superadmin"],
+            moduleKey: "finance.cash_advance",
+          },
         ],
       },
       {
@@ -374,7 +382,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       {/* MOBILE TOP BAR */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-surface text-fg border-b border-border flex items-center justify-between p-4 z-50">
         <h1 className="font-bold">Tytan HRIS</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <HubAlertsBell />
+          <CashAdvanceAlertsBell />
           <ThemeToggle />
           <button
             onClick={() => setIsMobileOpen(true)}
@@ -403,13 +413,25 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           md:translate-x-0 z-50
         `}
       >
-        {/* COLLAPSE + THEME TOGGLE */}
+        {/* COLLAPSE + THEME TOGGLE + NOTIFICATION BELLS */}
         <div
           className={`hidden md:flex items-center mb-4 ${
-            isCollapsed ? "justify-center" : "justify-between"
+            isCollapsed ? "flex-col gap-3" : "justify-between"
           }`}
         >
-          {!isCollapsed && <ThemeToggle />}
+          {!isCollapsed && (
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <HubAlertsBell />
+              <CashAdvanceAlertsBell />
+            </div>
+          )}
+          {isCollapsed && (
+            <div className="flex flex-col items-center gap-3">
+              <HubAlertsBell />
+              <CashAdvanceAlertsBell />
+            </div>
+          )}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="text-fg-muted hover:text-fg"

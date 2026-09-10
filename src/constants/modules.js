@@ -67,6 +67,11 @@ export const MODULE_GROUPS = [
         label: "Expenses",
         path: "/dashboard/finance/expenses",
       },
+      {
+        key: "cash_advance",
+        label: "Cash Advances",
+        path: "/dashboard/cash-advance-approvals",
+      },
     ],
   },
 ];

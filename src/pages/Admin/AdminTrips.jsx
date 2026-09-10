@@ -50,6 +50,35 @@ const AdminTrips = () => {
       setLoading(false);
     };
     init();
+
+    // Silent background refresh -- loadTrips() doesn't touch `loading`
+    // itself, so re-running it on a timer just swaps the underlying
+    // arrays in place (React only re-renders what actually changed) with
+    // no spinner/flicker, keeping "Outside Hub" badges and trip statuses
+    // current without the admin needing to reload the page. Paused while
+    // the tab isn't visible, and skipped if a previous tick is still
+    // in flight, so a slow network can't stack up overlapping requests.
+    let refreshing = false;
+    const tick = async () => {
+      if (refreshing || document.visibilityState !== "visible") return;
+      refreshing = true;
+      try {
+        await loadTrips();
+      } finally {
+        refreshing = false;
+      }
+    };
+    const interval = setInterval(tick, 20000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   const handleTripApproved = async () => {
@@ -57,6 +86,15 @@ const AdminTrips = () => {
     // NOTE: approval now hands the trip to finance for review instead of
     // marking it complete, so the copy reflects that instead of "approved".
     setSuccessMessage("Trip approved and sent for finance review ✔");
+
+    setTimeout(() => {
+      setSuccessMessage("");
+    }, 3000);
+  };
+
+  const handleTripArchived = async () => {
+    await loadTrips();
+    setSuccessMessage("Trip archived ✔");
 
     setTimeout(() => {
       setSuccessMessage("");
@@ -120,6 +158,7 @@ const AdminTrips = () => {
         <PendingTripsCard
           trips={activeTab === "pending" ? pendingTrips : completedTrips}
           refreshTrips={handleTripApproved}
+          onArchived={handleTripArchived}
           mode={activeTab}
         />
       </div>

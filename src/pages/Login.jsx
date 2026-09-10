@@ -142,7 +142,7 @@ export default function Login({ setIsAuthenticated }) {
             )}
           </form>
 
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
             <p className="mb-2 text-center text-sm text-fg-muted">Or</p>
 
             <Button
@@ -153,6 +153,18 @@ export default function Login({ setIsAuthenticated }) {
               onClick={() => navigate("/attendance-kiosk")}
             >
               Go to Attendance Kiosk
+            </Button>
+
+            {/* Public job application form (no login required) -- route
+                is registered in App.jsx at /tytan-application-form. */}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={() => navigate("/tytan-application-form")}
+            >
+              Join The Team
             </Button>
           </div>
 
