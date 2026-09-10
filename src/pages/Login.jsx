@@ -18,6 +18,18 @@ export default function Login({ setIsAuthenticated }) {
 
   const navigate = useNavigate();
 
+  // Escape hatch for a stale/corrupted browser session -- e.g. a
+  // leftover expired token or stashed "View As" keys confusing login
+  // in ways a plain retry won't fix (the usual symptom: login errors
+  // that only go away in a fresh incognito window). Clears everything
+  // this app keeps in localStorage and does a full reload so every
+  // component remounts with a clean slate, instead of just navigating
+  // client-side.
+  const handleClearSession = () => {
+    localStorage.clear();
+    window.location.href = "/login";
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -138,7 +150,16 @@ export default function Login({ setIsAuthenticated }) {
             </Button>
 
             {errorMessage && (
-              <p className="text-center text-sm text-danger">{errorMessage}</p>
+              <div className="text-center">
+                <p className="text-sm text-danger">{errorMessage}</p>
+                <button
+                  type="button"
+                  onClick={handleClearSession}
+                  className="mt-1 text-xs text-fg-subtle underline hover:text-fg-muted"
+                >
+                  Still stuck? Clear cached session and try again
+                </button>
+              </div>
             )}
           </form>
 
@@ -173,6 +194,16 @@ export default function Login({ setIsAuthenticated }) {
             <span className="cursor-pointer font-bold text-primary underline hover:no-underline">
               Click Here
             </span>
+          </p>
+
+          <p className="mt-3 text-center">
+            <button
+              type="button"
+              onClick={handleClearSession}
+              className="text-xs text-fg-subtle underline hover:text-fg-muted"
+            >
+              Trouble signing in? Clear cached session
+            </button>
           </p>
         </CardContent>
       </Card>
