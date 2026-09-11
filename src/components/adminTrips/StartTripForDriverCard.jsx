@@ -1,42 +1,26 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getAvailableDrivers } from "../../api/adminTripManagement/trips";
+import { getStores } from "../../api/adminTripManagement/stores";
 import {
   getAvailableHelpers,
-  getAvailableStores,
   getAvailableVehicleUnits,
-  startTrip,
+  dispatchTrip,
 } from "../../api/tripManagement";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
 
-const getCurrentLocation = () =>
-  new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error("Geolocation is not supported on this device."));
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          lat: position.coords.latitude,
-          long: position.coords.longitude,
-        }),
-      () => reject(new Error("Location permission is required.")),
-    );
-  });
-
 const inputStyles =
   "w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
-// Lets a trip manager (admin/superadmin/coordinator_admin) start a trip on
-// behalf of a driver from the office -- the driver then just checks
-// in/out from their own phone for the rest of the trip. Same fields as
-// the driver's own Start Trip form; the only addition is picking which
-// driver it's for. The backend still requires lat/long like the driver
-// flow, but skips the strict hub-radius check for this trip-manager path.
+// Lets a trip manager (admin/superadmin/coordinator_admin) dispatch a
+// trip to a driver from the office -- this is Step 0 of the 7-step
+// driver flow (Checkout, Start Trip, Arrived, Start Unloading,
+// Delivered, Back to Source, Checkin). Only the driver, vehicle, origin
+// hub, and helpers are picked here; the shipment number and destination
+// store are unknown until the driver photographs the Invoice/LM at
+// their own Checkout step (OCR-assisted, driver-confirmed).
 export default function StartTripForDriverCard({
   onStarted,
   alwaysExpanded = false,
@@ -44,17 +28,15 @@ export default function StartTripForDriverCard({
   const [expanded, setExpanded] = useState(alwaysExpanded);
 
   const [drivers, setDrivers] = useState([]);
-  const [stores, setStores] = useState([]);
+  const [hubStores, setHubStores] = useState([]);
   const [vehicleUnits, setVehicleUnits] = useState([]);
   const [helpers, setHelpers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
 
   const [driverId, setDriverId] = useState("");
-  const [storeId, setStoreId] = useState("");
+  const [originStoreId, setOriginStoreId] = useState("");
   const [vehicleUnitId, setVehicleUnitId] = useState("");
-  const [shipmentNo, setShipmentNo] = useState("");
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
-  const [invoicePhoto, setInvoicePhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -65,12 +47,17 @@ export default function StartTripForDriverCard({
         setLoadingOptions(true);
         const [driverRes, storeRes, vehicleData] = await Promise.all([
           getAvailableDrivers(),
-          getAvailableStores(),
+          getStores(),
           getAvailableVehicleUnits(),
         ]);
 
         setDrivers(driverRes.data || []);
-        setStores(Array.isArray(storeRes) ? storeRes : storeRes.items || []);
+
+        const storeList = Array.isArray(storeRes.data)
+          ? storeRes.data
+          : storeRes.data?.items || [];
+        setHubStores(storeList.filter((store) => store.is_hub));
+
         setVehicleUnits(
           Array.isArray(vehicleData) ? vehicleData : vehicleData.items || [],
         );
@@ -96,68 +83,41 @@ export default function StartTripForDriverCard({
       .catch(() => setHelpers([]));
   }, [driverId]);
 
-  const selectedStore = stores.find((store) => String(store.id) === storeId);
-  const selectedStoreHelperCount =
-    selectedStore?.helper_count ?? selectedStore?.required_helper_count ?? 0;
-  const helpersRequired = selectedStoreHelperCount > 0;
-  const helpersSatisfied =
-    !helpersRequired ||
-    (selectedHelperIds.length >= 1 &&
-      selectedHelperIds.length <= selectedStoreHelperCount);
-
   const toggleHelper = (helperId) => {
     setSelectedHelperIds((prev) => {
       if (prev.includes(helperId)) return prev.filter((id) => id !== helperId);
-      if (prev.length >= selectedStoreHelperCount) return prev;
+      if (prev.length >= 3) return prev;
       return [...prev, helperId];
     });
   };
 
-  const handleStoreChange = (value) => {
-    setStoreId(value);
-    setSelectedHelperIds([]);
-  };
-
   const resetForm = () => {
     setDriverId("");
-    setStoreId("");
+    setOriginStoreId("");
     setVehicleUnitId("");
-    setShipmentNo("");
     setSelectedHelperIds([]);
-    setInvoicePhoto(null);
   };
 
-  const canSubmit =
-    driverId &&
-    storeId &&
-    vehicleUnitId &&
-    shipmentNo.trim() &&
-    invoicePhoto &&
-    helpersSatisfied;
+  const canSubmit = driverId && originStoreId && vehicleUnitId;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      toast.error("Fill in all fields (including helpers, if required).");
+      toast.error("Select a driver, origin hub, and vehicle.");
       return;
     }
 
     try {
       setSubmitting(true);
 
-      const location = await getCurrentLocation();
       const formData = new FormData();
-      formData.append("shipment_no", shipmentNo.trim());
-      formData.append("vehicle_unit_id", vehicleUnitId);
-      formData.append("store_id", storeId);
       formData.append("driver_id", driverId);
-      formData.append("lat", location.lat);
-      formData.append("long", location.long);
-      formData.append("photo", invoicePhoto);
+      formData.append("vehicle_unit_id", vehicleUnitId);
+      formData.append("origin_store_id", originStoreId);
       formData.append("helper_ids", JSON.stringify(selectedHelperIds));
 
-      await startTrip(formData);
+      await dispatchTrip(formData);
 
-      toast.success("Trip started for driver.");
+      toast.success("Trip dispatched to driver.");
       resetForm();
       if (!alwaysExpanded) setExpanded(false);
       onStarted?.();
@@ -172,12 +132,10 @@ export default function StartTripForDriverCard({
     <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold text-fg">
-            Start Trip for Driver
-          </h3>
+          <h3 className="text-sm font-semibold text-fg">Dispatch Trip</h3>
           <p className="mt-1 text-xs text-fg-subtle">
-            Dispatch a trip on a driver's behalf; they check in/out from
-            their own phone afterward.
+            Assign a driver, vehicle, and origin hub. The driver fills in the
+            shipment number and destination at their own Checkout step.
           </p>
         </div>
         {!alwaysExpanded && (
@@ -218,19 +176,6 @@ export default function StartTripForDriverCard({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Shipment Number
-                </label>
-                <input
-                  type="text"
-                  value={shipmentNo}
-                  onChange={(e) => setShipmentNo(e.target.value)}
-                  placeholder="Enter shipment number"
-                  className={inputStyles}
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-fg">
                   Vehicle Unit
                 </label>
                 <select
@@ -249,89 +194,64 @@ export default function StartTripForDriverCard({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Store
+                  Origin Hub
                 </label>
                 <select
-                  value={storeId}
-                  onChange={(e) => handleStoreChange(e.target.value)}
+                  value={originStoreId}
+                  onChange={(e) => setOriginStoreId(e.target.value)}
                   className={inputStyles}
                 >
-                  <option value="">Select store</option>
-                  {stores.map((store) => (
+                  <option value="">Select origin hub</option>
+                  {hubStores.map((store) => (
                     <option key={store.id} value={store.id}>
-                      {store.name || store.store_name}
+                      {store.name}
                     </option>
                   ))}
                 </select>
-                {helpersRequired && (
-                  <p className="mt-1 text-xs text-fg-muted">
-                    This store requires up to {selectedStoreHelperCount}{" "}
-                    helper{selectedStoreHelperCount === 1 ? "" : "s"}. Select
-                    at least 1.
-                  </p>
-                )}
               </div>
-
-              {helpersRequired && (
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-fg">
-                    Helpers ({selectedHelperIds.length}/
-                    {selectedStoreHelperCount})
-                  </label>
-                  {!driverId ? (
-                    <p className="text-xs text-fg-subtle">
-                      Select a driver first.
-                    </p>
-                  ) : helpers.length === 0 ? (
-                    <p className="text-xs text-fg-subtle">
-                      No available helpers found.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {helpers.map((helper) => {
-                        const isSelected = selectedHelperIds.includes(
-                          helper.id,
-                        );
-                        const isDisabled =
-                          !isSelected &&
-                          selectedHelperIds.length >= selectedStoreHelperCount;
-                        return (
-                          <label
-                            key={helper.id}
-                            className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
-                              isSelected
-                                ? "border-primary bg-primary/10 text-fg"
-                                : "border-border text-fg-muted"
-                            } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              disabled={isDisabled}
-                              onChange={() => toggleHelper(helper.id)}
-                              className="h-4 w-4 rounded border-border"
-                            />
-                            {helper.first_name} {helper.last_name}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Invoice Photo
+                  Helpers ({selectedHelperIds.length}/3)
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setInvoicePhoto(e.target.files?.[0] || null)
-                  }
-                  className="w-full rounded-lg border border-border bg-background p-2 text-sm text-fg"
-                />
+                {!driverId ? (
+                  <p className="text-xs text-fg-subtle">
+                    Select a driver first.
+                  </p>
+                ) : helpers.length === 0 ? (
+                  <p className="text-xs text-fg-subtle">
+                    No available helpers found.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {helpers.map((helper) => {
+                      const isSelected = selectedHelperIds.includes(
+                        helper.id,
+                      );
+                      const isDisabled =
+                        !isSelected && selectedHelperIds.length >= 3;
+                      return (
+                        <label
+                          key={helper.id}
+                          className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
+                            isSelected
+                              ? "border-primary bg-primary/10 text-fg"
+                              : "border-border text-fg-muted"
+                          } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={() => toggleHelper(helper.id)}
+                            className="h-4 w-4 rounded border-border"
+                          />
+                          {helper.first_name} {helper.last_name}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <button
@@ -339,7 +259,7 @@ export default function StartTripForDriverCard({
                 disabled={submitting || !canSubmit}
                 className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
-                {submitting ? "Starting..." : "Start Trip"}
+                {submitting ? "Dispatching..." : "Dispatch Trip"}
               </button>
             </>
           )}

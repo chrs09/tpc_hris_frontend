@@ -72,10 +72,34 @@ export const ROLE_ACCESS_GROUPS = [
         label: "Start Trip (Bypass)",
         roles: ["superadmin", "coordinator_admin"],
       },
-      { label: "Maintenance", roles: ["superadmin", "coordinator_admin"] },
-      { label: "Stores", roles: ["superadmin", "coordinator_admin"] },
+      {
+        label: "Trip Categories & Rates",
+        roles: ["superadmin", "coordinator_admin"],
+      },
       {
         label: "Daily Dispatch Board",
+        roles: ["superadmin", "coordinator_admin"],
+      },
+    ],
+  },
+  {
+    label: "Customers",
+    children: [
+      { label: "Customers", roles: ["superadmin", "coordinator_admin"] },
+    ],
+  },
+  {
+    label: "Suppliers",
+    children: [
+      { label: "Suppliers", roles: ["superadmin", "coordinator_admin"] },
+    ],
+  },
+  {
+    label: "Fleet Management",
+    children: [
+      { label: "Vehicle List", roles: ["superadmin", "coordinator_admin"] },
+      {
+        label: "Vehicle Maintenance",
         roles: ["superadmin", "coordinator_admin"],
       },
     ],

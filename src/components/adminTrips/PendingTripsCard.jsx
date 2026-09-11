@@ -205,6 +205,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
           <thead className="bg-surface-hover text-fg-muted">
             <tr>
               <th className="px-6 py-3 text-left font-medium">Trip ID</th>
+              <th className="px-6 py-3 text-left font-medium">Trip Code</th>
               <th className="px-6 py-3 text-left font-medium">Driver</th>
               <th className="px-6 py-3 text-left font-medium">Ticket</th>
               <th className="px-6 py-3 text-left font-medium">Start</th>
@@ -220,6 +221,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 className="border-t border-border hover:bg-surface-hover"
               >
                 <td className="px-6 py-4">{trip.id}</td>
+                <td className="px-6 py-4 uppercase">{trip.trip_code || "-"}</td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
                 <td className="px-6 py-4 uppercase">{trip.ticket_no}</td>
                 <td className="px-6 py-4">{trip.start_time}</td>
@@ -258,6 +260,11 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
               >
                 <FontAwesomeIcon icon={faEye} />
               </button>
+            </div>
+
+            <div className="mt-2 text-sm">
+              <p className="text-fg-muted">Trip Code</p>
+              {trip.trip_code || "-"}
             </div>
 
             <div className="mt-2 text-sm">
@@ -313,7 +320,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
             <div className="flex justify-between items-center p-6 border-b border-border">
               <h2 className="text-xl font-bold flex items-center gap-3">
                 <FontAwesomeIcon icon={faRoute} />
-                Trip Review — {selectedTrip.ticket_no}
+                Trip Review — {selectedTrip.trip_code || selectedTrip.ticket_no}
               </h2>
 
               <button

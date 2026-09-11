@@ -31,6 +31,7 @@ const TripTable = ({ trips = [], title }) => {
         <table className="w-full text-sm">
           <thead className="bg-surface-hover text-fg-muted">
             <tr>
+              <th className="p-3 text-left font-medium">Trip Code</th>
               <th className="p-3 text-left font-medium">Ticket</th>
               <th className="p-3 text-left font-medium">Start</th>
               <th className="p-3 text-left font-medium">End</th>
@@ -42,6 +43,7 @@ const TripTable = ({ trips = [], title }) => {
           <tbody>
             {paginatedTrips.map((trip) => (
               <tr key={trip.id} className="border-t border-border bg-surface">
+                <td className="p-3 text-fg">{trip.trip_code || "-"}</td>
                 <td className="p-3 text-fg">{trip.ticket_no}</td>
                 <td className="p-3 text-fg">{trip.start_time}</td>
                 <td className="p-3 text-fg">{trip.end_time || "-"}</td>
@@ -73,6 +75,11 @@ const TripTable = ({ trips = [], title }) => {
             key={trip.id}
             className="bg-surface border border-border text-fg rounded-xl p-4 shadow-sm"
           >
+            <div className="text-sm mb-2">
+              <span className="text-fg-muted">Trip Code</span>
+              <div className="font-semibold">{trip.trip_code || "-"}</div>
+            </div>
+
             <div className="text-sm mb-2">
               <span className="text-fg-muted">Ticket</span>
               <div className="font-semibold">{trip.ticket_no}</div>
