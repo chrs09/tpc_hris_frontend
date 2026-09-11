@@ -41,15 +41,44 @@ export const MODULE_GROUPS = [
         path: "/dashboard/admin/trip-bypass",
       },
       {
-        key: "maintenance",
-        label: "Maintenance",
-        path: "/dashboard/admin/trip-maintenance",
+        key: "trip_categories",
+        label: "Trip Categories & Rates",
+        path: "/dashboard/admin/trip-categories",
       },
-      { key: "stores", label: "Stores", path: "/dashboard/admin/stores" },
       {
         key: "daily_dispatch",
         label: "Daily Dispatch Board",
         path: "/dashboard/admin/daily-deliveries",
+      },
+    ],
+  },
+  {
+    key: "customers",
+    label: "Customers",
+    submodules: [
+      { key: "customers", label: "Customers", path: "/dashboard/admin/stores" },
+    ],
+  },
+  {
+    key: "suppliers",
+    label: "Suppliers",
+    submodules: [
+      { key: "suppliers", label: "Suppliers", path: "/dashboard/admin/suppliers" },
+    ],
+  },
+  {
+    key: "fleet_management",
+    label: "Fleet Management",
+    submodules: [
+      {
+        key: "vehicle_list",
+        label: "Vehicle List",
+        path: "/dashboard/admin/trip-maintenance?tab=units",
+      },
+      {
+        key: "vehicle_maintenance",
+        label: "Vehicle Maintenance",
+        path: "/dashboard/admin/trip-maintenance?tab=maintenance",
       },
     ],
   },

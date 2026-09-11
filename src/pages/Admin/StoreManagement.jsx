@@ -256,9 +256,10 @@ export default function StoreManagement() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-fg">Store Management</h1>
+        <h1 className="text-3xl font-bold text-fg">Customer Management</h1>
         <p className="text-fg-muted mt-1">
-          Create and manage stores used in trip management.
+          Create and manage customers (delivery destinations) used in trip
+          management.
         </p>
       </div>
 

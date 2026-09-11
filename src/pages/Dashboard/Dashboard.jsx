@@ -14,6 +14,8 @@ import RoleAccess from "../Admin/RoleAccess";
 import OvertimeApprovals from "../Overtime/OvertimeApprovals";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
+import TripCategoriesPage from "../Admin/TripCategoriesPage";
+import SuppliersPage from "../Admin/SuppliersPage";
 import TripPlanning from "../Coordinator/TripPlanning";
 import DriverTrips from "../Driver/DriverTrips";
 import EmployeeListPage from "../Employee/EmployeeListPage";
@@ -118,6 +120,8 @@ const Dashboard = () => {
           <Route path="applicants" element={<ApplicantsPage />} />
           <Route path="applicant/questionaire" element={<Questionaire />} />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
+          <Route path="admin/trip-categories" element={<TripCategoriesPage />} />
+          <Route path="admin/suppliers" element={<SuppliersPage />} />
           <Route path="admin/shipment-planning" element={<TripPlanning />} />
           {/* Office */}
           <Route path="office/trips" element={<OfficeTripReview />} />

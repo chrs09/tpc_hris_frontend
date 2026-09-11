@@ -162,3 +162,138 @@ export const deleteRateProfile = async (id) => {
     throw error;
   }
 };
+
+// ========= SUPPLIERS =================
+export const getSuppliers = async () => {
+  try {
+    const response = await api.get("/trip-maintenance/suppliers");
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching suppliers:", error);
+    throw error;
+  }
+};
+
+export const createSupplier = async (payload) => {
+  try {
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value);
+      }
+    });
+
+    const response = await api.post("/trip-maintenance/suppliers", formData);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error creating supplier:", error);
+    throw error;
+  }
+};
+
+export const updateSupplier = async (id, payload) => {
+  try {
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        formData.append(key, value);
+      }
+    });
+
+    const response = await api.patch(
+      `/trip-maintenance/suppliers/${id}`,
+      formData,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error updating supplier:", error);
+    throw error;
+  }
+};
+
+export const deleteSupplier = async (id) => {
+  try {
+    const response = await api.delete(`/trip-maintenance/suppliers/${id}`);
+
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting supplier:", error);
+    throw error;
+  }
+};
+
+// ========= VEHICLE MAINTENANCE =================
+export const getVehicleMaintenanceRecords = async (vehicleUnitId) => {
+  try {
+    const response = await api.get("/trip-maintenance/vehicle-maintenance", {
+      params: vehicleUnitId ? { vehicle_unit_id: vehicleUnitId } : {},
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching vehicle maintenance records:", error);
+    throw error;
+  }
+};
+
+export const createVehicleMaintenanceRecord = async (payload) => {
+  try {
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        formData.append(key, value);
+      }
+    });
+
+    const response = await api.post(
+      "/trip-maintenance/vehicle-maintenance",
+      formData,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error creating vehicle maintenance record:", error);
+    throw error;
+  }
+};
+
+export const updateVehicleMaintenanceRecord = async (id, payload) => {
+  try {
+    const formData = new FormData();
+
+    Object.entries(payload).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        formData.append(key, value);
+      }
+    });
+
+    const response = await api.patch(
+      `/trip-maintenance/vehicle-maintenance/${id}`,
+      formData,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error updating vehicle maintenance record:", error);
+    throw error;
+  }
+};
+
+export const deleteVehicleMaintenanceRecord = async (id) => {
+  try {
+    const response = await api.delete(
+      `/trip-maintenance/vehicle-maintenance/${id}`,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting vehicle maintenance record:", error);
+    throw error;
+  }
+};

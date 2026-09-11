@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useCallback } from "react";
 import {
+  backToSource,
   checkIn,
   checkOut,
-  completeTrip,
+  checkinTrip,
+  checkoutOcrPreview,
+  checkoutTrip,
   getActiveTrip,
-  getAvailableHelpers,
   getAvailableStores,
-  getAvailableVehicleUnits,
   startTrip,
+  startUnloading,
 } from "../../api/tripManagement";
 import { getMyTrips, getTripSummary, getWallet } from "../../api/driver/trips";
 import { getMyLeaveRequests } from "../../api/leave";
@@ -29,15 +31,25 @@ const DriverDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // ---- Step 1: Checkout ----
   const [shipmentNo, setShipmentNo] = useState("");
-  const [vehicleUnits, setVehicleUnits] = useState([]);
+  const [odometerReading, setOdometerReading] = useState("");
   const [stores, setStores] = useState([]);
-  const [vehicleUnitId, setVehicleUnitId] = useState("");
   const [storeId, setStoreId] = useState("");
-  const [helpers, setHelpers] = useState([]);
-  const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [invoicePhoto, setInvoicePhoto] = useState(null);
+  const [lmPhoto, setLmPhoto] = useState(null);
+  const [ocrLoading, setOcrLoading] = useState(false);
+
+  // ---- Step 4: Start Unloading ----
+  const [unloadingPhoto, setUnloadingPhoto] = useState(null);
+
+  // ---- Step 5: Delivered ----
   const [deliveryProofPhoto, setDeliveryProofPhoto] = useState(null);
+
+  // ---- Step 6: Back to Source ----
+  const [lmPermaPhoto, setLmPermaPhoto] = useState(null);
+
+  // ---- Step 7: Checkin ----
   const [stampedInvoicePhoto, setStampedInvoicePhoto] = useState(null);
 
   const [tripHistory, setTripHistory] = useState([]);
@@ -104,19 +116,9 @@ const DriverDashboard = () => {
       const activeTripData = await getActiveTrip();
       setTripData(activeTripData);
 
-      if (!activeTripData.active_trip) {
-        const [storeData, vehicleData, helperData] = await Promise.all([
-          getAvailableStores(),
-          getAvailableVehicleUnits(),
-          getAvailableHelpers(),
-        ]);
+      if (activeTripData.active_trip?.current_step === "ASSIGNED") {
+        const storeData = await getAvailableStores();
         setStores(Array.isArray(storeData) ? storeData : storeData.items || []);
-        setVehicleUnits(
-          Array.isArray(vehicleData) ? vehicleData : vehicleData.items || [],
-        );
-        setHelpers(
-          Array.isArray(helperData) ? helperData : helperData.items || [],
-        );
       }
     } catch (error) {
       console.error(error);
@@ -160,39 +162,48 @@ const DriverDashboard = () => {
     });
 
   const selectedStore = stores.find((store) => String(store.id) === storeId);
-  const selectedStoreHelperCount =
-    selectedStore?.helper_count ?? selectedStore?.required_helper_count ?? 0;
-  const helpersRequired = selectedStoreHelperCount > 0;
-  const helpersSatisfied =
-    !helpersRequired ||
-    (selectedHelperIds.length >= 1 &&
-      selectedHelperIds.length <= selectedStoreHelperCount);
 
-  const toggleHelper = (helperId) => {
-    setSelectedHelperIds((prev) => {
-      if (prev.includes(helperId)) {
-        return prev.filter((id) => id !== helperId);
+  // ---- Step 1: Checkout ----
+  const handleOcrPreview = async () => {
+    if (!invoicePhoto || !lmPhoto || !tripData?.active_trip?.id) return;
+
+    try {
+      setOcrLoading(true);
+      const formData = new FormData();
+      formData.append("invoice_photo", invoicePhoto);
+      formData.append("lm_photo", lmPhoto);
+
+      const result = await checkoutOcrPreview(tripData.active_trip.id, formData);
+
+      const bestShipment = result?.shipment_number_candidates?.[0]?.value;
+      if (bestShipment) setShipmentNo(bestShipment);
+
+      const bestStore = result?.store_candidates?.[0];
+      if (bestStore?.store_id) setStoreId(String(bestStore.store_id));
+
+      if (!bestShipment && !bestStore) {
+        alert(
+          "Couldn't auto-read the documents. Please type the shipment number and pick the store manually.",
+        );
       }
-      if (prev.length >= selectedStoreHelperCount) return prev;
-      return [...prev, helperId];
-    });
+    } catch (error) {
+      console.error(error);
+      // Never block Checkout on an OCR failure.
+    } finally {
+      setOcrLoading(false);
+    }
   };
 
-  const handleStoreChange = (value) => {
-    setStoreId(value);
-    setSelectedHelperIds([]);
-  };
-
-  const handleStartTrip = async () => {
+  const handleCheckout = async () => {
     if (
       !shipmentNo.trim() ||
-      !vehicleUnitId ||
       !storeId ||
+      !odometerReading.trim() ||
       !invoicePhoto ||
-      !helpersSatisfied
+      !lmPhoto
     ) {
       alert(
-        "Shipment number, vehicle unit, store, invoice photo, and helpers (if required) are all required.",
+        "Shipment number, destination store, odometer reading, invoice photo, and LM photo are all required.",
       );
       return;
     }
@@ -201,22 +212,21 @@ const DriverDashboard = () => {
       setActionLoading(true);
       const location = await getCurrentLocation();
       const formData = new FormData();
-
       formData.append("shipment_no", shipmentNo.trim());
-      formData.append("vehicle_unit_id", vehicleUnitId);
-      formData.append("store_id", storeId);
+      formData.append("destination_store_id", storeId);
+      formData.append("odometer_reading", odometerReading.trim());
       formData.append("lat", location.lat);
       formData.append("long", location.long);
-      formData.append("photo", invoicePhoto);
-      formData.append("helper_ids", JSON.stringify(selectedHelperIds));
+      formData.append("invoice_photo", invoicePhoto);
+      formData.append("lm_photo", lmPhoto);
 
-      await startTrip(formData);
+      await checkoutTrip(tripData.active_trip.id, formData);
 
       setShipmentNo("");
-      setVehicleUnitId("");
+      setOdometerReading("");
       setStoreId("");
-      setSelectedHelperIds([]);
       setInvoicePhoto(null);
+      setLmPhoto(null);
       await loadTrip();
     } catch (error) {
       alert(getErrorMessage(error));
@@ -225,6 +235,20 @@ const DriverDashboard = () => {
     }
   };
 
+  // ---- Step 2: Start Trip (button only) ----
+  const handleStartTrip = async () => {
+    try {
+      setActionLoading(true);
+      await startTrip(tripData.active_trip.id);
+      await loadTrip();
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ---- Step 3: Arrived at Store (button only) ----
   const handleArrivedAtStore = async () => {
     try {
       setActionLoading(true);
@@ -238,6 +262,36 @@ const DriverDashboard = () => {
     }
   };
 
+  // ---- Step 4: Start Unloading ----
+  const handleStartUnloading = async () => {
+    if (!unloadingPhoto) {
+      alert("Upload a picture of the unloading before continuing.");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const location = await getCurrentLocation();
+      const formData = new FormData();
+      formData.append("lat", location.lat);
+      formData.append("long", location.long);
+      formData.append("photo", unloadingPhoto);
+
+      await startUnloading(
+        tripData.active_trip.id,
+        tripData.latest_stop.id,
+        formData,
+      );
+      setUnloadingPhoto(null);
+      await loadTrip();
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ---- Step 5: Delivered ----
   const handleDelivered = async () => {
     if (!deliveryProofPhoto) {
       alert("Upload delivery proof before marking this stop as delivered.");
@@ -266,9 +320,35 @@ const DriverDashboard = () => {
     }
   };
 
-  const handleCompleteTrip = async () => {
+  // ---- Step 6: Back to Source ----
+  const handleBackToSource = async () => {
+    if (!lmPermaPhoto) {
+      alert("Upload the LM with Perma before continuing.");
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const location = await getCurrentLocation();
+      const formData = new FormData();
+      formData.append("lat", location.lat);
+      formData.append("long", location.long);
+      formData.append("lm_perma_photo", lmPermaPhoto);
+
+      await backToSource(tripData.active_trip.id, formData);
+      setLmPermaPhoto(null);
+      await loadTrip();
+    } catch (error) {
+      alert(getErrorMessage(error));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ---- Step 7: Checkin (final step) ----
+  const handleCheckin = async () => {
     if (!stampedInvoicePhoto) {
-      alert("Upload the stamped invoice before completing the trip.");
+      alert("Upload the stamped invoice before checking in.");
       return;
     }
 
@@ -280,7 +360,7 @@ const DriverDashboard = () => {
       formData.append("long", location.long);
       formData.append("stamped_invoice_photo", stampedInvoicePhoto);
 
-      await completeTrip(tripData.active_trip.id, formData);
+      await checkinTrip(tripData.active_trip.id, formData);
       setStampedInvoicePhoto(null);
       await loadTrip();
     } catch (error) {
@@ -293,12 +373,7 @@ const DriverDashboard = () => {
   if (loading) return <div className="p-6 text-fg-muted">Loading...</div>;
 
   const trip = tripData?.active_trip;
-  const hasOpenStop = tripData?.has_open_stop;
-  const canCompleteTrip =
-    !hasOpenStop &&
-    (tripData?.can_complete ??
-      tripData?.all_stops_completed ??
-      Boolean(tripData?.latest_stop?.id));
+  const currentStep = trip?.current_step;
 
   const pendingTrips = tripHistory.filter((t) => t.status === "PENDING_APPROVAL");
   const completedTrips = tripHistory.filter((t) => t.status === "COMPLETED");
@@ -316,7 +391,55 @@ const DriverDashboard = () => {
   const tripWorkflowContent = (
     <>
       {!trip ? (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-muted">
+          No trip assigned. Your coordinator will dispatch a trip to you
+          from the office.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <p className="font-semibold text-fg">
+              Shipment No: {trip.ticket_no || "Pending Checkout"}
+            </p>
+            <p className="text-fg-muted">Step: {currentStep}</p>
+          </div>
+
+          {currentStep === "ASSIGNED" && (
             <div className="space-y-4">
+              <PhotoInput
+                id="invoice-photo"
+                label="Invoice Photo"
+                onChange={setInvoicePhoto}
+              />
+              <PhotoInput
+                id="lm-photo"
+                label="LM (Loading Manifest) Photo"
+                onChange={setLmPhoto}
+              />
+
+              {invoicePhoto && lmPhoto && (
+                <button
+                  onClick={handleOcrPreview}
+                  disabled={ocrLoading}
+                  className="w-full rounded-xl border border-border px-6 py-2 text-sm font-medium text-fg-muted transition-colors hover:bg-surface-hover disabled:opacity-50 sm:w-auto"
+                >
+                  {ocrLoading ? "Reading documents..." : "Auto-fill from Photos"}
+                </button>
+              )}
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-fg">
+                  Odometer Reading
+                </label>
+                <input
+                  type="number"
+                  placeholder="Enter odometer reading"
+                  value={odometerReading}
+                  onChange={(event) => setOdometerReading(event.target.value)}
+                  className={inputStyles}
+                />
+              </div>
+
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Shipment Number
@@ -332,27 +455,11 @@ const DriverDashboard = () => {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Vehicle Unit
+                  Destination Store
                 </label>
                 <select
-                  value={vehicleUnitId}
-                  onChange={(event) => setVehicleUnitId(event.target.value)}
-                  className={inputStyles}
-                >
-                  <option value="">Select vehicle unit</option>
-                  {vehicleUnits.map((vehicle) => (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {vehicle.plate_number || vehicle.unit_code}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-fg">Store</label>
-                <select
                   value={storeId}
-                  onChange={(event) => handleStoreChange(event.target.value)}
+                  onChange={(event) => setStoreId(event.target.value)}
                   className={inputStyles}
                 >
                   <option value="">Select store</option>
@@ -362,138 +469,123 @@ const DriverDashboard = () => {
                     </option>
                   ))}
                 </select>
-                {helpersRequired && (
+                {selectedStore && (
                   <p className="mt-1 text-xs text-fg-muted">
-                    This store requires up to {selectedStoreHelperCount} helper
-                    {selectedStoreHelperCount === 1 ? "" : "s"}. Select at
-                    least 1.
+                    Selected: {selectedStore.name}
                   </p>
                 )}
               </div>
 
-              {helpersRequired && (
-                <div>
-                  <label className="mb-1 block text-sm font-medium text-fg">
-                    Helpers ({selectedHelperIds.length}/
-                    {selectedStoreHelperCount})
-                  </label>
-                  {helpers.length === 0 ? (
-                    <p className="text-xs text-fg-subtle">
-                      No available helpers found.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {helpers.map((helper) => {
-                        const isSelected = selectedHelperIds.includes(
-                          helper.id,
-                        );
-                        const isDisabled =
-                          !isSelected &&
-                          selectedHelperIds.length >= selectedStoreHelperCount;
-                        return (
-                          <label
-                            key={helper.id}
-                            className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
-                              isSelected
-                                ? "border-primary bg-primary/10 text-fg"
-                                : "border-border text-fg-muted"
-                            } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              disabled={isDisabled}
-                              onChange={() => toggleHelper(helper.id)}
-                              className="h-4 w-4 rounded border-border"
-                            />
-                            {helper.first_name} {helper.last_name}
-                          </label>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <PhotoInput
-                id="invoice-photo"
-                label="Invoice Photo"
-                onChange={setInvoicePhoto}
-              />
-
               <button
-                onClick={handleStartTrip}
+                onClick={handleCheckout}
                 disabled={
                   actionLoading ||
                   !shipmentNo.trim() ||
-                  !vehicleUnitId ||
                   !storeId ||
+                  !odometerReading.trim() ||
                   !invoicePhoto ||
-                  !helpersSatisfied
+                  !lmPhoto
                 }
                 className="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
-                {actionLoading ? "Processing..." : "Start Trip"}
+                {actionLoading ? "Processing..." : "Confirm Checkout"}
               </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid gap-2 text-sm sm:grid-cols-2">
-                <p className="font-semibold text-fg">
-                  Shipment No: {trip.shipment_no || trip.ticket_no}
-                </p>
-                {trip.vehicle_unit && (
-                  <p className="text-fg-muted">Vehicle: {trip.vehicle_unit.plate_number}</p>
-                )}
-              </div>
+          )}
 
-              {!hasOpenStop && (
-                <button
-                  onClick={handleArrivedAtStore}
-                  disabled={actionLoading}
-                  className="w-full rounded-xl border border-border bg-surface-active px-6 py-3 text-fg transition-colors hover:bg-surface-hover disabled:opacity-50 sm:w-auto"
-                >
-                  {actionLoading ? "Processing..." : "Arrived at Store"}
-                </button>
-              )}
+          {currentStep === "CHECKOUT" && (
+            <button
+              onClick={handleStartTrip}
+              disabled={actionLoading}
+              className="w-full rounded-xl bg-primary px-6 py-3 font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:opacity-50 sm:w-auto"
+            >
+              {actionLoading ? "Processing..." : "Start Trip"}
+            </button>
+          )}
 
-              {hasOpenStop && (
-                <div className="space-y-3">
-                  <PhotoInput
-                    id="delivery-proof"
-                    label="Delivery Proof"
-                    helpText="A photo is required before you can mark this stop as delivered."
-                    onChange={setDeliveryProofPhoto}
-                  />
-                  <button
-                    onClick={handleDelivered}
-                    disabled={actionLoading || !deliveryProofPhoto}
-                    className="w-full rounded-xl bg-primary px-6 py-3 text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                  >
-                    {actionLoading ? "Processing..." : "Delivered"}
-                  </button>
-                </div>
-              )}
+          {currentStep === "IN_TRANSIT" && (
+            <button
+              onClick={handleArrivedAtStore}
+              disabled={actionLoading}
+              className="w-full rounded-xl border border-border bg-surface-active px-6 py-3 text-fg transition-colors hover:bg-surface-hover disabled:opacity-50 sm:w-auto"
+            >
+              {actionLoading ? "Processing..." : "Arrived at Store"}
+            </button>
+          )}
 
-              {canCompleteTrip && (
-                <div className="space-y-3 border-t border-border pt-4">
-                  <PhotoInput
-                    id="stamped-invoice"
-                    label="Stamped Invoice Photo"
-                    helpText="Upload the invoice with the receiving stamp before completing the trip."
-                    onChange={setStampedInvoicePhoto}
-                  />
-                  <button
-                    onClick={handleCompleteTrip}
-                    disabled={actionLoading || !stampedInvoicePhoto}
-                    className="w-full rounded-xl bg-success px-6 py-3 text-success-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-                  >
-                    {actionLoading ? "Processing..." : "Complete Trip"}
-                  </button>
-                </div>
-              )}
+          {currentStep === "ARRIVED" && (
+            <div className="space-y-3">
+              <PhotoInput
+                id="unloading-photo"
+                label="Unloading Photo"
+                helpText="Upload a picture of the unloading in progress."
+                onChange={setUnloadingPhoto}
+              />
+              <button
+                onClick={handleStartUnloading}
+                disabled={actionLoading || !unloadingPhoto}
+                className="w-full rounded-xl border border-border bg-surface-active px-6 py-3 text-fg transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              >
+                {actionLoading ? "Processing..." : "Start Unloading"}
+              </button>
             </div>
           )}
+
+          {currentStep === "UNLOADING" && (
+            <div className="space-y-3">
+              <PhotoInput
+                id="delivery-proof"
+                label="Delivery Proof"
+                helpText="A photo is required before you can mark this stop as delivered."
+                onChange={setDeliveryProofPhoto}
+              />
+              <button
+                onClick={handleDelivered}
+                disabled={actionLoading || !deliveryProofPhoto}
+                className="w-full rounded-xl bg-primary px-6 py-3 text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              >
+                {actionLoading ? "Processing..." : "Delivered"}
+              </button>
+            </div>
+          )}
+
+          {currentStep === "DELIVERED" && (
+            <div className="space-y-3">
+              <PhotoInput
+                id="lm-perma-photo"
+                label="LM (with Perma) Photo"
+                helpText="Upload the LM with Perma before heading back to source."
+                onChange={setLmPermaPhoto}
+              />
+              <button
+                onClick={handleBackToSource}
+                disabled={actionLoading || !lmPermaPhoto}
+                className="w-full rounded-xl border border-border bg-surface-active px-6 py-3 text-fg transition-colors hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              >
+                {actionLoading ? "Processing..." : "Back to Source"}
+              </button>
+            </div>
+          )}
+
+          {currentStep === "RETURNING" && (
+            <div className="space-y-3 border-t border-border pt-4">
+              <PhotoInput
+                id="stamped-invoice"
+                label="Stamped Invoice Photo"
+                helpText="Upload the invoice with the receiving stamp before checking in."
+                onChange={setStampedInvoicePhoto}
+              />
+              <button
+                onClick={handleCheckin}
+                disabled={actionLoading || !stampedInvoicePhoto}
+                className="w-full rounded-xl bg-success px-6 py-3 text-success-foreground transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+              >
+                {actionLoading ? "Processing..." : "Checkin"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 
@@ -519,7 +611,7 @@ const DriverDashboard = () => {
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <QuickCard
         label="Current Trip"
-        value={trip ? `#${trip.shipment_no || trip.ticket_no}` : "None"}
+        value={trip ? `#${trip.ticket_no || "Pending"}` : "None"}
         sub={trip ? "Active now" : "No active trip"}
         onClick={!isDesktop ? () => setActiveTab("trip") : undefined}
       />

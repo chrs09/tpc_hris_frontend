@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Wallet,
   Landmark,
+  Building2,
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getReminders, createReminder, resolveReminder } from "../api/reminder";
@@ -115,10 +116,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   // =========================
   const isRouteActive = useCallback(
     (path) => {
-      if (path === "/dashboard") {
-        return location.pathname === path;
+      // Strip any query string (e.g. "?tab=units") -- route matching is
+      // pathname-only, so two sidebar items that point at the same page
+      // with different tabs (Fleet Management's Vehicle List / Vehicle
+      // Maintenance) both register as "in this section" together.
+      const pathname = path.split("?")[0];
+
+      if (pathname === "/dashboard") {
+        return location.pathname === pathname;
       }
-      return location.pathname.startsWith(path);
+      return location.pathname.startsWith(pathname);
     },
     [location.pathname],
   );
@@ -245,16 +252,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             moduleKey: "trip_management.trip_bypass",
           },
           {
-            label: "Maintenance",
-            path: "/dashboard/admin/trip-maintenance",
+            label: "Trip Categories & Rates",
+            path: "/dashboard/admin/trip-categories",
             roles: ["superadmin", "coordinator_admin"],
-            moduleKey: "trip_management.maintenance",
-          },
-          {
-            label: "Stores",
-            path: "/dashboard/admin/stores",
-            roles: ["superadmin", "coordinator_admin"],
-            moduleKey: "trip_management.stores",
+            moduleKey: "trip_management.trip_categories",
           },
           // {
           //   label: "Shipment Planning",
@@ -266,6 +267,48 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
             path: "/dashboard/admin/daily-deliveries",
             roles: ["superadmin", "coordinator_admin"],
             moduleKey: "trip_management.daily_dispatch",
+          },
+        ],
+      },
+      {
+        label: "Customers",
+        icon: <Users size={18} />,
+        children: [
+          {
+            label: "Customers",
+            path: "/dashboard/admin/stores",
+            roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "customers.customers",
+          },
+        ],
+      },
+      {
+        label: "Suppliers",
+        icon: <Building2 size={18} />,
+        children: [
+          {
+            label: "Suppliers",
+            path: "/dashboard/admin/suppliers",
+            roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "suppliers.suppliers",
+          },
+        ],
+      },
+      {
+        label: "Fleet Management",
+        icon: <Truck size={18} />,
+        children: [
+          {
+            label: "Vehicle List",
+            path: "/dashboard/admin/trip-maintenance?tab=units",
+            roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "fleet_management.vehicle_list",
+          },
+          {
+            label: "Vehicle Maintenance",
+            path: "/dashboard/admin/trip-maintenance?tab=maintenance",
+            roles: ["superadmin", "coordinator_admin"],
+            moduleKey: "fleet_management.vehicle_maintenance",
           },
         ],
       },

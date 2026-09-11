@@ -1,9 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
-import {
-  approveTrip,
-  archiveTrip,
-  reviewTrip,
-} from "../../api/adminTripManagement/trips";
+import { approveTrip, reviewTrip } from "../../api/adminTripManagement/trips";
 import {
   MapContainer,
   TileLayer,
@@ -24,7 +20,6 @@ import {
   faRoute,
   faUserClock,
   faEye,
-  faBoxArchive,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* Leaflet icon fix */
@@ -81,15 +76,9 @@ const resolvePhotoUrl = (rawUrl) => {
   }
 };
 
-const PendingTripsCard = ({
-  trips = [],
-  refreshTrips,
-  onArchived,
-  mode = "pending",
-}) => {
+const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [archivingId, setArchivingId] = useState(null);
 
   // NEW: replaces the old boolean showPhoto -- now tracks which photo
   // URL + label to display, so the same viewer works for start photo,
@@ -171,33 +160,6 @@ const PendingTripsCard = ({
     }
   };
 
-  // Soft delete: hides the trip from the Pending/Completed lists
-  // without deleting it from the database (see archiveTrip in
-  // api/adminTripManagement/trips.js and ARCHIVABLE_STATUSES in
-  // app/api/admin/trips.py) -- confirm first since, unlike
-  // approve/reject, there's no "unarchive" button in this UI yet.
-  const handleArchive = async (tripId) => {
-    if (
-      !window.confirm(
-        "Archive this trip? It will be hidden from this list, but not deleted.",
-      )
-    ) {
-      return;
-    }
-    try {
-      setArchivingId(tripId);
-      await archiveTrip(tripId);
-      await onArchived?.();
-    } catch (error) {
-      console.error("Failed to archive trip:", error);
-      window.alert(
-        error.response?.data?.detail || "Failed to archive the trip.",
-      );
-    } finally {
-      setArchivingId(null);
-    }
-  };
-
   const endIcon = new L.Icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
     iconSize: [32, 32],
@@ -259,31 +221,19 @@ const PendingTripsCard = ({
                 className="border-t border-border hover:bg-surface-hover"
               >
                 <td className="px-6 py-4">{trip.id}</td>
-                <td className="px-6 py-4 font-mono text-xs">
-                  {trip.trip_code || "-"}
-                </td>
+                <td className="px-6 py-4 uppercase">{trip.trip_code || "-"}</td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
                 <td className="px-6 py-4 uppercase">{trip.ticket_no}</td>
                 <td className="px-6 py-4">{trip.start_time}</td>
                 <td className="px-6 py-4">{trip.stops_count}</td>
 
                 <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => handleReview(trip.id)}
-                      className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg cursor-pointer transition-colors"
-                    >
-                      {mode === "pending" ? "Review" : "View"}
-                    </button>
-                    <button
-                      onClick={() => handleArchive(trip.id)}
-                      disabled={archivingId === trip.id}
-                      title="Hide from this list without deleting it"
-                      className="border border-border text-fg-muted hover:bg-surface-hover px-4 py-2 rounded-lg cursor-pointer transition-colors disabled:opacity-50"
-                    >
-                      {archivingId === trip.id ? "Archiving..." : "Archive"}
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => handleReview(trip.id)}
+                    className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg cursor-pointer transition-colors"
+                  >
+                    {mode === "pending" ? "Review" : "View"}
+                  </button>
                 </td>
               </tr>
             ))}
@@ -304,32 +254,17 @@ const PendingTripsCard = ({
                 <p className="font-semibold capitalize">{trip.username}</p>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleReview(trip.id)}
-                  className="bg-primary text-primary-foreground p-2 rounded-lg"
-                >
-                  <FontAwesomeIcon icon={faEye} />
-                </button>
-                <button
-                  onClick={() => handleArchive(trip.id)}
-                  disabled={archivingId === trip.id}
-                  title="Hide from this list without deleting it"
-                  className="border border-border text-fg-muted p-2 rounded-lg disabled:opacity-50"
-                >
-                  <FontAwesomeIcon icon={faBoxArchive} />
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-2 text-sm">
-              <p className="text-fg-muted">Trip ID</p>
-              <p>{trip.id}</p>
+              <button
+                onClick={() => handleReview(trip.id)}
+                className="bg-primary text-primary-foreground p-2 rounded-lg"
+              >
+                <FontAwesomeIcon icon={faEye} />
+              </button>
             </div>
 
             <div className="mt-2 text-sm">
               <p className="text-fg-muted">Trip Code</p>
-              <p className="font-mono text-xs">{trip.trip_code || "-"}</p>
+              {trip.trip_code || "-"}
             </div>
 
             <div className="mt-2 text-sm">

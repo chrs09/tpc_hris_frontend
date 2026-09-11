@@ -1,69 +1,72 @@
 import { useState, useEffect } from "react";
-import { Truck, Tags, Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Truck, Wrench, Plus, Search, Pencil, Trash2 } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
-// api
 import {
   getVehicleUnits,
-  getRateProfiles,
   createVehicleUnit,
-  createRateProfile,
   updateVehicleUnit,
-  updateRateProfile,
+  getVehicleMaintenanceRecords,
+  createVehicleMaintenanceRecord,
+  updateVehicleMaintenanceRecord,
+  deleteVehicleMaintenanceRecord,
 } from "../../api/adminTripManagement/tripMaintenance";
 import { toast } from "react-hot-toast";
 
+const EMPTY_MAINTENANCE_FORM = {
+  vehicle_unit_id: "",
+  maintenance_type: "",
+  description: "",
+  service_date: "",
+  next_due_date: "",
+  odometer_reading: "",
+  cost: "",
+};
+
 export default function TripMaintenance() {
-  const [activeTab, setActiveTab] = useState("units");
+  const [searchParams] = useSearchParams();
+  const initialTab =
+    searchParams.get("tab") === "maintenance" ? "maintenance" : "units";
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const [showUnitModal, setShowUnitModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
 
   const [vehicleUnits, setVehicleUnits] = useState([]);
-  const [tripRates, setTripRates] = useState([]);
+  const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [editingUnit, setEditingUnit] = useState(null);
-  const [editingProfile, setEditingProfile] = useState(null);
+  const [editingRecord, setEditingRecord] = useState(null);
   const [vehicleForm, setVehicleForm] = useState({
     unit_code: "",
     plate_number: "",
     description: "",
   });
-  const [rateForm, setRateForm] = useState({
-    profile_name: "",
-    helper_count: 0,
-    driver_first_trip_rate: "",
-    driver_next_trip_rate: "",
-    helper_first_trip_rate: "",
-    helper_next_trip_rate: "",
-  });
+  const [maintenanceForm, setMaintenanceForm] = useState(
+    EMPTY_MAINTENANCE_FORM,
+  );
 
   const loadVehicleUnits = async () => {
     try {
       const response = await getVehicleUnits();
-
-      console.log(response);
-
       setVehicleUnits(response || []);
     } catch (error) {
       console.error(error);
     }
   };
 
-  const loadRateProfiles = async () => {
+  const loadMaintenanceRecords = async () => {
     try {
-      const response = await getRateProfiles();
-
-      console.log("Rate Profiles Response:", response);
-
-      setTripRates(response || []);
+      const response = await getVehicleMaintenanceRecords();
+      setMaintenanceRecords(response || []);
     } catch (error) {
-      console.error("Failed to load rate profiles", error);
+      console.error("Failed to load maintenance records", error);
     }
   };
 
   useEffect(() => {
     const loadData = async () => {
       await loadVehicleUnits();
-      await loadRateProfiles();
+      await loadMaintenanceRecords();
     };
 
     loadData();
@@ -93,79 +96,6 @@ export default function TripMaintenance() {
     }
   };
 
-  const handleCreateRateProfile = async () => {
-    try {
-      await createRateProfile(rateForm);
-
-      toast.success("Rate profile created successfully");
-
-      await loadRateProfiles();
-
-      setShowCategoryModal(false);
-
-      setRateForm({
-        profile_name: "",
-        helper_count: 0,
-        driver_first_trip_rate: "",
-        driver_next_trip_rate: "",
-        helper_first_trip_rate: "",
-        helper_next_trip_rate: "",
-      });
-    } catch (error) {
-      toast.error(
-        error?.response?.data?.detail || "Failed to create rate profile",
-      );
-    }
-  };
-
-  const handleEditProfile = (profile) => {
-    setEditingProfile(profile);
-
-    setRateForm({
-      profile_name: profile.profile_name || "",
-
-      helper_count: profile.helper_count || 0,
-
-      driver_first_trip_rate: profile.driver_first_trip_rate || 0,
-
-      driver_next_trip_rate: profile.driver_next_trip_rate || 0,
-
-      helper_first_trip_rate: profile.helper_first_trip_rate || 0,
-
-      helper_next_trip_rate: profile.helper_next_trip_rate || 0,
-    });
-
-    setShowCategoryModal(true);
-  };
-
-  const handleEditUnit = (unit) => {
-    setEditingUnit(unit);
-
-    setVehicleForm({
-      unit_code: unit.unit_code || "",
-      plate_number: unit.plate_number || "",
-      description: unit.description || "",
-    });
-
-    setShowUnitModal(true);
-  };
-
-  const handleUpdateRateProfile = async () => {
-    try {
-      await updateRateProfile(editingProfile.id, rateForm);
-
-      toast.success("Rate profile updated successfully");
-
-      await loadRateProfiles();
-
-      setEditingProfile(null);
-
-      setShowCategoryModal(false);
-    } catch (error) {
-      toast.error(error?.response?.data?.detail || "Failed to update profile");
-    }
-  };
-
   const handleUpdateVehicleUnit = async () => {
     try {
       await updateVehicleUnit(editingUnit.id, vehicleForm);
@@ -184,21 +114,103 @@ export default function TripMaintenance() {
     }
   };
 
+  const handleEditUnit = (unit) => {
+    setEditingUnit(unit);
+
+    setVehicleForm({
+      unit_code: unit.unit_code || "",
+      plate_number: unit.plate_number || "",
+      description: unit.description || "",
+    });
+
+    setShowUnitModal(true);
+  };
+
+  const handleCreateMaintenanceRecord = async () => {
+    try {
+      await createVehicleMaintenanceRecord(maintenanceForm);
+
+      toast.success("Maintenance record created successfully");
+
+      await loadMaintenanceRecords();
+
+      setMaintenanceForm(EMPTY_MAINTENANCE_FORM);
+      setShowMaintenanceModal(false);
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to create maintenance record.",
+      );
+    }
+  };
+
+  const handleUpdateMaintenanceRecord = async () => {
+    try {
+      await updateVehicleMaintenanceRecord(editingRecord.id, maintenanceForm);
+
+      toast.success("Maintenance record updated successfully");
+
+      await loadMaintenanceRecords();
+
+      setEditingRecord(null);
+      setShowMaintenanceModal(false);
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to update maintenance record.",
+      );
+    }
+  };
+
+  const handleEditRecord = (record) => {
+    setEditingRecord(record);
+
+    setMaintenanceForm({
+      vehicle_unit_id: record.vehicle_unit_id || "",
+      maintenance_type: record.maintenance_type || "",
+      description: record.description || "",
+      service_date: record.service_date ? record.service_date.slice(0, 10) : "",
+      next_due_date: record.next_due_date
+        ? record.next_due_date.slice(0, 10)
+        : "",
+      odometer_reading: record.odometer_reading || "",
+      cost: record.cost || "",
+    });
+
+    setShowMaintenanceModal(true);
+  };
+
+  const handleDeleteRecord = async (record) => {
+    if (!confirm(`Delete this ${record.maintenance_type} record?`)) return;
+
+    try {
+      await deleteVehicleMaintenanceRecord(record.id);
+      toast.success("Maintenance record deleted");
+      await loadMaintenanceRecords();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to delete maintenance record.",
+      );
+    }
+  };
+
   const formatCurrency = (value) =>
-    new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-      minimumFractionDigits: 0,
-    }).format(value);
+    value == null
+      ? "-"
+      : new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+          minimumFractionDigits: 0,
+        }).format(value);
+
+  const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : "-");
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold text-fg">Trip Management Maintenance</h1>
+        <h1 className="text-3xl font-bold text-fg">Fleet Management</h1>
 
         <p className="text-fg-muted mt-1">
-          Manage vehicle units, trip categories, and future trip rates.
+          Manage your vehicle list and their maintenance records.
         </p>
       </div>
 
@@ -217,7 +229,7 @@ export default function TripMaintenance() {
             <Truck size={22} className="shrink-0" />
             <div>
               <h2 className="font-semibold text-sm sm:text-base">
-                Vehicle Units
+                Vehicle List
               </h2>
 
               <p className="text-xs sm:text-sm opacity-70">
@@ -228,38 +240,33 @@ export default function TripMaintenance() {
         </button>
 
         <button
-          onClick={() => setActiveTab("rates")}
+          onClick={() => setActiveTab("maintenance")}
           className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
             ${
-              activeTab === "rates"
+              activeTab === "maintenance"
                 ? "border-primary bg-primary text-primary-foreground"
                 : "border-border bg-surface text-fg"
             }`}
         >
           <div className="flex items-center gap-2 sm:gap-3">
-            <Tags size={22} className="shrink-0" />
+            <Wrench size={22} className="shrink-0" />
             <div>
               <h2 className="font-semibold text-sm sm:text-base">
-                Trip Categories & Rates
+                Vehicle Maintenance
               </h2>
 
               <p className="text-xs sm:text-sm opacity-70">
-                {tripRates.length} Rate Profiles
+                {maintenanceRecords.length} Records
               </p>
             </div>
           </div>
         </button>
       </div>
 
-      {/* CONTENT */}
-      {/* VEHICLE UNITS */}
+      {/* VEHICLE LIST */}
       {activeTab === "units" && (
         <>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
-            {/* <h2 className="text-xl font-semibold">
-                Vehicle Units
-              </h2> */}
-
             <div className="flex gap-2">
               <div className="relative">
                 <Search
@@ -293,24 +300,11 @@ export default function TripMaintenance() {
             </div>
           </div>
 
-          {/* card */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {vehicleUnits.map((unit) => (
               <div
                 key={unit.id}
-                className="
-                    bg-surface
-                    border
-                    border-border
-                    rounded-2xl
-                    p-5
-                    hover:shadow-lg
-                    hover:-translate-y-1
-                    transition-all
-                    duration-200
-                    overflow-hidden
-                    text-fg
-                  "
+                className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
               >
                 <div className="h-1 bg-blue-500 -mx-5 -mt-5 mb-4" />
 
@@ -319,7 +313,6 @@ export default function TripMaintenance() {
 
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-fg-subtle">Plate:</span>
-
                     <span className="font-medium">{unit.plate_number}</span>
                   </div>
 
@@ -328,29 +321,17 @@ export default function TripMaintenance() {
 
                 <div className="mt-4 bg-surface-hover rounded-xl p-3">
                   <p className="text-xs text-fg-subtle mb-1">Description</p>
-
                   <p className="text-sm">{unit.description || "N/A"}</p>
                 </div>
 
                 <div className="mt-4 flex justify-between items-center">
-                  <span
-                    className="
-                        px-3 py-1
-                        rounded-full
-                        text-xs
-                        bg-success/15
-                        text-success
-                      "
-                  >
+                  <span className="px-3 py-1 rounded-full text-xs bg-success/15 text-success">
                     Active
                   </span>
 
                   <button
                     onClick={() => handleEditUnit(unit)}
-                    className="
-                        text-primary
-                        hover:text-primary-hover
-                      "
+                    className="text-primary hover:text-primary-hover"
                   >
                     <Pencil size={16} />
                   </button>
@@ -361,118 +342,88 @@ export default function TripMaintenance() {
         </>
       )}
 
-      {/* CATEGORIES */}
-      {activeTab === "rates" && (
+      {/* VEHICLE MAINTENANCE */}
+      {activeTab === "maintenance" && (
         <>
           <div className="flex justify-between mb-4">
-            {/* <h2 className="text-xl font-semibold">
-                Trip Categories & Rates
-            </h2> */}
-
             <button
               onClick={() => {
-                setEditingProfile(null);
-
-                setRateForm({
-                  profile_name: "",
-                  helper_count: 0,
-                  driver_first_trip_rate: "",
-                  driver_next_trip_rate: "",
-                  helper_first_trip_rate: "",
-                  helper_next_trip_rate: "",
-                });
-
-                setShowCategoryModal(true);
+                setEditingRecord(null);
+                setMaintenanceForm(EMPTY_MAINTENANCE_FORM);
+                setShowMaintenanceModal(true);
               }}
               className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg flex items-center gap-2"
             >
               <Plus size={18} />
-              Add Category
+              Add Record
             </button>
           </div>
 
-          {/* card */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {tripRates.map((rate) => (
-              <div
-                key={rate.id}
-                className="
-                    bg-surface
-                    border
-                    border-border
-                    rounded-2xl
-                    p-5
-                    hover:shadow-lg
-                    hover:-translate-y-1
-                    transition-all
-                    duration-200
-                    overflow-hidden
-                    text-fg
-                  "
-              >
-                <div className="h-1 bg-emerald-500 -mx-5 -mt-5 mb-4" />
-
-                <div className="flex justify-between">
-                  <div>
-                    <h3 className="font-bold text-lg">{rate.profile_name}</h3>
-
-                    <p className="text-sm text-fg-muted">
-                      {rate.helper_count} Helper(s)
-                    </p>
-                  </div>
-
-                  <Tags size={20} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-4">
-                  <div className="bg-surface-hover rounded-xl p-3">
-                    <p className="text-xs text-fg-subtle">Driver 1st</p>
-
-                    <p className="font-bold">
-                      {formatCurrency(rate.driver_first_trip_rate)}
-                    </p>
-                  </div>
-
-                  <div className="bg-surface-hover rounded-xl p-3">
-                    <p className="text-xs text-fg-subtle">Driver Next Trip</p>
-
-                    <p className="font-bold">
-                      {formatCurrency(rate.driver_next_trip_rate)}
-                    </p>
-                  </div>
-
-                  <div className="bg-surface-hover rounded-xl p-3">
-                    <p className="text-xs text-fg-subtle">Helper First Trip</p>
-
-                    <p className="font-bold">
-                      {formatCurrency(rate.helper_first_trip_rate)}
-                    </p>
-                  </div>
-
-                  <div className="bg-surface-hover rounded-xl p-3">
-                    <p className="text-xs text-fg-subtle">Helper Next Trip</p>
-
-                    <p className="font-bold">
-                      {formatCurrency(rate.helper_next_trip_rate)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex justify-between">
-                  <button
-                    onClick={() => handleEditProfile(rate)}
-                    className="
-                        p-2
-                        rounded-lg
-                        hover:bg-primary/10
-                        text-primary
-                      "
-                  >
-                    <Pencil size={18} />
-                  </button>
-                </div>
-              </div>
-            ))}
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-sm text-fg">
+              <thead className="bg-surface-hover text-fg-muted">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium">Vehicle</th>
+                  <th className="px-4 py-3 text-left font-medium">Type</th>
+                  <th className="px-4 py-3 text-left font-medium">Service Date</th>
+                  <th className="px-4 py-3 text-left font-medium">Next Due</th>
+                  <th className="px-4 py-3 text-left font-medium">Odometer</th>
+                  <th className="px-4 py-3 text-left font-medium">Cost</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {maintenanceRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="text-center py-6 text-fg-subtle">
+                      No maintenance records
+                    </td>
+                  </tr>
+                ) : (
+                  maintenanceRecords.map((record) => (
+                    <tr
+                      key={record.id}
+                      className="border-t border-border hover:bg-surface-hover"
+                    >
+                      <td className="px-4 py-3">
+                        {record.vehicle_unit
+                          ? `${record.vehicle_unit.unit_code} - ${record.vehicle_unit.plate_number}`
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3">{record.maintenance_type}</td>
+                      <td className="px-4 py-3">
+                        {formatDate(record.service_date)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatDate(record.next_due_date)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {record.odometer_reading ?? "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(record.cost)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleEditRecord(record)}
+                            className="text-primary hover:text-primary-hover"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRecord(record)}
+                            className="text-danger hover:text-danger-hover"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </>
       )}
@@ -485,15 +436,13 @@ export default function TripMaintenance() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-fg">Unit Code</label>
-
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Unit Code
+            </label>
             <input
               value={vehicleForm.unit_code}
               onChange={(e) =>
-                setVehicleForm({
-                  ...vehicleForm,
-                  unit_code: e.target.value,
-                })
+                setVehicleForm({ ...vehicleForm, unit_code: e.target.value })
               }
               className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="ELF-01"
@@ -504,7 +453,6 @@ export default function TripMaintenance() {
             <label className="block text-sm font-medium mb-1 text-fg">
               Plate Number
             </label>
-
             <input
               value={vehicleForm.plate_number}
               onChange={(e) =>
@@ -522,7 +470,6 @@ export default function TripMaintenance() {
             <label className="block text-sm font-medium mb-1 text-fg">
               Description
             </label>
-
             <input
               value={vehicleForm.description}
               onChange={(e) =>
@@ -537,124 +484,143 @@ export default function TripMaintenance() {
           </div>
         </div>
       </MaintenanceModal>
+
       <MaintenanceModal
-        isOpen={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
-        title={editingProfile ? "Edit Rate Profile" : "Add Rate Profile"}
+        isOpen={showMaintenanceModal}
+        onClose={() => setShowMaintenanceModal(false)}
+        title={editingRecord ? "Edit Maintenance Record" : "Add Maintenance Record"}
         onSave={
-          editingProfile ? handleUpdateRateProfile : handleCreateRateProfile
+          editingRecord
+            ? handleUpdateMaintenanceRecord
+            : handleCreateMaintenanceRecord
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1 text-fg">Category</label>
-
-            <input
-              value={rateForm.profile_name}
-              onChange={(e) =>
-                setRateForm({
-                  ...rateForm,
-                  profile_name: e.target.value,
-                })
-              }
-              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-              placeholder="CPDC"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1 text-fg">Helpers</label>
-
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Vehicle
+            </label>
             <select
-              value={rateForm.helper_count}
+              value={maintenanceForm.vehicle_unit_id}
               onChange={(e) =>
-                setRateForm({
-                  ...rateForm,
-                  helper_count: parseInt(e.target.value),
+                setMaintenanceForm({
+                  ...maintenanceForm,
+                  vehicle_unit_id: e.target.value,
                 })
               }
               className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
             >
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
+              <option value="">Select vehicle</option>
+              {vehicleUnits.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.unit_code} - {unit.plate_number}
+                </option>
+              ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Maintenance Type
+            </label>
+            <input
+              value={maintenanceForm.maintenance_type}
+              onChange={(e) =>
+                setMaintenanceForm({
+                  ...maintenanceForm,
+                  maintenance_type: e.target.value,
+                })
+              }
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+              placeholder="Oil Change, Brake Repair, etc."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Description
+            </label>
+            <input
+              value={maintenanceForm.description}
+              onChange={(e) =>
+                setMaintenanceForm({
+                  ...maintenanceForm,
+                  description: e.target.value,
+                })
+              }
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+              placeholder="Details of the service performed"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1 text-fg">
-                Driver 1st Trip
+                Service Date
               </label>
-
               <input
-                type="number"
-                value={rateForm.driver_first_trip_rate}
+                type="date"
+                value={maintenanceForm.service_date}
                 onChange={(e) =>
-                  setRateForm({
-                    ...rateForm,
-                    driver_first_trip_rate: e.target.value,
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    service_date: e.target.value,
                   })
                 }
                 className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="565"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1 text-fg">
-                Driver Next Trip
+                Next Due Date
               </label>
-
               <input
-                type="number"
-                value={rateForm.driver_next_trip_rate}
+                type="date"
+                value={maintenanceForm.next_due_date}
                 onChange={(e) =>
-                  setRateForm({
-                    ...rateForm,
-                    driver_next_trip_rate: e.target.value,
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    next_due_date: e.target.value,
                   })
                 }
                 className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="300"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1 text-fg">
-                Helper 1st Trip
+                Odometer Reading
               </label>
-
               <input
                 type="number"
-                value={rateForm.helper_first_trip_rate}
+                value={maintenanceForm.odometer_reading}
                 onChange={(e) =>
-                  setRateForm({
-                    ...rateForm,
-                    helper_first_trip_rate: e.target.value,
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    odometer_reading: e.target.value,
                   })
                 }
                 className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="217"
+                placeholder="45000"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1 text-fg">
-                Helper Next Trip
+                Cost
               </label>
-
               <input
                 type="number"
-                value={rateForm.helper_next_trip_rate}
+                value={maintenanceForm.cost}
                 onChange={(e) =>
-                  setRateForm({
-                    ...rateForm,
-                    helper_next_trip_rate: e.target.value,
+                  setMaintenanceForm({
+                    ...maintenanceForm,
+                    cost: e.target.value,
                   })
                 }
                 className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="100"
+                placeholder="1500"
               />
             </div>
           </div>

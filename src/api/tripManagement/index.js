@@ -58,15 +58,18 @@ export const getAvailableHelpers = async (driverId) => {
 };
 
 // ========================================
-// START TRIP
-// Form data: { shipment_no, vehicle_unit_id, store_id, lat, long, photo, helper_ids }
+// DISPATCH TRIP (coordinator-only -- office's first step in the 7-step
+// flow: assign a driver, vehicle, and origin hub. No shipment number or
+// destination store yet -- the driver fills those in at their own
+// Checkout step, OCR-assisted from the Invoice/LM they photograph.)
+// Form data: { driver_id, vehicle_unit_id, origin_store_id, helper_ids }
 // ========================================
-export const startTrip = async (formData) => {
+export const dispatchTrip = async (formData) => {
   try {
-    const response = await api.post("/driver/trips/start", formData);
+    const response = await api.post("/driver/trips/dispatch", formData);
     return response.data;
   } catch (error) {
-    console.error("Error starting trip:", error);
+    console.error("Error dispatching trip:", error);
     throw error;
   }
 };
@@ -107,18 +110,100 @@ export const checkOut = async (tripId, stopId, payload) => {
 };
 
 // ========================================
-// COMPLETE TRIP
-// Form data: { lat, long, stamped_invoice_photo }
+// STEP 1: CHECKOUT OCR PREVIEW (non-committing)
+// Form data: { invoice_photo, lm_photo }
 // ========================================
-export const completeTrip = async (tripId, payload) => {
+export const checkoutOcrPreview = async (tripId, formData) => {
   try {
     const response = await api.post(
-      `/driver/trips/${tripId}/complete`,
-      payload,
+      `/driver/trips/${tripId}/checkout/ocr-preview`,
+      formData,
     );
     return response.data;
   } catch (error) {
-    console.error("Error completing trip:", error);
+    console.error("Error previewing checkout OCR:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// STEP 1: CHECKOUT
+// Form data: { shipment_no, destination_store_id, invoice_photo, lm_photo }
+// ========================================
+export const checkoutTrip = async (tripId, formData) => {
+  try {
+    const response = await api.post(
+      `/driver/trips/${tripId}/checkout`,
+      formData,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error checking out trip:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// STEP 2: START TRIP (button only -- vehicle is assigned by the
+// coordinator at dispatch time now)
+// ========================================
+export const startTrip = async (tripId) => {
+  try {
+    const response = await api.post(`/driver/trips/${tripId}/start`);
+    return response.data;
+  } catch (error) {
+    console.error("Error starting trip:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// STEP 4: START UNLOADING
+// Form data: { photo }
+// ========================================
+export const startUnloading = async (tripId, stopId, formData) => {
+  try {
+    const response = await api.post(
+      `/driver/trips/${tripId}/stops/${stopId}/start-unloading`,
+      formData,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error starting unloading:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// STEP 6: BACK TO SOURCE
+// Form data: { lat, long, lm_perma_photo }
+// ========================================
+export const backToSource = async (tripId, formData) => {
+  try {
+    const response = await api.post(
+      `/driver/trips/${tripId}/back-to-source`,
+      formData,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error heading back to source:", error);
+    throw error;
+  }
+};
+
+// ========================================
+// STEP 7: CHECKIN (final step -- back at hub)
+// Form data: { lat, long, stamped_invoice_photo }
+// ========================================
+export const checkinTrip = async (tripId, formData) => {
+  try {
+    const response = await api.post(
+      `/driver/trips/${tripId}/checkin`,
+      formData,
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error checking in trip:", error);
     throw error;
   }
 };

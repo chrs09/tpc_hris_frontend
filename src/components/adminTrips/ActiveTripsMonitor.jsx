@@ -11,9 +11,8 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
         <table className="w-full text-fg text-sm">
           <thead className="bg-surface-hover text-fg-muted">
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Trip ID</th>
-              <th className="px-4 py-3 text-left font-medium">Trip Code</th>
               <th className="px-4 py-3 text-left font-medium">Driver</th>
+              <th className="px-4 py-3 text-left font-medium">Trip Code</th>
               <th className="px-4 py-3 text-left font-medium">Ticket</th>
               <th className="px-4 py-3 text-left font-medium">Started</th>
               <th className="px-4 py-3 text-left font-medium">Current Stop</th>
@@ -25,7 +24,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-6 text-fg-subtle">
+                <td colSpan="7" className="text-center py-6 text-fg-subtle">
                   No active trips
                 </td>
               </tr>
@@ -35,10 +34,6 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                   key={trip.id}
                   className="border-t border-border hover:bg-surface-hover"
                 >
-                  <td className="px-4 py-4">{trip.id}</td>
-                  <td className="px-4 py-4 font-mono text-xs">
-                    {trip.trip_code || "-"}
-                  </td>
                   <td className="px-4 py-4 capitalize">
                     {trip.username}
                     {trip.started_outside_hub_range && (
@@ -50,6 +45,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-4 uppercase">{trip.trip_code || "-"}</td>
                   <td className="px-4 py-4 capitalize">{trip.ticket_no}</td>
                   <td className="px-4 py-4">
                     {new Date(trip.start_time).toLocaleString()}
@@ -84,29 +80,28 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               className="bg-surface border border-border text-fg p-4 rounded-xl"
             >
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs text-fg-subtle">
-                    Trip ID: {trip.id}
-                    {trip.trip_code ? ` · ${trip.trip_code}` : ""}
-                  </p>
-                  <p className="font-semibold capitalize">
-                    {trip.username}
-                    {trip.started_outside_hub_range && (
-                      <span
-                        title="Started outside any hub's GPS range"
-                        className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-warning"
-                      >
-                        ⚠ Outside Hub
-                      </span>
-                    )}
-                  </p>
-                </div>
+                <p className="font-semibold capitalize">
+                  {trip.username}
+                  {trip.started_outside_hub_range && (
+                    <span
+                      title="Started outside any hub's GPS range"
+                      className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-warning"
+                    >
+                      ⚠ Outside Hub
+                    </span>
+                  )}
+                </p>
                 <button
                   onClick={() => setSelectedTripId(trip.id)}
                   className="shrink-0 rounded-lg border border-border px-3 py-1 text-xs font-medium text-fg-muted transition hover:bg-surface-hover"
                 >
                   View
                 </button>
+              </div>
+
+              <div className="text-sm mt-2">
+                <span className="text-fg-muted block">Trip Code</span>
+                {trip.trip_code || "-"}
               </div>
 
               <div className="text-sm mt-2">
