@@ -225,6 +225,11 @@ export function getNavGroups(role) {
           roles: ["superadmin"],
         },
         {
+          label: "Error Logs",
+          path: "/dashboard/error-logs",
+          roles: ["superadmin"],
+        },
+        {
           label: "Settings",
           path: "/dashboard/settings",
           roles: ["superadmin"],

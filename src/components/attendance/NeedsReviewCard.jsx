@@ -43,9 +43,19 @@ const NeedsReviewCard = () => {
         const list = Array.isArray(data) ? data : data?.records || [];
 
         if (!cancelled) {
+          // Face review now runs independently for time-in and time-out
+          // (see AttendanceGridReview.jsx) -- a record is flagged here if
+          // either side needs it, even once the other side is settled.
           setRecords(
-            list.filter((item) =>
-              NEEDS_REVIEW_STATUSES.includes(item.face_review_status),
+            list.filter(
+              (item) =>
+                NEEDS_REVIEW_STATUSES.includes(
+                  item.time_in_face_review_status,
+                ) ||
+                (item.check_out_time &&
+                  NEEDS_REVIEW_STATUSES.includes(
+                    item.time_out_face_review_status,
+                  )),
             ),
           );
         }
@@ -119,13 +129,30 @@ const NeedsReviewCard = () => {
                 </p>
                 <p className="text-[11px] text-amber-700 truncate">
                   {record.employee_department || record.department || "—"} •{" "}
-                  {REVIEW_REASON_LABEL[record.face_review_status] ||
-                    "Needs Review"}
+                  {[
+                    NEEDS_REVIEW_STATUSES.includes(
+                      record.time_in_face_review_status,
+                    ) &&
+                      `Time In: ${
+                        REVIEW_REASON_LABEL[record.time_in_face_review_status]
+                      }`,
+                    record.check_out_time &&
+                      NEEDS_REVIEW_STATUSES.includes(
+                        record.time_out_face_review_status,
+                      ) &&
+                      `Time Out: ${
+                        REVIEW_REASON_LABEL[
+                          record.time_out_face_review_status
+                        ]
+                      }`,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
                 </p>
               </div>
 
               <Link
-                to="/dashboard/attendance"
+                to={`/dashboard/attendance?view=grid&date=${dateKey}`}
                 className="shrink-0 text-[11px] font-medium text-primary hover:text-primary-hover"
               >
                 Review

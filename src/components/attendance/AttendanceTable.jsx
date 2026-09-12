@@ -170,13 +170,22 @@ const AttendanceTable = ({
                 // not get silently replaced by a blank trip-count tile.
                 const isLeaveOrAbsent = ["On Leave", "Absent"].includes(status);
 
-                // Face recognition flagged this check-in for a superadmin
-                // to confirm (see AttendanceGridReview's Approve/Reject) --
-                // until that happens it must not read as a plain, settled
-                // "Present" cell.
-                const needsFaceReview =
+                // Face recognition flagged time-in and/or time-out for a
+                // superadmin to confirm (see AttendanceGridReview's
+                // Approve/Reject, now per-side) -- until that happens the
+                // affected side must not read as a plain, settled time.
+                const needsInReview =
                   !!attendance &&
-                  NEEDS_REVIEW_STATUSES.includes(attendance.face_review_status);
+                  NEEDS_REVIEW_STATUSES.includes(
+                    attendance.time_in_face_review_status,
+                  );
+                const needsOutReview =
+                  !!attendance &&
+                  hasTimeOut &&
+                  NEEDS_REVIEW_STATUSES.includes(
+                    attendance.time_out_face_review_status,
+                  );
+                const needsFaceReview = needsInReview || needsOutReview;
 
                 if (isLeaveOrAbsent) {
                   bg = statusColors[status];
@@ -233,10 +242,50 @@ const AttendanceTable = ({
                             </span>
                           </div>
                         ) : needsFaceReview ? (
-                          <div className="flex items-center justify-center px-1 py-2">
-                            <span className="text-[10px] leading-tight font-bold uppercase text-amber-700 whitespace-normal wrap-break-word">
-                              ⚠ Needs Review
-                            </span>
+                          <div className="flex flex-col text-[10px] leading-tight">
+                            <div
+                              className={`py-1 px-1 ${
+                                needsInReview
+                                  ? "font-bold uppercase text-amber-700"
+                                  : hasTimeInPreview
+                                    ? "cursor-pointer underline hover:bg-black/10"
+                                    : ""
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                if (needsInReview || !hasTimeInPreview) return;
+
+                                onPreviewAttendance?.(attendance, "timein");
+                              }}
+                            >
+                              {needsInReview
+                                ? "⚠ IN Review"
+                                : `IN: ${formatTime(attendance.check_in_time)}`}
+                            </div>
+
+                            <div
+                              className={`border-t py-1 px-1 ${
+                                needsOutReview
+                                  ? "font-bold uppercase text-amber-700"
+                                  : hasTimeOutPreview
+                                    ? "cursor-pointer underline hover:bg-black/10"
+                                    : ""
+                              }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                if (needsOutReview || !hasTimeOutPreview) return;
+
+                                onPreviewAttendance?.(attendance, "timeout");
+                              }}
+                            >
+                              {needsOutReview
+                                ? "⚠ OUT Review"
+                                : hasTimeOut
+                                  ? `OUT: ${formatTime(attendance.check_out_time)}`
+                                  : "OUT: --"}
+                            </div>
                           </div>
                         ) : isTripBasedEmployee ? (
                           <div className="flex items-center justify-center">

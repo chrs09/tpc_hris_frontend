@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import {
@@ -87,7 +88,17 @@ const AttendanceList = () => {
   const [showDateModal, setShowDateModal] = useState(false);
   const [dateRange, setDateRange] = useState([null, null]);
 
-  const [requestedViewMode, setViewMode] = useState("grid");
+  // Lets NeedsReviewCard's "Review" link (dashboard) deep-link straight
+  // into Grid Review View on a specific past date, e.g.
+  // "/dashboard/attendance?view=grid&date=2026-09-10", instead of always
+  // landing here on today with whatever view was last used.
+  const [searchParams] = useSearchParams();
+  const dateParam = searchParams.get("date");
+  const viewParam = searchParams.get("view");
+
+  const [requestedViewMode, setViewMode] = useState(
+    viewParam === "table" ? "table" : "grid",
+  );
   // Falls back to whichever view is actually accessible instead of the
   // requested one, the same way usePagination clamps an out-of-range page
   // at render time -- avoids landing on a blank view mode if this
@@ -98,7 +109,7 @@ const AttendanceList = () => {
       : requestedViewMode === "table" && !canSeeListView && canSeeGridView
         ? "grid"
         : requestedViewMode;
-  const [reviewDate, setReviewDate] = useState(today);
+  const [reviewDate, setReviewDate] = useState(dateParam || today);
 
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
@@ -560,9 +571,9 @@ const AttendanceList = () => {
   // APPROVE
   // ---------------------------------------
 
-  const handleApproveAttendance = async (record) => {
+  const handleApproveAttendance = async (record, side = "time_in") => {
     try {
-      const response = await approveAttendance(record.id);
+      const response = await approveAttendance(record.id, side);
 
       await refreshAttendance();
 
@@ -661,9 +672,9 @@ const AttendanceList = () => {
   // REJECT
   // ---------------------------------------
 
-  const handleRejectAttendance = async (record) => {
+  const handleRejectAttendance = async (record, side = "time_in") => {
     try {
-      const response = await rejectAttendance(record.id);
+      const response = await rejectAttendance(record.id, side);
 
       await refreshAttendance();
 

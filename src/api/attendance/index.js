@@ -93,14 +93,21 @@ export const timeInSelfie = async (formData) => {
   return res.data;
 };
 
-export const approveAttendance = async (attendanceId) => {
-  const res = await api.post(`/attendance/${attendanceId}/approve`);
+// `side` is "time_in" (default) or "time_out" -- face review now runs
+// independently for both, so approving/rejecting one never touches the
+// other's status.
+export const approveAttendance = async (attendanceId, side = "time_in") => {
+  const res = await api.post(
+    `/attendance/${attendanceId}/approve?side=${side}`,
+  );
 
   return res.data;
 };
 
-export const rejectAttendance = async (attendanceId) => {
-  const res = await api.post(`/attendance/${attendanceId}/reject`);
+export const rejectAttendance = async (attendanceId, side = "time_in") => {
+  const res = await api.post(
+    `/attendance/${attendanceId}/reject?side=${side}`,
+  );
 
   return res.data;
 };

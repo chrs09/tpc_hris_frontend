@@ -23,6 +23,7 @@ import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import PayrollList from "../Payroll/PayrollList";
 import HolidaysPage from "../Holiday/HolidaysPage";
+import ErrorLogsPage from "../Admin/ErrorLogsPage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
@@ -53,9 +54,9 @@ const Dashboard = () => {
       {impersonating && (
         <div
           className={`
-            fixed top-0 z-40 flex flex-wrap items-center justify-center gap-3 bg-warning px-4 py-2 text-center text-sm font-semibold text-warning-foreground shadow-md
-            left-0 right-0
-            md:left-64
+            fixed z-40 flex flex-wrap items-center justify-center gap-3 bg-warning px-4 py-2 text-center text-sm font-semibold text-warning-foreground shadow-md
+            left-0 right-0 top-16
+            md:left-64 md:top-0
           `}
         >
           <span>
@@ -114,6 +115,7 @@ const Dashboard = () => {
           <Route path="role-access" element={<RoleAccess />} />
           <Route path="overtime-approvals" element={<OvertimeApprovals />} />
           <Route path="holidays" element={<HolidaysPage />} />
+          <Route path="error-logs" element={<ErrorLogsPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="admin/trip-bypass" element={<TripBypass />} />
           <Route path="admin/stores" element={<StoreManagement />} />

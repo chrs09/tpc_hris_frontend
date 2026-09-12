@@ -20,30 +20,36 @@ export default function SectionTabs({ group }) {
   if (visibleChildren.length <= 1) return null;
 
   return (
-    // Sticky (fixed) at the top of the content area so it stays visible
-    // while scrolling down a long page -- switching pages within the
-    // group never requires scrolling back up first. top-16 clears the
-    // fixed mobile top bar (h-16); it collapses to top-0 on desktop,
-    // where that bar is hidden.
-    <div className="sticky top-16 md:top-0 z-20 mb-6 flex gap-1 overflow-x-auto border-b border-border bg-background">
-      {visibleChildren.map((item) => {
-        const pathname = item.path.split("?")[0];
-        const active = location.pathname === pathname;
+    // Single outer element -- pages drop <SectionTabs /> as the first
+    // child of a space-y-5 container, so this must stay one element or
+    // that container's auto-margins would land on the wrong piece below.
+    // Desktop: this wrapper itself is the sticky bar (unchanged from
+    // before). Mobile: the inner bar is truly fixed instead of sticky
+    // (sticky was getting covered by/overlapping page content in some
+    // layouts), pinned below the fixed mobile top bar (top-16, h-16);
+    // the wrapper then just reserves that height (h-16) in normal flow
+    // so content below doesn't jump up underneath it.
+    <div className="h-20 md:sticky md:top-0 md:z-20 md:mb-6 md:h-auto">
+      <div className="fixed left-4 right-4 top-16 z-20 flex gap-1 overflow-x-auto border-b border-border bg-background md:static md:left-auto md:right-auto md:top-auto md:z-auto">
+        {visibleChildren.map((item) => {
+          const pathname = item.path.split("?")[0];
+          const active = location.pathname === pathname;
 
-        return (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
-              active
-                ? "border-primary text-primary"
-                : "border-transparent text-fg-subtle hover:text-fg"
-            }`}
-          >
-            {item.label}
-          </Link>
-        );
-      })}
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`whitespace-nowrap border-b-2 px-5 py-3 text-base font-medium transition-colors md:px-4 md:py-2 md:text-sm ${
+                active
+                  ? "border-primary text-primary"
+                  : "border-transparent text-fg-subtle hover:text-fg"
+              }`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }

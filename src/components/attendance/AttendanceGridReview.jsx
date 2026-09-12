@@ -93,6 +93,49 @@ const getIsLeave = (record) => {
   return status === "LEAVE" || status === "ON LEAVE";
 };
 
+// Face verification/review now runs independently for time-in and
+// time-out (see kiosk_selfie_attendance() in app/api/attendance.py and
+// the AttendanceRecord model's time_in_face_*/time_out_face_* columns) --
+// this reads whichever side is asked for instead of one shared status.
+const getSidePhoto = (record, side) =>
+  side === "time_in" ? record.time_in_photo_url : record.time_out_photo_url;
+
+const SIDE_STATUS_LABELS = {
+  AUTO_APPROVED: "Auto Approved",
+  APPROVED: "Approved",
+  REJECTED: "Rejected",
+  NEEDS_REVIEW: "Needs Review",
+  NO_PROFILE_PHOTO: "No Profile Photo",
+  FACE_MATCH_FAILED: "Match Failed",
+};
+
+const NEEDS_REVIEW_LABELS = ["Needs Review", "No Profile Photo", "Match Failed"];
+
+const getSideStatus = (record, side) => {
+  const raw = record[`${side}_face_review_status`];
+
+  if (SIDE_STATUS_LABELS[raw]) {
+    return SIDE_STATUS_LABELS[raw];
+  }
+
+  if (!getSidePhoto(record, side)) {
+    return "No Selfie";
+  }
+
+  return "Pending";
+};
+
+const sideNeedsReview = (record, side) =>
+  NEEDS_REVIEW_LABELS.includes(getSideStatus(record, side));
+
+const recordNeedsReview = (record) =>
+  sideNeedsReview(record, "time_in") ||
+  (record.check_out_time && sideNeedsReview(record, "time_out"));
+
+// Combined at-a-glance status for the grid tile/top banner -- day-level
+// statuses (absent/leave/missing) always win, then either side needing
+// review or being rejected takes priority over the day just mirroring
+// time-in's own bucket (approved/pending/no selfie).
 const getReviewStatus = (record) => {
   if (record.is_missing_attendance) {
     return "No Attendance";
@@ -106,35 +149,20 @@ const getReviewStatus = (record) => {
     return "Leave";
   }
 
-  if (record.face_review_status === "AUTO_APPROVED") {
-    return "Auto Approved";
-  }
-
-  if (record.face_review_status === "APPROVED") {
-    return "Approved";
-  }
-
-  if (record.face_review_status === "REJECTED") {
-    return "Rejected";
-  }
-
-  if (record.face_review_status === "NEEDS_REVIEW") {
+  if (recordNeedsReview(record)) {
     return "Needs Review";
   }
 
-  if (record.face_review_status === "NO_PROFILE_PHOTO") {
-    return "No Profile Photo";
+  const inStatus = getSideStatus(record, "time_in");
+  const outStatus = record.check_out_time
+    ? getSideStatus(record, "time_out")
+    : null;
+
+  if (inStatus === "Rejected" || outStatus === "Rejected") {
+    return "Rejected";
   }
 
-  if (record.face_review_status === "FACE_MATCH_FAILED") {
-    return "Match Failed";
-  }
-
-  if (!getPhoto(record)) {
-    return "No Selfie";
-  }
-
-  return "Pending";
+  return inStatus;
 };
 
 const getStatusStyle = (status) => {
@@ -249,21 +277,16 @@ const AttendanceGridReview = ({
 
     const total = attendanceRecords.length;
 
-    const autoApproved = attendanceRecords.filter(
-      (record) =>
-        record.face_review_status === "AUTO_APPROVED" ||
-        record.face_review_status === "APPROVED",
+    const autoApproved = attendanceRecords.filter((record) =>
+      ["Auto Approved", "Approved"].includes(getReviewStatus(record)),
     ).length;
 
-    const needsReview = attendanceRecords.filter(
-      (record) =>
-        record.face_review_status === "NEEDS_REVIEW" ||
-        record.face_review_status === "NO_PROFILE_PHOTO" ||
-        record.face_review_status === "FACE_MATCH_FAILED",
+    const needsReview = attendanceRecords.filter((record) =>
+      recordNeedsReview(record),
     ).length;
 
     const rejected = attendanceRecords.filter(
-      (record) => record.face_review_status === "REJECTED",
+      (record) => getReviewStatus(record) === "Rejected",
     ).length;
 
     const noSelfie = attendanceRecords.filter(
@@ -293,18 +316,14 @@ const AttendanceGridReview = ({
       return records.filter(
         (record) =>
           !record.is_missing_attendance &&
-          (record.face_review_status === "AUTO_APPROVED" ||
-            record.face_review_status === "APPROVED"),
+          ["Auto Approved", "Approved"].includes(getReviewStatus(record)),
       );
     }
 
     if (selectedStat === "needsReview") {
       return records.filter(
         (record) =>
-          !record.is_missing_attendance &&
-          (record.face_review_status === "NEEDS_REVIEW" ||
-            record.face_review_status === "NO_PROFILE_PHOTO" ||
-            record.face_review_status === "FACE_MATCH_FAILED"),
+          !record.is_missing_attendance && recordNeedsReview(record),
       );
     }
 
@@ -312,7 +331,7 @@ const AttendanceGridReview = ({
       return records.filter(
         (record) =>
           !record.is_missing_attendance &&
-          record.face_review_status === "REJECTED",
+          getReviewStatus(record) === "Rejected",
       );
     }
 
@@ -344,15 +363,15 @@ const AttendanceGridReview = ({
     );
   }, [visibleRecords, selectedRecordId]);
 
-  const handleApprove = (record) => {
+  const handleApprove = (record, side = "time_in") => {
     if (onApproveAttendance) {
-      onApproveAttendance(record);
+      onApproveAttendance(record, side);
     }
   };
 
-  const handleReject = (record) => {
+  const handleReject = (record, side = "time_in") => {
     if (onRejectAttendance) {
-      onRejectAttendance(record);
+      onRejectAttendance(record, side);
     }
   };
 
@@ -521,10 +540,10 @@ const AttendanceGridReview = ({
                         {status}
                       </span>
 
-                      {record.face_match_score !== null &&
-                        record.face_match_score !== undefined && (
+                      {record.time_in_face_match_score !== null &&
+                        record.time_in_face_match_score !== undefined && (
                           <span className="absolute top-3 right-3 text-xs font-semibold rounded-full px-3 py-1 bg-surface/90 text-blue-700">
-                            {record.face_match_score}%
+                            {record.time_in_face_match_score}%
                           </span>
                         )}
                     </div>
@@ -552,11 +571,22 @@ const AttendanceGridReview = ({
                         <p>
                           <span className="font-medium">Time In:</span>{" "}
                           {getTimeIn(record)}
+                          {sideNeedsReview(record, "time_in") && (
+                            <span className="ml-1.5 text-xs font-semibold text-amber-700">
+                              ⚠ Review
+                            </span>
+                          )}
                         </p>
 
                         <p>
                           <span className="font-medium">Time Out:</span>{" "}
                           {getTimeOut(record)}
+                          {record.check_out_time &&
+                            sideNeedsReview(record, "time_out") && (
+                              <span className="ml-1.5 text-xs font-semibold text-amber-700">
+                                ⚠ Review
+                              </span>
+                            )}
                         </p>
 
                         <p className="line-clamp-1">
@@ -723,12 +753,17 @@ const AttendanceDetail = ({
     setSelectedAttendancePhoto(null);
   }, [record.id, record.check_in_time, record.check_out_time, record.remarks]);
 
-  const canReview =
+  const hasTimedOut = Boolean(record.check_out_time);
+
+  const canReviewSide = (side) =>
     isSuperAdmin &&
     !record.is_missing_attendance &&
-    record.face_review_status !== "AUTO_APPROVED" &&
-    record.face_review_status !== "APPROVED" &&
-    record.face_review_status !== "REJECTED";
+    !["Auto Approved", "Approved", "Rejected"].includes(
+      getSideStatus(record, side),
+    );
+
+  const canReviewIn = canReviewSide("time_in");
+  const canReviewOut = hasTimedOut && canReviewSide("time_out");
 
   // Editing time in/out and the absent/leave reason is an override of the
   // recorded attendance -- restricted to superadmin, same as the Table
@@ -836,10 +871,13 @@ const AttendanceDetail = ({
         </div>
       </div>
 
-      {/* Attendance Photos */}
+      {/* Face Verification -- time-in and time-out are reviewed
+          independently (see the record's time_in_face_ and
+          time_out_face_ prefixed fields), so each gets its own
+          photo/score/message/actions. */}
       <div className="border-t border-b py-4">
         <div>
-          <h4 className="font-bold text-gray-900">Attendance Photos</h4>
+          <h4 className="font-bold text-gray-900">Face Verification</h4>
 
           <p className="text-xs text-gray-600 mt-1">
             Click a photo to view it in full size.
@@ -847,10 +885,16 @@ const AttendanceDetail = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <AttendancePhotoBox
-            label="Time In Photo"
+          <SideReviewSection
+            title="Time In"
             photo={record.time_in_photo_url}
-            onClick={() =>
+            matchScore={record.time_in_face_match_score}
+            reviewStatus={record.time_in_face_review_status}
+            reviewReason={record.time_in_face_review_reason}
+            canReview={canReviewIn}
+            onApprove={() => onApproveAttendance(record, "time_in")}
+            onReject={() => onRejectAttendance(record, "time_in")}
+            onViewPhoto={() =>
               record.time_in_photo_url &&
               setSelectedAttendancePhoto({
                 title: "Time In Photo",
@@ -859,25 +903,31 @@ const AttendanceDetail = ({
             }
           />
 
-          <AttendancePhotoBox
-            label="Time Out Photo"
-            photo={record.time_out_photo_url}
-            onClick={() =>
-              record.time_out_photo_url &&
-              setSelectedAttendancePhoto({
-                title: "Time Out Photo",
-                url: record.time_out_photo_url,
-              })
-            }
-          />
+          {hasTimedOut ? (
+            <SideReviewSection
+              title="Time Out"
+              photo={record.time_out_photo_url}
+              matchScore={record.time_out_face_match_score}
+              reviewStatus={record.time_out_face_review_status}
+              reviewReason={record.time_out_face_review_reason}
+              canReview={canReviewOut}
+              onApprove={() => onApproveAttendance(record, "time_out")}
+              onReject={() => onRejectAttendance(record, "time_out")}
+              onViewPhoto={() =>
+                record.time_out_photo_url &&
+                setSelectedAttendancePhoto({
+                  title: "Time Out Photo",
+                  url: record.time_out_photo_url,
+                })
+              }
+            />
+          ) : (
+            <div className="flex items-center justify-center rounded-xl border border-dashed border-border p-4 text-center text-sm text-fg-subtle">
+              Not timed out yet.
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Face Match Score */}
-      <MatchScoreCard record={record} />
-
-      {/* Face Review Message */}
-      <FaceReviewMessage record={record} />
 
       {/* Attendance Details */}
       <div>
@@ -956,27 +1006,6 @@ const AttendanceDetail = ({
         )}
       </div>
 
-      {/* Approve / Reject */}
-      {canReview && (
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={() => onApproveAttendance(record)}
-            className="rounded-lg bg-green-600 text-white py-3 text-sm font-semibold hover:bg-green-700"
-          >
-            Approve
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onRejectAttendance(record)}
-            className="rounded-lg bg-red-600 text-white py-3 text-sm font-semibold hover:bg-red-700"
-          >
-            Reject
-          </button>
-        </div>
-      )}
-
       {/* Google Maps */}
       {mapsUrl && (
         <a
@@ -1034,115 +1063,92 @@ const AttendanceDetail = ({
   );
 };
 
-const MatchScoreCard = ({ record }) => {
-  const hasScore =
-    record.face_match_score !== null && record.face_match_score !== undefined;
+// One side (time-in or time-out) of the Face Verification section --
+// its own photo, match score, review message, and Approve/Reject.
+const SideReviewSection = ({
+  title,
+  photo,
+  matchScore,
+  reviewStatus,
+  reviewReason,
+  canReview,
+  onApprove,
+  onReject,
+  onViewPhoto,
+}) => {
+  const hasScore = matchScore !== null && matchScore !== undefined;
 
   return (
-    <div className="rounded-lg border bg-blue-50 border-blue-200 p-4">
-      <p className="text-sm text-blue-600">Face Match Score</p>
+    <div className="space-y-2">
+      <AttendancePhotoBox label={title} photo={photo} onClick={onViewPhoto} />
 
-      <p className="text-3xl font-bold text-blue-700">
-        {hasScore ? `${record.face_match_score}%` : "--"}
-      </p>
+      <div className="flex items-start justify-between gap-2 px-1">
+        <SideReviewMessage
+          reviewStatus={reviewStatus}
+          reviewReason={reviewReason}
+        />
+
+        {hasScore && (
+          <span className="shrink-0 text-xs font-semibold text-blue-700">
+            {matchScore}%
+          </span>
+        )}
+      </div>
+
+      {canReview && (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onApprove}
+            className="rounded-lg bg-green-600 text-white py-2 text-sm font-semibold hover:bg-green-700"
+          >
+            Approve
+          </button>
+
+          <button
+            type="button"
+            onClick={onReject}
+            className="rounded-lg bg-red-600 text-white py-2 text-sm font-semibold hover:bg-red-700"
+          >
+            Reject
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-const FaceReviewMessage = ({ record }) => {
-  if (record.face_review_status === "AUTO_APPROVED") {
-    return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-        <p className="font-semibold text-green-700">✓ Auto Approved</p>
+const SIDE_REVIEW_MESSAGES = {
+  AUTO_APPROVED: { text: "✓ Auto Approved", className: "text-green-700" },
+  APPROVED: { text: "✓ Manually Approved", className: "text-green-700" },
+  REJECTED: { text: "Rejected", className: "text-red-700" },
+  NEEDS_REVIEW: { text: "⚠ Needs Admin Review", className: "text-orange-700" },
+  NO_PROFILE_PHOTO: {
+    text: "No Profile Photo Found",
+    className: "text-red-700",
+  },
+  FACE_MATCH_FAILED: { text: "Face Match Failed", className: "text-red-700" },
+};
 
-        <p className="text-xs text-green-500 mt-1">
-          Face matched successfully and attendance was verified.
-        </p>
-      </div>
-    );
-  }
+const SideReviewMessage = ({ reviewStatus, reviewReason }) => {
+  const entry = SIDE_REVIEW_MESSAGES[reviewStatus] || {
+    text: "Verification Pending",
+    className: "text-fg-muted",
+  };
 
-  if (record.face_review_status === "APPROVED") {
-    return (
-      <div className="rounded-lg border border-green-200 bg-green-50 p-3">
-        <p className="font-semibold text-green-700">✓ Manually Approved</p>
-
-        <p className="text-xs text-green-500 mt-1">
-          This attendance was approved by an admin.
-        </p>
-      </div>
-    );
-  }
-
-  if (record.face_review_status === "REJECTED") {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-        <p className="font-semibold text-red-700">Rejected</p>
-
-        <p className="text-xs text-red-500 mt-1">
-          This attendance was rejected by an admin.
-        </p>
-      </div>
-    );
-  }
-
-  if (record.face_review_status === "NEEDS_REVIEW") {
-    return (
-      <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
-        <p className="font-semibold text-orange-700">⚠ Needs Admin Review</p>
-
-        {record.face_review_reason && (
-          <p className="text-xs text-orange-500 mt-1">
-            {record.face_review_reason}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  if (record.face_review_status === "NO_PROFILE_PHOTO") {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-        <p className="font-semibold text-red-700">No Profile Photo Found</p>
-
-        <p className="text-xs text-red-500 mt-1">
-          Upload a profile photo for this employee to enable face matching.
-        </p>
-      </div>
-    );
-  }
-
-  if (record.face_review_status === "FACE_MATCH_FAILED") {
-    return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-        <p className="font-semibold text-red-700">Face Match Failed</p>
-
-        <p className="text-xs text-red-500 mt-1">
-          {record.face_review_reason || "Face verification failed."}
-        </p>
-      </div>
-    );
-  }
-
-  if (record.is_missing_attendance) {
-    return (
-      <div className="rounded-lg border border-border bg-surface-hover p-3">
-        <p className="font-semibold text-fg-muted">No Attendance</p>
-
-        <p className="text-xs text-fg-subtle mt-1">
-          This employee has not taken attendance for this date.
-        </p>
-      </div>
-    );
-  }
+  const showReason =
+    reviewReason &&
+    ["NEEDS_REVIEW", "FACE_MATCH_FAILED"].includes(reviewStatus);
 
   return (
-    <div className="rounded-lg border border-border bg-surface-hover p-3">
-      <p className="font-semibold text-fg-muted">Verification Pending</p>
-
-      <p className="text-xs text-fg-subtle mt-1">
-        Attendance record has not been processed yet.
+    <div>
+      <p className={`text-sm font-semibold ${entry.className}`}>
+        {entry.text}
       </p>
+
+      {showReason && (
+        <p className="text-xs text-fg-subtle mt-0.5">{reviewReason}</p>
+      )}
     </div>
   );
 };
