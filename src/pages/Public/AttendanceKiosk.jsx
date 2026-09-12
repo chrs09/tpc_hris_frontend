@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button/Button";
 import { Input } from "../../components/ui/input/Input";
 
 import TytanLogo from "../../assets/logo/tytan-logo.jpg";
+import { alertDialog } from "../../components/ui/dialog/dialogService";
 
 export default function AttendanceKiosk() {
   const [employeeId, setEmployeeId] = useState("");
@@ -156,7 +157,7 @@ export default function AttendanceKiosk() {
 
       const result = await kioskSelfieAttendance(formData);
 
-      alert(result.message);
+      alertDialog(result.message);
 
       resetKiosk();
     } catch (err) {
@@ -179,8 +180,11 @@ export default function AttendanceKiosk() {
   };
 
   return (
-    <div className="min-h-screen bg-[#2b2b2b] flex justify-center items-center p-4">
-      <Card className="w-full max-w-lg shadow-xl rounded-2xl">
+    <div
+      className="min-h-screen bg-[#2b2b2b] flex justify-center items-center p-4"
+      style={{ colorScheme: "light" }}
+    >
+      <Card className="w-full max-w-lg shadow-xl rounded-2xl bg-white text-slate-900">
         <div className="flex justify-center items-center gap-4 mt-6">
           <img
             src={TytanLogo}
@@ -292,7 +296,7 @@ export default function AttendanceKiosk() {
                       />
 
                       {locationInfo && (
-                        <div className="bg-gray-100 rounded-lg p-4 text-sm space-y-1">
+                        <div className="bg-gray-100 text-slate-800 rounded-lg p-4 text-sm space-y-1">
                           <div>
                             <strong>Latitude:</strong> {locationInfo.latitude}
                           </div>
@@ -357,7 +361,7 @@ export default function AttendanceKiosk() {
             </>
           )}
         </CardContent>
-        <div className="bg-red-100 p-2 text-xs">
+        <div className="bg-red-100 text-red-900 p-2 text-xs">
           Secure Context: {String(window.isSecureContext)}
         </div>
       </Card>

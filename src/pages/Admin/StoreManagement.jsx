@@ -7,6 +7,8 @@ import {
   updateStore,
   getTripRateProfilesAdmin, // NEW - fetches real TripRateProfile rows
 } from "../../api/adminTripManagement/stores";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
 
 const initialFormState = {
   name: "",
@@ -28,7 +30,6 @@ export default function StoreManagement() {
   const [tripRateProfiles, setTripRateProfiles] = useState([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
 
-  const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const loadTripRateProfiles = async () => {
@@ -60,10 +61,6 @@ export default function StoreManagement() {
     loadStores();
     loadTripRateProfiles();
   }, []);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, profileFilter, itemsPerPage]);
 
   const openCreateModal = () => {
     setEditingStore(null);
@@ -154,16 +151,20 @@ export default function StoreManagement() {
   });
 
   const totalItems = filteredStores.length;
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  const safePage = Math.min(currentPage, totalPages);
-  const startIndex = (safePage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedStores = filteredStores.slice(startIndex, endIndex);
 
-  const goToPage = (page) => {
-    const clamped = Math.min(Math.max(page, 1), totalPages);
-    setCurrentPage(clamped);
-  };
+  const {
+    page: currentPage,
+    setPage: setCurrentPage,
+    totalPages,
+    paginatedItems: paginatedStores,
+  } = usePagination(filteredStores, itemsPerPage);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, profileFilter, itemsPerPage, setCurrentPage]);
+
+  const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
   const renderRows = () => {
     if (!filteredStores.length) {
@@ -254,7 +255,7 @@ export default function StoreManagement() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-5">
       <div>
         <h1 className="text-3xl font-bold text-fg">Customer Management</h1>
         <p className="text-fg-muted mt-1">
@@ -380,57 +381,11 @@ export default function StoreManagement() {
               </select>
             </div>
 
-            <div className="flex items-center gap-1">
-              <button
-                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg disabled:cursor-not-allowed disabled:opacity-40 hover:bg-surface-hover"
-                onClick={() => goToPage(safePage - 1)}
-                disabled={safePage === 1}
-              >
-                Previous
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(
-                  (page) =>
-                    page === 1 ||
-                    page === totalPages ||
-                    Math.abs(page - safePage) <= 1,
-                )
-                .reduce((acc, page, idx, arr) => {
-                  if (idx > 0 && page - arr[idx - 1] > 1) {
-                    acc.push("ellipsis-" + page);
-                  }
-                  acc.push(page);
-                  return acc;
-                }, [])
-                .map((page) =>
-                  typeof page === "string" ? (
-                    <span key={page} className="px-2 text-sm text-fg-subtle">
-                      …
-                    </span>
-                  ) : (
-                    <button
-                      key={page}
-                      onClick={() => goToPage(page)}
-                      className={`rounded-lg border px-3 py-1.5 text-sm ${
-                        page === safePage
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border text-fg hover:bg-surface-hover"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
-
-              <button
-                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg disabled:cursor-not-allowed disabled:opacity-40 hover:bg-surface-hover"
-                onClick={() => goToPage(safePage + 1)}
-                disabled={safePage === totalPages}
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              onChange={setCurrentPage}
+            />
           </div>
         )}
       </div>

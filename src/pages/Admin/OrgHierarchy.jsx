@@ -7,6 +7,7 @@ import {
   setCashAdvanceHead,
 } from "../../api/orgHierarchy";
 import { getUserList } from "../../api/users";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const OrgHierarchyPage = () => {
   const role = localStorage.getItem("role");
@@ -100,8 +101,10 @@ const OrgHierarchyPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Administrator" />
+
         <div className="rounded-3xl border border-border bg-surface/90 p-5 shadow-sm backdrop-blur">
           <p className="text-sm font-medium uppercase tracking-[0.24em] text-fg-subtle">
             Administration

@@ -7,6 +7,8 @@ import {
   updateSupplier,
 } from "../../api/adminTripManagement/tripMaintenance";
 import { toast } from "react-hot-toast";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
 
 const EMPTY_FORM = {
   name: "",
@@ -21,6 +23,10 @@ export default function SuppliersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    suppliers,
+    9,
+  );
 
   const loadSuppliers = async () => {
     try {
@@ -76,7 +82,7 @@ export default function SuppliersPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-5">
       <div>
         <h1 className="text-3xl font-bold text-fg">Suppliers</h1>
         <p className="text-fg-muted mt-1">Manage your supplier contacts.</p>
@@ -97,7 +103,7 @@ export default function SuppliersPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {suppliers.map((supplier) => (
+        {paginatedItems.map((supplier) => (
           <div
             key={supplier.id}
             className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
@@ -137,6 +143,8 @@ export default function SuppliersPage() {
           </div>
         ))}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       <MaintenanceModal
         isOpen={showModal}

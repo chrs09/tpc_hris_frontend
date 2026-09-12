@@ -17,6 +17,9 @@ import { getExpectedHoursForDate } from "../../utils/payroll/attendance/attendan
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
 import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
 import PayslipModal from "../../components/payroll/PayslipModal";
+import usePagination from "../../hooks/usePagination";
+import { alertDialog } from "../../components/ui/dialog/dialogService";
+import Pagination from "../../components/ui/pagination/Pagination";
 import {
   savePayrollDeduction,
   savePayrollDeductionsBulk,
@@ -929,6 +932,13 @@ const PayrollList = () => {
     };
   }, [payrollRows]);
 
+  const {
+    page: payrollPage,
+    setPage: setPayrollPage,
+    totalPages: payrollTotalPages,
+    paginatedItems: paginatedPayrollRows,
+  } = usePagination(payrollRows, 20);
+
   const handleApproveOT = async (row) => {
     try {
       await approveOT({
@@ -997,7 +1007,7 @@ const PayrollList = () => {
 
         // Surface it — silently swallowing this means deductions can look
         // "saved" from the UI's perspective when they never hit the DB.
-        alert(
+        alertDialog(
           `Could not save deductions for ${row.employee.first_name} ${row.employee.last_name}: ` +
             (err?.response?.data?.detail || err.message || "Unknown error") +
             "\n\nThe payslip will still open, but this record was NOT saved.",
@@ -1045,7 +1055,7 @@ const PayrollList = () => {
     } catch (err) {
       console.error("Failed to save payroll_deductions", err);
 
-      alert(
+      alertDialog(
         "Some deduction records could not be saved to the database: " +
           (err?.response?.data?.detail || err.message || "Unknown error") +
           onErrorSuffix,
@@ -1063,7 +1073,7 @@ const PayrollList = () => {
     setIsGeneratingPayroll(false);
 
     if (saved) {
-      alert(
+      alertDialog(
         `Payroll deductions saved for ${payrollRows.filter((r) => !r.isTripBasedEmployee).length} employee(s).`,
       );
     }
@@ -1343,7 +1353,7 @@ const PayrollList = () => {
               </thead>
 
               <tbody>
-                {payrollRows.map((row) => (
+                {paginatedPayrollRows.map((row) => (
                   <tr key={row.employee.id} className="border-t border-border">
                     <td className="sticky left-0 z-10 bg-surface px-4 py-3 min-w-55 border-r border-border">
                       {row.employee.first_name} {row.employee.last_name}
@@ -1732,6 +1742,12 @@ const PayrollList = () => {
                 ))}
               </tbody>
             </table>
+
+            <Pagination
+              page={payrollPage}
+              totalPages={payrollTotalPages}
+              onChange={setPayrollPage}
+            />
           </div>
         )}
       </div>

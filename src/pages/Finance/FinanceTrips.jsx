@@ -7,6 +7,7 @@ import {
 } from "../../api/financeTrips/index";
 
 import FinanceReviewCard from "../../components/financeTrips/FinanceReviewCard";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const FinanceTrips = () => {
   const [trips, setTrips] = useState([]);
@@ -69,7 +70,9 @@ const FinanceTrips = () => {
   }
 
   return (
-    <div className="min-h-screen space-y-8 bg-background px-4 py-6 sm:px-6 lg:px-10">
+    <div className="space-y-5">
+      <SectionTabs group="Finance" />
+
       {successMessage && (
         <div className="rounded-xl border border-success/30 bg-success/15 px-4 py-3 text-success shadow-sm">
           {successMessage}

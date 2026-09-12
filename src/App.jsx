@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SessionExpiredModal from "./components/ui/SessionExpiredModal";
 import GlobalLoadingBar from "./components/ui/GlobalLoadingBar";
+import DialogHost from "./components/ui/dialog/DialogHost";
 import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
@@ -46,6 +47,8 @@ const App = () => {
   return (
     <>
       <GlobalLoadingBar />
+
+      <DialogHost />
 
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />

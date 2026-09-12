@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button/Button";
 import { getUserList } from "../../api/users";
 import UserDrawer from "../../components/users/UserDrawer";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
 
 const UsersPage = () => {
   const role = localStorage.getItem("role");
@@ -17,9 +20,6 @@ const UsersPage = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10;
 
   useEffect(() => {
     if (isSuperAdmin) fetchUsers();
@@ -53,21 +53,12 @@ const UsersPage = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredUsers.length / usersPerPage),
-  );
-
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage,
-  );
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(1);
-    }
-  }, [currentPage, totalPages]);
+  const {
+    page: currentPage,
+    setPage: setCurrentPage,
+    totalPages,
+    paginatedItems: paginatedUsers,
+  } = usePagination(filteredUsers, 10);
 
   if (!isSuperAdmin) {
     return (
@@ -78,8 +69,10 @@ const UsersPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Administrator" />
+
         {/* ================= HEADER ================= */}
         <div className="flex flex-col gap-4 rounded-3xl border border-border bg-surface/90 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -335,27 +328,11 @@ const UsersPage = () => {
             )}
 
             {/* PAGINATION */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
-              <button
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage((prev) => prev - 1)}
-                className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg-muted transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Prev
-              </button>
-
-              <span className="text-sm text-fg-muted">
-                Page {currentPage} of {totalPages}
-              </span>
-
-              <button
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage((prev) => prev + 1)}
-                className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg-muted transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Next
-              </button>
-            </div>
+            <Pagination
+              page={currentPage}
+              totalPages={totalPages}
+              onChange={setCurrentPage}
+            />
           </div>
         </div>
       </div>

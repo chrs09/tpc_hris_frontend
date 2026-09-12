@@ -128,7 +128,7 @@ export default function HubAlertsBell() {
           {/* Click-outside catcher */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
-          <div className="absolute left-0 top-full z-50 mt-2 w-80 max-w-[90vw] rounded-xl border border-border bg-surface shadow-xl">
+          <div className="fixed left-1/2 top-16 z-50 w-[90vw] max-w-80 -translate-x-1/2 rounded-xl border border-border bg-surface shadow-xl md:absolute md:left-0 md:top-full md:mt-2 md:w-80 md:max-w-[90vw] md:translate-x-0">
             <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold text-fg">
                 Trips Started Outside Hub

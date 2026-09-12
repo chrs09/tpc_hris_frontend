@@ -4,6 +4,7 @@ import api from "../../api/services/api";
 import { mapEmployeeToForm } from "../../utils/mapEmployee";
 import { updateEmployeeDetails } from "../../api/employee";
 import EmployeeForm from "./EmployeeForm";
+import { confirmDialog } from "../ui/dialog/dialogService";
 
 const tabs = [
   { key: "basic", label: "Basic Information" },
@@ -46,9 +47,9 @@ export default function EmployeeDrawer({
 
   const displayData = isEditing ? formData : mapEmployeeToForm(employee);
 
-  const handleClose = () => {
+  const handleClose = async () => {
     if (isEditing) {
-      const confirmLeave = window.confirm("Discard unsaved changes?");
+      const confirmLeave = await confirmDialog("Discard unsaved changes?");
       if (!confirmLeave) return;
     }
 

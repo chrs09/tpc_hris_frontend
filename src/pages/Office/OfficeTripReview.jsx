@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getPendingOfficeTrips } from "../../api/officeTripManagement/trip";
 
 import OfficePendingTripsCard from "../../components/officeTripManagement/OfficePendingTripsCard";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 export default function OfficeTripReview() {
   const [trips, setTrips] = useState([]);
@@ -76,7 +77,9 @@ export default function OfficeTripReview() {
   // PAGE
   // =========================================================
   return (
-    <div className="p-6">
+    <div className="space-y-5">
+      <SectionTabs group="Trip Management" />
+
       {/* HEADER */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-fg">Office Trip Review</h1>

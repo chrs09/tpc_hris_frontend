@@ -14,6 +14,8 @@ import {
   getFinanceTripDetail,
   approveFinanceTrip,
 } from "../../api/financeTrips/index";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../ui/pagination/Pagination";
 
 import {
   Clock,
@@ -76,12 +78,9 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
   const [activePhoto, setActivePhoto] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [approving, setApproving] = useState(false);
-  const [page, setPage] = useState(1);
 
-  const perPage = 5;
-  const totalPages = Math.ceil(trips.length / perPage);
-
-  const paginatedTrips = trips.slice((page - 1) * perPage, page * perPage);
+  const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
+    usePagination(trips, 5);
 
   const handleCloseModal = () => {
     if (approving) {
@@ -351,31 +350,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
       </div>
 
       {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex justify-center gap-3">
-          <button
-            type="button"
-            disabled={page === 1}
-            onClick={() => setPage((currentPage) => currentPage - 1)}
-            className="rounded bg-surface-active text-fg hover:bg-surface-hover px-3 py-1 disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <span>
-            Page {page} / {totalPages}
-          </span>
-
-          <button
-            type="button"
-            disabled={page === totalPages}
-            onClick={() => setPage((currentPage) => currentPage + 1)}
-            className="rounded bg-surface-active text-fg hover:bg-surface-hover px-3 py-1 disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {/* FINANCE REVIEW MODAL */}
       {showModal && (

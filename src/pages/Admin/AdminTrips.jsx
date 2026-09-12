@@ -11,6 +11,7 @@ import SummaryCard from "../../components/adminTrips/SummaryCards";
 import PendingTripsCard from "../../components/adminTrips/PendingTripsCard";
 import ActiveTripsMonitor from "../../components/adminTrips/ActiveTripsMonitor";
 import UnknownStoresCard from "../../components/adminTrips/UnknownStoresCard";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const AdminTrips = () => {
   const [summary, setSummary] = useState({});
@@ -109,7 +110,9 @@ const AdminTrips = () => {
     );
 
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 bg-background min-h-screen space-y-8">
+    <div className="space-y-5">
+      <SectionTabs group="Trip Management" />
+
       {/* SUCCESS MESSAGE */}
       {successMessage && (
         <div className="bg-success/15 border border-success text-success px-4 py-3 rounded-xl shadow-sm">

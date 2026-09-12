@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ALL_ROLES, ROLE_ACCESS_GROUPS, roleLabel } from "../../constants/roleAccess";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const RoleAccessPage = () => {
   const currentRole = localStorage.getItem("role");
@@ -16,8 +17,10 @@ const RoleAccessPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-3xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Administrator" />
+
         <div className="flex flex-col gap-4 rounded-3xl border border-border bg-surface/90 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.24em] text-fg-subtle">

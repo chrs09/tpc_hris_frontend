@@ -21,6 +21,7 @@ import SummaryCard from "../../components/driverTrips/SummaryCard";
 import ActiveTripCard from "../../components/driverTrips/ActiveTripCard";
 import TripTable from "../../components/driverTrips/TripTable";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import { alertDialog } from "../../components/ui/dialog/dialogService";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -122,7 +123,7 @@ const DriverDashboard = () => {
       }
     } catch (error) {
       console.error(error);
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -182,7 +183,7 @@ const DriverDashboard = () => {
       if (bestStore?.store_id) setStoreId(String(bestStore.store_id));
 
       if (!bestShipment && !bestStore) {
-        alert(
+        alertDialog(
           "Couldn't auto-read the documents. Please type the shipment number and pick the store manually.",
         );
       }
@@ -202,7 +203,7 @@ const DriverDashboard = () => {
       !invoicePhoto ||
       !lmPhoto
     ) {
-      alert(
+      alertDialog(
         "Shipment number, destination store, odometer reading, invoice photo, and LM photo are all required.",
       );
       return;
@@ -229,7 +230,7 @@ const DriverDashboard = () => {
       setLmPhoto(null);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }
@@ -242,7 +243,7 @@ const DriverDashboard = () => {
       await startTrip(tripData.active_trip.id);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }
@@ -256,7 +257,7 @@ const DriverDashboard = () => {
       await checkIn(tripData.active_trip.id, location);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }
@@ -265,7 +266,7 @@ const DriverDashboard = () => {
   // ---- Step 4: Start Unloading ----
   const handleStartUnloading = async () => {
     if (!unloadingPhoto) {
-      alert("Upload a picture of the unloading before continuing.");
+      alertDialog("Upload a picture of the unloading before continuing.");
       return;
     }
 
@@ -285,7 +286,7 @@ const DriverDashboard = () => {
       setUnloadingPhoto(null);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }
@@ -294,7 +295,7 @@ const DriverDashboard = () => {
   // ---- Step 5: Delivered ----
   const handleDelivered = async () => {
     if (!deliveryProofPhoto) {
-      alert("Upload delivery proof before marking this stop as delivered.");
+      alertDialog("Upload delivery proof before marking this stop as delivered.");
       return;
     }
 
@@ -314,7 +315,7 @@ const DriverDashboard = () => {
       setDeliveryProofPhoto(null);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }
@@ -323,7 +324,7 @@ const DriverDashboard = () => {
   // ---- Step 6: Back to Source ----
   const handleBackToSource = async () => {
     if (!lmPermaPhoto) {
-      alert("Upload the LM with Perma before continuing.");
+      alertDialog("Upload the LM with Perma before continuing.");
       return;
     }
 
@@ -339,7 +340,7 @@ const DriverDashboard = () => {
       setLmPermaPhoto(null);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }
@@ -348,7 +349,7 @@ const DriverDashboard = () => {
   // ---- Step 7: Checkin (final step) ----
   const handleCheckin = async () => {
     if (!stampedInvoicePhoto) {
-      alert("Upload the stamped invoice before checking in.");
+      alertDialog("Upload the stamped invoice before checking in.");
       return;
     }
 
@@ -364,7 +365,7 @@ const DriverDashboard = () => {
       setStampedInvoicePhoto(null);
       await loadTrip();
     } catch (error) {
-      alert(getErrorMessage(error));
+      alertDialog(getErrorMessage(error));
     } finally {
       setActionLoading(false);
     }

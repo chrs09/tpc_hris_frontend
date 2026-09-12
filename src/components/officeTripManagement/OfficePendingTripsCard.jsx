@@ -12,8 +12,14 @@ import {
   reviewOfficeTrip,
   forwardTripToFinance,
 } from "../../api/officeTripManagement/trip";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../ui/pagination/Pagination";
 
 export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    trips,
+    9,
+  );
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
@@ -141,7 +147,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {trips.map((trip) => (
+        {paginatedItems.map((trip) => (
           <div
             key={trip.trip_id}
             className="rounded-xl border border-border bg-surface p-5 shadow-sm"
@@ -217,6 +223,8 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
           </div>
         ))}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {showModal && selectedTrip && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button/Button";
+import { alertDialog } from "../ui/dialog/dialogService";
 
 const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
   const videoRef = useRef(null);
@@ -66,7 +67,7 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
           videoRef.current.srcObject = stream;
         }
       } catch {
-        alert("Camera access denied or unavailable.");
+        alertDialog("Camera access denied or unavailable.");
       }
     };
 
@@ -86,7 +87,7 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
           setAddress(detectedAddress);
         },
         () => {
-          alert("Location permission is required.");
+          alertDialog("Location permission is required.");
         },
         {
           enableHighAccuracy: true,
@@ -283,14 +284,14 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
 
   const capturePhoto = async () => {
     if (!location) {
-      alert("GPS location is still loading.");
+      alertDialog("GPS location is still loading.");
       return;
     }
 
     const result = await generateGpsProofImage();
 
     if (!result) {
-      alert("Failed to generate attendance image.");
+      alertDialog("Failed to generate attendance image.");
       return;
     }
 
@@ -318,17 +319,17 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
 
   const handleSubmit = async () => {
     if (!employeeId) {
-      alert("Please select employee.");
+      alertDialog("Please select employee.");
       return;
     }
 
     if (!photoFile) {
-      alert("Please capture selfie first.");
+      alertDialog("Please capture selfie first.");
       return;
     }
 
     if (!location) {
-      alert("Location is required.");
+      alertDialog("Location is required.");
       return;
     }
 

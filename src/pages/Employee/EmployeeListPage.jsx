@@ -7,6 +7,9 @@ import { getEmployeeDetails } from "../../api/employee";
 import EmployeeCard from "../../components/employees/EmployeeCard";
 import EmployeeDrawer from "../../components/employees/EmployeeDrawer";
 import AddEmployeeDrawer from "../../components/employees/AddEmployeeDrawer";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 export default function EmployeeListPage() {
   const [isActive, setIsActive] = useState(1);
@@ -70,6 +73,11 @@ export default function EmployeeListPage() {
     return filtered;
   }, [employees, search, departmentFilter, sortBy, sortOrder]);
 
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    filteredAndSortedEmployees,
+    12,
+  );
+
   const handleView = async (id) => {
     try {
       setDrawerLoading(true);
@@ -114,6 +122,8 @@ export default function EmployeeListPage() {
 
   return (
     <>
+      <SectionTabs group="HRIS" />
+
       <div className="mb-6 flex flex-col gap-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
@@ -249,11 +259,13 @@ export default function EmployeeListPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {filteredAndSortedEmployees.map((emp) => (
+          {paginatedItems.map((emp) => (
             <EmployeeCard key={emp.id} employee={emp} onView={handleView} />
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       <EmployeeDrawer
         key={selectedEmployee?.id}

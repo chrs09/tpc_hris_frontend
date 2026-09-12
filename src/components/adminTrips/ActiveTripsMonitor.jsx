@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 import TripGpsLogsModal from "./TripGpsLogsModal";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../ui/pagination/Pagination";
 
 const ActiveTripsMonitor = ({ trips = [] }) => {
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    trips,
+    10,
+  );
 
   return (
     <>
@@ -29,7 +35,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                 </td>
               </tr>
             ) : (
-              trips.map((trip) => (
+              paginatedItems.map((trip) => (
                 <tr
                   key={trip.id}
                   className="border-t border-border hover:bg-surface-hover"
@@ -74,7 +80,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
         {trips.length === 0 ? (
           <div className="text-center text-fg-subtle py-6">No active trips</div>
         ) : (
-          trips.map((trip) => (
+          paginatedItems.map((trip) => (
             <div
               key={trip.id}
               className="bg-surface border border-border text-fg p-4 rounded-xl"
@@ -128,6 +134,8 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
           ))
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {selectedTripId && (
         <TripGpsLogsModal

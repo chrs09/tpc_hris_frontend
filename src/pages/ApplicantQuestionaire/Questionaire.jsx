@@ -5,6 +5,9 @@ import {
   getAdminApplicantQuestions,
   updateApplicantQuestion,
 } from "../../api/applicantQuestions";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const initialForm = {
   target_role: "driver",
@@ -79,6 +82,11 @@ export default function Questionaire() {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [questions, searchTerm, roleFilter, statusFilter]);
+
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    filteredQuestions,
+    15,
+  );
 
   const handleChange = (field, value) => {
     setForm((prev) => ({
@@ -168,8 +176,10 @@ export default function Questionaire() {
   };
 
   return (
-    <div className="min-h-screen bg-background px-4 py-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="HRIS" />
+
         <div className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -397,7 +407,7 @@ export default function Questionaire() {
             <>
               {/* MOBILE: card list */}
               <div className="mt-4 space-y-3 md:hidden">
-                {filteredQuestions.map((question) => (
+                {paginatedItems.map((question) => (
                   <div
                     key={question.id}
                     className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
@@ -492,7 +502,7 @@ export default function Questionaire() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredQuestions.map((question) => (
+                    {paginatedItems.map((question) => (
                       <tr key={question.id} className="border-b border-border">
                         <td className="px-3 py-3">{question.target_role}</td>
                         <td className="px-3 py-3">{question.question_key}</td>
@@ -527,6 +537,8 @@ export default function Questionaire() {
                   </tbody>
                 </table>
               </div>
+
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
             </>
           )}
         </div>

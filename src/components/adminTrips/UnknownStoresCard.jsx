@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { approveStoreFromStop } from "../../api/adminTripManagement/stores";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../ui/pagination/Pagination";
 
 const UnknownStoresCard = ({ stops = [], onApproved }) => {
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    stops,
+    10,
+  );
   const [selectedStop, setSelectedStop] = useState(null);
   const [storeName, setStoreName] = useState("");
   const [radius, setRadius] = useState(100);
@@ -76,7 +82,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
                 </td>
               </tr>
             ) : (
-              stops.map((stop) => (
+              paginatedItems.map((stop) => (
                 <tr key={stop.stop_id} className="hover:bg-surface-hover">
                   <td className="px-6 py-4 capitalize">{stop.username}</td>
 
@@ -108,7 +114,7 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
             No unknown check-ins
           </div>
         ) : (
-          stops.map((stop) => (
+          paginatedItems.map((stop) => (
             <div
               key={stop.stop_id}
               className="bg-surface border border-border text-fg p-4 rounded-xl shadow-sm"
@@ -137,6 +143,8 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
           ))
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {/* ================= MODAL ================= */}
       {selectedStop && (

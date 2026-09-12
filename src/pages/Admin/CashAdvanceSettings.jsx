@@ -12,6 +12,10 @@ import {
   getOutstandingBalances,
   recordCashAdvanceDeduction,
 } from "../../api/cashAdvanceRequests";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import { confirmDialog, promptDialog } from "../../components/ui/dialog/dialogService";
 
 const CashAdvanceSettingsPage = () => {
   const role = localStorage.getItem("role");
@@ -38,6 +42,10 @@ const CashAdvanceSettingsPage = () => {
   const [balances, setBalances] = useState([]);
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [recordingId, setRecordingId] = useState(null);
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    balances,
+    10,
+  );
 
   const loadOptions = async () => {
     try {
@@ -127,7 +135,7 @@ const CashAdvanceSettingsPage = () => {
   };
 
   const handleDeleteOption = async (option) => {
-    if (!confirm(`Delete the ₱${option.amount} option?`)) return;
+    if (!(await confirmDialog(`Delete the ₱${option.amount} option?`))) return;
     try {
       await deleteDeductionOption(option.id);
       toast.success("Deduction option deleted.");
@@ -139,7 +147,7 @@ const CashAdvanceSettingsPage = () => {
 
   const handleRecordDeduction = async (request) => {
     const suggested = request.deduction_per_pay_amount;
-    const input = prompt(
+    const input = await promptDialog(
       `Record a deduction for ${request.employee_name} (remaining ₱${request.remaining_balance.toLocaleString()}):`,
       String(Math.min(suggested, request.remaining_balance)),
     );
@@ -214,8 +222,10 @@ const CashAdvanceSettingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Administrator" />
+
         <div className="rounded-3xl border border-border bg-surface/90 p-5 shadow-sm backdrop-blur">
           <p className="text-sm font-medium uppercase tracking-[0.24em] text-fg-subtle">
             Administration
@@ -396,7 +406,7 @@ const CashAdvanceSettingsPage = () => {
                 No outstanding cash advance balances.
               </p>
             ) : (
-              balances.map((request) => (
+              paginatedItems.map((request) => (
                 <div
                   key={request.id}
                   className="rounded-xl border border-border bg-surface-hover px-4 py-3"
@@ -430,6 +440,8 @@ const CashAdvanceSettingsPage = () => {
               ))
             )}
           </div>
+
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
 
         {/* TERMS & CONDITIONS */}

@@ -202,6 +202,7 @@ const AttendanceGridReview = ({
   onRejectAttendance,
   onUpdateAttendance,
   onAttendanceUpdated,
+  isSuperAdmin = false,
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
 
@@ -612,6 +613,7 @@ const AttendanceGridReview = ({
               onApproveAttendance={handleApprove}
               onRejectAttendance={handleReject}
               onUpdateAttendance={handleUpdateAttendance}
+              isSuperAdmin={isSuperAdmin}
             />
           )}
         </aside>
@@ -640,6 +642,7 @@ const AttendanceGridReview = ({
                 onApproveAttendance={handleApprove}
                 onRejectAttendance={handleReject}
                 onUpdateAttendance={handleUpdateAttendance}
+                isSuperAdmin={isSuperAdmin}
               />
             </div>
           </div>
@@ -681,6 +684,7 @@ const AttendanceDetail = ({
   onApproveAttendance,
   onRejectAttendance,
   onUpdateAttendance,
+  isSuperAdmin = false,
 }) => {
   const [selectedAttendancePhoto, setSelectedAttendancePhoto] = useState(null);
 
@@ -720,12 +724,20 @@ const AttendanceDetail = ({
   }, [record.id, record.check_in_time, record.check_out_time, record.remarks]);
 
   const canReview =
+    isSuperAdmin &&
     !record.is_missing_attendance &&
     record.face_review_status !== "AUTO_APPROVED" &&
     record.face_review_status !== "APPROVED" &&
     record.face_review_status !== "REJECTED";
 
-  const isReasonEditable = getIsAbsent(record) || getIsLeave(record);
+  // Editing time in/out and the absent/leave reason is an override of the
+  // recorded attendance -- restricted to superadmin, same as the Table
+  // View's cell editing (see AttendanceTable.jsx's `editable`) and the
+  // Approve/Reject actions above.
+  const canEditDetails = isSuperAdmin;
+
+  const isReasonEditable =
+    canEditDetails && (getIsAbsent(record) || getIsLeave(record));
 
   const hasTimeChanges =
     editTimeIn !== toTimeInputValue(record.check_in_time) ||
@@ -884,7 +896,7 @@ const AttendanceDetail = ({
               type="time"
               value={editTimeIn}
               onChange={(event) => setEditTimeIn(event.target.value)}
-              disabled={record.is_missing_attendance}
+              disabled={record.is_missing_attendance || !canEditDetails}
               className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg disabled:bg-surface-hover disabled:text-fg-subtle"
             />
           </div>
@@ -898,7 +910,7 @@ const AttendanceDetail = ({
               type="time"
               value={editTimeOut}
               onChange={(event) => setEditTimeOut(event.target.value)}
-              disabled={record.is_missing_attendance}
+              disabled={record.is_missing_attendance || !canEditDetails}
               className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg disabled:bg-surface-hover disabled:text-fg-subtle"
             />
           </div>
@@ -930,7 +942,7 @@ const AttendanceDetail = ({
         )}
 
         {/* Save Changes */}
-        {!record.is_missing_attendance && hasChanges && (
+        {canEditDetails && !record.is_missing_attendance && hasChanges && (
           <div className="flex justify-end mt-4">
             <button
               type="button"

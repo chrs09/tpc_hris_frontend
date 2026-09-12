@@ -11,6 +11,12 @@ const formatTime = (value) => {
   return format(parsed, "hh:mm a");
 };
 
+const NEEDS_REVIEW_STATUSES = [
+  "NEEDS_REVIEW",
+  "NO_PROFILE_PHOTO",
+  "FACE_MATCH_FAILED",
+];
+
 const AttendanceTable = ({
   employees,
   daysInMonth,
@@ -164,8 +170,19 @@ const AttendanceTable = ({
                 // not get silently replaced by a blank trip-count tile.
                 const isLeaveOrAbsent = ["On Leave", "Absent"].includes(status);
 
+                // Face recognition flagged this check-in for a superadmin
+                // to confirm (see AttendanceGridReview's Approve/Reject) --
+                // until that happens it must not read as a plain, settled
+                // "Present" cell.
+                const needsFaceReview =
+                  !!attendance &&
+                  NEEDS_REVIEW_STATUSES.includes(attendance.face_review_status);
+
                 if (isLeaveOrAbsent) {
                   bg = statusColors[status];
+                  hasStatusPastel = true;
+                } else if (needsFaceReview) {
+                  bg = "bg-amber-100";
                   hasStatusPastel = true;
                 } else if (status === "Present" && isUndertime) {
                   bg = statusColors["Halfday"];
@@ -189,11 +206,13 @@ const AttendanceTable = ({
                     title={
                       holiday
                         ? holiday.holiday_name
-                        : isLeaveOrAbsent
-                          ? tooltipText
-                          : isTripBasedEmployee
-                            ? tripTooltip
-                            : tooltipText
+                        : needsFaceReview
+                          ? "Needs Review: awaiting superadmin confirmation in Review View"
+                          : isLeaveOrAbsent
+                            ? tooltipText
+                            : isTripBasedEmployee
+                              ? tripTooltip
+                              : tooltipText
                     }
                     className={`border-border border text-center font-bold min-w-17.5 ${bg} ${statusTextClass} ${
                       editable
@@ -211,6 +230,12 @@ const AttendanceTable = ({
                           <div className="flex items-center justify-center px-1 py-1">
                             <span className="text-[10px] leading-tight font-semibold whitespace-normal wrap-break-word">
                               {attendance?.remarks || getStatusSymbol(status)}
+                            </span>
+                          </div>
+                        ) : needsFaceReview ? (
+                          <div className="flex items-center justify-center px-1 py-2">
+                            <span className="text-[10px] leading-tight font-bold uppercase text-amber-700 whitespace-normal wrap-break-word">
+                              ⚠ Needs Review
                             </span>
                           </div>
                         ) : isTripBasedEmployee ? (

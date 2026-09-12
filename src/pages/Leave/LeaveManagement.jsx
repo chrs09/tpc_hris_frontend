@@ -5,6 +5,10 @@ import {
   approveLeaveRequest,
   rejectLeaveRequest,
 } from "../../api/leave";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
@@ -20,6 +24,10 @@ export default function LeaveManagement() {
   const [actioningId, setActioningId] = useState(null);
 
   const viewerRole = localStorage.getItem("role");
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    leaves,
+    15,
+  );
 
   const fetchLeaves = useCallback(async () => {
     setLoading(true);
@@ -54,7 +62,7 @@ export default function LeaveManagement() {
   };
 
   const handleReject = async (id) => {
-    const remarks = window.prompt("Reason for rejecting this leave request (optional):");
+    const remarks = await promptDialog("Reason for rejecting this leave request (optional):");
     if (remarks === null) return;
 
     try {
@@ -70,7 +78,9 @@ export default function LeaveManagement() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="space-y-5">
+      <SectionTabs group="HRIS" />
+
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-fg">
           Leave Requests
@@ -121,7 +131,7 @@ export default function LeaveManagement() {
             )}
 
             {!loading &&
-              leaves.map((leave) => (
+              paginatedItems.map((leave) => (
                 <tr key={leave.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-medium text-fg">
                     {leave.employee_name || `Employee #${leave.employee_id}`}
@@ -186,6 +196,8 @@ export default function LeaveManagement() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 }

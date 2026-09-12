@@ -1,13 +1,31 @@
 // src/pages/dashboard/AdminDashboard.jsx
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { format } from "date-fns";
+import toast from "react-hot-toast";
 import { Eye, Clock3 } from "lucide-react";
 import { getDashboardSummary } from "../../api/dashboard";
 import { getApplicants } from "../../api/adminApplicants/index";
-import { getMyLeaveRequests } from "../../api/leave";
+import {
+  getMyLeaveRequests,
+  getAllLeaveRequests,
+  approveLeaveRequest,
+  rejectLeaveRequest,
+} from "../../api/leave";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
+import { getMyAttendanceHistory } from "../../api/attendance";
+import { getMyOvertimeRequests } from "../../api/overtimeRequests";
+import { getHolidays } from "../../api/holidays";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
+import AttendanceHistoryList from "../../components/employeeDashboard/AttendanceHistoryList";
+import OvertimeHistoryList from "../../components/overtime/OvertimeHistoryList";
+import OvertimeActionButton from "../../components/overtime/OvertimeActionButton";
+import DashboardCard from "../../components/dashboard/DashboardCard";
+import NeedsReviewCard from "../../components/attendance/NeedsReviewCard";
+import useModuleAccess from "../../hooks/useModuleAccess";
+import { getNavGroups } from "../../constants/navGroups";
 
 const Card = ({ children, className = "" }) => (
   <div
@@ -139,6 +157,84 @@ const LatestApplicantsCard = ({ applicants = [] }) => {
   );
 };
 
+const IncomingLeaveRequestsCard = ({
+  leaves = [],
+  onApprove,
+  onReject,
+  actioningId,
+}) => {
+  return (
+    <Card className="xl:col-span-2">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-fg">
+            Incoming Leave Requests
+          </h3>
+          <p className="text-[11px] text-fg-muted mt-1">
+            Pending company-wide leave filings
+          </p>
+        </div>
+
+        <Link
+          to="/dashboard/leave"
+          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-hover hover:bg-surface-active transition-colors"
+          title="Open Leave Requests page"
+        >
+          <Eye size={16} className="text-fg-muted" />
+        </Link>
+      </div>
+
+      {leaves.length === 0 ? (
+        <div className="text-xs text-fg-muted">
+          No pending leave requests.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {leaves.map((leave) => (
+            <div
+              key={leave.id}
+              className="flex items-center justify-between gap-3 rounded-xl bg-surface-hover px-3 py-3"
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-fg truncate">
+                  {leave.employee_name || `Employee #${leave.employee_id}`}
+                </p>
+                <p className="text-[11px] text-fg-muted truncate">
+                  {leave.leave_type} • {leave.start_date}
+                  {leave.start_date !== leave.end_date &&
+                    ` – ${leave.end_date}`}
+                </p>
+                {leave.reason ? (
+                  <p className="text-[11px] text-fg-subtle truncate mt-1">
+                    {leave.reason}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex shrink-0 gap-2">
+                <button
+                  onClick={() => onApprove(leave.id)}
+                  disabled={actioningId === leave.id}
+                  className="rounded-lg bg-success px-3 py-1 text-xs font-semibold text-success-foreground disabled:opacity-50"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => onReject(leave.id)}
+                  disabled={actioningId === leave.id}
+                  className="rounded-lg bg-danger px-3 py-1 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+};
+
 const VerseCard = () => {
   const verse = {
     text: "Whatever you do, work at it with all your heart.",
@@ -182,10 +278,23 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const role = localStorage.getItem("role");
+  const { role, isSuperAdmin, isVisible } = useModuleAccess();
   const [myLeaves, setMyLeaves] = useState([]);
   const [showLeaveSection, setShowLeaveSection] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+
+  const [myAttendance, setMyAttendance] = useState([]);
+  const [myAttendanceLoading, setMyAttendanceLoading] = useState(true);
+
+  const [myOvertimeRequests, setMyOvertimeRequests] = useState([]);
+  const [myOvertimeLoading, setMyOvertimeLoading] = useState(true);
+
+  const [upcomingHolidays, setUpcomingHolidays] = useState([]);
+  const [holidaysLoading, setHolidaysLoading] = useState(true);
+
+  const [pendingLeaves, setPendingLeaves] = useState([]);
+  const [pendingLeavesLoading, setPendingLeavesLoading] = useState(true);
+  const [actioningLeaveId, setActioningLeaveId] = useState(null);
 
   const loadMyLeaves = useCallback(async () => {
     try {
@@ -198,16 +307,126 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  // Everyone who lands on this dashboard can file leave except
-  // superadmin (drivers/employees/helpers have their own dashboards
-  // with their own leave section already).
+  const loadMyAttendance = useCallback(async () => {
+    try {
+      setMyAttendanceLoading(true);
+      const data = await getMyAttendanceHistory(format(new Date(), "yyyy-MM"));
+      setMyAttendance(data);
+    } catch (error) {
+      console.error("Failed to load attendance history:", error);
+    } finally {
+      setMyAttendanceLoading(false);
+    }
+  }, []);
+
+  const loadMyOvertime = useCallback(async () => {
+    try {
+      setMyOvertimeLoading(true);
+      const data = await getMyOvertimeRequests();
+      setMyOvertimeRequests(data);
+    } catch (error) {
+      console.error("Failed to load overtime requests:", error);
+    } finally {
+      setMyOvertimeLoading(false);
+    }
+  }, []);
+
+  const loadUpcomingHolidays = useCallback(async () => {
+    try {
+      setHolidaysLoading(true);
+      const data = await getHolidays(new Date().getFullYear());
+      const today = format(new Date(), "yyyy-MM-dd");
+
+      const upcoming = (Array.isArray(data) ? data : [])
+        .filter((h) => h.holiday_date >= today)
+        .sort((a, b) => a.holiday_date.localeCompare(b.holiday_date))
+        .slice(0, 5);
+
+      setUpcomingHolidays(upcoming);
+    } catch (error) {
+      console.error("Failed to load holidays:", error);
+    } finally {
+      setHolidaysLoading(false);
+    }
+  }, []);
+
+  const loadPendingLeaves = useCallback(async () => {
+    try {
+      setPendingLeavesLoading(true);
+      const data = await getAllLeaveRequests("pending");
+      setPendingLeaves(data);
+    } catch (error) {
+      console.error("Failed to load pending leave requests:", error);
+    } finally {
+      setPendingLeavesLoading(false);
+    }
+  }, []);
+
+  const handleApproveLeave = async (id) => {
+    try {
+      setActioningLeaveId(id);
+      await approveLeaveRequest(id);
+      toast.success("Leave request approved.");
+      loadPendingLeaves();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to approve.");
+    } finally {
+      setActioningLeaveId(null);
+    }
+  };
+
+  const handleRejectLeave = async (id) => {
+    const remarks = await promptDialog(
+      "Reason for rejecting this leave request (optional):",
+    );
+    if (remarks === null) return;
+
+    try {
+      setActioningLeaveId(id);
+      await rejectLeaveRequest(id, remarks || undefined);
+      toast.success("Leave request rejected.");
+      loadPendingLeaves();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to reject.");
+    } finally {
+      setActioningLeaveId(null);
+    }
+  };
+
+  // Everyone who lands on this dashboard gets their own quick-access HR
+  // widgets (attendance, leave, holidays, overtime) except superadmin,
+  // who manages these company-wide instead of filing their own
+  // (drivers/employees/helpers have their own dashboards with their own
+  // versions of this section already).
   const canFileLeave = role !== "superadmin";
+
+  // The company-wide overview (KPI/progress/workforce/recruitment/trips
+  // cards) is superadmin's territory. A non-superadmin still sees the
+  // recruitment widgets specifically if they've been granted the HRIS
+  // Applicants module (Module Assignment page) -- same rule Sidebar/
+  // SectionTabs use for that nav item.
+  const applicantsNavItem = useMemo(() => {
+    const hrisGroup = getNavGroups(role).find((g) => g.label === "HRIS");
+    return hrisGroup?.children.find((c) => c.label === "Applicants");
+  }, [role]);
+
+  const canSeeRecruitment =
+    isSuperAdmin || (applicantsNavItem ? isVisible(applicantsNavItem) : false);
 
   useEffect(() => {
     if (canFileLeave) {
       loadMyLeaves();
+      loadMyAttendance();
+      loadMyOvertime();
+      loadUpcomingHolidays();
     }
-  }, [canFileLeave, loadMyLeaves]);
+  }, [canFileLeave, loadMyLeaves, loadMyAttendance, loadMyOvertime, loadUpcomingHolidays]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      loadPendingLeaves();
+    }
+  }, [isSuperAdmin, loadPendingLeaves]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -342,179 +561,280 @@ const AdminDashboard = () => {
         </div>
       </Card>
 
-      {/* KPI */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
-        <StatCard title="Employees" value={stats.total_employees} />
-        <StatCard
-          title="Present"
-          value={stats.present}
-          dotColor="bg-success"
-        />
-        <StatCard title="Absent" value={stats.absent} dotColor="bg-danger" />
-        <StatCard
-          title="On Leave"
-          value={stats.on_leave}
-          dotColor="bg-warning"
-        />
-        <StatCard
-          title="Applicants"
-          value={stats.total_applicants}
-          dotColor="bg-purple-400"
-        />
-        <StatCard
-          title="Hired %"
-          value={`${applicantConversionRate}%`}
-          dotColor="bg-pink-400"
-        />
-        <StatCard
-          title="Active Trips"
-          value={stats.active_trips}
-          dotColor="bg-cyan-400"
-        />
-        <StatCard
-          title="Pending"
-          value={stats.pending_trip_approvals}
-          dotColor="bg-orange-400"
-        />
-      </div>
+      {/* QUICK ACTIONS (admin/coordinator/payroll/office admin -- not
+          superadmin, who manages these company-wide instead of filing
+          their own) -- kept right under the hero so it's the first
+          actionable thing on the page, above the overview cards below. */}
+      {canFileLeave && (
+        <DashboardCard title="Quick Actions">
+          <div className="flex flex-wrap items-center gap-2">
+            {showLeaveSection && (
+              <button
+                onClick={() => setShowLeaveModal(true)}
+                className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors"
+              >
+                + File Leave
+              </button>
+            )}
+            <OvertimeActionButton onChanged={loadMyOvertime} />
+          </div>
+        </DashboardCard>
+      )}
 
-      {/* PROGRESS */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <ProgressMiniCard
-          title="Attendance"
-          value={attendanceRate}
-          subtitle="Present vs employees"
-          colorClass={
-            attendanceRate >= 80
-              ? "bg-success"
-              : attendanceRate >= 60
-                ? "bg-warning"
-                : "bg-danger"
-          }
-        />
-        <ProgressMiniCard
-          title="Applicants"
-          value={applicantConversionRate}
-          subtitle="Hired vs applicants"
-          colorClass="bg-purple-400"
-        />
-        <ProgressMiniCard
-          title="Trips"
-          value={tripCompletionRate}
-          subtitle="Completed vs volume"
-          colorClass="bg-cyan-400"
-        />
-        <ProgressMiniCard
-          title="Availability"
-          value={workforceAvailabilityRate}
-          subtitle="Workforce ready"
-          colorClass="bg-primary"
-        />
-      </div>
+      {isSuperAdmin && (
+        <>
+          {/* KPI */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
+            <StatCard title="Employees" value={stats.total_employees} />
+            <StatCard
+              title="Present"
+              value={stats.present}
+              dotColor="bg-success"
+            />
+            <StatCard
+              title="Absent"
+              value={stats.absent}
+              dotColor="bg-danger"
+            />
+            <StatCard
+              title="On Leave"
+              value={stats.on_leave}
+              dotColor="bg-warning"
+            />
+            <StatCard
+              title="Applicants"
+              value={stats.total_applicants}
+              dotColor="bg-purple-400"
+            />
+            <StatCard
+              title="Hired %"
+              value={`${applicantConversionRate}%`}
+              dotColor="bg-pink-400"
+            />
+            <StatCard
+              title="Active Trips"
+              value={stats.active_trips}
+              dotColor="bg-cyan-400"
+            />
+            <StatCard
+              title="Pending"
+              value={stats.pending_trip_approvals}
+              dotColor="bg-orange-400"
+            />
+          </div>
 
-      {/* MAIN */}
+          {/* PROGRESS */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+            <ProgressMiniCard
+              title="Attendance"
+              value={attendanceRate}
+              subtitle="Present vs employees"
+              colorClass={
+                attendanceRate >= 80
+                  ? "bg-success"
+                  : attendanceRate >= 60
+                    ? "bg-warning"
+                    : "bg-danger"
+              }
+            />
+            <ProgressMiniCard
+              title="Applicants"
+              value={applicantConversionRate}
+              subtitle="Hired vs applicants"
+              colorClass="bg-purple-400"
+            />
+            <ProgressMiniCard
+              title="Trips"
+              value={tripCompletionRate}
+              subtitle="Completed vs volume"
+              colorClass="bg-cyan-400"
+            />
+            <ProgressMiniCard
+              title="Availability"
+              value={workforceAvailabilityRate}
+              subtitle="Workforce ready"
+              colorClass="bg-primary"
+            />
+          </div>
+        </>
+      )}
+
+      {/* ATTENDANCE REVIEW + INCOMING LEAVE REQUESTS */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <SectionListCard
-          title="Workforce"
-          items={[
-            { label: "Present", value: stats.present },
-            { label: "Absent", value: stats.absent },
-            { label: "Leave", value: stats.on_leave },
-            { label: "Drivers", value: stats.available_drivers },
-          ]}
-        />
+        <div className="xl:col-span-1">
+          <NeedsReviewCard />
+        </div>
 
-        <SectionListCard
-          title="Recruitment"
-          items={[
-            { label: "New", value: stats.new_applicants_today },
-            { label: "Interview", value: stats.for_interview },
-            { label: "Hired", value: stats.hired_applicants },
-            { label: "Rejected", value: stats.rejected_applicants },
-          ]}
-        />
-
-        <SectionListCard
-          title="Trips"
-          items={[
-            { label: "Active", value: stats.active_trips },
-            { label: "Done", value: stats.completed_trips_today },
-            { label: "Pending", value: stats.pending_trip_approvals },
-            { label: "Unknown", value: stats.unknown_store_checkins },
-          ]}
-        />
+        {isSuperAdmin && !pendingLeavesLoading && (
+          <IncomingLeaveRequestsCard
+            leaves={pendingLeaves}
+            onApprove={handleApproveLeave}
+            onReject={handleRejectLeave}
+            actioningId={actioningLeaveId}
+          />
+        )}
       </div>
 
-      {/* BOTTOM */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <Card>
-          <h3 className="text-sm font-semibold text-fg mb-3">Action</h3>
-          <div className="text-xs text-fg-muted space-y-1">
-            <div>• {stats.for_interview} applicants waiting</div>
-            <div>• {stats.pending_trip_approvals} trips pending</div>
-            <div>• {stats.unknown_store_checkins} unknown stores</div>
+      {isSuperAdmin && (
+        <>
+          {/* MAIN */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+            <SectionListCard
+              title="Workforce"
+              items={[
+                { label: "Present", value: stats.present },
+                { label: "Absent", value: stats.absent },
+                { label: "Leave", value: stats.on_leave },
+                { label: "Drivers", value: stats.available_drivers },
+              ]}
+            />
+
+            <SectionListCard
+              title="Recruitment"
+              items={[
+                { label: "New", value: stats.new_applicants_today },
+                { label: "Interview", value: stats.for_interview },
+                { label: "Hired", value: stats.hired_applicants },
+                { label: "Rejected", value: stats.rejected_applicants },
+              ]}
+            />
+
+            <SectionListCard
+              title="Trips"
+              items={[
+                { label: "Active", value: stats.active_trips },
+                { label: "Done", value: stats.completed_trips_today },
+                { label: "Pending", value: stats.pending_trip_approvals },
+                { label: "Unknown", value: stats.unknown_store_checkins },
+              ]}
+            />
           </div>
-        </Card>
 
-        <Card>
-          <h3 className="text-sm font-semibold text-fg mb-3">System</h3>
-          <div className="text-xs text-fg-muted space-y-1">
-            <div>🟢 API Stable</div>
-            <div>🟢 Sync Real-time</div>
-            <div>🟢 Modules Active</div>
+          {/* BOTTOM */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+            <Card>
+              <h3 className="text-sm font-semibold text-fg mb-3">Action</h3>
+              <div className="text-xs text-fg-muted space-y-1">
+                <div>• {stats.for_interview} applicants waiting</div>
+                <div>• {stats.pending_trip_approvals} trips pending</div>
+                <div>• {stats.unknown_store_checkins} unknown stores</div>
+              </div>
+            </Card>
+
+            <Card>
+              <h3 className="text-sm font-semibold text-fg mb-3">System</h3>
+              <div className="text-xs text-fg-muted space-y-1">
+                <div>🟢 API Stable</div>
+                <div>🟢 Sync Real-time</div>
+                <div>🟢 Modules Active</div>
+              </div>
+            </Card>
+
+            <VerseCard />
           </div>
-        </Card>
+        </>
+      )}
 
-        <VerseCard />
-      </div>
+      {/* RECRUITMENT (superadmin, or anyone granted the HRIS Applicants
+          module via Module Assignment) */}
+      {canSeeRecruitment && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+          <LatestApplicantsCard applicants={latestApplicants} />
 
-      {/* WHITE SPACE FILLER / ACTIONABLE CONTENT */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <LatestApplicantsCard applicants={latestApplicants} />
-
-        <Card>
-          <h3 className="text-sm font-semibold text-fg mb-3">
-            Recruitment Focus
-          </h3>
-          <div className="space-y-2">
-            <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
-              <span className="text-xs text-fg-muted">
-                Applicants waiting
-              </span>
-              <span className="text-sm font-semibold text-fg">
-                {stats.for_interview}
-              </span>
+          <Card>
+            <h3 className="text-sm font-semibold text-fg mb-3">
+              Recruitment Focus
+            </h3>
+            <div className="space-y-2">
+              <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
+                <span className="text-xs text-fg-muted">
+                  Applicants waiting
+                </span>
+                <span className="text-sm font-semibold text-fg">
+                  {stats.for_interview}
+                </span>
+              </div>
+              <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
+                <span className="text-xs text-fg-muted">
+                  Total applicants
+                </span>
+                <span className="text-sm font-semibold text-fg">
+                  {stats.total_applicants}
+                </span>
+              </div>
+              <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
+                <span className="text-xs text-fg-muted">
+                  Hired applicants
+                </span>
+                <span className="text-sm font-semibold text-fg">
+                  {stats.hired_applicants}
+                </span>
+              </div>
             </div>
-            <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
-              <span className="text-xs text-fg-muted">Total applicants</span>
-              <span className="text-sm font-semibold text-fg">
-                {stats.total_applicants}
-              </span>
-            </div>
-            <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
-              <span className="text-xs text-fg-muted">Hired applicants</span>
-              <span className="text-sm font-semibold text-fg">
-                {stats.hired_applicants}
-              </span>
-            </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+        </div>
+      )}
 
-      {/* MY LEAVE (admin, when linked to an employee record) */}
-      {canFileLeave && showLeaveSection && (
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-fg">My Leave</h3>
-            <button
-              onClick={() => setShowLeaveModal(true)}
-              className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors"
-            >
-              + File Leave
-            </button>
-          </div>
-          <LeaveHistoryList leaves={myLeaves} onChanged={loadMyLeaves} />
-        </section>
+      {/* MY HR (admin/coordinator/payroll/office admin -- not superadmin,
+          who manages these company-wide instead of filing their own) */}
+      {canFileLeave && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          <DashboardCard title="My Attendance Records">
+            {myAttendanceLoading ? (
+              <p className="text-sm text-fg-muted">Loading...</p>
+            ) : (
+              <AttendanceHistoryList records={myAttendance} />
+            )}
+          </DashboardCard>
+
+          {showLeaveSection && (
+            <DashboardCard title="My Leave">
+              <LeaveHistoryList leaves={myLeaves} onChanged={loadMyLeaves} />
+            </DashboardCard>
+          )}
+
+          <DashboardCard title="Upcoming Holidays">
+            {holidaysLoading ? (
+              <p className="text-sm text-fg-muted">Loading...</p>
+            ) : upcomingHolidays.length === 0 ? (
+              <p className="text-sm text-fg-muted">
+                No upcoming holidays this year.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {upcomingHolidays.map((holiday) => (
+                  <div
+                    key={holiday.id}
+                    className="flex items-center justify-between rounded-xl bg-surface-hover px-3 py-3"
+                  >
+                    <span className="text-sm font-medium text-fg">
+                      {holiday.holiday_name}
+                    </span>
+                    <span className="text-xs text-fg-muted">
+                      {new Date(
+                        `${holiday.holiday_date}T00:00:00`,
+                      ).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </DashboardCard>
+
+          <DashboardCard title="My Overtime Requests">
+            {myOvertimeLoading ? (
+              <p className="text-sm text-fg-muted">Loading...</p>
+            ) : (
+              <OvertimeHistoryList
+                requests={myOvertimeRequests}
+                onChanged={loadMyOvertime}
+              />
+            )}
+          </DashboardCard>
+        </div>
       )}
 
       {showLeaveModal && (

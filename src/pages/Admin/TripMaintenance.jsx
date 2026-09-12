@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Truck, Wrench, Plus, Search, Pencil, Trash2 } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import {
   getVehicleUnits,
   createVehicleUnit,
@@ -44,6 +47,9 @@ export default function TripMaintenance() {
   const [maintenanceForm, setMaintenanceForm] = useState(
     EMPTY_MAINTENANCE_FORM,
   );
+
+  const unitsPagination = usePagination(vehicleUnits, 9);
+  const maintenancePagination = usePagination(maintenanceRecords, 10);
 
   const loadVehicleUnits = async () => {
     try {
@@ -179,7 +185,7 @@ export default function TripMaintenance() {
   };
 
   const handleDeleteRecord = async (record) => {
-    if (!confirm(`Delete this ${record.maintenance_type} record?`)) return;
+    if (!(await confirmDialog(`Delete this ${record.maintenance_type} record?`))) return;
 
     try {
       await deleteVehicleMaintenanceRecord(record.id);
@@ -204,7 +210,7 @@ export default function TripMaintenance() {
   const formatDate = (value) => (value ? new Date(value).toLocaleDateString() : "-");
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-5">
       {/* HEADER */}
       <div>
         <h1 className="text-3xl font-bold text-fg">Fleet Management</h1>
@@ -301,7 +307,7 @@ export default function TripMaintenance() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {vehicleUnits.map((unit) => (
+            {unitsPagination.paginatedItems.map((unit) => (
               <div
                 key={unit.id}
                 className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
@@ -339,6 +345,12 @@ export default function TripMaintenance() {
               </div>
             ))}
           </div>
+
+          <Pagination
+            page={unitsPagination.page}
+            totalPages={unitsPagination.totalPages}
+            onChange={unitsPagination.setPage}
+          />
         </>
       )}
 
@@ -380,7 +392,7 @@ export default function TripMaintenance() {
                     </td>
                   </tr>
                 ) : (
-                  maintenanceRecords.map((record) => (
+                  maintenancePagination.paginatedItems.map((record) => (
                     <tr
                       key={record.id}
                       className="border-t border-border hover:bg-surface-hover"
@@ -425,6 +437,12 @@ export default function TripMaintenance() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            page={maintenancePagination.page}
+            totalPages={maintenancePagination.totalPages}
+            onChange={maintenancePagination.setPage}
+          />
         </>
       )}
 

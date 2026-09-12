@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../ui/pagination/Pagination";
 
 const calculateDuration = (start, end) => {
   if (!start || !end) return "-";
@@ -15,12 +17,8 @@ const calculateDuration = (start, end) => {
 };
 
 const TripTable = ({ trips = [], title }) => {
-  const [page, setPage] = useState(1);
-  const perPage = 2;
-
-  const totalPages = Math.ceil(trips.length / perPage);
-
-  const paginatedTrips = trips.slice((page - 1) * perPage, page * perPage);
+  const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
+    usePagination(trips, 2);
 
   return (
     <div className="mb-10">
@@ -114,29 +112,7 @@ const TripTable = ({ trips = [], title }) => {
       </div>
 
       {/* ================= PAGINATION ================= */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-            className="px-3 py-1 rounded-lg border border-border text-fg hover:bg-surface-hover disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <span className="text-sm text-fg-muted">
-            Page {page} / {totalPages}
-          </span>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-            className="px-3 py-1 rounded-lg border border-border text-fg hover:bg-surface-hover disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
     </div>
   );
 };

@@ -7,6 +7,9 @@ import {
   updateRateProfile,
 } from "../../api/adminTripManagement/tripMaintenance";
 import { toast } from "react-hot-toast";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const EMPTY_FORM = {
   profile_name: "",
@@ -22,6 +25,10 @@ export default function TripCategoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    tripRates,
+    9,
+  );
 
   const loadRateProfiles = async () => {
     try {
@@ -87,7 +94,9 @@ export default function TripCategoriesPage() {
     }).format(value);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="space-y-5">
+      <SectionTabs group="Trip Management" />
+
       <div>
         <h1 className="text-3xl font-bold text-fg">Trip Categories & Rates</h1>
         <p className="text-fg-muted mt-1">
@@ -110,7 +119,7 @@ export default function TripCategoriesPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {tripRates.map((rate) => (
+        {paginatedItems.map((rate) => (
           <div
             key={rate.id}
             className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
@@ -169,6 +178,8 @@ export default function TripCategoriesPage() {
           </div>
         ))}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       <MaintenanceModal
         isOpen={showModal}

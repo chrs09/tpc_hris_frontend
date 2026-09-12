@@ -11,6 +11,8 @@ import {
 } from "../../api/adminApplicants";
 import { employeeRoleConvert } from "../../constants/employeeRole";
 import DefaultThumbnail from "../../assets/logo/default/default-profile.jpg";
+import { alertDialog } from "../../components/ui/dialog/dialogService";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const COLUMNS = [
   { key: "pending", label: "Pending" },
@@ -1764,7 +1766,7 @@ export default function ApplicantsPage() {
       }
     } catch (error) {
       console.error("Failed to update applicant status:", error);
-      alert(
+      alertDialog(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
           : "Failed to update status.",
@@ -1853,7 +1855,7 @@ export default function ApplicantsPage() {
       await refreshSelectedApplicant(selectedApplicant.id);
     } catch (error) {
       console.error("Failed to update applicant status:", error);
-      alert(
+      alertDialog(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
           : "Failed to update status.",
@@ -1899,7 +1901,7 @@ export default function ApplicantsPage() {
       await loadApplicants();
       await refreshSelectedApplicant(selectedApplicant.id);
       setConvertOpen(false);
-      alert("Applicant converted to employee successfully.");
+      alertDialog("Applicant converted to employee successfully.");
     } catch (error) {
       console.error("Failed to convert applicant:", error);
       const message =
@@ -1949,7 +1951,7 @@ export default function ApplicantsPage() {
       }
     } catch (error) {
       console.error("Failed to generate employment form link:", error);
-      alert(
+      alertDialog(
         error?.response?.data?.detail
           ? JSON.stringify(error.response.data.detail)
           : "Failed to generate employment form link.",
@@ -2038,8 +2040,10 @@ export default function ApplicantsPage() {
   };
 
   return (
-    <div>
-      <div className="mx-auto max-w-450 space-y-6 px-4 py-4">
+    <div className="space-y-5">
+      <SectionTabs group="HRIS" />
+
+      <div className="mx-auto max-w-450 space-y-6">
         <div className="rounded-3xl border border-border bg-surface p-6 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>

@@ -9,7 +9,19 @@ export const MODULE_GROUPS = [
     key: "hris",
     label: "HRIS",
     submodules: [
-      { key: "attendance", label: "Attendance", path: "/dashboard/attendance" },
+      {
+        key: "attendance",
+        label: "Attendance",
+        path: "/dashboard/attendance",
+        // Sub-permissions within the Attendance page itself -- lets an
+        // employee be granted just one of the two view modes instead of
+        // the whole page (see AttendanceList.jsx's canSeeListView /
+        // canSeeGridView). Not a nav item on its own, so no `path`.
+        children: [
+          { key: "attendance_list_view", label: "Attendance List" },
+          { key: "attendance_grid_view", label: "Grid View" },
+        ],
+      },
       { key: "leave", label: "Leave Requests", path: "/dashboard/leave" },
       { key: "employees", label: "Employees", path: "/dashboard/employees" },
       { key: "applicants", label: "Applicants", path: "/dashboard/applicants" },

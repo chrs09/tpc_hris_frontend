@@ -413,6 +413,67 @@ const PayrollDetailModal = ({
                   <p className="font-bold">₱{payroll.otPay.toFixed(2)}</p>
                 </div>
               </div>
+
+              {/* Deductions */}
+              <h3 className="font-semibold mb-3 mt-6">Deductions</h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">SSS</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.sssDeduction || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">PhilHealth</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.philhealthDeduction || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Pag-IBIG</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.pagibigDeduction || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Withholding Tax</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.withholdingTax || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">SSS Loan</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.sssLoan || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Cash Advance</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.cashAdvance || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Other Deduction</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.personalDeduction || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-danger/30 bg-danger/10 rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Total Deductions</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.totalDeductions || 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

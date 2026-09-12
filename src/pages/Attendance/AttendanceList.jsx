@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import {
   addMonths,
   subMonths,
@@ -34,7 +35,10 @@ import EditAttendanceModal from "../../components/attendance/EditAttendanceModal
 import BulkAttendanceModal from "../../components/attendance/BulkAttendanceModal";
 import Alert from "../../components/ui/modals/Alert";
 import { useAttendanceWeek } from "../../hooks/useAttendanceWeek";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
 import { Button } from "../../components/ui/button/Button";
+import useModuleAccess from "../../hooks/useModuleAccess";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -43,6 +47,28 @@ const AttendanceList = () => {
   const today = format(new Date(), "yyyy-MM-dd");
   const role = localStorage.getItem("role");
   const isSuperAdmin = role === "superadmin";
+
+  // Sub-permissions under the "Attendance" module (Module Assignment page)
+  // -- lets a customized employee be granted just one of the two view
+  // modes below instead of the whole page. Unset (not customized) always
+  // means both are open, same fallback rule useModuleAccess.isVisible uses
+  // for every other nav item.
+  const { hasCustomAccess, grantedModules } = useModuleAccess();
+  // Neither view-specific key granted (even though this employee's
+  // access is otherwise customized) means the superadmin never bothered
+  // narrowing it down -- granting "Attendance" alone still opens both
+  // views, same as before these two sub-permissions existed.
+  const hasAnyAttendanceViewGrant =
+    grantedModules.has("hris.attendance_list_view") ||
+    grantedModules.has("hris.attendance_grid_view");
+  const canSeeListView =
+    !hasCustomAccess ||
+    !hasAnyAttendanceViewGrant ||
+    grantedModules.has("hris.attendance_list_view");
+  const canSeeGridView =
+    !hasCustomAccess ||
+    !hasAnyAttendanceViewGrant ||
+    grantedModules.has("hris.attendance_grid_view");
 
   const { isEditableDate, formattedRange } = useAttendanceWeek(isSuperAdmin);
 
@@ -54,7 +80,6 @@ const AttendanceList = () => {
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [editModal, setEditModal] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [showSelfieModal, setShowSelfieModal] = useState(false);
   const [previewModal, setPreviewModal] = useState(null);
@@ -62,15 +87,23 @@ const AttendanceList = () => {
   const [showDateModal, setShowDateModal] = useState(false);
   const [dateRange, setDateRange] = useState([null, null]);
 
-  const [viewMode, setViewMode] = useState("grid");
+  const [requestedViewMode, setViewMode] = useState("grid");
+  // Falls back to whichever view is actually accessible instead of the
+  // requested one, the same way usePagination clamps an out-of-range page
+  // at render time -- avoids landing on a blank view mode if this
+  // employee's access was customized after they last picked a tab.
+  const viewMode =
+    requestedViewMode === "grid" && !canSeeGridView && canSeeListView
+      ? "table"
+      : requestedViewMode === "table" && !canSeeListView && canSeeGridView
+        ? "grid"
+        : requestedViewMode;
   const [reviewDate, setReviewDate] = useState(today);
 
   const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
   const toDate = dateRange[1] ? dateRange[1].toDate() : null;
 
   const [holidays, setHolidays] = useState([]);
-
-  const employeesPerPage = 15;
 
   const currentYear = useMemo(() => currentMonth.getFullYear(), [currentMonth]);
 
@@ -190,12 +223,12 @@ const AttendanceList = () => {
       );
   }, [employeesFromAPI, filter, employeeSearch]);
 
-  const totalPages = Math.ceil(employees.length / employeesPerPage);
-
-  const currentEmployees = employees.slice(
-    (currentPage - 1) * employeesPerPage,
-    currentPage * employeesPerPage,
-  );
+  const {
+    page: currentPage,
+    setPage: setCurrentPage,
+    totalPages,
+    paginatedItems: currentEmployees,
+  } = usePagination(employees, 15);
 
   // ---------------------------------------
   // DAYS IN MONTH
@@ -670,6 +703,8 @@ const AttendanceList = () => {
 
   return (
     <div className="space-y-5">
+      <SectionTabs group="HRIS" />
+
       {alert && (
         <Alert
           type={alert.type}
@@ -684,7 +719,7 @@ const AttendanceList = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          {viewMode === "table" && (
+          {viewMode === "table" && isSuperAdmin && (
             <Button onClick={() => setShowBulkModal(true)}>
               Check Attendance
             </Button>
@@ -763,35 +798,46 @@ const AttendanceList = () => {
             </div>
           )}
 
-          <div className="flex border border-border rounded-lg overflow-hidden h-10 bg-surface">
-            <button
-              type="button"
-              className={`px-4 text-sm ${
-                viewMode === "table"
-                  ? "bg-blue-600 text-white"
-                  : "bg-surface text-fg-muted"
-              }`}
-              onClick={() => setViewMode("table")}
-            >
-              Table View
-            </button>
+          {(canSeeListView || canSeeGridView) && (
+            <div className="flex border border-border rounded-lg overflow-hidden h-10 bg-surface">
+              {canSeeListView && (
+                <button
+                  type="button"
+                  className={`px-4 text-sm ${
+                    viewMode === "table"
+                      ? "bg-blue-600 text-white"
+                      : "bg-surface text-fg-muted"
+                  }`}
+                  onClick={() => setViewMode("table")}
+                >
+                  Table View
+                </button>
+              )}
 
-            <button
-              type="button"
-              className={`px-4 text-sm ${
-                viewMode === "grid"
-                  ? "bg-blue-600 text-white"
-                  : "bg-surface text-fg-muted"
-              }`}
-              onClick={() => setViewMode("grid")}
-            >
-              Review View
-            </button>
-          </div>
+              {canSeeGridView && (
+                <button
+                  type="button"
+                  className={`px-4 text-sm ${
+                    viewMode === "grid"
+                      ? "bg-blue-600 text-white"
+                      : "bg-surface text-fg-muted"
+                  }`}
+                  onClick={() => setViewMode("grid")}
+                >
+                  Review View
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {viewMode === "table" ? (
+      {!canSeeListView && !canSeeGridView ? (
+        <div className="rounded-xl border border-border bg-surface p-10 text-center text-sm text-fg-subtle">
+          You don't have access to any Attendance view. Ask a superadmin to
+          grant you one under Module Assignment.
+        </div>
+      ) : viewMode === "table" ? (
         <>
           <AttendanceTable
             employees={currentEmployees}
@@ -825,27 +871,11 @@ const AttendanceList = () => {
             }
           />
 
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <Button
-              size="sm"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-            >
-              Prev
-            </Button>
-
-            <span>
-              Page {currentPage} of {totalPages || 1}
-            </span>
-
-            <Button
-              size="sm"
-              disabled={currentPage === totalPages || totalPages === 0}
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-            >
-              Next
-            </Button>
-          </div>
+          <Pagination
+            page={currentPage}
+            totalPages={totalPages}
+            onChange={setCurrentPage}
+          />
         </>
       ) : (
         <AttendanceGridReview
@@ -854,6 +884,7 @@ const AttendanceList = () => {
           onApproveAttendance={handleApproveAttendance}
           onRejectAttendance={handleRejectAttendance}
           onUpdateAttendance={handleUpdateAttendance}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 

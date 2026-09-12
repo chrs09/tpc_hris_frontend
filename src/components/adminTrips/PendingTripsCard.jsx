@@ -1,5 +1,11 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { approveTrip, reviewTrip } from "../../api/adminTripManagement/trips";
+import {
+  approveTrip,
+  archiveTrip,
+  reviewTrip,
+} from "../../api/adminTripManagement/trips";
+import toast from "react-hot-toast";
+import { confirmDialog } from "../ui/dialog/dialogService";
 import {
   MapContainer,
   TileLayer,
@@ -10,6 +16,8 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../ui/pagination/Pagination";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -20,6 +28,7 @@ import {
   faRoute,
   faUserClock,
   faEye,
+  faBoxArchive,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* Leaflet icon fix */
@@ -76,9 +85,15 @@ const resolvePhotoUrl = (rawUrl) => {
   }
 };
 
-const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
+const PendingTripsCard = ({
+  trips = [],
+  refreshTrips,
+  onArchived,
+  mode = "pending",
+}) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [archivingId, setArchivingId] = useState(null);
 
   // NEW: replaces the old boolean showPhoto -- now tracks which photo
   // URL + label to display, so the same viewer works for start photo,
@@ -97,16 +112,16 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
   const zoomOut = () => setPhotoZoom((prev) => Math.max(prev - 0.25, 0.5));
   const resetZoom = () => setPhotoZoom(1);
 
-  const [page, setPage] = useState(1);
-  const perPage = 5;
-
   // NEW: remarks for finance review, entered at approval time
   const [remarks, setRemarks] = useState("");
   const [remarksError, setRemarksError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const paginatedTrips = trips.slice((page - 1) * perPage, page * perPage);
-  const totalPages = Math.ceil(trips.length / perPage);
+  // Clamps back to the new last page (rather than an empty page) once
+  // the current page's last row is archived/approved away -- see
+  // usePagination's render-time clamp.
+  const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
+    usePagination(trips, 5);
 
   const handleReview = async (tripId) => {
     const res = await reviewTrip(tripId);
@@ -157,6 +172,30 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleArchive = async (trip) => {
+    if (
+      !(await confirmDialog(
+        `Archive ${trip.trip_code || `Trip #${trip.id}`}? It will be hidden from this list but not deleted -- it can be restored from the database if needed.`,
+      ))
+    ) {
+      return;
+    }
+
+    try {
+      setArchivingId(trip.id);
+      await archiveTrip(trip.id);
+      toast.success("Trip archived.");
+      await (onArchived ? onArchived() : refreshTrips?.());
+    } catch (error) {
+      console.error("Failed to archive trip:", error);
+      toast.error(
+        error.response?.data?.detail || "Failed to archive the trip.",
+      );
+    } finally {
+      setArchivingId(null);
     }
   };
 
@@ -228,12 +267,23 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 <td className="px-6 py-4">{trip.stops_count}</td>
 
                 <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => handleReview(trip.id)}
-                    className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg cursor-pointer transition-colors"
-                  >
-                    {mode === "pending" ? "Review" : "View"}
-                  </button>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => handleReview(trip.id)}
+                      className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg cursor-pointer transition-colors"
+                    >
+                      {mode === "pending" ? "Review" : "View"}
+                    </button>
+
+                    <button
+                      onClick={() => handleArchive(trip)}
+                      disabled={archivingId === trip.id}
+                      title="Archive trip"
+                      className="rounded-lg border border-border px-3 py-2 text-fg-muted transition-colors hover:bg-surface-hover hover:text-danger disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <FontAwesomeIcon icon={faBoxArchive} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -254,12 +304,23 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
                 <p className="font-semibold capitalize">{trip.username}</p>
               </div>
 
-              <button
-                onClick={() => handleReview(trip.id)}
-                className="bg-primary text-primary-foreground p-2 rounded-lg"
-              >
-                <FontAwesomeIcon icon={faEye} />
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleReview(trip.id)}
+                  className="bg-primary text-primary-foreground p-2 rounded-lg"
+                >
+                  <FontAwesomeIcon icon={faEye} />
+                </button>
+
+                <button
+                  onClick={() => handleArchive(trip)}
+                  disabled={archivingId === trip.id}
+                  title="Archive trip"
+                  className="rounded-lg border border-border p-2 text-fg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <FontAwesomeIcon icon={faBoxArchive} />
+                </button>
+              </div>
             </div>
 
             <div className="mt-2 text-sm">
@@ -288,29 +349,7 @@ const PendingTripsCard = ({ trips = [], refreshTrips, mode = "pending" }) => {
       </div>
 
       {/* ======================= PAGINATION ======================= */}
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-3 mt-4">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage(page - 1)}
-            className="px-3 py-1 bg-surface-active text-fg rounded hover:bg-surface-hover disabled:opacity-40"
-          >
-            Prev
-          </button>
-
-          <span className="text-fg">
-            Page {page} / {totalPages}
-          </span>
-
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-            className="px-3 py-1 bg-surface-active text-fg rounded hover:bg-surface-hover disabled:opacity-40"
-          >
-            Next
-          </button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       {/* ======================= REVIEW MODAL ======================= */}
       {showModal && selectedTrip && (

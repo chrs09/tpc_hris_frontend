@@ -7,6 +7,10 @@ import {
 } from "../../api/employeeModuleAccess";
 import { employeeRoleConvert } from "../../constants/employeeRole";
 import { MODULE_GROUPS, moduleKey } from "../../constants/modules";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import { confirmDialog } from "../../components/ui/dialog/dialogService";
 
 const ModuleAssignmentPage = () => {
   const role = localStorage.getItem("role");
@@ -47,6 +51,11 @@ const ModuleAssignmentPage = () => {
       `${e.first_name} ${e.last_name}`.toLowerCase().includes(term),
     );
   }, [employees, search]);
+
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    filteredEmployees,
+    15,
+  );
 
   const openManage = (employee) => {
     setEditingEmployee(employee);
@@ -94,9 +103,9 @@ const ModuleAssignmentPage = () => {
   const handleReset = async () => {
     if (!editingEmployee) return;
     if (
-      !confirm(
+      !(await confirmDialog(
         `Reset ${editingEmployee.first_name} ${editingEmployee.last_name} back to their role's default access?`,
-      )
+      ))
     ) {
       return;
     }
@@ -135,8 +144,10 @@ const ModuleAssignmentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Administrator" />
+
         <div className="flex flex-col gap-4 rounded-3xl border border-border bg-surface/90 p-5 shadow-sm backdrop-blur sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-medium uppercase tracking-[0.24em] text-fg-subtle">
@@ -219,7 +230,7 @@ const ModuleAssignmentPage = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((emp) => (
+                  paginatedItems.map((emp) => (
                     <tr
                       key={emp.id}
                       className="border-t border-border transition hover:bg-surface-hover"
@@ -271,6 +282,8 @@ const ModuleAssignmentPage = () => {
               </tbody>
             </table>
           </div>
+
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </div>
       </div>
 
@@ -322,22 +335,54 @@ const ModuleAssignmentPage = () => {
                       const key = moduleKey(group.key, sub.key);
                       const checked = selectedKeys.has(key);
                       return (
-                        <label
-                          key={key}
-                          className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
-                            checked
-                              ? "border-primary bg-primary/10 text-fg"
-                              : "border-border text-fg-muted hover:bg-surface"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleKey(key)}
-                            className="h-4 w-4 rounded border-border"
-                          />
-                          {sub.label}
-                        </label>
+                        <div key={key} className="flex flex-col gap-2">
+                          <label
+                            className={`flex cursor-pointer items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
+                              checked
+                                ? "border-primary bg-primary/10 text-fg"
+                                : "border-border text-fg-muted hover:bg-surface"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleKey(key)}
+                              className="h-4 w-4 rounded border-border"
+                            />
+                            {sub.label}
+                          </label>
+
+                          {sub.children?.length > 0 && (
+                            <div className="ml-4 flex flex-col gap-2 border-l border-border pl-3">
+                              {sub.children.map((child) => {
+                                const childKey = moduleKey(
+                                  group.key,
+                                  child.key,
+                                );
+                                const childChecked = selectedKeys.has(childKey);
+                                return (
+                                  <label
+                                    key={childKey}
+                                    title="Optional: leave both unchecked to allow both views once Attendance itself is granted."
+                                    className={`flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-xs transition-colors ${
+                                      childChecked
+                                        ? "border-primary bg-primary/10 text-fg"
+                                        : "border-border text-fg-subtle hover:bg-surface"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={childChecked}
+                                      onChange={() => toggleKey(childKey)}
+                                      className="h-3.5 w-3.5 rounded border-border"
+                                    />
+                                    ↳ {child.label}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>

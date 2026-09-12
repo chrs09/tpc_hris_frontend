@@ -5,6 +5,9 @@ import {
   getOvertimeRequestsForMyApproval,
   rejectOvertimeRequest,
 } from "../../api/overtimeRequests";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 
 export default function OvertimeApprovals() {
   const [requests, setRequests] = useState([]);
@@ -12,6 +15,10 @@ export default function OvertimeApprovals() {
   const [actioningId, setActioningId] = useState(null);
   const [editedHours, setEditedHours] = useState({});
   const [previewPhoto, setPreviewPhoto] = useState(null);
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    requests,
+    10,
+  );
 
   const loadRequests = async () => {
     try {
@@ -53,7 +60,7 @@ export default function OvertimeApprovals() {
   };
 
   const handleReject = async (request) => {
-    const remarks = window.prompt("Reason for rejecting this overtime request (optional):");
+    const remarks = await promptDialog("Reason for rejecting this overtime request (optional):");
     if (remarks === null) return;
     try {
       setActioningId(request.id);
@@ -88,7 +95,7 @@ export default function OvertimeApprovals() {
           </div>
         ) : (
           <div className="space-y-4">
-            {requests.map((req) => (
+            {paginatedItems.map((req) => (
               <div
                 key={req.id}
                 className="rounded-2xl border border-border bg-surface p-5 shadow-sm"
@@ -180,6 +187,7 @@ export default function OvertimeApprovals() {
                 </div>
               </div>
             ))}
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
           </div>
         )}
       </div>

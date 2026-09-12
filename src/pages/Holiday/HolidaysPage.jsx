@@ -4,6 +4,8 @@ import AddHolidayModal from "../../components/holidays/AddHolidayModal";
 import EditHolidayModal from "../../components/holidays/EditHolidayModal";
 import { getHolidays, deleteHoliday, syncHolidays } from "../../api/holidays";
 import { Trash2, Pencil } from "lucide-react";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
 
 export default function HolidaysPage() {
   const [holidays, setHolidays] = useState([]);
@@ -34,23 +36,23 @@ export default function HolidaysPage() {
     try {
       const result = await syncHolidays(year);
       await fetchHolidays();
-      alert(
+      alertDialog(
         `Synced: ${result.created} added, ${result.updated} updated, ${result.skipped} skipped`,
       );
     } catch (err) {
-      alert(err.response?.data?.detail || "Sync failed");
+      alertDialog(err.response?.data?.detail || "Sync failed");
     } finally {
       setSyncing(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this holiday?")) return;
+    if (!(await confirmDialog("Delete this holiday?"))) return;
     try {
       await deleteHoliday(id);
       fetchHolidays();
     } catch (err) {
-      alert(err.response?.data?.detail || "Delete failed");
+      alertDialog(err.response?.data?.detail || "Delete failed");
     }
   };
 
@@ -61,7 +63,9 @@ export default function HolidaysPage() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="space-y-5">
+      <SectionTabs group="Administrator" />
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">

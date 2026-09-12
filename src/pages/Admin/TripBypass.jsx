@@ -1,9 +1,12 @@
 import React from "react";
 import StartTripForDriverCard from "../../components/adminTrips/StartTripForDriverCard";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const TripBypass = () => {
   return (
-    <div className="px-4 sm:px-6 lg:px-10 py-6 bg-background min-h-screen space-y-6">
+    <div className="space-y-5">
+      <SectionTabs group="Trip Management" />
+
       <div>
         <h1 className="text-lg sm:text-xl font-semibold text-fg">
           Start Trip (Bypass)

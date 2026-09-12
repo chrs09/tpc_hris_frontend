@@ -15,8 +15,8 @@ export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
 
 export const getCompletedTrips = () => api.get("/admin/trips/completed");
 
-// Soft delete: hides a completed trip from the list above without
-// deleting the row or its related stops/GPS logs/files. See
+// Soft delete: hides a pending or completed trip from those lists
+// without deleting the row or its related stops/GPS logs/files. See
 // app/models/trips.py Trip.is_archived and archive_trip() in
 // app/api/admin/trips.py.
 export const archiveTrip = (tripId) =>

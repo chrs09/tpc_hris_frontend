@@ -6,6 +6,10 @@ import {
   getCashAdvanceRequestsForMyApproval,
   rejectCashAdvanceRequest,
 } from "../../api/cashAdvanceRequests";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
@@ -32,6 +36,9 @@ export default function CashAdvanceApprovals() {
   const [allRequests, setAllRequests] = useState([]);
   const [loadingAll, setLoadingAll] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
+
+  const pendingPagination = usePagination(pending, 10);
+  const allPagination = usePagination(allRequests, 15);
 
   const loadPending = async () => {
     try {
@@ -85,7 +92,7 @@ export default function CashAdvanceApprovals() {
   };
 
   const handleReject = async (request) => {
-    const remarks = window.prompt(
+    const remarks = await promptDialog(
       "Reason for rejecting this cash advance request (optional):",
     );
     if (remarks === null) return;
@@ -103,8 +110,10 @@ export default function CashAdvanceApprovals() {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Finance" />
+
         <div>
           <h2 className="text-2xl font-bold text-fg">Cash Advances</h2>
           <p className="mt-1 text-sm text-fg-subtle">
@@ -147,7 +156,7 @@ export default function CashAdvanceApprovals() {
             </div>
           ) : (
             <div className="space-y-4">
-              {pending.map((req) => (
+              {pendingPagination.paginatedItems.map((req) => (
                 <div
                   key={req.id}
                   className="rounded-2xl border border-border bg-surface p-5 shadow-sm"
@@ -226,6 +235,11 @@ export default function CashAdvanceApprovals() {
                   </div>
                 </div>
               ))}
+              <Pagination
+                page={pendingPagination.page}
+                totalPages={pendingPagination.totalPages}
+                onChange={pendingPagination.setPage}
+              />
             </div>
           ))}
 
@@ -264,7 +278,7 @@ export default function CashAdvanceApprovals() {
                     </tr>
                   </thead>
                   <tbody>
-                    {allRequests.map((req) => (
+                    {allPagination.paginatedItems.map((req) => (
                       <tr
                         key={req.id}
                         className="border-t border-border transition hover:bg-surface-hover"
@@ -305,6 +319,11 @@ export default function CashAdvanceApprovals() {
                 </table>
               </div>
             )}
+            <Pagination
+              page={allPagination.page}
+              totalPages={allPagination.totalPages}
+              onChange={allPagination.setPage}
+            />
           </div>
         )}
       </div>

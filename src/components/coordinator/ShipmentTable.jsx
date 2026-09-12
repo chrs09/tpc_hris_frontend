@@ -1,4 +1,5 @@
 import ShipmentRow from "./ShipmentRow";
+import { confirmDialog } from "../ui/dialog/dialogService";
 
 const columns = [
   { key: "shipmentNo", label: "Shipment No." },
@@ -56,7 +57,7 @@ export default function ShipmentTable({
     }
 
     // Existing row -> delete from backend later
-    if (!window.confirm("Delete this shipment?")) return;
+    if (!(await confirmDialog("Delete this shipment?"))) return;
 
     try {
       // TODO:

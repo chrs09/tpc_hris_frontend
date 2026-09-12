@@ -7,6 +7,9 @@ import {
 } from "../../api/financeExpenses";
 
 import ExpenseDrawer from "../../components/financeExpenses/ExpenseDrawer";
+import usePagination from "../../hooks/usePagination";
+import Pagination from "../../components/ui/pagination/Pagination";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const money = (value) =>
   new Intl.NumberFormat("en-PH", {
@@ -352,6 +355,11 @@ export default function FinanceExpenses() {
     });
   }, [rows, search, supplier, category, status, month]);
 
+  const { page, setPage, totalPages, paginatedItems } = usePagination(
+    filtered,
+    15,
+  );
+
   /*
    * ==========================================
    * SUMMARY
@@ -449,8 +457,10 @@ export default function FinanceExpenses() {
    */
 
   return (
-    <div className="min-h-full bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-400">
+    <div>
+      <div className="space-y-5">
+        <SectionTabs group="Finance" />
+
         {/* ======================================
             HEADER
         ====================================== */}
@@ -582,7 +592,7 @@ export default function FinanceExpenses() {
             )}
 
             {!loading &&
-              filtered.map((row) => (
+              paginatedItems.map((row) => (
                 <div
                   key={row.id}
                   className="rounded-xl border border-border bg-surface p-4 shadow-sm"
@@ -696,7 +706,7 @@ export default function FinanceExpenses() {
 
               <tbody className="divide-y divide-border">
                 {!loading &&
-                  filtered.map((row) => (
+                  paginatedItems.map((row) => (
                     <tr key={row.id} className="hover:bg-surface-hover">
                       <td className="whitespace-nowrap px-4 py-3 text-sm text-fg-muted">
                         {dateOnly(row.invoiceDate)}
@@ -783,6 +793,8 @@ export default function FinanceExpenses() {
             </table>
           </div>
         </div>
+
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       </div>
 
       {/* ========================================
