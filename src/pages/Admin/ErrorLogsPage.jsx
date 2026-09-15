@@ -11,6 +11,32 @@ const statusBadgeClass = (statusCode) => {
   return "bg-surface-active text-fg-muted";
 };
 
+// The backend writes created_at with datetime.utcnow() (naive, no
+// timezone) -- FastAPI serializes that as an ISO string with no "Z" or
+// offset (e.g. "2026-09-15T01:48:14"), which `new Date()` then
+// misreads as already being in the browser's local time instead of
+// UTC, silently skipping the conversion. Appending "Z" tells it the
+// value really is UTC, and Asia/Manila is forced explicitly so this
+// always reads as PH time (UTC+8) regardless of the viewer's own
+// browser timezone.
+const formatPhTime = (value) => {
+  if (!value) return "--";
+  const iso = value.endsWith("Z") ? value : `${value}Z`;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "--";
+
+  return date.toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+};
+
 export default function ErrorLogsPage() {
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
@@ -94,6 +120,7 @@ export default function ErrorLogsPage() {
                 <th className="px-4 py-3 text-left font-medium">Time</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th className="px-4 py-3 text-left font-medium">Method</th>
+                <th className="px-4 py-3 text-left font-medium">User</th>
                 <th className="px-4 py-3 text-left font-medium">URL</th>
                 <th className="px-4 py-3 text-left font-medium">Detail</th>
               </tr>
@@ -101,13 +128,13 @@ export default function ErrorLogsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-fg-subtle">
+                  <td colSpan={7} className="px-6 py-12 text-center text-fg-subtle">
                     Loading...
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-fg-subtle">
+                  <td colSpan={7} className="px-6 py-12 text-center text-fg-subtle">
                     No errors logged.
                   </td>
                 </tr>
@@ -131,9 +158,7 @@ export default function ErrorLogsPage() {
                           )}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
-                          {log.created_at
-                            ? new Date(log.created_at).toLocaleString()
-                            : "--"}
+                          {formatPhTime(log.created_at)}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -146,6 +171,22 @@ export default function ErrorLogsPage() {
                         </td>
                         <td className="px-4 py-3 font-medium text-fg">
                           {log.method}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
+                          {log.username ? (
+                            <span>
+                              {log.username}{" "}
+                              <span className="text-fg-subtle">
+                                (#{log.user_id})
+                              </span>
+                            </span>
+                          ) : log.user_id ? (
+                            <span className="text-fg-subtle">
+                              #{log.user_id}
+                            </span>
+                          ) : (
+                            <span className="text-fg-subtle">--</span>
+                          )}
                         </td>
                         <td className="max-w-xs truncate px-4 py-3 text-fg-muted">
                           {log.url}
@@ -162,7 +203,7 @@ export default function ErrorLogsPage() {
 
                       {isExpanded && (
                         <tr className="border-t border-border bg-surface-hover">
-                          <td colSpan={6} className="px-6 py-4">
+                          <td colSpan={7} className="px-6 py-4">
                             <div className="space-y-3 text-xs">
                               <div>
                                 <p className="font-semibold text-fg-muted">
