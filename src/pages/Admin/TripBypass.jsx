@@ -70,6 +70,8 @@ const TripBypass = () => {
   const [checkInStoreId, setCheckInStoreId] = useState("");
   const [overrideStoreId, setOverrideStoreId] = useState("");
   const [podPhoto, setPodPhoto] = useState(null);
+  const [invoicePhoto, setInvoicePhoto] = useState(null);
+  const [lmPhoto, setLmPhoto] = useState(null);
 
   const loadTrips = useCallback(async () => {
     try {
@@ -113,6 +115,8 @@ const TripBypass = () => {
     setCheckInStoreId("");
     setOverrideStoreId("");
     setPodPhoto(null);
+    setInvoicePhoto(null);
+    setLmPhoto(null);
   }, [selectedTripId, loadDetail]);
 
   const refreshAfterAction = async () => {
@@ -194,6 +198,8 @@ const TripBypass = () => {
             value={odometerReading}
             onChange={(e) => setOdometerReading(e.target.value)}
           />
+          <PhotoField label="Invoice photo (optional)" onFile={setInvoicePhoto} />
+          <PhotoField label="LM photo (optional)" onFile={setLmPhoto} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
             disabled={submitting || !shipmentNo.trim() || !destinationStoreId}
@@ -204,6 +210,8 @@ const TripBypass = () => {
                 fd.append("shipment_no", shipmentNo);
                 fd.append("destination_store_id", destinationStoreId);
                 fd.append("odometer_reading", odometerReading || 0);
+                if (invoicePhoto) fd.append("invoice_photo", invoicePhoto);
+                if (lmPhoto) fd.append("lm_photo", lmPhoto);
                 return bypassCheckout(tripDetail.trip_id, fd);
               })
             }
