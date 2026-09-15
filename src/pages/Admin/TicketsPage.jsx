@@ -116,7 +116,10 @@ export default function TicketsPage() {
               <div
                 key={column.key}
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={() => handleDrop(column.key)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(column.key);
+                }}
                 className="flex min-h-[200px] flex-col gap-3 rounded-2xl border border-border bg-surface-hover/50 p-3"
               >
                 <div className="flex items-center justify-between px-1">
@@ -137,7 +140,16 @@ export default function TicketsPage() {
                     <TicketCard
                       key={ticket.id}
                       ticket={ticket}
-                      onDragStart={() => setDraggingTicket(ticket)}
+                      onDragStart={(e) => {
+                        // Firefox (and some other browsers) require
+                        // dataTransfer.setData to be called during
+                        // dragstart, or the drag is treated as invalid
+                        // and drop never fires -- Chrome is lenient about
+                        // this but not every browser is.
+                        e.dataTransfer.setData("text/plain", String(ticket.id));
+                        e.dataTransfer.effectAllowed = "move";
+                        setDraggingTicket(ticket);
+                      }}
                       onClick={() => setSelectedTicket(ticket)}
                     />
                   ))
@@ -205,6 +217,11 @@ const TicketCard = ({ ticket, onDragStart, onClick }) => (
       <img
         src={ticket.image_url}
         alt=""
+        // Images are draggable by default in every browser, which
+        // hijacks the card's own HTML5 drag-and-drop when the grab
+        // starts over the thumbnail -- opt this element out so the
+        // parent card's draggable always wins.
+        draggable={false}
         className="mt-2 h-24 w-full rounded-lg object-cover"
       />
     )}

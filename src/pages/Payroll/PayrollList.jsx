@@ -452,6 +452,15 @@ const PayrollList = () => {
         let basicPay = 0;
         let hourlyRate = rate / 8;
 
+        // First/second-half absences (e.g. clocked in during lunch, or
+        // left before the afternoon half) are hour-for-hour, deducted at
+        // the same hourly rate as tardiness/undertime -- shown as its own
+        // line so it's clear exactly how the peso amount was derived
+        // (half-day hours x hourly rate), not folded silently into
+        // another deduction.
+        const halfDayAbsentDeduction =
+          (firstHalfAbsentHours + secondHalfAbsentHours) * hourlyRate;
+
         // ============================================================
         // PAYROLL BREAKDOWN VARIABLES
         // ============================================================
@@ -508,6 +517,12 @@ const PayrollList = () => {
           undertimeDeduction = undertimeHours * hourlyRate;
 
           tardinessDeduction = tardinessHours * hourlyRate;
+
+          // halfDayAbsentDeduction is also a reference value here -- a
+          // first/second-half absence already reduced regularHours for
+          // that day (see calculateStandardAttendanceHours.js), so it's
+          // already reflected in basicPay above and must not be
+          // subtracted a second time.
         }
 
         // ------------------------------------------------------------
@@ -561,6 +576,7 @@ const PayrollList = () => {
           // - Absence
           // - Tardiness
           // - Undertime
+          // - Half Day Absence
           // = Adjusted Basic
           //
           // IMPORTANT:
@@ -570,7 +586,8 @@ const PayrollList = () => {
             semiMonthlyBasic -
             absentBasicDeduction -
             undertimeDeduction -
-            tardinessDeduction;
+            tardinessDeduction -
+            halfDayAbsentDeduction;
 
           // ----------------------------------------------------------
           // 8. ADJUSTED ALLOWANCE
@@ -808,8 +825,10 @@ const PayrollList = () => {
             totalScheduledHours: 0,
             firstHalfAbsentHours: 0,
             secondHalfAbsentHours: 0,
+            halfDayAbsentDeduction: 0,
 
             dailyRate: 0,
+            hourlyRate: 0,
 
             payrollType: "Trip-Based",
 
@@ -872,6 +891,7 @@ const PayrollList = () => {
           tardinessDeduction,
 
           dailyRate: rate,
+          hourlyRate,
           isMonthlyRateType,
           monthlyBasic: isMonthlyRateType ? monthlyBasic : null,
           monthlyAllow: isMonthlyRateType ? monthlyAllow : null,
@@ -888,6 +908,7 @@ const PayrollList = () => {
           totalScheduledHours,
           firstHalfAbsentHours,
           secondHalfAbsentHours,
+          halfDayAbsentDeduction,
           absentBasicDeduction,
           absentAllowanceDeduction,
           absentDeduction,
@@ -1379,6 +1400,10 @@ const PayrollList = () => {
 
                   <th className="px-4 py-3 text-left">Absent</th>
 
+                  <th className="px-4 py-3 text-left">
+                    Half Day Deduction
+                  </th>
+
                   <th className="px-4 py-3 text-left">Tardiness Deduction</th>
 
                   <th className="px-4 py-3 text-left">UT Deduction</th>
@@ -1508,6 +1533,23 @@ const PayrollList = () => {
                       {row.isTripBasedEmployee
                         ? "--"
                         : `₱${row.absentDeduction.toFixed(2)}`}
+                    </td>
+
+                    {/* Half Day Deduction */}
+                    <td className="px-4 py-3 text-red-600">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <>
+                          ₱{row.halfDayAbsentDeduction.toFixed(2)}
+                          {row.halfDayAbsentDeduction > 0 && (
+                            <div className="text-xs text-fg-subtle">
+                              ({(row.firstHalfAbsentHours + row.secondHalfAbsentHours).toFixed(2)}{" "}
+                              hrs × ₱{row.hourlyRate.toFixed(2)}/hr)
+                            </div>
+                          )}
+                        </>
+                      )}
                     </td>
 
                     {/* Tardiness */}
