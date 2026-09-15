@@ -16,10 +16,14 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { confirmDialog, promptDialog } from "../../components/ui/dialog/dialogService";
+import useModuleAccess from "../../hooks/useModuleAccess";
 
 const CashAdvanceSettingsPage = () => {
-  const role = localStorage.getItem("role");
-  const isSuperAdmin = role === "superadmin";
+  const { isVisible } = useModuleAccess();
+  const isSuperAdmin = isVisible({
+    roles: ["superadmin"],
+    moduleKey: "administrator.cash_advance_settings",
+  });
 
   const [options, setOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);

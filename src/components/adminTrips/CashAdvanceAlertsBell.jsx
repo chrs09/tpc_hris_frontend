@@ -35,9 +35,14 @@ export default function CashAdvanceAlertsBell() {
 
   const seenIdsRef = useRef(new Set());
   const fetchingRef = useRef(false);
+  // Once the session's token is rejected (401), stop polling entirely
+  // instead of silently retrying with the same stale token every 20s
+  // forever -- that was the single biggest source of noise in both
+  // Slack and the Error Logs table.
+  const sessionExpiredRef = useRef(false);
 
   const loadAlerts = useCallback(async () => {
-    if (!visible || fetchingRef.current) return;
+    if (!visible || fetchingRef.current || sessionExpiredRef.current) return;
     fetchingRef.current = true;
     try {
       const res = await getCashAdvanceAlerts();
@@ -59,6 +64,9 @@ export default function CashAdvanceAlertsBell() {
       setAlerts(data);
     } catch (err) {
       console.error("Failed to load cash advance alerts:", err);
+      if (err.response?.status === 401) {
+        sessionExpiredRef.current = true;
+      }
     } finally {
       fetchingRef.current = false;
       setInitialLoading(false);

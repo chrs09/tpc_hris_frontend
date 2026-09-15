@@ -8,10 +8,14 @@ import {
 } from "../../api/orgHierarchy";
 import { getUserList } from "../../api/users";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import useModuleAccess from "../../hooks/useModuleAccess";
 
 const OrgHierarchyPage = () => {
-  const role = localStorage.getItem("role");
-  const isSuperAdmin = role === "superadmin";
+  const { isVisible } = useModuleAccess();
+  const isSuperAdmin = isVisible({
+    roles: ["superadmin"],
+    moduleKey: "administrator.hierarchy",
+  });
 
   const [rows, setRows] = useState([]);
   // Cash Advance Immediate Head -- a separate assignment per department

@@ -2,8 +2,11 @@
 // MODULE_GROUPS in tpc_hris_backend/app/api/employee_module_access.py.
 // Used by both the Sidebar (to decide what a non-superadmin user can see)
 // and the Module Assignment page (to render the checkbox grid). Dashboard
-// and Administrator are intentionally not part of this list -- Dashboard
-// stays always-visible, Administrator stays hardcoded superadmin-only.
+// stays always-visible and is not part of this list. Module Assignment
+// itself is deliberately left out of the "administrator" group below --
+// granting it would let a non-superadmin grant themselves (or anyone)
+// further access, a privilege-escalation loop -- it stays hardcoded
+// superadmin-only.
 export const MODULE_GROUPS = [
   {
     key: "hris",
@@ -118,6 +121,24 @@ export const MODULE_GROUPS = [
         label: "Cash Advances",
         path: "/dashboard/cash-advance-approvals",
       },
+    ],
+  },
+  {
+    key: "administrator",
+    label: "Administrator",
+    submodules: [
+      { key: "users", label: "Users", path: "/dashboard/users" },
+      { key: "hierarchy", label: "Hierarchy", path: "/dashboard/hierarchy" },
+      { key: "role_access", label: "Role Access", path: "/dashboard/role-access" },
+      {
+        key: "cash_advance_settings",
+        label: "Cash Advance Settings",
+        path: "/dashboard/cash-advance-settings",
+      },
+      { key: "holidays", label: "Holidays", path: "/dashboard/holidays" },
+      { key: "error_logs", label: "Error Logs", path: "/dashboard/error-logs" },
+      { key: "tickets", label: "Tickets", path: "/dashboard/tickets" },
+      { key: "settings", label: "Settings", path: "/dashboard/settings" },
     ],
   },
 ];

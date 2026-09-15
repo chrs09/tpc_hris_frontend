@@ -79,19 +79,14 @@ export function getNavGroups(role) {
         {
           label: "OT Approvals",
           path: "/dashboard/overtime-approvals",
-          // Visible to everyone -- eligibility is data-driven (you're
-          // either the request's designated approver or the requester's
-          // department head), not role-based.
-          roles: [
-            "superadmin",
-            "admin",
-            "driver",
-            "helper",
-            "employee",
-            "payroll_admin",
-            "coordinator_admin",
-            "office_admin",
-          ],
+          // Only shown to whoever is set as an immediate head for some
+          // department on the Hierarchy page (see requiresDepartmentHead
+          // in useModuleAccess.js) -- a request's specifically-designated
+          // approver can still review it directly from a link/notification
+          // even without this nav item, but the page itself is reserved
+          // for actual department heads.
+          roles: [],
+          requiresDepartmentHead: true,
         },
       ],
     },
@@ -207,13 +202,21 @@ export function getNavGroups(role) {
     {
       label: "Administrator",
       children: [
-        { label: "Users", path: "/dashboard/users", roles: ["superadmin"] },
+        {
+          label: "Users",
+          path: "/dashboard/users",
+          roles: ["superadmin"],
+          moduleKey: "administrator.users",
+        },
         {
           label: "Hierarchy",
           path: "/dashboard/hierarchy",
           roles: ["superadmin"],
+          moduleKey: "administrator.hierarchy",
         },
         {
+          // Not module-grantable -- see modules.js: granting this would
+          // let a non-superadmin grant themselves further access.
           label: "Module Assignment",
           path: "/dashboard/module-assignment",
           roles: ["superadmin"],
@@ -222,26 +225,37 @@ export function getNavGroups(role) {
           label: "Role Access",
           path: "/dashboard/role-access",
           roles: ["superadmin"],
+          moduleKey: "administrator.role_access",
         },
         {
           label: "Cash Advance Settings",
           path: "/dashboard/cash-advance-settings",
           roles: ["superadmin"],
+          moduleKey: "administrator.cash_advance_settings",
         },
         {
           label: "Holidays",
           path: "/dashboard/holidays",
           roles: ["superadmin"],
+          moduleKey: "administrator.holidays",
         },
         {
           label: "Error Logs",
           path: "/dashboard/error-logs",
           roles: ["superadmin"],
+          moduleKey: "administrator.error_logs",
+        },
+        {
+          label: "Tickets",
+          path: "/dashboard/tickets",
+          roles: ["superadmin"],
+          moduleKey: "administrator.tickets",
         },
         {
           label: "Settings",
           path: "/dashboard/settings",
           roles: ["superadmin"],
+          moduleKey: "administrator.settings",
         },
       ],
     },

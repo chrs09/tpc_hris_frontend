@@ -5,10 +5,14 @@ import UserDrawer from "../../components/users/UserDrawer";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
+import useModuleAccess from "../../hooks/useModuleAccess";
 
 const UsersPage = () => {
-  const role = localStorage.getItem("role");
-  const isSuperAdmin = role === "superadmin";
+  const { isVisible } = useModuleAccess();
+  const canAccess = isVisible({
+    roles: ["superadmin"],
+    moduleKey: "administrator.users",
+  });
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,8 +26,8 @@ const UsersPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    if (isSuperAdmin) fetchUsers();
-  }, [isSuperAdmin]);
+    if (canAccess) fetchUsers();
+  }, [canAccess]);
 
   const fetchUsers = async () => {
     try {
@@ -60,7 +64,7 @@ const UsersPage = () => {
     paginatedItems: paginatedUsers,
   } = usePagination(filteredUsers, 10);
 
-  if (!isSuperAdmin) {
+  if (!canAccess) {
     return (
       <div className="p-8 text-danger font-semibold">
         Access Denied. Superadmin only.

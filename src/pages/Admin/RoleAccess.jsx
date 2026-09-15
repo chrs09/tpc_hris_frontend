@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { ALL_ROLES, ROLE_ACCESS_GROUPS, roleLabel } from "../../constants/roleAccess";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import useModuleAccess from "../../hooks/useModuleAccess";
 
 const RoleAccessPage = () => {
-  const currentRole = localStorage.getItem("role");
-  const isSuperAdmin = currentRole === "superadmin";
+  const { isVisible } = useModuleAccess();
+  const isSuperAdmin = isVisible({
+    roles: ["superadmin"],
+    moduleKey: "administrator.role_access",
+  });
 
   const [selectedRole, setSelectedRole] = useState("admin");
 

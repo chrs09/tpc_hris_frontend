@@ -5,6 +5,14 @@ export const getDepartmentHeads = async () => {
   return res.data;
 };
 
+// Whether the logged-in user is themselves set as an immediate head for
+// any department -- used to decide whether to show the OT Approvals nav
+// item (see useModuleAccess.js).
+export const getAmIDepartmentHead = async () => {
+  const res = await api.get("/org-hierarchy/am-i-head");
+  return res.data;
+};
+
 export const setDepartmentHead = async (department, headUserId) => {
   const res = await api.put(`/org-hierarchy/${department}`, {
     head_user_id: headUserId,

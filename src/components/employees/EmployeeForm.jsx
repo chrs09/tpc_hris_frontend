@@ -35,7 +35,7 @@ const emptyReference = {
   contact: "",
 };
 
-const DRIVER_DEPARTMENTS = ["CdcDriver", "CpdcDriver"];
+const DRIVER_DEPARTMENTS = ["CdcDriver", "CpdcDriver", "WingvanDriver"];
 
 export default function EmployeeForm({
   employee,

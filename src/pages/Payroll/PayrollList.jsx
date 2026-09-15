@@ -12,6 +12,7 @@ import {
   getOTApprovals,
   reverseOT,
 } from "../../api/payroll/overtimeApproval";
+import { getApprovedOvertimeRequests } from "../../api/overtimeRequests";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import { getExpectedHoursForDate } from "../../utils/payroll/attendance/attendanceTimeUtils";
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
@@ -60,6 +61,15 @@ const PayrollList = () => {
   const [selectedPayroll, setSelectedPayroll] = useState(null);
   const [selectedPayslips, setSelectedPayslips] = useState([]);
   const [otApprovals, setOTApprovals] = useState([]);
+  // Head-approved OvertimeRequest entries (immediate head approval on the
+  // OT Approvals page) -- summed per employee against whichever cutoff
+  // period they fall in, to pre-fill the OT hours offered for HR's own
+  // approval below instead of starting from raw attendance-detected hours.
+  const [headApprovedOTRequests, setHeadApprovedOTRequests] = useState([]);
+  // Per-employee draft of the OT hours about to be submitted via Approve
+  // OT -- lets HR see the pre-filled (head-approved, if any) value and
+  // still edit it before approving. Cleared once approved.
+  const [otApprovalDrafts, setOtApprovalDrafts] = useState({});
   const [holidays, setHolidays] = useState([]);
 
   // Manual per-employee, per-cutoff entries that aren't computed from
@@ -125,6 +135,20 @@ const PayrollList = () => {
 
   useEffect(() => {
     loadOTApprovals();
+  }, []);
+
+  const loadHeadApprovedOT = async () => {
+    try {
+      const data = await getApprovedOvertimeRequests();
+
+      setHeadApprovedOTRequests(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    loadHeadApprovedOT();
   }, []);
 
   const departments = useMemo(() => {
@@ -572,6 +596,19 @@ const PayrollList = () => {
 
         const otPay = approvedOTHours * hourlyRate * 1.25;
 
+        // Sum of this employee's immediate-head-approved OvertimeRequest
+        // hours whose date falls inside this cutoff -- offered as the
+        // default value for HR's own Approve OT step below, so HR isn't
+        // re-deriving a number the head already approved from scratch.
+        const headApprovedOTHours = headApprovedOTRequests
+          .filter(
+            (r) =>
+              r.employee_id === employee.id &&
+              r.ot_date >= activePeriod.cutoffStart &&
+              r.ot_date <= activePeriod.cutoffEnd,
+          )
+          .reduce((sum, r) => sum + (r.approved_hours || 0), 0);
+
         // ===== Allowance =====
         // Paid per day actually worked. Derived above from monthly_allow
         // (Monthly type) or entered directly as daily_allowance (Daily/
@@ -865,6 +902,7 @@ const PayrollList = () => {
           otHours,
 
           approvedOTHours,
+          headApprovedOTHours,
 
           otStatus: approval?.status || "Pending",
 
@@ -893,12 +931,14 @@ const PayrollList = () => {
 
           records,
 
-          needsOTApproval: otHours > 0 && approvedOTHours === 0,
+          needsOTApproval:
+            (otHours > 0 || headApprovedOTHours > 0) && approvedOTHours === 0,
         };
       });
   }, [
     employees,
     attendance,
+    headApprovedOTRequests,
     holidays,
     department,
     activePeriod,
@@ -939,8 +979,34 @@ const PayrollList = () => {
     paginatedItems: paginatedPayrollRows,
   } = usePagination(payrollRows, 20);
 
+  // The OT hours pre-filled for HR's own Approve OT step: whatever HR has
+  // already typed into the field for this employee, else the immediate
+  // head's approved hours (if any), else the raw attendance-detected
+  // hours -- HR can always overwrite this before clicking Approve.
+  const getOtApprovalDraft = (row) => {
+    const key = row.employee.id;
+    if (otApprovalDrafts[key] !== undefined) return otApprovalDrafts[key];
+    const defaultHours =
+      row.headApprovedOTHours > 0 ? row.headApprovedOTHours : row.otHours;
+    return defaultHours.toFixed(2);
+  };
+
+  const setOtApprovalDraft = (employeeId, value) => {
+    setOtApprovalDrafts((prev) => ({ ...prev, [employeeId]: value }));
+  };
+
+  const clearOtApprovalDraft = (employeeId) => {
+    setOtApprovalDrafts((prev) => {
+      const next = { ...prev };
+      delete next[employeeId];
+      return next;
+    });
+  };
+
   const handleApproveOT = async (row) => {
     try {
+      const approvedHours = Number(getOtApprovalDraft(row)) || 0;
+
       await approveOT({
         employee_id: row.employee.id,
 
@@ -950,11 +1016,15 @@ const PayrollList = () => {
 
         detected_ot_hours: row.otHours,
 
-        approved_ot_hours: row.otHours,
+        approved_ot_hours: approvedHours,
 
-        remarks: "Approved by HR",
+        remarks:
+          row.headApprovedOTHours > 0
+            ? "Approved by HR (head-approved overtime request)"
+            : "Approved by HR",
       });
 
+      clearOtApprovalDraft(row.employee.id);
       await loadOTApprovals();
     } catch (err) {
       console.error(err);
@@ -1399,6 +1469,11 @@ const PayrollList = () => {
 
                     <td className="px-4 py-3">
                       {row.isTripBasedEmployee ? "--" : row.otHours.toFixed(2)}
+                      {row.headApprovedOTHours > 0 && (
+                        <div className="text-xs text-fg-subtle">
+                          Head-approved: {row.headApprovedOTHours.toFixed(2)}
+                        </div>
+                      )}
                     </td>
 
                     <td className="px-4 py-3">
@@ -1719,13 +1794,29 @@ const PayrollList = () => {
                             : "Generate Payslip"}
                         </button>
 
-                        {row.otHours > 0 && row.otStatus !== "Approved" ? (
-                          <button
-                            className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs"
-                            onClick={() => handleApproveOT(row)}
-                          >
-                            Approve OT
-                          </button>
+                        {(row.otHours > 0 || row.headApprovedOTHours > 0) &&
+                        row.otStatus !== "Approved" ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="w-16 rounded-lg border border-border px-2 py-1 text-xs"
+                              value={getOtApprovalDraft(row)}
+                              onChange={(e) =>
+                                setOtApprovalDraft(
+                                  row.employee.id,
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <button
+                              className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs"
+                              onClick={() => handleApproveOT(row)}
+                            >
+                              Approve OT
+                            </button>
+                          </div>
                         ) : null}
 
                         {row.otStatus === "Approved" ? (

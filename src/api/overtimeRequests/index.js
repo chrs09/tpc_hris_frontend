@@ -49,6 +49,13 @@ export const cancelOvertimeRequest = async (requestId) => {
   return res.data;
 };
 
+// Every head-approved request, for Payroll to sum against its own cutoff
+// periods and pre-fill its OT approval step (see PayrollList.jsx).
+export const getApprovedOvertimeRequests = async () => {
+  const res = await api.get("/overtime-requests/approved");
+  return res.data;
+};
+
 // Approver self-service (requested-by user, or the requester's department
 // head from the Reporting Hierarchy page)
 export const getOvertimeRequestsForMyApproval = async () => {

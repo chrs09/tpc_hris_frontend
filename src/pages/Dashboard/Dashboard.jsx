@@ -25,6 +25,7 @@ import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import PayrollList from "../Payroll/PayrollList";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
+import TicketsPage from "../Admin/TicketsPage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
@@ -117,6 +118,7 @@ const Dashboard = () => {
           <Route path="overtime-approvals" element={<OvertimeApprovals />} />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="error-logs" element={<ErrorLogsPage />} />
+          <Route path="tickets" element={<TicketsPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="admin/trip-assignment" element={<TripAssignment />} />
           <Route path="admin/trip-bypass" element={<TripBypassPage />} />
