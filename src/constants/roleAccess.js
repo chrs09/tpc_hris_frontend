@@ -69,8 +69,8 @@ export const ROLE_ACCESS_GROUPS = [
         roles: ["superadmin", "coordinator_admin", "office_admin"],
       },
       {
-        label: "Start Trip (Bypass)",
-        roles: ["superadmin", "coordinator_admin"],
+        label: "Trip Assignment",
+        roles: ["superadmin", "coordinator_admin", "coordinator"],
       },
       {
         label: "Trip Categories & Rates",
@@ -79,6 +79,10 @@ export const ROLE_ACCESS_GROUPS = [
       {
         label: "Daily Dispatch Board",
         roles: ["superadmin", "coordinator_admin"],
+      },
+      {
+        label: "Trip Bypass",
+        roles: ["superadmin"],
       },
     ],
   },
@@ -133,6 +137,7 @@ export const ALL_ROLES = [
   "helper",
   "employee",
   "coordinator_admin",
+  "coordinator",
   "payroll_admin",
   "office_admin",
 ];

@@ -9,6 +9,7 @@ const ADMIN_DASHBOARD_ROLES = [
   "admin",
   "superadmin",
   "coordinator_admin",
+  "coordinator",
   "payroll_admin",
   "office_admin",
 ];

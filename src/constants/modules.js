@@ -48,9 +48,9 @@ export const MODULE_GROUPS = [
         path: "/dashboard/office/trips",
       },
       {
-        key: "trip_bypass",
-        label: "Start Trip (Bypass)",
-        path: "/dashboard/admin/trip-bypass",
+        key: "trip_assignment",
+        label: "Trip Assignment",
+        path: "/dashboard/admin/trip-assignment",
       },
       {
         key: "trip_categories",
@@ -61,6 +61,11 @@ export const MODULE_GROUPS = [
         key: "daily_dispatch",
         label: "Daily Dispatch Board",
         path: "/dashboard/admin/daily-deliveries",
+      },
+      {
+        key: "trip_bypass_actions",
+        label: "Trip Bypass",
+        path: "/dashboard/admin/trip-bypass",
       },
     ],
   },

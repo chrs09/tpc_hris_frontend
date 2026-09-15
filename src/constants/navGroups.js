@@ -114,10 +114,10 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.office_trip_review",
         },
         {
-          label: "Start Trip (Bypass)",
-          path: "/dashboard/admin/trip-bypass",
-          roles: ["superadmin", "coordinator_admin"],
-          moduleKey: "trip_management.trip_bypass",
+          label: "Trip Assignment",
+          path: "/dashboard/admin/trip-assignment",
+          roles: ["superadmin", "coordinator_admin", "coordinator"],
+          moduleKey: "trip_management.trip_assignment",
         },
         {
           label: "Trip Categories & Rates",
@@ -130,6 +130,15 @@ export function getNavGroups(role) {
           path: "/dashboard/admin/daily-deliveries",
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "trip_management.daily_dispatch",
+        },
+        {
+          // Role-based default is superadmin-only; "selected users" get
+          // in via Module Assignment granting trip_bypass_actions, same
+          // pattern as Attendance's Grid View / List View sub-permissions.
+          label: "Trip Bypass",
+          path: "/dashboard/admin/trip-bypass",
+          roles: ["superadmin"],
+          moduleKey: "trip_management.trip_bypass_actions",
         },
       ],
     },
