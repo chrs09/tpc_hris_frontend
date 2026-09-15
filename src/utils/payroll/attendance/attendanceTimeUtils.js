@@ -85,7 +85,11 @@ export function isSecondHalfAbsent(
     return false;
   }
 
-  return actualOutMinutes > 0 && actualOutMinutes <= MORNING_SHIFT_END_MINUTES;
+  // Any check-out before the afternoon shift actually starts (1:00 PM)
+  // means zero afternoon hours were worked -- whether that's exactly at
+  // noon or a few minutes into the lunch break (e.g. 12:09 PM) makes no
+  // difference, so the cutoff is the END of lunch, not the start of it.
+  return actualOutMinutes > 0 && actualOutMinutes <= LUNCH_BREAK_END_MINUTES;
 }
 
 // =====================================================
