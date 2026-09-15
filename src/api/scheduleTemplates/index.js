@@ -13,6 +13,12 @@ const toFormData = (payload) => {
   return formData;
 };
 
+// The UTC->PH conversion below is scoped to THIS page only (Work
+// Schedules) -- schedule_template data consumed elsewhere (Attendance,
+// Payroll, Employee form via api/employee) is read raw/unconverted, since
+// not every row's stored time is actually in UTC and a blanket
+// conversion previously corrupted live payroll OT calculations for rows
+// that were already correct. See scheduleTemplateTime.js.
 export const getScheduleTemplates = async () => {
   const res = await api.get("/schedule-templates/");
   return (res.data || []).map(scheduleToPh);

@@ -1,15 +1,11 @@
-// Schedule template day in/out times are stored in the database as UTC
-// (a historical seeding quirk -- see app/models/schedule_template.py on
-// the backend), but every part of this app (Work Schedules page,
-// Attendance/Payroll tardiness & undertime calculations, the Employee
-// form) needs to work with plain PH wall-clock time. Rather than touch
-// the stored data or scatter +8h/-8h math across every consumer, this
-// module is the single place that converts between the two: read paths
-// (getScheduleTemplates/getEmployeeList/etc.) convert UTC -> PH once,
-// right after the API response comes back, and write paths (saving a
-// schedule) convert PH -> UTC right before the request goes out. Every
-// other file in the app can treat a schedule_template's fields as
-// already-correct local time.
+// Scoped ONLY to the Work Schedules admin page (api/scheduleTemplates) --
+// NOT applied to schedule_template data consumed elsewhere (Attendance,
+// Payroll, the Employee form), since not every schedule template's
+// stored time is actually in UTC (some rows are already correct PH
+// wall-clock time), and applying this conversion to those other
+// consumers previously corrupted live payroll OT calculations. Until the
+// underlying data is audited/cleaned up row by row, this display-only
+// conversion stays confined to the Work Schedules page itself.
 
 const SCHEDULE_DAYS = [
   "monday",
@@ -29,10 +25,9 @@ const SCHEDULE_TIME_FIELDS = SCHEDULE_DAYS.flatMap((day) => [
 // Shifts a "HH:MM" or "HH:MM:SS" time-of-day string by `hours`, wrapping
 // around midnight -- there's no date attached, so this is pure clock
 // arithmetic, not a real UTC offset conversion. `includeSeconds` controls
-// the output format: the backend's own GET responses (and this app's
-// display code) use "HH:MM:SS", but its parse_time() on create/update
-// only accepts strict "HH:MM" and 400s on anything else -- so the write
-// path must trim seconds back off before sending.
+// the output format: the backend's own GET responses use "HH:MM:SS", but
+// its parse_time() on create/update only accepts strict "HH:MM" and 400s
+// on anything else -- so the write path must trim seconds back off.
 const shiftTimeString = (value, hours, includeSeconds = true) => {
   if (!value) return value;
 
@@ -64,10 +59,12 @@ const shiftScheduleFields = (source, hours, includeSeconds = true) => {
   return shifted;
 };
 
-// UTC (as stored/returned by the backend) -> PH local, for display.
+// UTC (as stored/returned by the backend) -> PH local, for display on the
+// Work Schedules page.
 export const scheduleToPh = (source) => shiftScheduleFields(source, 8);
 
-// PH local (as entered in a form) -> UTC, for saving -- "HH:MM" only, to
-// match the backend's strict parse_time() format.
+// PH local (as entered in the Work Schedules edit form) -> UTC, for
+// saving -- "HH:MM" only, to match the backend's strict parse_time()
+// format.
 export const scheduleToUtc = (source) =>
   shiftScheduleFields(source, -8, false);
