@@ -22,6 +22,7 @@ import DriverTrips from "../Driver/DriverTrips";
 import EmployeeListPage from "../Employee/EmployeeListPage";
 import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
+import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
 import PayrollList from "../Payroll/PayrollList";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
@@ -125,6 +126,10 @@ const Dashboard = () => {
           <Route path="admin/stores" element={<StoreManagement />} />
           <Route path="applicants" element={<ApplicantsPage />} />
           <Route path="applicant/questionaire" element={<Questionaire />} />
+          <Route
+            path="schedule-templates"
+            element={<ScheduleTemplatesPage />}
+          />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
           <Route path="admin/trip-categories" element={<TripCategoriesPage />} />
           <Route path="admin/suppliers" element={<SuppliersPage />} />

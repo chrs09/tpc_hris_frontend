@@ -31,6 +31,7 @@ export const ROLE_ACCESS_GROUPS = [
       { label: "Employees", roles: ["superadmin", "admin"] },
       { label: "Applicants", roles: ["superadmin", "admin"] },
       { label: "Questionaire", roles: ["superadmin", "admin"] },
+      { label: "Work Schedules", roles: ["superadmin", "admin"] },
     ],
   },
   {

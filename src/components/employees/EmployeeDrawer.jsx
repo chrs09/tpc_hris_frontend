@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
-import api from "../../api/services/api";
 import { mapEmployeeToForm } from "../../utils/mapEmployee";
 import { updateEmployeeDetails } from "../../api/employee";
+import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import EmployeeForm from "./EmployeeForm";
 import { confirmDialog } from "../ui/dialog/dialogService";
 
@@ -32,9 +32,9 @@ export default function EmployeeDrawer({
 
     const loadSchedules = async () => {
       try {
-        const res = await api.get("/schedule-templates/");
+        const data = await getScheduleTemplates();
 
-        setScheduleTemplates(res.data || []);
+        setScheduleTemplates(data || []);
       } catch (error) {
         console.error("Schedule API Error:", error);
       }

@@ -60,6 +60,12 @@ export function getNavGroups(role) {
           roles: ["superadmin", "admin"],
           moduleKey: "hris.questionnaire",
         },
+        {
+          label: "Work Schedules",
+          path: "/dashboard/schedule-templates",
+          roles: ["superadmin", "admin"],
+          moduleKey: "hris.schedule_templates",
+        },
       ],
     },
     {

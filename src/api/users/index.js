@@ -12,6 +12,16 @@ export const getUserList = async () => {
   return res.data;
 };
 
+// Minimal, lower-sensitivity user listing (id/username/role/active, no
+// email) for populating an assignee picker -- open to any authenticated
+// user, unlike getUserList() above which requires full Users access
+// (administrator.users). Used by pages like Tickets/Hierarchy so someone
+// granted only that page's own module can still populate its dropdown.
+export const getAssignableUsers = async () => {
+  const res = await api.get("/users/assignable");
+  return res.data;
+};
+
 export const updateUser = async (userId, payload) => {
   const res = await api.patch(`/users/${userId}`, payload);
   return res.data;

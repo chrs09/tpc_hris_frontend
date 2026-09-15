@@ -7,6 +7,7 @@ import {
   getApplicantDetail,
   getApplicantOnboarding,
   getApplicants,
+  updateApplicantOnboardingBirthday,
   updateApplicantStatus,
 } from "../../api/adminApplicants";
 import { employeeRoleConvert } from "../../constants/employeeRole";
@@ -1099,11 +1100,53 @@ function ApplicantColumn({
   );
 }
 
-function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
+function OnboardingReviewModal({
+  isOpen,
+  loading,
+  data,
+  onClose,
+  onBirthdayUpdated,
+}) {
+  const [editingBirthday, setEditingBirthday] = useState(false);
+  const [birthdayDraft, setBirthdayDraft] = useState("");
+  const [savingBirthday, setSavingBirthday] = useState(false);
+
+  useEffect(() => {
+    setEditingBirthday(false);
+  }, [data?.applicant?.id]);
+
   if (!isOpen) return null;
 
   const applicant = data?.applicant;
   const onboarding = data?.onboarding;
+
+  const startEditBirthday = () => {
+    setBirthdayDraft(
+      onboarding?.birthday ? String(onboarding.birthday).slice(0, 10) : "",
+    );
+    setEditingBirthday(true);
+  };
+
+  const handleSaveBirthday = async () => {
+    if (!birthdayDraft) {
+      toast.error("Birthday is required.");
+      return;
+    }
+
+    try {
+      setSavingBirthday(true);
+      await updateApplicantOnboardingBirthday(applicant.id, birthdayDraft);
+      onBirthdayUpdated?.(birthdayDraft);
+      setEditingBirthday(false);
+      toast.success("Birthday updated.");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to update birthday.",
+      );
+    } finally {
+      setSavingBirthday(false);
+    }
+  };
   const education = data?.education_records || [];
   const employment = data?.employment_history || [];
   const references = data?.references || [];
@@ -1234,10 +1277,51 @@ function OnboardingReviewModal({ isOpen, loading, data, onClose }) {
                   label="Position"
                   value={renderValue(onboarding.position)}
                 />
-                <InfoCard
-                  label="Birthday"
-                  value={formatDate(onboarding.birthday)}
-                />
+                <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                    Birthday
+                  </p>
+                  {editingBirthday ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        type="date"
+                        autoFocus
+                        value={birthdayDraft}
+                        onChange={(e) => setBirthdayDraft(e.target.value)}
+                        className="w-full rounded-lg border border-border bg-background p-1.5 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSaveBirthday}
+                        disabled={savingBirthday}
+                        className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+                      >
+                        {savingBirthday ? "..." : "Save"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingBirthday(false)}
+                        disabled={savingBirthday}
+                        className="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="wrap-break-word text-sm text-fg capitalize">
+                        {formatDate(onboarding.birthday) || "-"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={startEditBirthday}
+                        className="shrink-0 text-xs font-medium text-primary hover:underline"
+                      >
+                        {onboarding.birthday ? "Edit" : "Add"}
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <InfoCard
                   label="Birthplace"
                   value={renderValue(onboarding.birthplace)}
@@ -1890,7 +1974,7 @@ export default function ApplicantsPage() {
     try {
       setConvertingApplicant(true);
 
-      await convertApplicantToEmployee(selectedApplicant.id, {
+      const result = await convertApplicantToEmployee(selectedApplicant.id, {
         department: convertDepartment.trim(),
         position:
           convertPosition.trim() === selectedApplicant.position_applied
@@ -1901,7 +1985,13 @@ export default function ApplicantsPage() {
       await loadApplicants();
       await refreshSelectedApplicant(selectedApplicant.id);
       setConvertOpen(false);
-      alertDialog("Applicant converted to employee successfully.");
+
+      const account = result?.account;
+      alertDialog(
+        account
+          ? `Applicant converted to employee successfully.\n\nLogin credentials:\nUsername: ${account.username}\nTemporary password: ${account.temporary_password}\n\nMake sure to share these with the new hire -- the password won't be shown again.`
+          : "Applicant converted to employee successfully.",
+      );
     } catch (error) {
       console.error("Failed to convert applicant:", error);
       const message =
@@ -2037,6 +2127,14 @@ export default function ApplicantsPage() {
   const handleCloseOnboardingView = () => {
     setOnboardingViewOpen(false);
     setOnboardingViewData(null);
+  };
+
+  const handleOnboardingBirthdayUpdated = (newBirthday) => {
+    setOnboardingViewData((prev) =>
+      prev
+        ? { ...prev, onboarding: { ...prev.onboarding, birthday: newBirthday } }
+        : prev,
+    );
   };
 
   return (
@@ -2242,6 +2340,7 @@ export default function ApplicantsPage() {
         loading={onboardingViewLoading}
         data={onboardingViewData}
         onClose={handleCloseOnboardingView}
+        onBirthdayUpdated={handleOnboardingBirthdayUpdated}
       />
 
       <ImagePreviewModal

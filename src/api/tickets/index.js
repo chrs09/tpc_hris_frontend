@@ -31,3 +31,15 @@ export const deleteTicket = async (ticketId) => {
   const res = await api.delete(`/tickets/${ticketId}`);
   return res.data;
 };
+
+export const uploadTicketImage = async (ticketId, file) => {
+  const formData = new FormData();
+  formData.append("image", file);
+  const res = await api.post(`/tickets/${ticketId}/image`, formData);
+  return res.data;
+};
+
+export const removeTicketImage = async (ticketId) => {
+  const res = await api.delete(`/tickets/${ticketId}/image`);
+  return res.data;
+};

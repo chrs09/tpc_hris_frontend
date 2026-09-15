@@ -6,7 +6,7 @@ import {
   getCashAdvanceHeads,
   setCashAdvanceHead,
 } from "../../api/orgHierarchy";
-import { getUserList } from "../../api/users";
+import { getAssignableUsers } from "../../api/users";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import useModuleAccess from "../../hooks/useModuleAccess";
 
@@ -41,7 +41,7 @@ const OrgHierarchyPage = () => {
       const [heads, caHeads, userList] = await Promise.all([
         getDepartmentHeads(),
         getCashAdvanceHeads(),
-        getUserList(),
+        getAssignableUsers(),
       ]);
       setRows(heads);
       setCaRows(caHeads);

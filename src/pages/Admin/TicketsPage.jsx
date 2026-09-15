@@ -7,8 +7,10 @@ import {
   createTicket,
   updateTicket,
   deleteTicket,
+  uploadTicketImage,
+  removeTicketImage,
 } from "../../api/tickets";
-import { getUserList } from "../../api/users";
+import { getAssignableUsers } from "../../api/users";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -48,8 +50,8 @@ export default function TicketsPage() {
 
   useEffect(() => {
     loadTickets();
-    getUserList()
-      .then((data) => setUsers(data.filter((u) => u.is_active)))
+    getAssignableUsers()
+      .then((data) => setUsers(data))
       .catch(() => setUsers([]));
   }, [loadTickets]);
 
@@ -166,6 +168,7 @@ export default function TicketsPage() {
             setSelectedTicket(null);
             loadTickets();
           }}
+          onImageChanged={loadTickets}
         />
       )}
     </div>
@@ -198,6 +201,14 @@ const TicketCard = ({ ticket, onDragStart, onClick }) => (
       </p>
     )}
 
+    {ticket.image_url && (
+      <img
+        src={ticket.image_url}
+        alt=""
+        className="mt-2 h-24 w-full rounded-lg object-cover"
+      />
+    )}
+
     <div className="mt-2 flex items-center justify-between text-[11px] text-fg-subtle">
       <span>By {ticket.created_by_username || "Unknown"}</span>
       {ticket.assigned_to_username && (
@@ -220,7 +231,16 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [saving, setSaving] = useState(false);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   const handleSubmit = async () => {
     if (!title.trim()) {
@@ -230,12 +250,27 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
 
     try {
       setSaving(true);
-      await createTicket({
+      const ticket = await createTicket({
         title: title.trim(),
         description: description.trim() || undefined,
         priority: priority || undefined,
         assignedToUserId: assigneeId ? Number(assigneeId) : undefined,
       });
+
+      if (image) {
+        // The image needs the ticket's id, so it's uploaded as a second
+        // step right after creation rather than in the same request.
+        try {
+          await uploadTicketImage(ticket.id, image);
+        } catch (imageError) {
+          toast.error(
+            `Ticket created, but the image failed to upload: ${getErrorMessage(imageError)}`,
+          );
+          onCreated();
+          return;
+        }
+      }
+
       toast.success("Ticket created.");
       onCreated();
     } catch (error) {
@@ -329,6 +364,38 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
               </select>
             </div>
           </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-fg-subtle">
+              Image (optional)
+            </label>
+            {imagePreview ? (
+              <div className="relative">
+                <img
+                  src={imagePreview}
+                  alt=""
+                  className="h-32 w-full rounded-xl border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImage(null);
+                    setImagePreview(null);
+                  }}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white hover:bg-black/80"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleImageChange}
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm text-fg file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground"
+              />
+            )}
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
@@ -354,7 +421,13 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
   );
 };
 
-const TicketDetailModal = ({ ticket, users = [], onClose, onChanged }) => {
+const TicketDetailModal = ({
+  ticket,
+  users = [],
+  onClose,
+  onChanged,
+  onImageChanged,
+}) => {
   const [title, setTitle] = useState(ticket.title);
   const [description, setDescription] = useState(ticket.description || "");
   const [priority, setPriority] = useState(ticket.priority || "");
@@ -364,6 +437,38 @@ const TicketDetailModal = ({ ticket, users = [], onClose, onChanged }) => {
   );
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [imageUrl, setImageUrl] = useState(ticket.image_url || null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const updated = await uploadTicketImage(ticket.id, file);
+      setImageUrl(updated.image_url);
+      toast.success("Image uploaded.");
+      onImageChanged?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    try {
+      setUploadingImage(true);
+      await removeTicketImage(ticket.id);
+      setImageUrl(null);
+      onImageChanged?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -449,6 +554,37 @@ const TicketDetailModal = ({ ticket, users = [], onClose, onChanged }) => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-fg-subtle">
+              Image
+            </label>
+            {imageUrl ? (
+              <div className="relative">
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="h-32 w-full rounded-xl border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  disabled={uploadingImage}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white hover:bg-black/80 disabled:opacity-50"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                disabled={uploadingImage}
+                onChange={handleImageChange}
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm text-fg file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground disabled:opacity-50"
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

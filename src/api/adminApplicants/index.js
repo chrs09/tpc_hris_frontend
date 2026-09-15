@@ -34,6 +34,19 @@ export const addApplicantRemark = async (id, formData) => {
   return res.data;
 };
 
+// Lets an admin fill in a birthday the applicant forgot on their
+// onboarding form -- conversion to employee requires it.
+export const updateApplicantOnboardingBirthday = async (
+  applicantId,
+  birthday,
+) => {
+  const res = await api.patch(
+    `/admin/applicants/${applicantId}/onboarding/birthday`,
+    { birthday },
+  );
+  return res.data;
+};
+
 export const convertApplicantToEmployee = async (applicantId, payload) => {
   const response = await api.post(
     `/admin/applicants/${applicantId}/convert-to-employee`,

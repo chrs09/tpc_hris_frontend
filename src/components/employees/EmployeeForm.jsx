@@ -1183,6 +1183,22 @@ function EditableField({
 }) {
   const isSelect = Array.isArray(options) && options.length > 0;
 
+  // For a select-backed field (e.g. Work Schedule, stored as an id), show
+  // the matching option's label in read-only view instead of the raw
+  // stored value.
+  const selectedOption = isSelect
+    ? options.find((option) =>
+        typeof option === "object"
+          ? String(option.value) === String(value)
+          : String(option) === String(value),
+      )
+    : null;
+  const displayValue = selectedOption
+    ? typeof selectedOption === "object"
+      ? selectedOption.label
+      : selectedOption
+    : value;
+
   return (
     <div className="space-y-1">
       <label className="text-sm text-fg font-semibold">
@@ -1229,7 +1245,7 @@ function EditableField({
           />
         )
       ) : (
-        <p className="font-serif">{value || "-"}</p>
+        <p className="font-serif">{displayValue || "-"}</p>
       )}
       {error && <p className="text-xs text-danger mt-1">{error}</p>}
     </div>

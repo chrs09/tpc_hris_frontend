@@ -33,6 +33,11 @@ export const MODULE_GROUPS = [
         label: "Questionaire",
         path: "/dashboard/applicant/questionaire",
       },
+      {
+        key: "schedule_templates",
+        label: "Work Schedules",
+        path: "/dashboard/schedule-templates",
+      },
     ],
   },
   {
