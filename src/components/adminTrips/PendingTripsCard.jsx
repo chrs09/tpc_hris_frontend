@@ -491,35 +491,106 @@ const PendingTripsCard = ({
                     <p>{selectedTrip.end_time || "-"}</p>
                   </div>
 
-                  {/* ======================= START PHOTO ======================= */}
-                  <div className="flex items-center justify-between gap-4 bg-surface-hover p-3 rounded-xl">
-                    <div>
-                      <p className="text-sm font-semibold text-fg">
-                        Start Trip Photo
-                      </p>
+                  {/* ======================= CHECKOUT PHOTOS ======================= */}
+                  <div className="bg-surface-hover p-3 rounded-xl">
+                    <p className="text-sm font-semibold text-fg">
+                      Checkout Photos
+                    </p>
+                    <p className="mb-2 text-xs text-fg-subtle">
+                      Invoice, LM, and stamped LM uploaded at Checkout --
+                      Invoice/LM may have multiple pages.
+                    </p>
 
-                      <p className="text-xs text-fg-subtle">
-                        Photo uploaded when the trip started
-                      </p>
+                    <div className="space-y-2">
+                      {/* INVOICE PAGES */}
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-xs text-fg-muted">
+                          Invoice ({selectedTrip.invoice_photos?.length || 0}{" "}
+                          page{selectedTrip.invoice_photos?.length === 1 ? "" : "s"})
+                        </span>
+                        {selectedTrip.invoice_photos?.length > 0 ? (
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            {selectedTrip.invoice_photos.map((url, i) => (
+                              <button
+                                key={url}
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(url),
+                                    label: `Invoice Page ${i + 1}`,
+                                  })
+                                }
+                                className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                              >
+                                Page {i + 1}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-fg-subtle">
+                            No Photo
+                          </span>
+                        )}
+                      </div>
+
+                      {/* LM PAGES */}
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-xs text-fg-muted">
+                          LM ({selectedTrip.lm_photos?.length || 0} page
+                          {selectedTrip.lm_photos?.length === 1 ? "" : "s"})
+                        </span>
+                        {selectedTrip.lm_photos?.length > 0 ? (
+                          <div className="flex flex-wrap justify-end gap-1.5">
+                            {selectedTrip.lm_photos.map((url, i) => (
+                              <button
+                                key={url}
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(url),
+                                    label: `LM Page ${i + 1}`,
+                                  })
+                                }
+                                className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                              >
+                                Page {i + 1}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-fg-subtle">
+                            No Photo
+                          </span>
+                        )}
+                      </div>
+
+                      {/* LM STAMPED CHECKOUT */}
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-xs text-fg-muted">
+                          LM (stamped "checkout")
+                        </span>
+                        {selectedTrip.lm_checkout_stamped_photo ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openPhoto({
+                                url: resolvePhotoUrl(
+                                  selectedTrip.lm_checkout_stamped_photo,
+                                ),
+                                label: "LM Stamped Checkout",
+                              })
+                            }
+                            className="shrink-0 w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
+                          >
+                            <FontAwesomeIcon icon={faEye} />
+                          </button>
+                        ) : (
+                          <span className="text-xs text-fg-subtle">
+                            No Photo
+                          </span>
+                        )}
+                      </div>
                     </div>
-
-                    {selectedTrip.start_photo ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openPhoto({
-                            url: resolvePhotoUrl(selectedTrip.start_photo),
-                            label: "Start Trip Photo",
-                          })
-                        }
-                        title="View start trip photo"
-                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
-                      >
-                        <FontAwesomeIcon icon={faEye} />
-                      </button>
-                    ) : (
-                      <span className="text-xs text-fg-subtle">No Photo</span>
-                    )}
                   </div>
 
                   {/* ======================= END PHOTO ======================= */}
@@ -597,58 +668,105 @@ const PendingTripsCard = ({
                             </p>
                           </div>
 
-                          {/* POD VIEW BUTTON */}
-                          {stop.delivery_proof_photo ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openPhoto({
-                                  url: resolvePhotoUrl(
-                                    stop.delivery_proof_photo,
-                                  ),
-                                  label: `${stop.store_name} - Proof of Delivery`,
-                                })
-                              }
-                              title="View Proof of Delivery"
-                              className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
-                            >
-                              <FontAwesomeIcon icon={faEye} />
-                            </button>
-                          ) : (
-                            <div className="shrink-0 text-right">
+                          {/* UNLOAD + POD VIEW BUTTONS */}
+                          <div className="shrink-0 flex flex-col items-end gap-1.5">
+                            {stop.unloading_photo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(stop.unloading_photo),
+                                    label: `${stop.store_name} - Unloading Photo`,
+                                  })
+                                }
+                                title="View Unloading Photo"
+                                className="w-10 h-10 flex items-center justify-center bg-surface-active text-fg rounded-lg hover:bg-surface-hover"
+                              >
+                                <FontAwesomeIcon icon={faEye} />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-fg-subtle">
+                                No Unload Photo
+                              </span>
+                            )}
+
+                            {stop.delivery_proof_photo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(
+                                      stop.delivery_proof_photo,
+                                    ),
+                                    label: `${stop.store_name} - Proof of Delivery`,
+                                  })
+                                }
+                                title="View Proof of Delivery"
+                                className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
+                              >
+                                <FontAwesomeIcon icon={faEye} />
+                              </button>
+                            ) : (
                               <span className="text-xs text-fg-subtle">
                                 No POD
                               </span>
-                            </div>
-                          )}
+                            )}
+                          </div>
                         </div>
 
-                        {/* POD STATUS */}
-                        <div className="mt-3 pt-3 border-t border-border flex justify-between items-center">
-                          <span className="text-xs text-fg-subtle">
-                            Proof of Delivery
-                          </span>
-
-                          {stop.delivery_proof_photo ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                openPhoto({
-                                  url: resolvePhotoUrl(
-                                    stop.delivery_proof_photo,
-                                  ),
-                                  label: `${stop.store_name} - Proof of Delivery`,
-                                })
-                              }
-                              className="text-xs font-semibold underline text-primary"
-                            >
-                              View Attached Photo
-                            </button>
-                          ) : (
+                        {/* PHOTO STATUS */}
+                        <div className="mt-3 pt-3 border-t border-border space-y-2">
+                          <div className="flex justify-between items-center">
                             <span className="text-xs text-fg-subtle">
-                              Not available
+                              Unloading Photo
                             </span>
-                          )}
+
+                            {stop.unloading_photo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(stop.unloading_photo),
+                                    label: `${stop.store_name} - Unloading Photo`,
+                                  })
+                                }
+                                className="text-xs font-semibold underline text-primary"
+                              >
+                                View Attached Photo
+                              </button>
+                            ) : (
+                              <span className="text-xs text-fg-subtle">
+                                Not available
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-fg-subtle">
+                              Proof of Delivery
+                            </span>
+
+                            {stop.delivery_proof_photo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(
+                                      stop.delivery_proof_photo,
+                                    ),
+                                    label: `${stop.store_name} - Proof of Delivery`,
+                                  })
+                                }
+                                className="text-xs font-semibold underline text-primary"
+                              >
+                                View Attached Photo
+                              </button>
+                            ) : (
+                              <span className="text-xs text-fg-subtle">
+                                Not available
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))

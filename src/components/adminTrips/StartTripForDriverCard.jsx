@@ -19,6 +19,10 @@ const inputStyles =
 // backend's MAX_PLANNED_STOPS.
 const MAX_DESTINATION_STORES = 20;
 
+// A single truck/trip can carry multiple shipments -- capped here to
+// match the backend's MAX_SHIPMENT_NUMBERS.
+const MAX_SHIPMENT_NUMBERS = 10;
+
 // Lets a trip manager (admin/superadmin/coordinator_admin) dispatch a
 // trip to a driver from the office -- this is Step 0 of the driver flow
 // (Checkout, Start Trip, Arrived, Start Unloading, Delivered, Checkin).
@@ -47,7 +51,8 @@ export default function StartTripForDriverCard({
   const [driverId, setDriverId] = useState("");
   const [originStoreId, setOriginStoreId] = useState("");
   const [vehicleUnitId, setVehicleUnitId] = useState("");
-  const [shipmentNo, setShipmentNo] = useState("");
+  const [shipmentNumbers, setShipmentNumbers] = useState([]);
+  const [shipmentNoInput, setShipmentNoInput] = useState("");
   const [tripRateProfileId, setTripRateProfileId] = useState("");
   const [selectedDestinationIds, setSelectedDestinationIds] = useState([]);
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
@@ -129,6 +134,28 @@ export default function StartTripForDriverCard({
     setSelectedDestinationIds((prev) => prev.filter((id) => id !== storeId));
   };
 
+  // A single truck/trip can carry multiple shipments (e.g. several
+  // DRs/manifests loaded together) -- entered one at a time here rather
+  // than as a single free-text field.
+  const addShipmentNumber = () => {
+    const value = shipmentNoInput.trim();
+    if (!value) return;
+    if (shipmentNumbers.includes(value)) {
+      toast.error("That shipment number is already added.");
+      return;
+    }
+    if (shipmentNumbers.length >= MAX_SHIPMENT_NUMBERS) {
+      toast.error(`Maximum of ${MAX_SHIPMENT_NUMBERS} shipment numbers allowed.`);
+      return;
+    }
+    setShipmentNumbers((prev) => [...prev, value]);
+    setShipmentNoInput("");
+  };
+
+  const removeShipmentNumber = (value) => {
+    setShipmentNumbers((prev) => prev.filter((n) => n !== value));
+  };
+
   const filteredDestinationStores = destinationStores.filter((store) =>
     store.name.toLowerCase().includes(destinationSearch.toLowerCase()),
   );
@@ -154,7 +181,8 @@ export default function StartTripForDriverCard({
     setDriverId("");
     setOriginStoreId("");
     setVehicleUnitId("");
-    setShipmentNo("");
+    setShipmentNumbers([]);
+    setShipmentNoInput("");
     setTripRateProfileId("");
     setSelectedDestinationIds([]);
     setSelectedHelperIds([]);
@@ -167,7 +195,7 @@ export default function StartTripForDriverCard({
     driverId &&
     originStoreId &&
     vehicleUnitId &&
-    shipmentNo.trim() &&
+    shipmentNumbers.length > 0 &&
     tripRateProfileId &&
     selectedDestinationIds.length > 0;
 
@@ -186,7 +214,7 @@ export default function StartTripForDriverCard({
       formData.append("driver_id", driverId);
       formData.append("vehicle_unit_id", vehicleUnitId);
       formData.append("origin_store_id", originStoreId);
-      formData.append("shipment_no", shipmentNo.trim());
+      formData.append("shipment_no", JSON.stringify(shipmentNumbers));
       formData.append("trip_rate_profile_id", tripRateProfileId);
       formData.append(
         "destination_store_ids",
@@ -213,7 +241,7 @@ export default function StartTripForDriverCard({
         <div>
           <h3 className="text-sm font-semibold text-fg">Dispatch Trip</h3>
           <p className="mt-1 text-xs text-fg-subtle">
-            Assign a driver, vehicle, origin hub, shipment number, trip
+            Assign a driver, vehicle, origin hub, shipment number(s), trip
             category, and destination store(s). The driver's own Checkout
             step only records the odometer reading and photos.
           </p>
@@ -305,15 +333,62 @@ export default function StartTripForDriverCard({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Shipment Number
+                  Shipment Number(s) ({shipmentNumbers.length}/
+                  {MAX_SHIPMENT_NUMBERS})
                 </label>
-                <input
-                  type="text"
-                  value={shipmentNo}
-                  onChange={(e) => setShipmentNo(e.target.value)}
-                  placeholder="Enter shipment number"
-                  className={inputStyles}
-                />
+                <p className="mb-2 text-xs text-fg-subtle">
+                  A single trip can carry multiple shipments -- add each
+                  one separately.
+                </p>
+
+                {shipmentNumbers.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {shipmentNumbers.map((number) => (
+                      <span
+                        key={number}
+                        className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                      >
+                        {number}
+                        <button
+                          type="button"
+                          onClick={() => removeShipmentNumber(number)}
+                          className="text-primary/70 hover:text-primary"
+                          aria-label={`Remove ${number}`}
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={shipmentNoInput}
+                    onChange={(e) => setShipmentNoInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addShipmentNumber();
+                      }
+                    }}
+                    placeholder="Enter shipment number"
+                    disabled={shipmentNumbers.length >= MAX_SHIPMENT_NUMBERS}
+                    className={inputStyles}
+                  />
+                  <button
+                    type="button"
+                    onClick={addShipmentNumber}
+                    disabled={
+                      !shipmentNoInput.trim() ||
+                      shipmentNumbers.length >= MAX_SHIPMENT_NUMBERS
+                    }
+                    className="shrink-0 rounded-xl border border-border px-4 py-2 text-sm font-medium text-fg transition hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
 
               <div>

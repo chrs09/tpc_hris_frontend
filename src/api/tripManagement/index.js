@@ -59,11 +59,12 @@ export const getAvailableHelpers = async (driverId) => {
 
 // ========================================
 // DISPATCH TRIP (coordinator-only -- office's first step in the driver
-// flow: assign a driver, vehicle, origin hub, shipment number, trip
+// flow: assign a driver, vehicle, origin hub, shipment number(s), trip
 // category (rate profile), and the destination store(s) for this trip.
 // The driver's own Checkout step only records the odometer reading and
 // photos.)
-// Form data: { driver_id, vehicle_unit_id, origin_store_id, shipment_no,
+// Form data: { driver_id, vehicle_unit_id, origin_store_id,
+//   shipment_no (JSON-encoded array of 1-10 strings),
 //   trip_rate_profile_id, destination_store_ids, helper_ids }
 // ========================================
 export const dispatchTrip = async (formData) => {
