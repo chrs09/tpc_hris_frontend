@@ -145,6 +145,14 @@ const PendingTripsCard = ({
       return;
     }
 
+    if (
+      !(await confirmDialog(
+        `Approve ${selectedTrip.trip_code || selectedTrip.ticket_no} and send it to Office Personnel? This cannot be undone.`,
+      ))
+    ) {
+      return;
+    }
+
     try {
       setSubmitting(true);
       setRemarksError("");
@@ -156,11 +164,15 @@ const PendingTripsCard = ({
       // - save coordinator remarks
       // - save coordinator_settlement_date
       // - create the TripFinanceReview record
-      await approveTrip(selectedTrip.trip_id, remarks.trim());
+      const res = await approveTrip(selectedTrip.trip_id, remarks.trim());
 
       setShowModal(false);
       setSelectedTrip(null);
       setRemarks("");
+
+      toast.success(
+        `Approved by ${res?.data?.coordinator_name || "you"} and sent to Office Personnel.`,
+      );
 
       await refreshTrips();
     } catch (error) {

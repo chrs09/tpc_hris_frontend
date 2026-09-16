@@ -195,7 +195,15 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
             </div>
 
             <div className="mt-4 rounded-lg bg-surface-hover p-3">
-              <p className="text-xs text-fg-subtle">Coordinator Settlement</p>
+              <p className="text-xs text-fg-subtle">Sent By (Coordinator)</p>
+
+              <p className="mt-1 text-sm font-medium text-fg-muted">
+                {trip.coordinator_name || "-"}
+              </p>
+
+              <p className="mt-2 text-xs text-fg-subtle">
+                Coordinator Settlement
+              </p>
 
               <p className="mt-1 text-sm font-medium text-fg-muted">
                 {trip.coordinator_settlement_date || "-"}
@@ -332,6 +340,16 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                 <div className="rounded-xl border border-warning/30 bg-warning/10 p-5">
                   <div className="mb-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-warning">
+                      Sent By
+                    </p>
+
+                    <p className="mt-1 font-medium text-fg-muted">
+                      {selectedTrip.coordinator_name || "-"}
+                    </p>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-warning">
                       Settlement Date
                     </p>
 
@@ -355,18 +373,30 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
 
               <section>
                 <h3 className="mb-4 text-lg font-bold text-fg">
-                  Trip Photos
+                  Checkout Photos
                 </h3>
 
                 <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                  <PhotoCard
-                    title="Start Trip Photo"
-                    src={selectedTrip.start_photo}
+                  <PhotoGroupCard
+                    title={`Invoice (${selectedTrip.invoice_photos?.length || 0} page${selectedTrip.invoice_photos?.length === 1 ? "" : "s"})`}
+                    srcs={selectedTrip.invoice_photos}
+                    onPreview={setSelectedImageUrl}
+                  />
+
+                  <PhotoGroupCard
+                    title={`LM (${selectedTrip.lm_photos?.length || 0} page${selectedTrip.lm_photos?.length === 1 ? "" : "s"})`}
+                    srcs={selectedTrip.lm_photos}
                     onPreview={setSelectedImageUrl}
                   />
 
                   <PhotoCard
-                    title="Stamped Invoice"
+                    title="LM (stamped 'checkout')"
+                    src={selectedTrip.lm_checkout_stamped_photo}
+                    onPreview={setSelectedImageUrl}
+                  />
+
+                  <PhotoCard
+                    title="Stamped Invoice (Checkin)"
                     src={selectedTrip.stamped_invoice_photo}
                     onPreview={setSelectedImageUrl}
                   />
@@ -465,6 +495,33 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                             label="Check Out"
                             value={stop.check_out_time}
                           />
+                        </div>
+
+                        <div className="mt-5">
+                          <p className="mb-2 text-sm font-semibold text-fg-muted">
+                            Unloading Photo
+                          </p>
+
+                          {stop.unloading_photo ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedImageUrl(stop.unloading_photo)
+                              }
+                              className="block max-w-full overflow-hidden rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+                              aria-label={`View unloading photo for ${stop.store_name}`}
+                            >
+                              <img
+                                src={stop.unloading_photo}
+                                alt={`Unloading - ${stop.store_name}`}
+                                className="max-h-72 rounded-xl border border-border object-contain transition hover:opacity-90"
+                              />
+                            </button>
+                          ) : (
+                            <div className="rounded-lg bg-surface-hover p-4 text-sm text-fg-subtle">
+                              No unloading photo uploaded.
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-5">
@@ -618,6 +675,38 @@ function PhotoCard({ title, src, onPreview }) {
             className="h-72 w-full rounded-xl border border-border bg-surface-hover object-contain transition hover:opacity-90"
           />
         </button>
+      ) : (
+        <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-surface-hover">
+          <p className="text-sm text-fg-subtle">No photo available</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhotoGroupCard({ title, srcs, onPreview }) {
+  return (
+    <div>
+      <p className="mb-2 text-sm font-semibold text-fg-muted">{title}</p>
+
+      {srcs?.length > 0 ? (
+        <div className="grid grid-cols-3 gap-2">
+          {srcs.map((src, i) => (
+            <button
+              key={src}
+              type="button"
+              onClick={() => onPreview(src)}
+              className="block overflow-hidden rounded-xl text-left focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-label={`View ${title} page ${i + 1}`}
+            >
+              <img
+                src={src}
+                alt={`${title} page ${i + 1}`}
+                className="h-24 w-full rounded-xl border border-border bg-surface-hover object-cover transition hover:opacity-90"
+              />
+            </button>
+          ))}
+        </div>
       ) : (
         <div className="flex h-48 items-center justify-center rounded-xl border border-border bg-surface-hover">
           <p className="text-sm text-fg-subtle">No photo available</p>

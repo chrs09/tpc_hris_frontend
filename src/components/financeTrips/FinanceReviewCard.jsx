@@ -511,19 +511,55 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                       <p className="mb-2 text-sm text-fg-subtle">Attachments</p>
 
                       <div className="flex flex-wrap gap-2">
-                        {selectedTrip.start_photo && (
+                        {selectedTrip.invoice_photos?.map((url, i) => (
                           <button
+                            key={url}
                             type="button"
                             onClick={() =>
                               setActivePhoto({
-                                url: resolvePhotoUrl(selectedTrip.start_photo),
-                                label: "Start Photo",
+                                url: resolvePhotoUrl(url),
+                                label: `Invoice Page ${i + 1}`,
                               })
                             }
                             className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
                           >
                             <Eye size={14} />
-                            Start Photo
+                            Invoice Page {i + 1}
+                          </button>
+                        ))}
+
+                        {selectedTrip.lm_photos?.map((url, i) => (
+                          <button
+                            key={url}
+                            type="button"
+                            onClick={() =>
+                              setActivePhoto({
+                                url: resolvePhotoUrl(url),
+                                label: `LM Page ${i + 1}`,
+                              })
+                            }
+                            className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
+                          >
+                            <Eye size={14} />
+                            LM Page {i + 1}
+                          </button>
+                        ))}
+
+                        {selectedTrip.lm_checkout_stamped_photo && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setActivePhoto({
+                                url: resolvePhotoUrl(
+                                  selectedTrip.lm_checkout_stamped_photo,
+                                ),
+                                label: "LM Stamped Checkout",
+                              })
+                            }
+                            className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
+                          >
+                            <Eye size={14} />
+                            LM Stamped Checkout
                           </button>
                         )}
 
@@ -535,17 +571,19 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                                 url: resolvePhotoUrl(
                                   selectedTrip.stamped_invoice_photo,
                                 ),
-                                label: "Stamped Invoice",
+                                label: "Stamped Invoice (Checkin)",
                               })
                             }
                             className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
                           >
                             <Eye size={14} />
-                            Stamped Invoice
+                            Stamped Invoice (Checkin)
                           </button>
                         )}
 
-                        {!selectedTrip.start_photo &&
+                        {!selectedTrip.invoice_photos?.length &&
+                          !selectedTrip.lm_photos?.length &&
+                          !selectedTrip.lm_checkout_stamped_photo &&
                           !selectedTrip.stamped_invoice_photo && (
                             <span className="text-sm text-fg-subtle">
                               No attachments
@@ -588,27 +626,49 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                             </div>
                           </div>
 
-                          {stop.delivery_proof_photo ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setActivePhoto({
-                                  url: resolvePhotoUrl(
-                                    stop.delivery_proof_photo,
-                                  ),
-                                  label: `${stop.store_name} - Proof of Delivery`,
-                                })
-                              }
-                              title="View Proof of Delivery"
-                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-active transition hover:bg-primary"
-                            >
-                              <Eye size={16} />
-                            </button>
-                          ) : (
-                            <span className="text-xs text-fg-subtle">
-                              No POD
-                            </span>
-                          )}
+                          <div className="flex shrink-0 items-center gap-2">
+                            {stop.unloading_photo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActivePhoto({
+                                    url: resolvePhotoUrl(stop.unloading_photo),
+                                    label: `${stop.store_name} - Unloading Photo`,
+                                  })
+                                }
+                                title="View Unloading Photo"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-active transition hover:bg-primary"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-fg-subtle">
+                                No Unload
+                              </span>
+                            )}
+
+                            {stop.delivery_proof_photo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setActivePhoto({
+                                    url: resolvePhotoUrl(
+                                      stop.delivery_proof_photo,
+                                    ),
+                                    label: `${stop.store_name} - Proof of Delivery`,
+                                  })
+                                }
+                                title="View Proof of Delivery"
+                                className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-active transition hover:bg-primary"
+                              >
+                                <Eye size={16} />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-fg-subtle">
+                                No POD
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))
                     ) : (
