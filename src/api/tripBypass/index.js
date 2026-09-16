@@ -21,11 +21,6 @@ export const bypassCheckout = async (tripId, formData) => {
   return res.data;
 };
 
-export const bypassStart = async (tripId, formData) => {
-  const res = await api.post(`/admin/trips/bypass/${tripId}/start`, formData);
-  return res.data;
-};
-
 export const bypassCheckIn = async (tripId, formData) => {
   const res = await api.post(`/admin/trips/bypass/${tripId}/check-in`, formData);
   return res.data;
@@ -44,11 +39,6 @@ export const bypassCheckOut = async (tripId, stopId, formData) => {
     `/admin/trips/bypass/${tripId}/stops/${stopId}/check-out`,
     formData,
   );
-  return res.data;
-};
-
-export const bypassBackToSource = async (tripId, formData) => {
-  const res = await api.post(`/admin/trips/bypass/${tripId}/back-to-source`, formData);
   return res.data;
 };
 

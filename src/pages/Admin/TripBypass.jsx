@@ -7,11 +7,9 @@ import {
   getBypassableTrips,
   getBypassTripDetail,
   bypassCheckout,
-  bypassStart,
   bypassCheckIn,
   bypassStartUnloading,
   bypassCheckOut,
-  bypassBackToSource,
   bypassCheckin,
 } from "../../api/tripBypass";
 
@@ -22,15 +20,16 @@ const inputStyles =
   "w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 // Which action is next for a trip, based on its status/current_step --
-// mirrors the 7-step driver flow (Checkout, Start, Arrived, Start
-// Unloading, Delivered, Back to Source, Checkin).
+// mirrors the driver flow (Checkout, Arrived, Start Unloading,
+// Delivered, Checkin -- no more separate Start Trip or Back to Source
+// step; Checkout itself starts the trip). A trip can cover multiple
+// planned stores (see tripDetail.planned_stores); once DELIVERED,
+// there's either another store left to arrive at, or none left and the
+// trip is ready to Checkin.
 const getNextAction = (trip) => {
   if (!trip) return null;
   if (trip.status === "ASSIGNED" && trip.current_step === "ASSIGNED") {
     return "checkout";
-  }
-  if (trip.status === "ASSIGNED" && trip.current_step === "CHECKOUT") {
-    return "start";
   }
   if (trip.status === "ACTIVE") {
     const openStop = [...trip.stops]
@@ -44,7 +43,14 @@ const getNextAction = (trip) => {
     if (trip.current_step === "UNLOADING" && openStop) {
       return { type: "check-out", stop: openStop };
     }
-    if (trip.current_step === "DELIVERED") return "back-to-source";
+    if (trip.current_step === "DELIVERED") {
+      const hasRemainingStores = (trip.planned_stores || []).some(
+        (s) => !s.delivered,
+      );
+      return hasRemainingStores ? "check-in" : "checkin";
+    }
+    // Legacy trips already in RETURNING from before Back to Source was
+    // removed -- let them proceed straight to Checkin.
     if (trip.current_step === "RETURNING") return "checkin";
   }
   return null;
@@ -64,14 +70,14 @@ const TripBypass = () => {
   const [submitting, setSubmitting] = useState(false);
 
   // Step-specific fields
-  const [shipmentNo, setShipmentNo] = useState("");
-  const [destinationStoreId, setDestinationStoreId] = useState("");
   const [odometerReading, setOdometerReading] = useState("");
   const [checkInStoreId, setCheckInStoreId] = useState("");
   const [overrideStoreId, setOverrideStoreId] = useState("");
   const [podPhoto, setPodPhoto] = useState(null);
   const [invoicePhoto, setInvoicePhoto] = useState(null);
   const [lmPhoto, setLmPhoto] = useState(null);
+  const [lmStampedPhoto, setLmStampedPhoto] = useState(null);
+  const [forceCheckin, setForceCheckin] = useState(false);
 
   const loadTrips = useCallback(async () => {
     try {
@@ -109,14 +115,14 @@ const TripBypass = () => {
   useEffect(() => {
     loadDetail(selectedTripId);
     setReason("");
-    setShipmentNo("");
-    setDestinationStoreId("");
     setOdometerReading("");
     setCheckInStoreId("");
     setOverrideStoreId("");
     setPodPhoto(null);
     setInvoicePhoto(null);
     setLmPhoto(null);
+    setLmStampedPhoto(null);
+    setForceCheckin(false);
   }, [selectedTripId, loadDetail]);
 
   const refreshAfterAction = async () => {
@@ -149,11 +155,19 @@ const TripBypass = () => {
     }
   };
 
-  const destinationStores = stores.filter((s) => !s.is_hub);
-
   const nextAction = getNextAction(tripDetail);
-  const nextActionType =
+  const rawNextActionType =
     typeof nextAction === "string" ? nextAction : nextAction?.type;
+
+  // A trip DELIVERED with remaining planned stores normally routes to
+  // "check-in" (arrive at the next store). The admin can instead force
+  // straight to "checkin" (complete the trip early), same flexibility
+  // the driver's own app now offers.
+  const hasRemainingStores =
+    tripDetail?.current_step === "DELIVERED" &&
+    (tripDetail.planned_stores || []).some((s) => !s.delivered);
+  const nextActionType =
+    hasRemainingStores && forceCheckin ? "checkin" : rawNextActionType;
 
   const renderForm = () => {
     if (!tripDetail) return null;
@@ -170,27 +184,12 @@ const TripBypass = () => {
     if (nextActionType === "checkout") {
       return (
         <div className="space-y-3">
-          <h3 className="font-semibold text-fg">
-            Checkout (shipment number + destination store)
-          </h3>
-          <input
-            className={inputStyles}
-            placeholder="Shipment / ticket number"
-            value={shipmentNo}
-            onChange={(e) => setShipmentNo(e.target.value)}
-          />
-          <select
-            className={inputStyles}
-            value={destinationStoreId}
-            onChange={(e) => setDestinationStoreId(e.target.value)}
-          >
-            <option value="">Select destination store...</option>
-            {destinationStores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <h3 className="font-semibold text-fg">Checkout</h3>
+          <p className="text-xs text-fg-subtle">
+            Destination store(s) were already set by the coordinator at
+            dispatch. This records the odometer reading and photos, and
+            immediately starts the trip.
+          </p>
           <input
             className={inputStyles}
             type="number"
@@ -200,18 +199,23 @@ const TripBypass = () => {
           />
           <PhotoField label="Invoice photo (optional)" onFile={setInvoicePhoto} />
           <PhotoField label="LM photo (optional)" onFile={setLmPhoto} />
+          <PhotoField
+            label="LM stamped 'checkout' photo (optional)"
+            onFile={setLmStampedPhoto}
+          />
           <ReasonField reason={reason} setReason={setReason} />
           <button
-            disabled={submitting || !shipmentNo.trim() || !destinationStoreId}
+            disabled={submitting}
             onClick={() =>
               runAction("Complete Checkout for this driver", () => {
                 const fd = new FormData();
                 fd.append("reason", reason);
-                fd.append("shipment_no", shipmentNo);
-                fd.append("destination_store_id", destinationStoreId);
                 fd.append("odometer_reading", odometerReading || 0);
                 if (invoicePhoto) fd.append("invoice_photo", invoicePhoto);
                 if (lmPhoto) fd.append("lm_photo", lmPhoto);
+                if (lmStampedPhoto) {
+                  fd.append("lm_checkout_stamped_photo", lmStampedPhoto);
+                }
                 return bypassCheckout(tripDetail.trip_id, fd);
               })
             }
@@ -223,29 +227,24 @@ const TripBypass = () => {
       );
     }
 
-    if (nextActionType === "start") {
-      return (
-        <ActionCard
-          title="Start Trip"
-          description="Marks the trip as started (ACTIVE) on the driver's behalf."
-          reason={reason}
-          setReason={setReason}
-          submitting={submitting}
-          onSubmit={() =>
-            runAction("Start this trip for the driver", () => {
-              const fd = new FormData();
-              fd.append("reason", reason);
-              return bypassStart(tripDetail.trip_id, fd);
-            })
-          }
-        />
-      );
-    }
-
     if (nextActionType === "check-in") {
       return (
         <div className="space-y-3">
           <h3 className="font-semibold text-fg">Check In at Store</h3>
+          {hasRemainingStores && (
+            <p className="text-xs text-fg-subtle">
+              {(tripDetail.planned_stores || []).filter((s) => !s.delivered)
+                .length}{" "}
+              store(s) remaining.{" "}
+              <button
+                type="button"
+                onClick={() => setForceCheckin(true)}
+                className="font-semibold text-primary underline"
+              >
+                Skip remaining stores and Checkin instead
+              </button>
+            </p>
+          )}
           <select
             className={inputStyles}
             value={checkInStoreId}
@@ -347,45 +346,40 @@ const TripBypass = () => {
       );
     }
 
-    if (nextActionType === "back-to-source") {
-      return (
-        <ActionCard
-          title="Back to Source"
-          description="Marks the driver as heading back to the hub. Photo optional."
-          reason={reason}
-          setReason={setReason}
-          submitting={submitting}
-          photoLabel="LM w/ Perma photo (optional)"
-          onSubmit={(photo) =>
-            runAction("Mark this trip as heading back to source", () => {
-              const fd = new FormData();
-              fd.append("reason", reason);
-              if (photo) fd.append("photo", photo);
-              return bypassBackToSource(tripDetail.trip_id, fd);
-            })
-          }
-        />
-      );
-    }
 
     if (nextActionType === "checkin") {
       return (
-        <ActionCard
-          title="Checkin (complete trip)"
-          description="Completes the trip and sends it for approval, releasing the vehicle and any helpers. Photo optional."
-          reason={reason}
-          setReason={setReason}
-          submitting={submitting}
-          photoLabel="Stamped invoice photo (optional)"
-          onSubmit={(photo) =>
-            runAction("Complete this trip", () => {
-              const fd = new FormData();
-              fd.append("reason", reason);
-              if (photo) fd.append("photo", photo);
-              return bypassCheckin(tripDetail.trip_id, fd);
-            })
-          }
-        />
+        <div className="space-y-3">
+          {hasRemainingStores && forceCheckin && (
+            <button
+              type="button"
+              onClick={() => setForceCheckin(false)}
+              className="text-xs font-semibold text-primary underline"
+            >
+              &larr; Back to Check In at Store
+            </button>
+          )}
+          <ActionCard
+            title="Checkin (complete trip)"
+            description={
+              hasRemainingStores
+                ? "Completes the trip early, skipping the remaining planned stores. Sends it for approval, releasing the vehicle and any helpers. Photo optional."
+                : "Completes the trip and sends it for approval, releasing the vehicle and any helpers. Photo optional."
+            }
+            reason={reason}
+            setReason={setReason}
+            submitting={submitting}
+            photoLabel="Stamped invoice photo (optional)"
+            onSubmit={(photo) =>
+              runAction("Complete this trip", () => {
+                const fd = new FormData();
+                fd.append("reason", reason);
+                if (photo) fd.append("photo", photo);
+                return bypassCheckin(tripDetail.trip_id, fd);
+              })
+            }
+          />
+        </div>
       );
     }
 

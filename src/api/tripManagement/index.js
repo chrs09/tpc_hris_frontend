@@ -58,11 +58,13 @@ export const getAvailableHelpers = async (driverId) => {
 };
 
 // ========================================
-// DISPATCH TRIP (coordinator-only -- office's first step in the 7-step
-// flow: assign a driver, vehicle, and origin hub. No shipment number or
-// destination store yet -- the driver fills those in at their own
-// Checkout step, OCR-assisted from the Invoice/LM they photograph.)
-// Form data: { driver_id, vehicle_unit_id, origin_store_id, helper_ids }
+// DISPATCH TRIP (coordinator-only -- office's first step in the driver
+// flow: assign a driver, vehicle, origin hub, shipment number, trip
+// category (rate profile), and the destination store(s) for this trip.
+// The driver's own Checkout step only records the odometer reading and
+// photos.)
+// Form data: { driver_id, vehicle_unit_id, origin_store_id, shipment_no,
+//   trip_rate_profile_id, destination_store_ids, helper_ids }
 // ========================================
 export const dispatchTrip = async (formData) => {
   try {
@@ -110,25 +112,11 @@ export const checkOut = async (tripId, stopId, payload) => {
 };
 
 // ========================================
-// STEP 1: CHECKOUT OCR PREVIEW (non-committing)
-// Form data: { invoice_photo, lm_photo }
-// ========================================
-export const checkoutOcrPreview = async (tripId, formData) => {
-  try {
-    const response = await api.post(
-      `/driver/trips/${tripId}/checkout/ocr-preview`,
-      formData,
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error previewing checkout OCR:", error);
-    throw error;
-  }
-};
-
-// ========================================
-// STEP 1: CHECKOUT
-// Form data: { shipment_no, destination_store_id, invoice_photo, lm_photo }
+// STEP 1: CHECKOUT -- destination store(s) already set at dispatch.
+// This records the odometer reading and photos, and immediately starts
+// the trip (no separate "Start Trip" step).
+// Form data: { odometer_reading, lat, long, invoice_photo, lm_photo,
+//   lm_checkout_stamped_photo }
 // ========================================
 export const checkoutTrip = async (tripId, formData) => {
   try {
@@ -139,20 +127,6 @@ export const checkoutTrip = async (tripId, formData) => {
     return response.data;
   } catch (error) {
     console.error("Error checking out trip:", error);
-    throw error;
-  }
-};
-
-// ========================================
-// STEP 2: START TRIP (button only -- vehicle is assigned by the
-// coordinator at dispatch time now)
-// ========================================
-export const startTrip = async (tripId) => {
-  try {
-    const response = await api.post(`/driver/trips/${tripId}/start`);
-    return response.data;
-  } catch (error) {
-    console.error("Error starting trip:", error);
     throw error;
   }
 };
@@ -175,24 +149,8 @@ export const startUnloading = async (tripId, stopId, formData) => {
 };
 
 // ========================================
-// STEP 6: BACK TO SOURCE
-// Form data: { lat, long, lm_perma_photo }
-// ========================================
-export const backToSource = async (tripId, formData) => {
-  try {
-    const response = await api.post(
-      `/driver/trips/${tripId}/back-to-source`,
-      formData,
-    );
-    return response.data;
-  } catch (error) {
-    console.error("Error heading back to source:", error);
-    throw error;
-  }
-};
-
-// ========================================
-// STEP 7: CHECKIN (final step -- back at hub)
+// STEP 6: CHECKIN (final step -- back at hub, once every planned store
+// has been delivered). There is no more Back to Source step in between.
 // Form data: { lat, long, stamped_invoice_photo }
 // ========================================
 export const checkinTrip = async (tripId, formData) => {

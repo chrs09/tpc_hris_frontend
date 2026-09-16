@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getAvailableDrivers } from "../../api/adminTripManagement/trips";
 import { getStores } from "../../api/adminTripManagement/stores";
+import { getActiveRateProfiles } from "../../api/adminTripManagement/tripMaintenance";
 import {
   getAvailableHelpers,
   getAvailableVehicleUnits,
@@ -14,13 +15,18 @@ const getErrorMessage = (error) =>
 const inputStyles =
   "w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
+// A trip can cover multiple delivery stores -- capped here to match the
+// backend's MAX_PLANNED_STOPS.
+const MAX_DESTINATION_STORES = 20;
+
 // Lets a trip manager (admin/superadmin/coordinator_admin) dispatch a
-// trip to a driver from the office -- this is Step 0 of the 7-step
-// driver flow (Checkout, Start Trip, Arrived, Start Unloading,
-// Delivered, Back to Source, Checkin). Only the driver, vehicle, origin
-// hub, and helpers are picked here; the shipment number and destination
-// store are unknown until the driver photographs the Invoice/LM at
-// their own Checkout step (OCR-assisted, driver-confirmed).
+// trip to a driver from the office -- this is Step 0 of the driver flow
+// (Checkout, Start Trip, Arrived, Start Unloading, Delivered, Checkin).
+// The driver, vehicle, origin hub, trip category, destination store(s),
+// and helpers are all picked here; the driver's own Checkout step only
+// records the odometer reading and the required photos. Trip category
+// (rate profile) decides driver/helper pay for the whole trip -- picked
+// explicitly here rather than derived from the destination store.
 export default function StartTripForDriverCard({
   onStarted,
   alwaysExpanded = false,
@@ -29,13 +35,21 @@ export default function StartTripForDriverCard({
 
   const [drivers, setDrivers] = useState([]);
   const [hubStores, setHubStores] = useState([]);
+  const [destinationStores, setDestinationStores] = useState([]);
   const [vehicleUnits, setVehicleUnits] = useState([]);
+  const [rateProfiles, setRateProfiles] = useState([]);
   const [helpers, setHelpers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const [destinationSearch, setDestinationSearch] = useState("");
+  const [driverSearch, setDriverSearch] = useState("");
+  const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
 
   const [driverId, setDriverId] = useState("");
   const [originStoreId, setOriginStoreId] = useState("");
   const [vehicleUnitId, setVehicleUnitId] = useState("");
+  const [shipmentNo, setShipmentNo] = useState("");
+  const [tripRateProfileId, setTripRateProfileId] = useState("");
+  const [selectedDestinationIds, setSelectedDestinationIds] = useState([]);
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,11 +59,13 @@ export default function StartTripForDriverCard({
     const loadOptions = async () => {
       try {
         setLoadingOptions(true);
-        const [driverRes, storeRes, vehicleData] = await Promise.all([
-          getAvailableDrivers(),
-          getStores(),
-          getAvailableVehicleUnits(),
-        ]);
+        const [driverRes, storeRes, vehicleData, rateProfileData] =
+          await Promise.all([
+            getAvailableDrivers(),
+            getStores(),
+            getAvailableVehicleUnits(),
+            getActiveRateProfiles(),
+          ]);
 
         setDrivers(driverRes.data || []);
 
@@ -57,9 +73,16 @@ export default function StartTripForDriverCard({
           ? storeRes.data
           : storeRes.data?.items || [];
         setHubStores(storeList.filter((store) => store.is_hub));
+        setDestinationStores(storeList.filter((store) => !store.is_hub));
 
         setVehicleUnits(
           Array.isArray(vehicleData) ? vehicleData : vehicleData.items || [],
+        );
+
+        setRateProfiles(
+          Array.isArray(rateProfileData)
+            ? rateProfileData
+            : rateProfileData.items || [],
         );
       } catch (error) {
         toast.error(getErrorMessage(error));
@@ -91,18 +114,68 @@ export default function StartTripForDriverCard({
     });
   };
 
+  // Order matters: the first store selected becomes the trip's primary
+  // destination and sets its pay rate profile (see dispatch_trip on the
+  // backend), so this appends/removes rather than re-sorting.
+  const toggleDestination = (storeId) => {
+    setSelectedDestinationIds((prev) => {
+      if (prev.includes(storeId)) return prev.filter((id) => id !== storeId);
+      if (prev.length >= MAX_DESTINATION_STORES) return prev;
+      return [...prev, storeId];
+    });
+  };
+
+  const removeDestination = (storeId) => {
+    setSelectedDestinationIds((prev) => prev.filter((id) => id !== storeId));
+  };
+
+  const filteredDestinationStores = destinationStores.filter((store) =>
+    store.name.toLowerCase().includes(destinationSearch.toLowerCase()),
+  );
+
+  const driverLabel = (driver) =>
+    driver.employee_name
+      ? `${driver.employee_name} (${driver.username})`
+      : driver.username;
+
+  const selectedDriver = drivers.find((d) => String(d.id) === String(driverId));
+
+  const filteredDrivers = drivers.filter((driver) =>
+    driverLabel(driver).toLowerCase().includes(driverSearch.toLowerCase()),
+  );
+
+  const selectDriver = (driver) => {
+    setDriverId(driver.id);
+    setDriverSearch("");
+    setDriverDropdownOpen(false);
+  };
+
   const resetForm = () => {
     setDriverId("");
     setOriginStoreId("");
     setVehicleUnitId("");
+    setShipmentNo("");
+    setTripRateProfileId("");
+    setSelectedDestinationIds([]);
     setSelectedHelperIds([]);
+    setDestinationSearch("");
+    setDriverSearch("");
+    setDriverDropdownOpen(false);
   };
 
-  const canSubmit = driverId && originStoreId && vehicleUnitId;
+  const canSubmit =
+    driverId &&
+    originStoreId &&
+    vehicleUnitId &&
+    shipmentNo.trim() &&
+    tripRateProfileId &&
+    selectedDestinationIds.length > 0;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      toast.error("Select a driver, origin hub, and vehicle.");
+      toast.error(
+        "Select a driver, origin hub, vehicle, shipment number, trip category, and at least one destination store.",
+      );
       return;
     }
 
@@ -113,6 +186,12 @@ export default function StartTripForDriverCard({
       formData.append("driver_id", driverId);
       formData.append("vehicle_unit_id", vehicleUnitId);
       formData.append("origin_store_id", originStoreId);
+      formData.append("shipment_no", shipmentNo.trim());
+      formData.append("trip_rate_profile_id", tripRateProfileId);
+      formData.append(
+        "destination_store_ids",
+        JSON.stringify(selectedDestinationIds),
+      );
       formData.append("helper_ids", JSON.stringify(selectedHelperIds));
 
       await dispatchTrip(formData);
@@ -134,8 +213,9 @@ export default function StartTripForDriverCard({
         <div>
           <h3 className="text-sm font-semibold text-fg">Dispatch Trip</h3>
           <p className="mt-1 text-xs text-fg-subtle">
-            Assign a driver, vehicle, and origin hub. The driver fills in the
-            shipment number and destination at their own Checkout step.
+            Assign a driver, vehicle, origin hub, shipment number, trip
+            category, and destination store(s). The driver's own Checkout
+            step only records the odometer reading and photos.
           </p>
         </div>
         {!alwaysExpanded && (
@@ -154,24 +234,55 @@ export default function StartTripForDriverCard({
             <p className="text-sm text-fg-muted">Loading options...</p>
           ) : (
             <>
-              <div>
+              <div className="relative">
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Driver
                 </label>
-                <select
-                  value={driverId}
-                  onChange={(e) => setDriverId(e.target.value)}
+                <input
+                  type="text"
+                  value={
+                    driverDropdownOpen
+                      ? driverSearch
+                      : selectedDriver
+                        ? driverLabel(selectedDriver)
+                        : ""
+                  }
+                  onChange={(e) => setDriverSearch(e.target.value)}
+                  onFocus={() => {
+                    setDriverSearch("");
+                    setDriverDropdownOpen(true);
+                  }}
+                  onBlur={() =>
+                    setTimeout(() => setDriverDropdownOpen(false), 150)
+                  }
+                  placeholder="Search driver..."
                   className={inputStyles}
-                >
-                  <option value="">Select driver</option>
-                  {drivers.map((driver) => (
-                    <option key={driver.id} value={driver.id}>
-                      {driver.employee_name
-                        ? `${driver.employee_name} (${driver.username})`
-                        : driver.username}
-                    </option>
-                  ))}
-                </select>
+                />
+
+                {driverDropdownOpen && (
+                  <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-surface shadow-lg">
+                    {filteredDrivers.length === 0 ? (
+                      <p className="p-3 text-xs text-fg-subtle">
+                        No drivers match.
+                      </p>
+                    ) : (
+                      filteredDrivers.map((driver) => (
+                        <button
+                          type="button"
+                          key={driver.id}
+                          onMouseDown={() => selectDriver(driver)}
+                          className={`block w-full px-3 py-2 text-left text-sm hover:bg-surface-hover ${
+                            String(driver.id) === String(driverId)
+                              ? "bg-primary/10 text-fg"
+                              : "text-fg-muted"
+                          }`}
+                        >
+                          {driverLabel(driver)}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -194,6 +305,40 @@ export default function StartTripForDriverCard({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
+                  Shipment Number
+                </label>
+                <input
+                  type="text"
+                  value={shipmentNo}
+                  onChange={(e) => setShipmentNo(e.target.value)}
+                  placeholder="Enter shipment number"
+                  className={inputStyles}
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-fg">
+                  Trip Category
+                </label>
+                <select
+                  value={tripRateProfileId}
+                  onChange={(e) => setTripRateProfileId(e.target.value)}
+                  className={inputStyles}
+                >
+                  <option value="">Select trip category</option>
+                  {rateProfiles.map((profile) => (
+                    <option key={profile.id} value={profile.id}>
+                      {profile.profile_name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-fg-subtle">
+                  Decides driver/helper pay for this trip.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-fg">
                   Origin Hub
                 </label>
                 <select
@@ -208,6 +353,90 @@ export default function StartTripForDriverCard({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-fg">
+                  Destination Stores ({selectedDestinationIds.length}/
+                  {MAX_DESTINATION_STORES})
+                </label>
+                <p className="mb-2 text-xs text-fg-subtle">
+                  A trip can cover multiple stores under one dispatch -- the
+                  driver visits each in turn. The first store selected sets
+                  the trip's pay rate.
+                </p>
+
+                {selectedDestinationIds.length > 0 && (
+                  <div className="mb-2 flex flex-wrap gap-2">
+                    {selectedDestinationIds.map((storeId, index) => {
+                      const store = destinationStores.find(
+                        (s) => s.id === storeId,
+                      );
+                      return (
+                        <span
+                          key={storeId}
+                          className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-fg"
+                        >
+                          {index === 0 && (
+                            <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+                              1st
+                            </span>
+                          )}
+                          {store ? store.name : `Store #${storeId}`}
+                          <button
+                            type="button"
+                            onClick={() => removeDestination(storeId)}
+                            className="text-fg-muted hover:text-danger"
+                          >
+                            ✕
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <input
+                  type="text"
+                  value={destinationSearch}
+                  onChange={(e) => setDestinationSearch(e.target.value)}
+                  placeholder="Search stores..."
+                  className={`${inputStyles} mb-2`}
+                />
+
+                <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-border p-2">
+                  {filteredDestinationStores.length === 0 ? (
+                    <p className="p-2 text-xs text-fg-subtle">
+                      No stores match.
+                    </p>
+                  ) : (
+                    filteredDestinationStores.map((store) => {
+                      const isSelected = selectedDestinationIds.includes(
+                        store.id,
+                      );
+                      const isDisabled =
+                        !isSelected &&
+                        selectedDestinationIds.length >= MAX_DESTINATION_STORES;
+                      return (
+                        <label
+                          key={store.id}
+                          className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm transition-colors ${
+                            isSelected ? "bg-primary/10 text-fg" : "text-fg-muted"
+                          } ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={() => toggleDestination(store.id)}
+                            className="h-4 w-4 rounded border-border"
+                          />
+                          {store.name}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               <div>
