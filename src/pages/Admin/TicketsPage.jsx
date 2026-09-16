@@ -11,6 +11,7 @@ import {
   removeTicketImage,
 } from "../../api/tickets";
 import { getAssignableUsers } from "../../api/users";
+import { getUserId } from "../../api/config";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -247,7 +248,9 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("");
-  const [assigneeId, setAssigneeId] = useState("");
+  // Defaults to assigning the ticket to whoever's creating it -- still
+  // editable before submitting, in case it's meant for someone else.
+  const [assigneeId, setAssigneeId] = useState(getUserId() || "");
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -375,7 +378,7 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
                 <option value="">Unassigned</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.username}
+                    {u.employee_name || u.username}
                   </option>
                 ))}
               </select>
@@ -650,7 +653,7 @@ const TicketDetailModal = ({
                 <option value="">Unassigned</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.username}
+                    {u.employee_name || u.username}
                   </option>
                 ))}
               </select>

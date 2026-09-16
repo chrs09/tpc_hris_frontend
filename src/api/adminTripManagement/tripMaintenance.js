@@ -34,6 +34,18 @@ export const createVehicleUnit = async (payload) => {
 
     formData.append("description", payload.description || "");
 
+    formData.append("cr_number", payload.cr_number || "");
+    formData.append("cr_expiration_date", payload.cr_expiration_date || "");
+    if (payload.cr_document) {
+      formData.append("cr_document", payload.cr_document);
+    }
+
+    formData.append("or_number", payload.or_number || "");
+    formData.append("or_expiration_date", payload.or_expiration_date || "");
+    if (payload.or_document) {
+      formData.append("or_document", payload.or_document);
+    }
+
     const response = await api.post(
       "/trip-maintenance/vehicle-units",
       formData,

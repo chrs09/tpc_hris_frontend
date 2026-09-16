@@ -5,10 +5,10 @@ const MaintenanceModal = ({ isOpen, onClose, title, children, onSave }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-lg text-fg">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-lg text-fg flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
           <h2 className="text-lg font-semibold">{title}</h2>
 
           <button onClick={onClose} className="text-fg-muted hover:text-fg">
@@ -17,10 +17,10 @@ const MaintenanceModal = ({ isOpen, onClose, title, children, onSave }) => {
         </div>
 
         {/* Body */}
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1">{children}</div>
 
         {/* Footer */}
-        <div className="border-t border-border px-6 py-4 flex justify-end gap-2">
+        <div className="border-t border-border px-6 py-4 flex justify-end gap-2 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-border text-fg hover:bg-surface-hover"

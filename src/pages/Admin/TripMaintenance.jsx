@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Truck, Wrench, Plus, Search, Pencil, Trash2 } from "lucide-react";
+import {
+  Truck,
+  Wrench,
+  Plus,
+  Search,
+  Pencil,
+  Trash2,
+  FileText,
+} from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -26,6 +34,172 @@ const EMPTY_MAINTENANCE_FORM = {
   cost: "",
 };
 
+const EMPTY_VEHICLE_FORM = {
+  unit_code: "",
+  plate_number: "",
+  description: "",
+  cr_number: "",
+  cr_expiration_date: "",
+  cr_document: null,
+  or_number: "",
+  or_expiration_date: "",
+  or_document: null,
+};
+
+// Renewal is treated as coming due within 30 days of expiring.
+const CR_OR_WARNING_DAYS = 30;
+
+const getExpirationStatus = (expirationDate) => {
+  if (!expirationDate) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(expirationDate);
+  const daysLeft = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+
+  if (daysLeft < 0) return "expired";
+  if (daysLeft <= CR_OR_WARNING_DAYS) return "expiring";
+  return "valid";
+};
+
+const DocumentStatusBlock = ({ label, number, documentUrl, expirationDate }) => {
+  const status = getExpirationStatus(expirationDate);
+  const styles =
+    status === "expired"
+      ? "bg-danger/15 text-danger"
+      : status === "expiring"
+        ? "bg-warning/15 text-warning"
+        : "bg-success/15 text-success";
+  const statusLabel =
+    status === "expired"
+      ? "Expired"
+      : status === "expiring"
+        ? "Renewal due soon"
+        : "Valid";
+
+  return (
+    <div className="bg-surface-hover rounded-xl p-3 space-y-1.5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-fg-subtle">{label}</p>
+        {documentUrl && (
+          <a
+            href={documentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            <FileText size={12} />
+            View
+          </a>
+        )}
+      </div>
+
+      {number && <p className="text-sm">{number}</p>}
+
+      {expirationDate ? (
+        <span
+          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${styles}`}
+        >
+          {statusLabel} · {new Date(expirationDate).toLocaleDateString()}
+        </span>
+      ) : (
+        <p className="text-xs text-fg-subtle">No expiration date on file</p>
+      )}
+    </div>
+  );
+};
+
+// CR and OR are two separate physical documents -- this renders one
+// number/expiration/upload block, reused once per document in the
+// Add/Edit Vehicle Unit form (fieldPrefix is "cr" or "or").
+const DocumentFormSection = ({
+  title,
+  fieldPrefix,
+  vehicleForm,
+  setVehicleForm,
+  existingUrl,
+}) => {
+  const numberField = `${fieldPrefix}_number`;
+  const expirationField = `${fieldPrefix}_expiration_date`;
+  const documentField = `${fieldPrefix}_document`;
+
+  return (
+    <div className="border-t border-border pt-4">
+      <p className="text-sm font-semibold text-fg mb-3">{title}</p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1 text-fg">
+            Number
+          </label>
+          <input
+            value={vehicleForm[numberField]}
+            onChange={(e) =>
+              setVehicleForm({
+                ...vehicleForm,
+                [numberField]: e.target.value,
+              })
+            }
+            className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+            placeholder="e.g. 1234567890"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1 text-fg">
+            Expiration Date
+          </label>
+          <input
+            type="date"
+            value={vehicleForm[expirationField]}
+            onChange={(e) =>
+              setVehicleForm({
+                ...vehicleForm,
+                [expirationField]: e.target.value,
+              })
+            }
+            className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+          />
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <label className="block text-sm font-medium mb-1 text-fg">
+          Document
+        </label>
+
+        {existingUrl && !vehicleForm[documentField] && (
+          <a
+            href={existingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-2 flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <FileText size={14} />
+            View current document
+          </a>
+        )}
+
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp,application/pdf"
+          onChange={(e) =>
+            setVehicleForm({
+              ...vehicleForm,
+              [documentField]: e.target.files?.[0] || null,
+            })
+          }
+          className="w-full rounded-lg border border-border bg-surface p-2 text-sm text-fg file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground"
+        />
+        <p className="mt-1 text-xs text-fg-subtle">
+          {existingUrl
+            ? "Uploading a new file replaces the current document."
+            : "PNG, JPEG, WEBP, or PDF."}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 export default function TripMaintenance() {
   const [searchParams] = useSearchParams();
   const initialTab =
@@ -39,11 +213,7 @@ export default function TripMaintenance() {
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [editingUnit, setEditingUnit] = useState(null);
   const [editingRecord, setEditingRecord] = useState(null);
-  const [vehicleForm, setVehicleForm] = useState({
-    unit_code: "",
-    plate_number: "",
-    description: "",
-  });
+  const [vehicleForm, setVehicleForm] = useState(EMPTY_VEHICLE_FORM);
   const [maintenanceForm, setMaintenanceForm] = useState(
     EMPTY_MAINTENANCE_FORM,
   );
@@ -86,11 +256,7 @@ export default function TripMaintenance() {
 
       await loadVehicleUnits();
 
-      setVehicleForm({
-        unit_code: "",
-        plate_number: "",
-        description: "",
-      });
+      setVehicleForm(EMPTY_VEHICLE_FORM);
 
       setShowUnitModal(false);
     } catch (error) {
@@ -127,6 +293,16 @@ export default function TripMaintenance() {
       unit_code: unit.unit_code || "",
       plate_number: unit.plate_number || "",
       description: unit.description || "",
+      cr_number: unit.cr_number || "",
+      cr_expiration_date: unit.cr_expiration_date
+        ? unit.cr_expiration_date.slice(0, 10)
+        : "",
+      cr_document: null,
+      or_number: unit.or_number || "",
+      or_expiration_date: unit.or_expiration_date
+        ? unit.or_expiration_date.slice(0, 10)
+        : "",
+      or_document: null,
     });
 
     setShowUnitModal(true);
@@ -290,11 +466,7 @@ export default function TripMaintenance() {
                 onClick={() => {
                   setEditingUnit(null);
 
-                  setVehicleForm({
-                    unit_code: "",
-                    plate_number: "",
-                    description: "",
-                  });
+                  setVehicleForm(EMPTY_VEHICLE_FORM);
 
                   setShowUnitModal(true);
                 }}
@@ -328,6 +500,21 @@ export default function TripMaintenance() {
                 <div className="mt-4 bg-surface-hover rounded-xl p-3">
                   <p className="text-xs text-fg-subtle mb-1">Description</p>
                   <p className="text-sm">{unit.description || "N/A"}</p>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <DocumentStatusBlock
+                    label="CR"
+                    number={unit.cr_number}
+                    documentUrl={unit.cr_document_url}
+                    expirationDate={unit.cr_expiration_date}
+                  />
+                  <DocumentStatusBlock
+                    label="OR"
+                    number={unit.or_number}
+                    documentUrl={unit.or_document_url}
+                    expirationDate={unit.or_expiration_date}
+                  />
                 </div>
 
                 <div className="mt-4 flex justify-between items-center">
@@ -500,6 +687,22 @@ export default function TripMaintenance() {
               placeholder="Isuzu Elf"
             />
           </div>
+
+          <DocumentFormSection
+            title="CR (Certificate of Registration)"
+            fieldPrefix="cr"
+            vehicleForm={vehicleForm}
+            setVehicleForm={setVehicleForm}
+            existingUrl={editingUnit?.cr_document_url}
+          />
+
+          <DocumentFormSection
+            title="OR (Official Receipt)"
+            fieldPrefix="or"
+            vehicleForm={vehicleForm}
+            setVehicleForm={setVehicleForm}
+            existingUrl={editingUnit?.or_document_url}
+          />
         </div>
       </MaintenanceModal>
 
