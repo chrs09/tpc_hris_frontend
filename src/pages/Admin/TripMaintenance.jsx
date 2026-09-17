@@ -10,6 +10,9 @@ import {
   FileText,
   History,
   ClipboardList,
+  LayoutGrid,
+  List,
+  Tag,
 } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
@@ -26,7 +29,17 @@ import {
   deleteVehicleMaintenanceRecord,
   getVehicleORHistory,
 } from "../../api/adminTripManagement/tripMaintenance";
+import {
+  getTruckTypes,
+  createTruckType,
+  updateTruckType,
+  deleteTruckType,
+} from "../../api/adminTripManagement/truckTypes";
 import { toast } from "react-hot-toast";
+
+// Remembers the user's Cards/List preference for the Vehicle List tab
+// across visits -- purely a per-browser UI convenience, not synced.
+const VIEW_TYPE_STORAGE_KEY = "fleet_vehicle_view_type";
 
 const EMPTY_MAINTENANCE_FORM = {
   vehicle_unit_id: "",
@@ -42,6 +55,7 @@ const EMPTY_VEHICLE_FORM = {
   unit_code: "",
   plate_number: "",
   description: "",
+  truck_type_id: "",
   cr_number: "",
   cr_document: null,
   or_number: "",
@@ -276,6 +290,29 @@ export default function TripMaintenance() {
 
   const [checklistUnit, setChecklistUnit] = useState(null);
 
+  const [truckTypes, setTruckTypes] = useState([]);
+  const [truckTypeForm, setTruckTypeForm] = useState({ name: "", size: "" });
+  const [editingTruckType, setEditingTruckType] = useState(null);
+
+  const [viewType, setViewType] = useState(() => {
+    try {
+      return localStorage.getItem(VIEW_TYPE_STORAGE_KEY) === "list"
+        ? "list"
+        : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+
+  const changeViewType = (type) => {
+    setViewType(type);
+    try {
+      localStorage.setItem(VIEW_TYPE_STORAGE_KEY, type);
+    } catch {
+      // ignore (private browsing, storage disabled, etc.)
+    }
+  };
+
   const unitsPagination = usePagination(vehicleUnits, 9);
   const maintenancePagination = usePagination(maintenanceRecords, 10);
 
@@ -297,10 +334,20 @@ export default function TripMaintenance() {
     }
   };
 
+  const loadTruckTypes = async () => {
+    try {
+      const response = await getTruckTypes();
+      setTruckTypes(response?.data || []);
+    } catch (error) {
+      console.error("Failed to load truck types", error);
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       await loadVehicleUnits();
       await loadMaintenanceRecords();
+      await loadTruckTypes();
     };
 
     loadData();
@@ -351,6 +398,7 @@ export default function TripMaintenance() {
       unit_code: unit.unit_code || "",
       plate_number: unit.plate_number || "",
       description: unit.description || "",
+      truck_type_id: unit.truck_type_id || "",
       cr_number: unit.cr_number || "",
       cr_document: null,
       or_number: unit.or_number || "",
@@ -361,6 +409,68 @@ export default function TripMaintenance() {
     });
 
     setShowUnitModal(true);
+  };
+
+  const handleCreateTruckType = async () => {
+    if (!truckTypeForm.name.trim()) {
+      toast.error("Truck type name is required.");
+      return;
+    }
+    try {
+      await createTruckType(truckTypeForm);
+      toast.success("Truck type added");
+      await loadTruckTypes();
+      setTruckTypeForm({ name: "", size: "" });
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to add truck type.",
+      );
+    }
+  };
+
+  const handleUpdateTruckType = async () => {
+    if (!truckTypeForm.name.trim()) {
+      toast.error("Truck type name is required.");
+      return;
+    }
+    try {
+      await updateTruckType(editingTruckType.id, truckTypeForm);
+      toast.success("Truck type updated");
+      await loadTruckTypes();
+      setEditingTruckType(null);
+      setTruckTypeForm({ name: "", size: "" });
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to update truck type.",
+      );
+    }
+  };
+
+  const handleEditTruckType = (truckType) => {
+    setEditingTruckType(truckType);
+    setTruckTypeForm({
+      name: truckType.name || "",
+      size: truckType.size || "",
+    });
+  };
+
+  const cancelEditTruckType = () => {
+    setEditingTruckType(null);
+    setTruckTypeForm({ name: "", size: "" });
+  };
+
+  const handleDeleteTruckType = async (truckType) => {
+    if (!(await confirmDialog(`Delete truck type "${truckType.name}"?`))) return;
+
+    try {
+      await deleteTruckType(truckType.id);
+      toast.success("Truck type deleted");
+      await loadTruckTypes();
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.detail || "Failed to delete truck type.",
+      );
+    }
   };
 
   const handleCreateMaintenanceRecord = async () => {
@@ -452,7 +562,7 @@ export default function TripMaintenance() {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <button
           onClick={() => setActiveTab("units")}
           className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
@@ -498,6 +608,29 @@ export default function TripMaintenance() {
             </div>
           </div>
         </button>
+
+        <button
+          onClick={() => setActiveTab("truck-types")}
+          className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
+            ${
+              activeTab === "truck-types"
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-surface text-fg"
+            }`}
+        >
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Tag size={22} className="shrink-0" />
+            <div>
+              <h2 className="font-semibold text-sm sm:text-base">
+                Truck Types
+              </h2>
+
+              <p className="text-xs sm:text-sm opacity-70">
+                {truckTypes.length} Types
+              </p>
+            </div>
+          </div>
+        </button>
       </div>
 
       {/* VEHICLE LIST */}
@@ -531,8 +664,143 @@ export default function TripMaintenance() {
                 Add Unit
               </button>
             </div>
+
+            <div className="flex items-center gap-1 border border-border rounded-lg p-1 self-start bg-surface">
+              <button
+                type="button"
+                onClick={() => changeViewType("cards")}
+                title="Card view"
+                className={`p-1.5 rounded-md ${
+                  viewType === "cards"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                <LayoutGrid size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => changeViewType("list")}
+                title="List view"
+                className={`p-1.5 rounded-md ${
+                  viewType === "list"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                <List size={16} />
+              </button>
+            </div>
           </div>
 
+          {viewType === "list" ? (
+            <div className="bg-surface border border-border rounded-xl overflow-hidden overflow-x-auto">
+              <table className="w-full text-sm text-fg">
+                <thead className="bg-surface-hover text-fg-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Unit Code</th>
+                    <th className="px-4 py-3 text-left font-medium">Plate</th>
+                    <th className="px-4 py-3 text-left font-medium">Truck Type</th>
+                    <th className="px-4 py-3 text-left font-medium">Description</th>
+                    <th className="px-4 py-3 text-left font-medium">CR</th>
+                    <th className="px-4 py-3 text-left font-medium">OR</th>
+                    <th className="px-4 py-3 text-left font-medium">Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {unitsPagination.paginatedItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="text-center py-6 text-fg-subtle">
+                        No vehicle units
+                      </td>
+                    </tr>
+                  ) : (
+                    unitsPagination.paginatedItems.map((unit) => {
+                      const orStatus = getExpirationStatus(
+                        unit.or_expiration_date,
+                      );
+                      return (
+                        <tr
+                          key={unit.id}
+                          className="border-t border-border hover:bg-surface-hover"
+                        >
+                          <td className="px-4 py-3 font-semibold">
+                            {unit.unit_code}
+                          </td>
+                          <td className="px-4 py-3">{unit.plate_number}</td>
+                          <td className="px-4 py-3">
+                            {unit.truck_type_name
+                              ? `${unit.truck_type_name}${
+                                  unit.truck_type_size
+                                    ? ` (${unit.truck_type_size})`
+                                    : ""
+                                }`
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {unit.description || "N/A"}
+                          </td>
+                          <td className="px-4 py-3">{unit.cr_number || "-"}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span>{unit.or_number || "-"}</span>
+                              {orStatus && (
+                                <span
+                                  className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    orStatus === "expired"
+                                      ? "bg-danger/15 text-danger"
+                                      : orStatus === "expiring"
+                                        ? "bg-warning/15 text-warning"
+                                        : "bg-success/15 text-success"
+                                  }`}
+                                >
+                                  {orStatus === "expired"
+                                    ? "Expired"
+                                    : orStatus === "expiring"
+                                      ? "Renewal due"
+                                      : "Valid"}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="px-3 py-1 rounded-full text-xs bg-success/15 text-success">
+                              Active
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex justify-end gap-3">
+                              <button
+                                onClick={() => openOrHistory(unit)}
+                                title="OR History"
+                                className="text-fg-muted hover:text-primary"
+                              >
+                                <History size={16} />
+                              </button>
+                              <button
+                                onClick={() => setChecklistUnit(unit)}
+                                title="Vehicle Checklist"
+                                className="text-fg-muted hover:text-primary"
+                              >
+                                <ClipboardList size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleEditUnit(unit)}
+                                className="text-primary hover:text-primary-hover"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {unitsPagination.paginatedItems.map((unit) => (
               <div
@@ -551,6 +819,13 @@ export default function TripMaintenance() {
 
                   <Truck size={20} />
                 </div>
+
+                {unit.truck_type_name && (
+                  <p className="mt-1 text-xs text-fg-subtle">
+                    {unit.truck_type_name}
+                    {unit.truck_type_size ? ` · ${unit.truck_type_size}` : ""}
+                  </p>
+                )}
 
                 <div className="mt-4 bg-surface-hover rounded-xl p-3">
                   <p className="text-xs text-fg-subtle mb-1">Description</p>
@@ -597,6 +872,7 @@ export default function TripMaintenance() {
               </div>
             ))}
           </div>
+          )}
 
           <Pagination
             page={unitsPagination.page}
@@ -698,6 +974,125 @@ export default function TripMaintenance() {
         </>
       )}
 
+      {/* TRUCK TYPES */}
+      {activeTab === "truck-types" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-1 bg-surface border border-border rounded-xl p-4 h-fit">
+            <h3 className="font-semibold text-fg mb-3">
+              {editingTruckType ? "Edit Truck Type" : "Add Truck Type"}
+            </h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-fg">
+                  Name
+                </label>
+                <input
+                  value={truckTypeForm.name}
+                  onChange={(e) =>
+                    setTruckTypeForm({
+                      ...truckTypeForm,
+                      name: e.target.value,
+                    })
+                  }
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="e.g. 10-Wheeler Wingvan"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-fg">
+                  Size
+                </label>
+                <input
+                  value={truckTypeForm.size}
+                  onChange={(e) =>
+                    setTruckTypeForm({
+                      ...truckTypeForm,
+                      size: e.target.value,
+                    })
+                  }
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="e.g. 32ft, 6 tons"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={
+                    editingTruckType
+                      ? handleUpdateTruckType
+                      : handleCreateTruckType
+                  }
+                  className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg flex items-center gap-2"
+                >
+                  <Plus size={16} />
+                  {editingTruckType ? "Save" : "Add"}
+                </button>
+
+                {editingTruckType && (
+                  <button
+                    onClick={cancelEditTruckType}
+                    className="px-4 py-2 rounded-lg border border-border text-fg hover:bg-surface-hover"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2 bg-surface border border-border rounded-xl overflow-hidden">
+            <table className="w-full text-sm text-fg">
+              <thead className="bg-surface-hover text-fg-muted">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium">Name</th>
+                  <th className="px-4 py-3 text-left font-medium">Size</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {truckTypes.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="text-center py-6 text-fg-subtle">
+                      No truck types yet
+                    </td>
+                  </tr>
+                ) : (
+                  truckTypes.map((truckType) => (
+                    <tr
+                      key={truckType.id}
+                      className="border-t border-border hover:bg-surface-hover"
+                    >
+                      <td className="px-4 py-3 font-medium">
+                        {truckType.name}
+                      </td>
+                      <td className="px-4 py-3">{truckType.size || "-"}</td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleEditTruckType(truckType)}
+                            className="text-primary hover:text-primary-hover"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTruckType(truckType)}
+                            className="text-danger hover:text-danger-hover"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       <MaintenanceModal
         isOpen={showUnitModal}
         onClose={() => setShowUnitModal(false)}
@@ -751,6 +1146,30 @@ export default function TripMaintenance() {
               className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="Isuzu Elf"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Truck Type
+            </label>
+            <select
+              value={vehicleForm.truck_type_id}
+              onChange={(e) =>
+                setVehicleForm({
+                  ...vehicleForm,
+                  truck_type_id: e.target.value,
+                })
+              }
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+            >
+              <option value="">Select truck type (optional)</option>
+              {truckTypes.map((truckType) => (
+                <option key={truckType.id} value={truckType.id}>
+                  {truckType.name}
+                  {truckType.size ? ` (${truckType.size})` : ""}
+                </option>
+              ))}
+            </select>
           </div>
 
           <DocumentFormSection

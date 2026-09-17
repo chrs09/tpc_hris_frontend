@@ -34,6 +34,10 @@ export const createVehicleUnit = async (payload) => {
 
     formData.append("description", payload.description || "");
 
+    if (payload.truck_type_id) {
+      formData.append("truck_type_id", payload.truck_type_id);
+    }
+
     formData.append("cr_number", payload.cr_number || "");
     if (payload.cr_document) {
       formData.append("cr_document", payload.cr_document);
