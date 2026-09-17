@@ -63,7 +63,7 @@ export const ROLE_ACCESS_GROUPS = [
     children: [
       {
         label: "Dashboard",
-        roles: ["superadmin", "coordinator_admin"],
+        roles: ["superadmin", "coordinator_admin", "coordinator"],
       },
       {
         label: "Trip Assignment",

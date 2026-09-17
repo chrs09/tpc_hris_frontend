@@ -102,7 +102,7 @@ export function getNavGroups(role) {
         {
           label: "Dashboard",
           path: "/dashboard/admin/trip-dashboard",
-          roles: ["superadmin", "coordinator_admin"],
+          roles: ["superadmin", "coordinator_admin", "coordinator"],
           moduleKey: "trip_management.trip_dashboard",
         },
         {

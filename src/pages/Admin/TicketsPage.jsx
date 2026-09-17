@@ -188,53 +188,103 @@ export default function TicketsPage() {
   );
 }
 
-const TicketCard = ({ ticket, onDragStart, onClick }) => (
+const TicketCard = ({ ticket, onDragStart, onClick }) => {
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onClick={onClick}
+      className="cursor-grab rounded-xl border border-border bg-surface p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-sm font-semibold text-fg">{ticket.title}</h4>
+        {ticket.priority && (
+          <span
+            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+              PRIORITY_STYLES[ticket.priority] || PRIORITY_STYLES.low
+            }`}
+          >
+            {ticket.priority}
+          </span>
+        )}
+      </div>
+
+      {ticket.description && (
+        <p className="mt-1.5 line-clamp-2 text-xs text-fg-subtle">
+          {ticket.description}
+        </p>
+      )}
+
+      {ticket.image_url && (
+        <img
+          src={ticket.image_url}
+          alt=""
+          onClick={(e) => {
+            e.stopPropagation();
+            setPreviewOpen(true);
+          }}
+          // Images are draggable by default in every browser, which
+          // hijacks the card's own HTML5 drag-and-drop when the grab
+          // starts over the thumbnail -- opt this element out so the
+          // parent card's draggable always wins.
+          draggable={false}
+          className="mt-2 h-24 w-full cursor-zoom-in rounded-lg object-cover"
+        />
+      )}
+
+      <div className="mt-2 flex items-center justify-between text-[11px] text-fg-subtle">
+        <span>By {ticket.created_by_username || "Unknown"}</span>
+        {ticket.assigned_to_username && (
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
+            {ticket.assigned_to_username}
+          </span>
+        )}
+      </div>
+
+      {previewOpen && (
+        <ImagePreviewOverlay
+          url={ticket.image_url}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
+    </div>
+  );
+};
+
+// Full-size image preview -- shared by the ticket card thumbnail and
+// the detail modal's image, both of which only show a small crop/thumb
+// otherwise.
+const ImagePreviewOverlay = ({ url, onClose }) => (
   <div
-    draggable
-    onDragStart={onDragStart}
-    onClick={onClick}
-    className="cursor-grab rounded-xl border border-border bg-surface p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
+    className="fixed inset-0 z-70 flex items-center justify-center bg-black/80 p-4"
+    onClick={(e) => {
+      e.stopPropagation();
+      onClose();
+    }}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Image preview"
   >
-    <div className="flex items-start justify-between gap-2">
-      <h4 className="text-sm font-semibold text-fg">{ticket.title}</h4>
-      {ticket.priority && (
-        <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-            PRIORITY_STYLES[ticket.priority] || PRIORITY_STYLES.low
-          }`}
-        >
-          {ticket.priority}
-        </span>
-      )}
-    </div>
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose();
+      }}
+      aria-label="Close image preview"
+      className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-2xl text-white transition hover:bg-black"
+    >
+      ×
+    </button>
 
-    {ticket.description && (
-      <p className="mt-1.5 line-clamp-2 text-xs text-fg-subtle">
-        {ticket.description}
-      </p>
-    )}
-
-    {ticket.image_url && (
-      <img
-        src={ticket.image_url}
-        alt=""
-        // Images are draggable by default in every browser, which
-        // hijacks the card's own HTML5 drag-and-drop when the grab
-        // starts over the thumbnail -- opt this element out so the
-        // parent card's draggable always wins.
-        draggable={false}
-        className="mt-2 h-24 w-full rounded-lg object-cover"
-      />
-    )}
-
-    <div className="mt-2 flex items-center justify-between text-[11px] text-fg-subtle">
-      <span>By {ticket.created_by_username || "Unknown"}</span>
-      {ticket.assigned_to_username && (
-        <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
-          {ticket.assigned_to_username}
-        </span>
-      )}
-    </div>
+    <img
+      src={url}
+      alt=""
+      onClick={(e) => e.stopPropagation()}
+      className="max-h-[90vh] max-w-full rounded-xl object-contain"
+    />
   </div>
 );
 
@@ -254,6 +304,7 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
@@ -394,7 +445,8 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
                 <img
                   src={imagePreview}
                   alt=""
-                  className="h-32 w-full rounded-xl border border-border object-cover"
+                  onClick={() => setFullPreviewOpen(true)}
+                  className="h-32 w-full cursor-zoom-in rounded-xl border border-border object-cover"
                 />
                 <button
                   type="button"
@@ -406,6 +458,12 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
                 >
                   ✕
                 </button>
+                {fullPreviewOpen && (
+                  <ImagePreviewOverlay
+                    url={imagePreview}
+                    onClose={() => setFullPreviewOpen(false)}
+                  />
+                )}
               </div>
             ) : (
               <input
@@ -459,6 +517,7 @@ const TicketDetailModal = ({
   const [deleting, setDeleting] = useState(false);
   const [imageUrl, setImageUrl] = useState(ticket.image_url || null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
@@ -585,7 +644,8 @@ const TicketDetailModal = ({
                 <img
                   src={imageUrl}
                   alt=""
-                  className="h-32 w-full rounded-xl border border-border object-cover"
+                  onClick={() => setPreviewOpen(true)}
+                  className="h-32 w-full cursor-zoom-in rounded-xl border border-border object-cover"
                 />
                 <button
                   type="button"
@@ -595,6 +655,12 @@ const TicketDetailModal = ({
                 >
                   ✕
                 </button>
+                {previewOpen && (
+                  <ImagePreviewOverlay
+                    url={imageUrl}
+                    onClose={() => setPreviewOpen(false)}
+                  />
+                )}
               </div>
             ) : (
               <input
