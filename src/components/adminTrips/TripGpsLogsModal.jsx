@@ -23,6 +23,18 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// Same badge colors as ActiveTripsMonitor.jsx's status column, so the
+// "current status" reads consistently wherever it's shown.
+const STEP_BADGE_STYLES = {
+  ASSIGNED: "bg-surface-active text-fg-muted",
+  IN_TRANSIT: "bg-primary/15 text-primary",
+  ARRIVED: "bg-warning/15 text-warning",
+  UNLOADING: "bg-warning/15 text-warning",
+  DELIVERED: "bg-success/15 text-success",
+  RETURNING: "bg-primary/15 text-primary",
+  CHECKIN: "bg-success/15 text-success",
+};
+
 const latestPingIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
   iconSize: [34, 34],
@@ -221,6 +233,39 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* CURRENT STATUS -- whatever driver-triggered step the
+                  trip is on right now (Checkout, Arrived, Unloading,
+                  Delivered, Checkin), same labels as the Trip Dashboard's
+                  Active Trips list. */}
+              {data && (
+                <div className="rounded-2xl border border-border bg-surface p-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                    Current Status
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        STEP_BADGE_STYLES[data.current_step] ||
+                        "bg-surface-active text-fg-muted"
+                      }`}
+                    >
+                      {data.current_step_label || data.current_step || "-"}
+                    </span>
+                    {data.current_stop && (
+                      <span className="text-sm text-fg-muted">
+                        at {data.current_stop}
+                      </span>
+                    )}
+                    {data.total_stops != null && (
+                      <span className="text-xs text-fg-subtle">
+                        · {data.completed_stops ?? 0}/{data.total_stops} stops
+                        delivered
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* DELIVERY STOPS TIMELINE (parcel-tracker style) */}
               {stopTimeline.length > 0 && (
                 <div className="rounded-2xl border border-border bg-surface p-4">
