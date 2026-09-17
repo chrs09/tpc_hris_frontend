@@ -60,6 +60,18 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activePhoto, setActivePhoto] = useState(null); // { url, label } | null
+  const [photoZoom, setPhotoZoom] = useState(1);
+
+  // Opens the photo viewer, always starting at 100% zoom so the
+  // previous photo's zoom level doesn't carry over to the next one.
+  const openPhoto = (photo) => {
+    setPhotoZoom(1);
+    setActivePhoto(photo);
+  };
+
+  const zoomIn = () => setPhotoZoom((prev) => Math.min(prev + 0.25, 3));
+  const zoomOut = () => setPhotoZoom((prev) => Math.max(prev - 0.25, 0.5));
+  const resetZoom = () => setPhotoZoom(1);
 
   const loadLogs = useCallback(
     async (isRefresh = false) => {
@@ -261,7 +273,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      setActivePhoto({
+                                      openPhoto({
                                         url: item.stop.unloading_photo,
                                         label: `${item.store_name} - Unloading Photo`,
                                       })
@@ -276,7 +288,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                   <button
                                     type="button"
                                     onClick={() =>
-                                      setActivePhoto({
+                                      openPhoto({
                                         url: item.stop.delivery_proof_photo,
                                         label: `${item.store_name} - Proof of Delivery`,
                                       })
@@ -316,7 +328,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                               key={url}
                               type="button"
                               onClick={() =>
-                                setActivePhoto({
+                                openPhoto({
                                   url,
                                   label: `Invoice Page ${i + 1}`,
                                 })
@@ -342,7 +354,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                               key={url}
                               type="button"
                               onClick={() =>
-                                setActivePhoto({
+                                openPhoto({
                                   url,
                                   label: `LM Page ${i + 1}`,
                                 })
@@ -360,7 +372,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                       <button
                         type="button"
                         onClick={() =>
-                          setActivePhoto({
+                          openPhoto({
                             url: data.lm_checkout_stamped_photo,
                             label: "LM Stamped Checkout",
                           })
@@ -376,7 +388,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                       <button
                         type="button"
                         onClick={() =>
-                          setActivePhoto({
+                          openPhoto({
                             url: data.stamped_invoice_photo,
                             label: "Stamped Invoice (Checkin)",
                           })
@@ -503,26 +515,63 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
           aria-label="Photo preview"
         >
           <div
-            className="flex max-h-[90vh] max-w-3xl flex-col rounded-xl bg-surface p-3 shadow-2xl"
+            className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl bg-surface p-3 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-fg">
+              <p className="truncate text-sm font-semibold text-fg">
                 {activePhoto.label}
               </p>
-              <button
-                type="button"
-                onClick={() => setActivePhoto(null)}
-                className="rounded-lg px-2 py-1 text-fg-muted hover:bg-surface-hover"
-              >
-                ✕
-              </button>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  disabled={photoZoom <= 0.5}
+                  title="Zoom out"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover disabled:opacity-40"
+                >
+                  −
+                </button>
+
+                <span className="w-14 text-center text-sm text-fg-muted">
+                  {Math.round(photoZoom * 100)}%
+                </span>
+
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  disabled={photoZoom >= 3}
+                  title="Zoom in"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover disabled:opacity-40"
+                >
+                  +
+                </button>
+
+                <button
+                  type="button"
+                  onClick={resetZoom}
+                  title="Reset zoom"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover"
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActivePhoto(null)}
+                  className="rounded-lg px-2 py-1 text-fg-muted hover:bg-surface-hover"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
             <div className="overflow-auto">
               <img
                 src={activePhoto.url}
                 alt={activePhoto.label}
-                className="mx-auto max-h-[75vh] rounded-lg object-contain"
+                style={{ width: `${photoZoom * 100}%`, maxWidth: "none" }}
+                className="mx-auto h-auto rounded-lg transition-[width]"
               />
             </div>
           </div>
