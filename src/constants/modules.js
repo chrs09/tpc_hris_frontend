@@ -75,6 +75,11 @@ export const MODULE_GROUPS = [
         path: "/dashboard/admin/trip-categories",
       },
       {
+        key: "origins",
+        label: "Origins",
+        path: "/dashboard/admin/origins",
+      },
+      {
         key: "daily_dispatch",
         label: "Trip Dispatch",
         path: "/dashboard/admin/daily-deliveries",

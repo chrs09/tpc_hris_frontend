@@ -134,6 +134,12 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.trip_categories",
         },
         {
+          label: "Origins",
+          path: "/dashboard/admin/origins",
+          roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "trip_management.origins",
+        },
+        {
           label: "Trip Dispatch",
           path: "/dashboard/admin/daily-deliveries",
           roles: ["superadmin", "coordinator_admin"],

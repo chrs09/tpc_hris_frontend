@@ -83,6 +83,10 @@ export const ROLE_ACCESS_GROUPS = [
         roles: ["superadmin", "coordinator_admin"],
       },
       {
+        label: "Origins",
+        roles: ["superadmin", "coordinator_admin"],
+      },
+      {
         label: "Trip Dispatch",
         roles: ["superadmin", "coordinator_admin"],
       },

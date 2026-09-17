@@ -17,6 +17,7 @@ import OvertimeApprovals from "../Overtime/OvertimeApprovals";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripCategoriesPage from "../Admin/TripCategoriesPage";
+import OriginsPage from "../Admin/OriginsPage";
 import SuppliersPage from "../Admin/SuppliersPage";
 import TripPlanning from "../Coordinator/TripPlanning";
 import DriverTrips from "../Driver/DriverTrips";
@@ -134,6 +135,7 @@ const Dashboard = () => {
           />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
           <Route path="admin/trip-categories" element={<TripCategoriesPage />} />
+          <Route path="admin/origins" element={<OriginsPage />} />
           <Route path="admin/suppliers" element={<SuppliersPage />} />
           <Route path="admin/shipment-planning" element={<TripPlanning />} />
           {/* Office */}
