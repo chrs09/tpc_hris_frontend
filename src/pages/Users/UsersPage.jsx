@@ -190,6 +190,12 @@ const UsersPage = () => {
               <option value="superadmin">Superadmin</option>
               <option value="admin">Admin</option>
               <option value="driver">Driver</option>
+              <option value="helper">Helper</option>
+              <option value="employee">Employee</option>
+              <option value="coordinator_admin">Coordinator Admin</option>
+              <option value="coordinator">Coordinator</option>
+              <option value="payroll_admin">Payroll Admin</option>
+              <option value="office_admin">Office Admin</option>
             </select>
 
             <select
