@@ -154,6 +154,21 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
     });
   }, [data]);
 
+  // Any TripStop NOT already represented above -- either this trip has
+  // no planned_stores at all (dispatched before multi-store support),
+  // or this particular stop's GPS never matched a known store
+  // (store_id null, "Unknown" location) so it was excluded from the
+  // timeline's store-keyed map. Either way its photos would otherwise
+  // silently disappear -- show them here instead.
+  const unmatchedStops = useMemo(() => {
+    const timelineStoreIds = new Set(
+      stopTimeline.map((item) => item.store_id),
+    );
+    return (data?.stops || []).filter(
+      (stop) => stop.store_id == null || !timelineStoreIds.has(stop.store_id),
+    );
+  }, [data, stopTimeline]);
+
   const stopPhaseMeta = {
     delivered: {
       label: "Delivered",
@@ -353,19 +368,21 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                 </div>
               )}
 
-              {/* VISITED STOPS FALLBACK -- legacy trips dispatched before
-                  multi-store support have no planned_stores (so the
-                  timeline above renders nothing), but their actual
-                  TripStop rows -- and photos -- still exist in
-                  data.stops. Show those directly instead of hiding them. */}
-              {stopTimeline.length === 0 && data?.stops?.length > 0 && (
+              {/* VISITED STOPS FALLBACK -- covers both legacy trips (no
+                  planned_stores at all, so the timeline above renders
+                  nothing) and any stop whose GPS never matched a known
+                  store (excluded from the timeline's store-keyed map
+                  even when other stops ARE shown there). Either way the
+                  photos still exist in data.stops -- show them instead
+                  of silently dropping them. */}
+              {unmatchedStops.length > 0 && (
                 <div className="rounded-2xl border border-border bg-surface p-4">
                   <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                     Visited Stops
                   </p>
 
                   <div className="space-y-3">
-                    {data.stops.map((stop) => (
+                    {unmatchedStops.map((stop) => (
                       <div
                         key={stop.id}
                         className="rounded-xl bg-surface-hover p-3"
