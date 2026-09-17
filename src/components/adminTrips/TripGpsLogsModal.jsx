@@ -11,6 +11,7 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { FileText, Eye } from "lucide-react";
 import { reviewTrip } from "../../api/adminTripManagement/trips";
 
 /* Leaflet icon fix -- same as PendingTripsCard.jsx/FinanceReviewCard.jsx */
@@ -58,6 +59,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activePhoto, setActivePhoto] = useState(null); // { url, label } | null
 
   const loadLogs = useCallback(
     async (isRefresh = false) => {
@@ -162,6 +164,12 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
     return status;
   };
 
+  const hasCheckoutPhotos =
+    data?.invoice_photos?.length > 0 ||
+    data?.lm_photos?.length > 0 ||
+    data?.lm_checkout_stamped_photo ||
+    data?.stamped_invoice_photo;
+
   return (
     <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/60 p-4">
       <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl">
@@ -245,10 +253,141 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                 ` · Delivered: ${item.stop.check_out_time}`}
                             </p>
                           )}
+                          {item.stop &&
+                            (item.stop.unloading_photo ||
+                              item.stop.delivery_proof_photo) && (
+                              <div className="mt-1.5 flex flex-wrap gap-2">
+                                {item.stop.unloading_photo && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActivePhoto({
+                                        url: item.stop.unloading_photo,
+                                        label: `${item.store_name} - Unloading Photo`,
+                                      })
+                                    }
+                                    className="flex items-center gap-1 rounded-lg bg-surface-hover px-2 py-1 text-xs text-fg-muted hover:bg-surface-active"
+                                  >
+                                    <Eye size={12} />
+                                    Unloading Photo
+                                  </button>
+                                )}
+                                {item.stop.delivery_proof_photo && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setActivePhoto({
+                                        url: item.stop.delivery_proof_photo,
+                                        label: `${item.store_name} - Proof of Delivery`,
+                                      })
+                                    }
+                                    className="flex items-center gap-1 rounded-lg bg-surface-hover px-2 py-1 text-xs text-fg-muted hover:bg-surface-active"
+                                  >
+                                    <Eye size={12} />
+                                    Proof of Delivery
+                                  </button>
+                                )}
+                              </div>
+                            )}
                         </li>
                       );
                     })}
                   </ol>
+                </div>
+              )}
+
+              {/* CHECKOUT PHOTOS (Invoice/LM pages, stamped LM, stamped invoice) */}
+              {hasCheckoutPhotos && (
+                <div className="rounded-2xl border border-border bg-surface p-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                    Uploaded Files
+                  </p>
+
+                  <div className="space-y-3">
+                    {data.invoice_photos?.length > 0 && (
+                      <div>
+                        <p className="mb-1.5 text-xs text-fg-muted">
+                          Invoice ({data.invoice_photos.length} page
+                          {data.invoice_photos.length === 1 ? "" : "s"})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {data.invoice_photos.map((url, i) => (
+                            <button
+                              key={url}
+                              type="button"
+                              onClick={() =>
+                                setActivePhoto({
+                                  url,
+                                  label: `Invoice Page ${i + 1}`,
+                                })
+                              }
+                              className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                            >
+                              Page {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {data.lm_photos?.length > 0 && (
+                      <div>
+                        <p className="mb-1.5 text-xs text-fg-muted">
+                          LM ({data.lm_photos.length} page
+                          {data.lm_photos.length === 1 ? "" : "s"})
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {data.lm_photos.map((url, i) => (
+                            <button
+                              key={url}
+                              type="button"
+                              onClick={() =>
+                                setActivePhoto({
+                                  url,
+                                  label: `LM Page ${i + 1}`,
+                                })
+                              }
+                              className="rounded-lg bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                            >
+                              Page {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {data.lm_checkout_stamped_photo && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActivePhoto({
+                            url: data.lm_checkout_stamped_photo,
+                            label: "LM Stamped Checkout",
+                          })
+                        }
+                        className="flex items-center gap-1.5 rounded-lg bg-surface-hover px-2.5 py-1.5 text-xs font-medium text-fg hover:bg-surface-active"
+                      >
+                        <FileText size={12} />
+                        LM Stamped "Checkout"
+                      </button>
+                    )}
+
+                    {data.stamped_invoice_photo && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActivePhoto({
+                            url: data.stamped_invoice_photo,
+                            label: "Stamped Invoice (Checkin)",
+                          })
+                        }
+                        className="flex items-center gap-1.5 rounded-lg bg-surface-hover px-2.5 py-1.5 text-xs font-medium text-fg hover:bg-surface-active"
+                      >
+                        <FileText size={12} />
+                        Stamped Invoice (Checkin)
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -354,6 +493,41 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
           )}
         </div>
       </div>
+
+      {activePhoto && (
+        <div
+          className="fixed inset-0 z-80 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setActivePhoto(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo preview"
+        >
+          <div
+            className="flex max-h-[90vh] max-w-3xl flex-col rounded-xl bg-surface p-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-fg">
+                {activePhoto.label}
+              </p>
+              <button
+                type="button"
+                onClick={() => setActivePhoto(null)}
+                className="rounded-lg px-2 py-1 text-fg-muted hover:bg-surface-hover"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="overflow-auto">
+              <img
+                src={activePhoto.url}
+                alt={activePhoto.label}
+                className="mx-auto max-h-[75vh] rounded-lg object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
