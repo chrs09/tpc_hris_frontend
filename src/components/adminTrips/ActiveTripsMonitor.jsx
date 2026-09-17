@@ -3,6 +3,30 @@ import TripGpsLogsModal from "./TripGpsLogsModal";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 
+// Badge color per current_step -- mirrors CURRENT_STEP_LABELS in
+// app/api/admin/trips.py so the live status a driver's own button tap
+// triggers (Checkout, Arrived, Unloading, Delivered, Checkin) reads at
+// a glance here.
+const STEP_BADGE_STYLES = {
+  ASSIGNED: "bg-surface-active text-fg-muted",
+  IN_TRANSIT: "bg-primary/15 text-primary",
+  ARRIVED: "bg-warning/15 text-warning",
+  UNLOADING: "bg-warning/15 text-warning",
+  DELIVERED: "bg-success/15 text-success",
+  RETURNING: "bg-primary/15 text-primary",
+  CHECKIN: "bg-success/15 text-success",
+};
+
+const StepBadge = ({ step, label }) => (
+  <span
+    className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+      STEP_BADGE_STYLES[step] || "bg-surface-active text-fg-muted"
+    }`}
+  >
+    {label || step || "-"}
+  </span>
+);
+
 const ActiveTripsMonitor = ({ trips = [] }) => {
   const [selectedTripId, setSelectedTripId] = useState(null);
   const { page, setPage, totalPages, paginatedItems } = usePagination(
@@ -21,8 +45,8 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               <th className="px-4 py-3 text-left font-medium">Trip Code</th>
               <th className="px-4 py-3 text-left font-medium">Ticket</th>
               <th className="px-4 py-3 text-left font-medium">Started</th>
+              <th className="px-4 py-3 text-left font-medium">Status</th>
               <th className="px-4 py-3 text-left font-medium">Current Stop</th>
-              <th className="px-4 py-3 text-right font-medium">Duration</th>
               <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -57,9 +81,17 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                     {new Date(trip.start_time).toLocaleString()}
                   </td>
                   <td className="px-4 py-4">
-                    {trip.current_stop || "In Transit"}
+                    <StepBadge
+                      step={trip.current_step}
+                      label={trip.current_step_label}
+                    />
+                    {trip.total_stops != null && (
+                      <span className="ml-2 text-xs text-fg-subtle">
+                        {trip.completed_stops ?? 0}/{trip.total_stops} stops
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-4 text-right">{trip.duration}</td>
+                  <td className="px-4 py-4">{trip.current_stop || "-"}</td>
                   <td className="px-4 py-4 text-right">
                     <button
                       onClick={() => setSelectedTripId(trip.id)}
@@ -115,20 +147,26 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                 {trip.ticket_no}
               </div>
 
-              <div className="flex justify-between mt-2 text-sm">
-                <div>
-                  <span className="text-fg-muted block">Started</span>
-                  {new Date(trip.start_time).toLocaleString()}
-                </div>
-
-                <div>
-                  <span className="text-fg-muted block">Stop</span>
-                  {trip.current_stop || "Transit"}
-                </div>
+              <div className="mt-2 text-sm">
+                <span className="text-fg-muted block">Started</span>
+                {new Date(trip.start_time).toLocaleString()}
               </div>
 
-              <div className="text-right text-sm mt-2">
-                Duration: {trip.duration}
+              <div className="mt-2 flex items-center gap-2 text-sm">
+                <StepBadge
+                  step={trip.current_step}
+                  label={trip.current_step_label}
+                />
+                {trip.total_stops != null && (
+                  <span className="text-xs text-fg-subtle">
+                    {trip.completed_stops ?? 0}/{trip.total_stops} stops
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-2 text-sm">
+                <span className="text-fg-muted block">Current Stop</span>
+                {trip.current_stop || "-"}
               </div>
             </div>
           ))

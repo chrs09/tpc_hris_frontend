@@ -49,11 +49,10 @@ export const MODULE_GROUPS = [
     key: "trip_management",
     label: "Trip Management",
     submodules: [
-      { key: "trips", label: "Trips", path: "/dashboard/admin/trips" },
       {
-        key: "office_trip_review",
-        label: "Office Trip Review",
-        path: "/dashboard/office/trips",
+        key: "trip_dashboard",
+        label: "Dashboard",
+        path: "/dashboard/admin/trip-dashboard",
       },
       {
         key: "trip_assignment",
@@ -61,13 +60,23 @@ export const MODULE_GROUPS = [
         path: "/dashboard/admin/trip-assignment",
       },
       {
+        key: "trips",
+        label: "Trip Approvals",
+        path: "/dashboard/admin/trips",
+      },
+      {
+        key: "office_trip_review",
+        label: "Trip Confirmation",
+        path: "/dashboard/office/trips",
+      },
+      {
         key: "trip_categories",
-        label: "Trip Categories & Rates",
+        label: "Trip Category & Rates",
         path: "/dashboard/admin/trip-categories",
       },
       {
         key: "daily_dispatch",
-        label: "Daily Dispatch Board",
+        label: "Trip Dispatch",
         path: "/dashboard/admin/daily-deliveries",
       },
       {

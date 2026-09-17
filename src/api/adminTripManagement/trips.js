@@ -4,7 +4,14 @@ export const getAdminTripSummary = () => api.get("/admin/trips/summary");
 
 export const getPendingTrips = () => api.get("/admin/trips/pending");
 
+// Live status per trip: current_step/current_step_label reflect
+// whatever driver-triggered step the trip is on right now (Checkout,
+// Arrived, Unloading, Delivered, Checkin) -- see CURRENT_STEP_LABELS
+// in app/api/admin/trips.py.
 export const getActiveTrips = () => api.get("/admin/trips/active");
+
+// Dispatched trips the driver hasn't checked out (started) yet.
+export const getAssignedTrips = () => api.get("/admin/trips/assigned");
 
 // CHANGED: now accepts remarks and sends it as the JSON body,
 // matching the backend's approve_trip(remarks: str = Body(..., embed=True)).

@@ -3,20 +3,21 @@ import {
   getAdminTripSummary,
   getPendingTrips,
   getCompletedTrips,
-  getActiveTrips,
 } from "../../api/adminTripManagement/trips";
 import { getUnknownStops } from "../../api/adminTripManagement/stores";
 
 import SummaryCard from "../../components/adminTrips/SummaryCards";
 import PendingTripsCard from "../../components/adminTrips/PendingTripsCard";
-import ActiveTripsMonitor from "../../components/adminTrips/ActiveTripsMonitor";
 import UnknownStoresCard from "../../components/adminTrips/UnknownStoresCard";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
+// Trip Approvals -- the coordinator's pending/completed approval queue
+// plus unknown check-ins needing review. Assigned/Active trip
+// monitoring lives on the Trip Dashboard page instead (see
+// TripDashboard.jsx).
 const AdminTrips = () => {
   const [summary, setSummary] = useState({});
   const [pendingTrips, setPendingTrips] = useState([]);
-  const [activeTrips, setActiveTrips] = useState([]);
   const [unknownStops, setUnknownStops] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,18 +28,16 @@ const AdminTrips = () => {
 
   const loadTrips = async () => {
     try {
-      const [s, p, c, a, u] = await Promise.all([
+      const [s, p, c, u] = await Promise.all([
         getAdminTripSummary(),
         getPendingTrips(),
         getCompletedTrips(),
-        getActiveTrips(),
         getUnknownStops(),
       ]);
 
       setSummary(s.data);
       setPendingTrips(p.data);
       setCompletedTrips(c.data);
-      setActiveTrips(a.data);
       setUnknownStops(u.data);
     } catch (err) {
       console.error(err);
@@ -121,9 +120,8 @@ const AdminTrips = () => {
       )}
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         <SummaryCard label="Pending Trips" value={summary.pending_trips} />
-        <SummaryCard label="Active Trips" value={summary.active_trips} />
         <SummaryCard label="Unknown Check-ins" value={unknownStops.length} />
         <SummaryCard label="Completed Today" value={summary.completed_today} />
       </div>
@@ -166,23 +164,13 @@ const AdminTrips = () => {
         />
       </div>
 
-      {/* ACTIVE + UNKNOWN */}
-      <div className="grid grid-cols-1 xl:grid-cols-1 gap-6 xl:gap-5">
-        <div className="xl:col-span-2">
-          <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
-            Active Trips Monitoring
-          </h2>
+      {/* UNKNOWN */}
+      <div>
+        <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
+          Unknown Store Check-ins
+        </h2>
 
-          <ActiveTripsMonitor trips={activeTrips} />
-        </div>
-
-        <div className="xl:col-span-1">
-          <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
-            Unknown Store Check-ins
-          </h2>
-
-          <UnknownStoresCard stops={unknownStops} />
-        </div>
+        <UnknownStoresCard stops={unknownStops} />
       </div>
     </div>
   );

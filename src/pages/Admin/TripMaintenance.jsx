@@ -8,8 +8,11 @@ import {
   Pencil,
   Trash2,
   FileText,
+  History,
+  ClipboardList,
 } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
+import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -21,6 +24,7 @@ import {
   createVehicleMaintenanceRecord,
   updateVehicleMaintenanceRecord,
   deleteVehicleMaintenanceRecord,
+  getVehicleORHistory,
 } from "../../api/adminTripManagement/tripMaintenance";
 import { toast } from "react-hot-toast";
 
@@ -39,7 +43,6 @@ const EMPTY_VEHICLE_FORM = {
   plate_number: "",
   description: "",
   cr_number: "",
-  cr_expiration_date: "",
   cr_document: null,
   or_number: "",
   or_expiration_date: "",
@@ -61,8 +64,18 @@ const getExpirationStatus = (expirationDate) => {
   return "valid";
 };
 
-const DocumentStatusBlock = ({ label, number, documentUrl, expirationDate }) => {
-  const status = getExpirationStatus(expirationDate);
+// `hasExpiration` false means the document (e.g. the CR, which never
+// expires in PH LTO rules -- only the OR does) never shows an
+// expiration badge at all, regardless of what's on file.
+const DocumentStatusBlock = ({
+  label,
+  number,
+  documentUrl,
+  expirationDate,
+  hasExpiration = true,
+  onViewHistory,
+}) => {
+  const status = hasExpiration ? getExpirationStatus(expirationDate) : null;
   const styles =
     status === "expired"
       ? "bg-danger/15 text-danger"
@@ -80,22 +93,36 @@ const DocumentStatusBlock = ({ label, number, documentUrl, expirationDate }) => 
     <div className="bg-surface-hover rounded-xl p-3 space-y-1.5">
       <div className="flex items-center justify-between">
         <p className="text-xs text-fg-subtle">{label}</p>
-        {documentUrl && (
-          <a
-            href={documentUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          >
-            <FileText size={12} />
-            View
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {onViewHistory && (
+            <button
+              type="button"
+              onClick={onViewHistory}
+              className="flex items-center gap-1 text-xs font-medium text-fg-muted hover:text-primary hover:underline"
+            >
+              <History size={12} />
+              History
+            </button>
+          )}
+          {documentUrl && (
+            <a
+              href={documentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              <FileText size={12} />
+              View
+            </a>
+          )}
+        </div>
       </div>
 
       {number && <p className="text-sm">{number}</p>}
 
-      {expirationDate ? (
+      {!hasExpiration ? (
+        <p className="text-xs text-fg-subtle">No expiration (does not expire)</p>
+      ) : expirationDate ? (
         <span
           className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${styles}`}
         >
@@ -117,6 +144,7 @@ const DocumentFormSection = ({
   vehicleForm,
   setVehicleForm,
   existingUrl,
+  hasExpiration = true,
 }) => {
   const numberField = `${fieldPrefix}_number`;
   const expirationField = `${fieldPrefix}_expiration_date`;
@@ -126,7 +154,9 @@ const DocumentFormSection = ({
     <div className="border-t border-border pt-4">
       <p className="text-sm font-semibold text-fg mb-3">{title}</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div
+        className={`grid grid-cols-1 gap-4 ${hasExpiration ? "sm:grid-cols-2" : ""}`}
+      >
         <div>
           <label className="block text-sm font-medium mb-1 text-fg">
             Number
@@ -144,22 +174,24 @@ const DocumentFormSection = ({
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1 text-fg">
-            Expiration Date
-          </label>
-          <input
-            type="date"
-            value={vehicleForm[expirationField]}
-            onChange={(e) =>
-              setVehicleForm({
-                ...vehicleForm,
-                [expirationField]: e.target.value,
-              })
-            }
-            className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-          />
-        </div>
+        {hasExpiration && (
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Expiration Date
+            </label>
+            <input
+              type="date"
+              value={vehicleForm[expirationField]}
+              onChange={(e) =>
+                setVehicleForm({
+                  ...vehicleForm,
+                  [expirationField]: e.target.value,
+                })
+              }
+              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+            />
+          </div>
+        )}
       </div>
 
       <div className="mt-4">
@@ -217,6 +249,32 @@ export default function TripMaintenance() {
   const [maintenanceForm, setMaintenanceForm] = useState(
     EMPTY_MAINTENANCE_FORM,
   );
+
+  const [orHistoryUnit, setOrHistoryUnit] = useState(null);
+  const [orHistory, setOrHistory] = useState([]);
+  const [loadingOrHistory, setLoadingOrHistory] = useState(false);
+
+  const openOrHistory = async (unit) => {
+    setOrHistoryUnit(unit);
+    setOrHistory([]);
+    setLoadingOrHistory(true);
+    try {
+      const response = await getVehicleORHistory(unit.id);
+      setOrHistory(response || []);
+    } catch (error) {
+      console.error("Failed to load OR history", error);
+      toast.error("Failed to load OR history.");
+    } finally {
+      setLoadingOrHistory(false);
+    }
+  };
+
+  const closeOrHistory = () => {
+    setOrHistoryUnit(null);
+    setOrHistory([]);
+  };
+
+  const [checklistUnit, setChecklistUnit] = useState(null);
 
   const unitsPagination = usePagination(vehicleUnits, 9);
   const maintenancePagination = usePagination(maintenanceRecords, 10);
@@ -294,9 +352,6 @@ export default function TripMaintenance() {
       plate_number: unit.plate_number || "",
       description: unit.description || "",
       cr_number: unit.cr_number || "",
-      cr_expiration_date: unit.cr_expiration_date
-        ? unit.cr_expiration_date.slice(0, 10)
-        : "",
       cr_document: null,
       or_number: unit.or_number || "",
       or_expiration_date: unit.or_expiration_date
@@ -507,13 +562,14 @@ export default function TripMaintenance() {
                     label="CR"
                     number={unit.cr_number}
                     documentUrl={unit.cr_document_url}
-                    expirationDate={unit.cr_expiration_date}
+                    hasExpiration={false}
                   />
                   <DocumentStatusBlock
                     label="OR"
                     number={unit.or_number}
                     documentUrl={unit.or_document_url}
                     expirationDate={unit.or_expiration_date}
+                    onViewHistory={() => openOrHistory(unit)}
                   />
                 </div>
 
@@ -522,12 +578,21 @@ export default function TripMaintenance() {
                     Active
                   </span>
 
-                  <button
-                    onClick={() => handleEditUnit(unit)}
-                    className="text-primary hover:text-primary-hover"
-                  >
-                    <Pencil size={16} />
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setChecklistUnit(unit)}
+                      title="Vehicle Checklist"
+                      className="text-fg-muted hover:text-primary"
+                    >
+                      <ClipboardList size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleEditUnit(unit)}
+                      className="text-primary hover:text-primary-hover"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -694,6 +759,7 @@ export default function TripMaintenance() {
             vehicleForm={vehicleForm}
             setVehicleForm={setVehicleForm}
             existingUrl={editingUnit?.cr_document_url}
+            hasExpiration={false}
           />
 
           <DocumentFormSection
@@ -847,6 +913,88 @@ export default function TripMaintenance() {
           </div>
         </div>
       </MaintenanceModal>
+
+      {/* OR RENEWAL HISTORY */}
+      {orHistoryUnit && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface border border-border rounded-xl shadow-xl w-full max-w-md text-fg flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
+              <div>
+                <h2 className="text-lg font-semibold">OR Renewal History</h2>
+                <p className="text-xs text-fg-subtle">
+                  {orHistoryUnit.unit_code || orHistoryUnit.plate_number}
+                </p>
+              </div>
+              <button
+                onClick={closeOrHistory}
+                className="text-fg-muted hover:text-fg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1 space-y-3">
+              {loadingOrHistory ? (
+                <p className="text-sm text-fg-subtle">Loading...</p>
+              ) : orHistory.length === 0 ? (
+                <p className="text-sm text-fg-subtle">
+                  No previous OR on file -- this is the first one entered.
+                </p>
+              ) : (
+                orHistory.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="bg-surface-hover rounded-xl p-3 space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        {entry.or_number || "(no number on file)"}
+                      </p>
+                      {entry.or_document_url && (
+                        <a
+                          href={entry.or_document_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                        >
+                          <FileText size={12} />
+                          View
+                        </a>
+                      )}
+                    </div>
+                    {entry.or_expiration_date && (
+                      <p className="text-xs text-fg-subtle">
+                        Expired:{" "}
+                        {new Date(entry.or_expiration_date).toLocaleDateString()}
+                      </p>
+                    )}
+                    <p className="text-xs text-fg-subtle">
+                      Replaced:{" "}
+                      {new Date(entry.replaced_at).toLocaleString()}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="border-t border-border px-6 py-4 flex justify-end shrink-0">
+              <button
+                onClick={closeOrHistory}
+                className="px-4 py-2 rounded-lg border border-border text-fg hover:bg-surface-hover"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {checklistUnit && (
+        <VehicleChecklistModal
+          vehicleUnit={checklistUnit}
+          onClose={() => setChecklistUnit(null)}
+        />
+      )}
     </div>
   );
 }

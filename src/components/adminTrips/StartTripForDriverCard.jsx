@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { getAvailableDrivers } from "../../api/adminTripManagement/trips";
 import { getStores } from "../../api/adminTripManagement/stores";
-import { getActiveRateProfiles } from "../../api/adminTripManagement/tripMaintenance";
 import {
   getAvailableHelpers,
   getAvailableVehicleUnits,
@@ -26,11 +25,12 @@ const MAX_SHIPMENT_NUMBERS = 10;
 // Lets a trip manager (admin/superadmin/coordinator_admin) dispatch a
 // trip to a driver from the office -- this is Step 0 of the driver flow
 // (Checkout, Start Trip, Arrived, Start Unloading, Delivered, Checkin).
-// The driver, vehicle, origin hub, trip category, destination store(s),
-// and helpers are all picked here; the driver's own Checkout step only
-// records the odometer reading and the required photos. Trip category
-// (rate profile) decides driver/helper pay for the whole trip -- picked
-// explicitly here rather than derived from the destination store.
+// The driver, vehicle, origin hub, destination store(s), and helpers
+// are all picked here; the driver's own Checkout step only records the
+// odometer reading and the required photos. Trip category (rate
+// profile, decides driver/helper pay) is derived automatically on the
+// backend from the first destination store's own rate profile -- not
+// picked here.
 export default function StartTripForDriverCard({
   onStarted,
   alwaysExpanded = false,
@@ -41,7 +41,6 @@ export default function StartTripForDriverCard({
   const [hubStores, setHubStores] = useState([]);
   const [destinationStores, setDestinationStores] = useState([]);
   const [vehicleUnits, setVehicleUnits] = useState([]);
-  const [rateProfiles, setRateProfiles] = useState([]);
   const [helpers, setHelpers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [destinationSearch, setDestinationSearch] = useState("");
@@ -53,7 +52,6 @@ export default function StartTripForDriverCard({
   const [vehicleUnitId, setVehicleUnitId] = useState("");
   const [shipmentNumbers, setShipmentNumbers] = useState([]);
   const [shipmentNoInput, setShipmentNoInput] = useState("");
-  const [tripRateProfileId, setTripRateProfileId] = useState("");
   const [selectedDestinationIds, setSelectedDestinationIds] = useState([]);
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
@@ -64,13 +62,11 @@ export default function StartTripForDriverCard({
     const loadOptions = async () => {
       try {
         setLoadingOptions(true);
-        const [driverRes, storeRes, vehicleData, rateProfileData] =
-          await Promise.all([
-            getAvailableDrivers(),
-            getStores(),
-            getAvailableVehicleUnits(),
-            getActiveRateProfiles(),
-          ]);
+        const [driverRes, storeRes, vehicleData] = await Promise.all([
+          getAvailableDrivers(),
+          getStores(),
+          getAvailableVehicleUnits(),
+        ]);
 
         setDrivers(driverRes.data || []);
 
@@ -82,12 +78,6 @@ export default function StartTripForDriverCard({
 
         setVehicleUnits(
           Array.isArray(vehicleData) ? vehicleData : vehicleData.items || [],
-        );
-
-        setRateProfiles(
-          Array.isArray(rateProfileData)
-            ? rateProfileData
-            : rateProfileData.items || [],
         );
       } catch (error) {
         toast.error(getErrorMessage(error));
@@ -160,6 +150,13 @@ export default function StartTripForDriverCard({
     store.name.toLowerCase().includes(destinationSearch.toLowerCase()),
   );
 
+  // e.g. "2 RK GEN. MERCHANDISE (WS)" -- profile is the store's channel
+  // code (WS = Wholesaler, DP, KD, KA, PUP; see StoreProfile in
+  // app/models/stores.py), shown so the coordinator can tell channels
+  // apart at a glance when picking destinations.
+  const storeLabel = (store) =>
+    store.profile ? `${store.name} (${store.profile})` : store.name;
+
   const driverLabel = (driver) =>
     driver.employee_name
       ? `${driver.employee_name} (${driver.username})`
@@ -183,7 +180,6 @@ export default function StartTripForDriverCard({
     setVehicleUnitId("");
     setShipmentNumbers([]);
     setShipmentNoInput("");
-    setTripRateProfileId("");
     setSelectedDestinationIds([]);
     setSelectedHelperIds([]);
     setDestinationSearch("");
@@ -196,13 +192,12 @@ export default function StartTripForDriverCard({
     originStoreId &&
     vehicleUnitId &&
     shipmentNumbers.length > 0 &&
-    tripRateProfileId &&
     selectedDestinationIds.length > 0;
 
   const handleSubmit = async () => {
     if (!canSubmit) {
       toast.error(
-        "Select a driver, origin hub, vehicle, shipment number, trip category, and at least one destination store.",
+        "Select a driver, origin hub, vehicle, shipment number, and at least one destination store.",
       );
       return;
     }
@@ -215,7 +210,6 @@ export default function StartTripForDriverCard({
       formData.append("vehicle_unit_id", vehicleUnitId);
       formData.append("origin_store_id", originStoreId);
       formData.append("shipment_no", JSON.stringify(shipmentNumbers));
-      formData.append("trip_rate_profile_id", tripRateProfileId);
       formData.append(
         "destination_store_ids",
         JSON.stringify(selectedDestinationIds),
@@ -241,9 +235,9 @@ export default function StartTripForDriverCard({
         <div>
           <h3 className="text-sm font-semibold text-fg">Dispatch Trip</h3>
           <p className="mt-1 text-xs text-fg-subtle">
-            Assign a driver, vehicle, origin hub, shipment number(s), trip
-            category, and destination store(s). The driver's own Checkout
-            step only records the odometer reading and photos.
+            Assign a driver, vehicle, origin hub, shipment number(s), and
+            destination store(s). The driver's own Checkout step only
+            records the odometer reading and photos.
           </p>
         </div>
         {!alwaysExpanded && (
@@ -393,27 +387,6 @@ export default function StartTripForDriverCard({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Trip Category
-                </label>
-                <select
-                  value={tripRateProfileId}
-                  onChange={(e) => setTripRateProfileId(e.target.value)}
-                  className={inputStyles}
-                >
-                  <option value="">Select trip category</option>
-                  {rateProfiles.map((profile) => (
-                    <option key={profile.id} value={profile.id}>
-                      {profile.profile_name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-fg-subtle">
-                  Decides driver/helper pay for this trip.
-                </p>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-fg">
                   Origin Hub
                 </label>
                 <select
@@ -457,7 +430,7 @@ export default function StartTripForDriverCard({
                               1st
                             </span>
                           )}
-                          {store ? store.name : `Store #${storeId}`}
+                          {store ? storeLabel(store) : `Store #${storeId}`}
                           <button
                             type="button"
                             onClick={() => removeDestination(storeId)}
@@ -506,7 +479,7 @@ export default function StartTripForDriverCard({
                             onChange={() => toggleDestination(store.id)}
                             className="h-4 w-4 rounded border-border"
                           />
-                          {store.name}
+                          {storeLabel(store)}
                         </label>
                       );
                     })

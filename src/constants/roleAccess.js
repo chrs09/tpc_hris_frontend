@@ -62,23 +62,27 @@ export const ROLE_ACCESS_GROUPS = [
     label: "Trip Management",
     children: [
       {
-        label: "Trips",
-        roles: ["superadmin", "driver", "coordinator_admin"],
-      },
-      {
-        label: "Office Trip Review",
-        roles: ["superadmin", "coordinator_admin", "office_admin"],
+        label: "Dashboard",
+        roles: ["superadmin", "coordinator_admin"],
       },
       {
         label: "Trip Assignment",
         roles: ["superadmin", "coordinator_admin", "coordinator"],
       },
       {
-        label: "Trip Categories & Rates",
+        label: "Trip Approvals",
+        roles: ["superadmin", "driver", "coordinator_admin"],
+      },
+      {
+        label: "Trip Confirmation",
+        roles: ["superadmin", "coordinator_admin", "office_admin"],
+      },
+      {
+        label: "Trip Category & Rates",
         roles: ["superadmin", "coordinator_admin"],
       },
       {
-        label: "Daily Dispatch Board",
+        label: "Trip Dispatch",
         roles: ["superadmin", "coordinator_admin"],
       },
       {

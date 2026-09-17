@@ -35,7 +35,6 @@ export const createVehicleUnit = async (payload) => {
     formData.append("description", payload.description || "");
 
     formData.append("cr_number", payload.cr_number || "");
-    formData.append("cr_expiration_date", payload.cr_expiration_date || "");
     if (payload.cr_document) {
       formData.append("cr_document", payload.cr_document);
     }
@@ -76,6 +75,52 @@ export const updateVehicleUnit = async (id, payload) => {
     return response.data;
   } catch (error) {
     console.error("Error updating vehicle unit:", error);
+    throw error;
+  }
+};
+
+// Every previous OR (Official Receipt) this vehicle unit has had,
+// newest first -- see VehicleUnitORHistory on the backend.
+export const getVehicleORHistory = async (id) => {
+  try {
+    const response = await api.get(
+      `/trip-maintenance/vehicle-units/${id}/or-history`,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching OR history:", error);
+    throw error;
+  }
+};
+
+// The vehicle's compliance/documentation checklist (Documentation,
+// Provisional Authority, Certificate of Public Convenience, Renewal,
+// Grab, Vehicle Details, Loan Agency, LTMS) -- one JSON blob per
+// vehicle unit, shape defined by CHECKLIST_SCHEMA on the frontend.
+export const getVehicleChecklist = async (id) => {
+  try {
+    const response = await api.get(
+      `/trip-maintenance/vehicle-units/${id}/checklist`,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching vehicle checklist:", error);
+    throw error;
+  }
+};
+
+export const saveVehicleChecklist = async (id, data) => {
+  try {
+    const response = await api.put(
+      `/trip-maintenance/vehicle-units/${id}/checklist`,
+      data,
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error saving vehicle checklist:", error);
     throw error;
   }
 };

@@ -100,19 +100,10 @@ export function getNavGroups(role) {
       label: "Trip Management",
       children: [
         {
-          label: "Trips",
-          path:
-            role === "driver"
-              ? "/dashboard/driver/trips"
-              : "/dashboard/admin/trips",
-          roles: ["superadmin", "driver", "coordinator_admin"],
-          moduleKey: "trip_management.trips",
-        },
-        {
-          label: "Office Trip Review",
-          path: "/dashboard/office/trips",
-          roles: ["superadmin", "coordinator_admin", "office_admin"],
-          moduleKey: "trip_management.office_trip_review",
+          label: "Dashboard",
+          path: "/dashboard/admin/trip-dashboard",
+          roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "trip_management.trip_dashboard",
         },
         {
           label: "Trip Assignment",
@@ -121,13 +112,28 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.trip_assignment",
         },
         {
-          label: "Trip Categories & Rates",
+          label: "Trip Approvals",
+          path:
+            role === "driver"
+              ? "/dashboard/driver/trips"
+              : "/dashboard/admin/trips",
+          roles: ["superadmin", "driver", "coordinator_admin"],
+          moduleKey: "trip_management.trips",
+        },
+        {
+          label: "Trip Confirmation",
+          path: "/dashboard/office/trips",
+          roles: ["superadmin", "coordinator_admin", "office_admin"],
+          moduleKey: "trip_management.office_trip_review",
+        },
+        {
+          label: "Trip Category & Rates",
           path: "/dashboard/admin/trip-categories",
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "trip_management.trip_categories",
         },
         {
-          label: "Daily Dispatch Board",
+          label: "Trip Dispatch",
           path: "/dashboard/admin/daily-deliveries",
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "trip_management.daily_dispatch",
