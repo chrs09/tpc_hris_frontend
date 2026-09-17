@@ -97,7 +97,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       u.role !== "superadmin" &&
       u.is_active &&
       (u.username.toLowerCase().includes(viewAsSearch.toLowerCase()) ||
-        u.email.toLowerCase().includes(viewAsSearch.toLowerCase())),
+        (u.email || "").toLowerCase().includes(viewAsSearch.toLowerCase())),
   );
 
   // =========================
