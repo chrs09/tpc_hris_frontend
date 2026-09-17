@@ -22,6 +22,7 @@ export function getNavGroups(role) {
             "employee",
             "payroll_admin",
             "coordinator_admin",
+            "coordinator",
             "office_admin",
           ],
         },

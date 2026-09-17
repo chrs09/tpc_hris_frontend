@@ -18,6 +18,7 @@ export const ROLE_ACCESS_GROUPS = [
           "employee",
           "payroll_admin",
           "coordinator_admin",
+          "coordinator",
           "office_admin",
         ],
       },

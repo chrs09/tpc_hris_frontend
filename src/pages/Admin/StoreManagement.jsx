@@ -5,19 +5,50 @@ import {
   getStores,
   createStore,
   updateStore,
+  uploadStorePhoto,
+  removeStorePhoto,
   getTripRateProfilesAdmin, // NEW - fetches real TripRateProfile rows
 } from "../../api/adminTripManagement/stores";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
+import StoreLocationPicker from "../../components/adminTrips/StoreLocationPicker";
 
 const initialFormState = {
   name: "",
+  address: "",
+  outlet_number: "",
   latitude: "",
   longitude: "",
   allowed_radius_meters: 100,
   required_helper: 0,
   trip_rate_profile_id: "",
 };
+
+// Full-size photo preview, shared by the store list and the edit modal.
+const ImagePreviewOverlay = ({ url, onClose }) => (
+  <div
+    className="fixed inset-0 z-70 flex items-center justify-center bg-black/80 p-4"
+    onClick={onClose}
+    role="dialog"
+    aria-modal="true"
+    aria-label="Store photo preview"
+  >
+    <button
+      type="button"
+      onClick={onClose}
+      aria-label="Close photo preview"
+      className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-black/70 text-2xl text-white transition hover:bg-black"
+    >
+      ×
+    </button>
+    <img
+      src={url}
+      alt=""
+      onClick={(e) => e.stopPropagation()}
+      className="max-h-[90vh] max-w-full rounded-xl object-contain"
+    />
+  </div>
+);
 
 export default function StoreManagement() {
   const [stores, setStores] = useState([]);
@@ -31,6 +62,11 @@ export default function StoreManagement() {
   const [profilesLoading, setProfilesLoading] = useState(true);
 
   const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const loadTripRateProfiles = async () => {
     try {
@@ -65,6 +101,8 @@ export default function StoreManagement() {
   const openCreateModal = () => {
     setEditingStore(null);
     setForm(initialFormState);
+    setPhotoFile(null);
+    setPhotoPreview(null);
     setShowModal(true);
   };
 
@@ -75,8 +113,12 @@ export default function StoreManagement() {
       (p) => p.code === store.profile,
     );
     setEditingStore(store);
+    setPhotoFile(null);
+    setPhotoPreview(store.photo_url || null);
     setForm({
       name: store.name || "",
+      address: store.address || "",
+      outlet_number: store.outlet_number || "",
       latitude: store.latitude || "",
       longitude: store.longitude || "",
       allowed_radius_meters: store.allowed_radius_meters || 100,
@@ -97,10 +139,19 @@ export default function StoreManagement() {
     }));
   };
 
+  const handlePhotoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
   const handleSaveStore = async () => {
     try {
       const payload = {
         name: form.name.trim(),
+        address: form.address.trim() || null,
+        outlet_number: form.outlet_number.trim() || null,
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
         allowed_radius_meters: Number(form.allowed_radius_meters),
@@ -125,12 +176,30 @@ export default function StoreManagement() {
         return;
       }
 
+      let storeId = editingStore?.id;
+
       if (editingStore) {
         await updateStore(editingStore.id, payload);
         toast.success("Store updated successfully.");
       } else {
-        await createStore(payload);
+        const created = await createStore(payload);
+        storeId = created?.data?.id;
         toast.success("Store created successfully.");
+      }
+
+      if (photoFile && storeId) {
+        try {
+          setUploadingPhoto(true);
+          await uploadStorePhoto(storeId, photoFile);
+        } catch (photoError) {
+          toast.error(
+            `Store saved, but the photo failed to upload: ${
+              photoError?.response?.data?.detail || photoError.message
+            }`,
+          );
+        } finally {
+          setUploadingPhoto(false);
+        }
       }
 
       setShowModal(false);
@@ -138,6 +207,27 @@ export default function StoreManagement() {
     } catch (error) {
       console.error(error);
       toast.error(error?.response?.data?.detail || "Failed to save store.");
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    if (!editingStore) {
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      return;
+    }
+    try {
+      setUploadingPhoto(true);
+      await removeStorePhoto(editingStore.id);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      await loadStores();
+      toast.success("Photo removed.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to remove photo.");
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
@@ -170,7 +260,7 @@ export default function StoreManagement() {
     if (!filteredStores.length) {
       return (
         <tr>
-          <td colSpan={6} className="px-6 py-4 text-center text-fg-subtle">
+          <td colSpan={9} className="px-6 py-4 text-center text-fg-subtle">
             {stores.length
               ? "No stores match your search or filter."
               : "No stores found."}
@@ -181,7 +271,23 @@ export default function StoreManagement() {
 
     return paginatedStores.map((store) => (
       <tr key={store.id} className="border-b border-border last:border-b-0">
+        <td className="px-6 py-4">
+          {store.photo_url ? (
+            <img
+              src={store.photo_url}
+              alt=""
+              onClick={() => setPreviewUrl(store.photo_url)}
+              className="h-10 w-10 cursor-zoom-in rounded-lg object-cover"
+            />
+          ) : (
+            <span className="text-xs text-fg-subtle">No photo</span>
+          )}
+        </td>
         <td className="px-6 py-4 text-fg">{store.name}</td>
+        <td className="px-6 py-4 text-fg-muted">{store.outlet_number || "-"}</td>
+        <td className="px-6 py-4 text-fg-muted max-w-xs truncate">
+          {store.address || "-"}
+        </td>
         <td className="px-6 py-4 text-fg-muted">{store.profile || "Unassigned"}</td>
         <td className="px-6 py-4 text-fg-muted">{store.required_helper}</td>
         <td className="px-6 py-4 text-fg-muted">{store.allowed_radius_meters} m</td>
@@ -217,11 +323,26 @@ export default function StoreManagement() {
         className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
       >
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="font-semibold text-fg">{store.name}</p>
-            <p className="text-xs text-fg-subtle">
-              {store.profile || "Unassigned"}
-            </p>
+          <div className="flex items-start gap-3">
+            {store.photo_url && (
+              <img
+                src={store.photo_url}
+                alt=""
+                onClick={() => setPreviewUrl(store.photo_url)}
+                className="h-12 w-12 shrink-0 cursor-zoom-in rounded-lg object-cover"
+              />
+            )}
+            <div>
+              <p className="font-semibold text-fg">{store.name}</p>
+              <p className="text-xs text-fg-subtle">
+                {store.profile || "Unassigned"}
+              </p>
+              {store.outlet_number && (
+                <p className="text-xs text-fg-subtle">
+                  Outlet #{store.outlet_number}
+                </p>
+              )}
+            </div>
           </div>
 
           <button
@@ -231,6 +352,10 @@ export default function StoreManagement() {
             Edit
           </button>
         </div>
+
+        {store.address && (
+          <p className="mt-2 text-xs text-fg-muted">{store.address}</p>
+        )}
 
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <div>
@@ -330,7 +455,16 @@ export default function StoreManagement() {
             <thead className="bg-surface-hover">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                  Photo
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Store Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                  Outlet #
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                  Address
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Profile
@@ -352,7 +486,7 @@ export default function StoreManagement() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-fg-subtle">
+                  <td colSpan={9} className="px-6 py-8 text-center text-fg-subtle">
                     Loading stores...
                   </td>
                 </tr>
@@ -404,6 +538,81 @@ export default function StoreManagement() {
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
               placeholder="Store Name"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">Address</label>
+            <input
+              value={form.address}
+              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
+              placeholder="e.g. 123 Main St., Cebu City"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Outlet Number
+            </label>
+            <input
+              value={form.outlet_number}
+              onChange={(e) =>
+                setForm({ ...form, outlet_number: e.target.value })
+              }
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
+              placeholder="e.g. OUT-0042"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Store Photo
+            </label>
+
+            {photoPreview ? (
+              <div className="relative">
+                <img
+                  src={photoPreview}
+                  alt=""
+                  onClick={() => setPreviewUrl(photoPreview)}
+                  className="h-32 w-full cursor-zoom-in rounded-xl border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  disabled={uploadingPhoto}
+                  className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white hover:bg-black/80 disabled:opacity-50"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                disabled={uploadingPhoto}
+                onChange={handlePhotoChange}
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm text-fg file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground disabled:opacity-50"
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Pick Location on Map
+            </label>
+            <StoreLocationPicker
+              latitude={form.latitude}
+              longitude={form.longitude}
+              onChange={({ lat, lng, address }) =>
+                setForm((prev) => ({
+                  ...prev,
+                  latitude: lat,
+                  longitude: lng,
+                  ...(address !== undefined ? { address } : {}),
+                }))
+              }
             />
           </div>
 
@@ -490,6 +699,13 @@ export default function StoreManagement() {
           </div>
         </div>
       </MaintenanceModal>
+
+      {previewUrl && (
+        <ImagePreviewOverlay
+          url={previewUrl}
+          onClose={() => setPreviewUrl(null)}
+        />
+      )}
     </div>
   );
 }
