@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button/Button";
-import { getUserList } from "../../api/users";
+import { getUserList, bulkCreateUsers } from "../../api/users";
 import UserDrawer from "../../components/users/UserDrawer";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import useModuleAccess from "../../hooks/useModuleAccess";
+import { confirmDialog } from "../../components/ui/dialog/dialogService";
+import { toast } from "react-hot-toast";
 
 const UsersPage = () => {
   const { isVisible } = useModuleAccess();
@@ -20,6 +22,8 @@ const UsersPage = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [generatedCredentials, setGeneratedCredentials] = useState(null);
+  const [bulkResult, setBulkResult] = useState(null);
+  const [bulkCreating, setBulkCreating] = useState(false);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -41,11 +45,66 @@ const UsersPage = () => {
     }
   };
 
+  const handleBulkCreate = async () => {
+    if (
+      !(await confirmDialog(
+        "Create a login account for every active employee that doesn't have one yet? Each gets username=last name and a temporary password, same as creating one manually.",
+      ))
+    )
+      return;
+
+    try {
+      setBulkCreating(true);
+      const result = await bulkCreateUsers();
+      setBulkResult(result);
+      setGeneratedCredentials(null);
+      await fetchUsers();
+
+      if (result.created.length > 0) {
+        toast.success(`Created ${result.created.length} account(s).`);
+      } else {
+        toast("No new accounts to create -- every active employee already has one.");
+      }
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.detail || "Failed to bulk-create accounts.",
+      );
+    } finally {
+      setBulkCreating(false);
+    }
+  };
+
+  const downloadBulkResultCsv = () => {
+    if (!bulkResult?.created?.length) return;
+
+    const rows = [
+      ["Name", "Username", "Temporary Password"],
+      ...bulkResult.created.map((c) => [
+        c.name,
+        c.username,
+        c.temporary_password,
+      ]),
+    ];
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `new-account-credentials-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // ================= FILTER =================
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.username.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
+      (user.email || "").toLowerCase().includes(search.toLowerCase());
 
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
 
@@ -147,6 +206,14 @@ const UsersPage = () => {
             </select>
 
             <Button
+              className="border border-border bg-surface px-4 py-2 text-fg shadow-sm transition hover:bg-surface-hover disabled:opacity-60"
+              onClick={handleBulkCreate}
+              disabled={bulkCreating}
+            >
+              {bulkCreating ? "Creating..." : "Bulk Create Accounts"}
+            </Button>
+
+            <Button
               className="bg-primary px-4 py-2 text-primary-foreground shadow-sm transition hover:bg-primary-hover"
               onClick={() => {
                 setEditingUser(null);
@@ -183,6 +250,107 @@ const UsersPage = () => {
           </div>
         )}
 
+        {/* ================= BULK CREATE RESULTS ================= */}
+        {bulkResult && (
+          <div className="rounded-2xl border border-success/30 bg-success/10 p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <div className="font-semibold text-success">
+                  Bulk Create Complete
+                </div>
+                <div className="mt-1 text-sm text-fg-muted">
+                  {bulkResult.created.length} account(s) created
+                  {bulkResult.failed.length > 0 &&
+                    `, ${bulkResult.failed.length} skipped`}
+                  {" "}
+                  out of {bulkResult.total_candidates} employee(s) without an
+                  account.
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                {bulkResult.created.length > 0 && (
+                  <button
+                    className="text-sm font-medium text-primary underline"
+                    onClick={downloadBulkResultCsv}
+                  >
+                    Download CSV
+                  </button>
+                )}
+                <button
+                  className="text-sm font-medium text-fg-muted underline"
+                  onClick={() => setBulkResult(null)}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+
+            {bulkResult.created.length > 0 && (
+              <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-border bg-surface">
+                <table className="w-full text-sm">
+                  <thead className="bg-surface-hover text-fg-muted">
+                    <tr className="text-xs uppercase tracking-wide">
+                      <th className="px-4 py-2 text-left font-medium">Name</th>
+                      <th className="px-4 py-2 text-left font-medium">
+                        Username
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium">
+                        Temporary Password
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkResult.created.map((c) => (
+                      <tr
+                        key={c.employee_id}
+                        className="border-t border-border text-fg"
+                      >
+                        <td className="px-4 py-2">{c.name}</td>
+                        <td className="px-4 py-2">{c.username}</td>
+                        <td className="px-4 py-2">{c.temporary_password}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {bulkResult.failed.length > 0 && (
+              <details className="mt-3">
+                <summary className="cursor-pointer text-sm font-medium text-fg-muted">
+                  {bulkResult.failed.length} employee(s) skipped
+                </summary>
+                <div className="mt-2 max-h-48 overflow-auto rounded-xl border border-border bg-surface">
+                  <table className="w-full text-sm">
+                    <thead className="bg-surface-hover text-fg-muted">
+                      <tr className="text-xs uppercase tracking-wide">
+                        <th className="px-4 py-2 text-left font-medium">
+                          Name
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium">
+                          Reason
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bulkResult.failed.map((f) => (
+                        <tr
+                          key={f.employee_id}
+                          className="border-t border-border text-fg"
+                        >
+                          <td className="px-4 py-2">{f.name}</td>
+                          <td className="px-4 py-2">{f.reason}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            )}
+          </div>
+        )}
+
         {/* ================= USERS CONTAINER ================= */}
         <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
           {/* ================= MOBILE ================= */}
@@ -206,7 +374,9 @@ const UsersPage = () => {
                       <div className="font-semibold text-fg">
                         {user.username}
                       </div>
-                      <div className="text-xs text-fg-subtle">{user.email}</div>
+                      <div className="text-xs text-fg-subtle">
+                        {user.email || "No email"}
+                      </div>
                     </div>
                     <span
                       className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
@@ -288,7 +458,7 @@ const UsersPage = () => {
                                   {user.username}
                                 </div>
                                 <div className="text-xs text-fg-subtle">
-                                  {user.email}
+                                  {user.email || "No email"}
                                 </div>
                               </div>
                             </div>

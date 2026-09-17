@@ -6,6 +6,14 @@ export const createUser = async (payload) => {
   return res.data;
 };
 
+// Creates a login account (role=employee) for every active employee who
+// doesn't already have one, in one shot -- see bulk_create_users_service
+// on the backend. Returns { total_candidates, created: [...], failed: [...] }.
+export const bulkCreateUsers = async () => {
+  const res = await api.post("/users/bulk-create");
+  return res.data;
+};
+
 // Get all users (if you build user list page later)
 export const getUserList = async () => {
   const res = await api.get("/users/");
