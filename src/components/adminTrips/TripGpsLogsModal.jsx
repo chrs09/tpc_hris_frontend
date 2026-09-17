@@ -353,6 +353,86 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                 </div>
               )}
 
+              {/* VISITED STOPS FALLBACK -- legacy trips dispatched before
+                  multi-store support have no planned_stores (so the
+                  timeline above renders nothing), but their actual
+                  TripStop rows -- and photos -- still exist in
+                  data.stops. Show those directly instead of hiding them. */}
+              {stopTimeline.length === 0 && data?.stops?.length > 0 && (
+                <div className="rounded-2xl border border-border bg-surface p-4">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-fg-subtle">
+                    Visited Stops
+                  </p>
+
+                  <div className="space-y-3">
+                    {data.stops.map((stop) => (
+                      <div
+                        key={stop.id}
+                        className="rounded-xl bg-surface-hover p-3"
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-medium text-fg">
+                            {stop.store_name}
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              stopPhaseMeta[
+                                stop.status === "DELIVERED"
+                                  ? "delivered"
+                                  : "current"
+                              ].badge
+                            }`}
+                          >
+                            {stopStatusLabel(stop.status)}
+                          </span>
+                        </div>
+                        {stop.check_in_time && (
+                          <p className="mt-0.5 text-xs text-fg-subtle">
+                            Arrived: {stop.check_in_time}
+                            {stop.check_out_time &&
+                              ` · Delivered: ${stop.check_out_time}`}
+                          </p>
+                        )}
+                        {(stop.unloading_photo || stop.delivery_proof_photo) && (
+                          <div className="mt-1.5 flex flex-wrap gap-2">
+                            {stop.unloading_photo && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: stop.unloading_photo,
+                                    label: `${stop.store_name} - Unloading Photo`,
+                                  })
+                                }
+                                className="flex items-center gap-1 rounded-lg bg-surface-active px-2 py-1 text-xs text-fg-muted hover:bg-surface"
+                              >
+                                <Eye size={12} />
+                                Unloading Photo
+                              </button>
+                            )}
+                            {stop.delivery_proof_photo && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: stop.delivery_proof_photo,
+                                    label: `${stop.store_name} - Proof of Delivery`,
+                                  })
+                                }
+                                className="flex items-center gap-1 rounded-lg bg-surface-active px-2 py-1 text-xs text-fg-muted hover:bg-surface"
+                              >
+                                <Eye size={12} />
+                                Proof of Delivery
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* CHECKOUT PHOTOS (Invoice/LM pages, stamped LM, stamped invoice) */}
               {hasCheckoutPhotos && (
                 <div className="rounded-2xl border border-border bg-surface p-4">
