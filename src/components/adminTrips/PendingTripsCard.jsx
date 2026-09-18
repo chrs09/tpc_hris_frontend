@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   approveTrip,
   archiveTrip,
   reviewTrip,
+  replaceTripFile,
 } from "../../api/adminTripManagement/trips";
 import toast from "react-hot-toast";
 import { confirmDialog } from "../ui/dialog/dialogService";
@@ -29,6 +30,7 @@ import {
   faUserClock,
   faEye,
   faBoxArchive,
+  faPenToSquare,
 } from "@fortawesome/free-solid-svg-icons";
 
 /* Leaflet icon fix */
@@ -111,6 +113,44 @@ const PendingTripsCard = ({
   const zoomIn = () => setPhotoZoom((prev) => Math.min(prev + 0.25, 3));
   const zoomOut = () => setPhotoZoom((prev) => Math.max(prev - 0.25, 0.5));
   const resetZoom = () => setPhotoZoom(1);
+
+  // Lets a coordinator override a wrongly-photographed document in
+  // place -- a single hidden file input reused for every photo slot,
+  // triggered per-photo via triggerReplace(fileId).
+  const replaceInputRef = useRef(null);
+  const [pendingReplaceFileId, setPendingReplaceFileId] = useState(null);
+  const [replacingFileId, setReplacingFileId] = useState(null);
+
+  const triggerReplace = (fileId) => {
+    setPendingReplaceFileId(fileId);
+    replaceInputRef.current?.click();
+  };
+
+  const handleReplaceFileSelected = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+
+    const fileId = pendingReplaceFileId;
+    setPendingReplaceFileId(null);
+
+    if (!file || !fileId || !selectedTrip) return;
+
+    try {
+      setReplacingFileId(fileId);
+      await replaceTripFile(fileId, file);
+      toast.success("Photo replaced.");
+
+      const res = await reviewTrip(selectedTrip.trip_id);
+      setSelectedTrip(res.data);
+    } catch (error) {
+      console.error("Failed to replace photo:", error);
+      toast.error(
+        error.response?.data?.detail || "Failed to replace photo.",
+      );
+    } finally {
+      setReplacingFileId(null);
+    }
+  };
 
   // NEW: remarks for finance review, entered at approval time
   const [remarks, setRemarks] = useState("");
@@ -272,7 +312,19 @@ const PendingTripsCard = ({
                 className="border-t border-border hover:bg-surface-hover"
               >
                 <td className="px-6 py-4">{trip.id}</td>
-                <td className="px-6 py-4 uppercase">{trip.trip_code || "-"}</td>
+                <td className="px-6 py-4 uppercase">
+                  <div className="flex items-center gap-2">
+                    {trip.trip_code || "-"}
+                    {trip.return_reason && (
+                      <span
+                        title={`Sent back for correction: ${trip.return_reason}`}
+                        className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-danger"
+                      >
+                        Correction Requested
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
                 <td className="px-6 py-4 uppercase">{trip.ticket_no}</td>
                 <td className="px-6 py-4">{trip.start_time}</td>
@@ -310,6 +362,15 @@ const PendingTripsCard = ({
             key={trip.id}
             className="bg-surface border border-border text-fg p-4 rounded-xl"
           >
+            {trip.return_reason && (
+              <div
+                title={trip.return_reason}
+                className="mb-2 inline-block rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger"
+              >
+                Correction Requested
+              </div>
+            )}
+
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-xs text-fg-muted">Driver</p>
@@ -367,6 +428,14 @@ const PendingTripsCard = ({
       {showModal && selectedTrip && (
         <div className="fixed inset-0 bg-black/60 flex justify-center items-center p-4 z-50">
           <div className="bg-surface border border-border text-fg w-full max-w-6xl max-h-[95vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+            <input
+              ref={replaceInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleReplaceFileSelected}
+            />
+
             {/* HEADER */}
             <div className="flex justify-between items-center p-6 border-b border-border">
               <h2 className="text-xl font-bold flex items-center gap-3">
@@ -522,20 +591,33 @@ const PendingTripsCard = ({
                         </span>
                         {selectedTrip.invoice_photos?.length > 0 ? (
                           <div className="flex flex-wrap justify-end gap-1.5">
-                            {selectedTrip.invoice_photos.map((url, i) => (
-                              <button
-                                key={url}
-                                type="button"
-                                onClick={() =>
-                                  openPhoto({
-                                    url: resolvePhotoUrl(url),
-                                    label: `Invoice Page ${i + 1}`,
-                                  })
-                                }
-                                className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                            {selectedTrip.invoice_photos.map((photo, i) => (
+                              <div
+                                key={photo.id}
+                                className="flex items-center gap-1"
                               >
-                                Page {i + 1}
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openPhoto({
+                                      url: resolvePhotoUrl(photo.url),
+                                      label: `Invoice Page ${i + 1}`,
+                                    })
+                                  }
+                                  className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                                >
+                                  Page {i + 1}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => triggerReplace(photo.id)}
+                                  disabled={replacingFileId === photo.id}
+                                  title="Replace this photo"
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-fg-muted hover:text-primary disabled:opacity-50"
+                                >
+                                  <FontAwesomeIcon icon={faPenToSquare} />
+                                </button>
+                              </div>
                             ))}
                           </div>
                         ) : (
@@ -553,20 +635,33 @@ const PendingTripsCard = ({
                         </span>
                         {selectedTrip.lm_photos?.length > 0 ? (
                           <div className="flex flex-wrap justify-end gap-1.5">
-                            {selectedTrip.lm_photos.map((url, i) => (
-                              <button
-                                key={url}
-                                type="button"
-                                onClick={() =>
-                                  openPhoto({
-                                    url: resolvePhotoUrl(url),
-                                    label: `LM Page ${i + 1}`,
-                                  })
-                                }
-                                className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                            {selectedTrip.lm_photos.map((photo, i) => (
+                              <div
+                                key={photo.id}
+                                className="flex items-center gap-1"
                               >
-                                Page {i + 1}
-                              </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openPhoto({
+                                      url: resolvePhotoUrl(photo.url),
+                                      label: `LM Page ${i + 1}`,
+                                    })
+                                  }
+                                  className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+                                >
+                                  Page {i + 1}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => triggerReplace(photo.id)}
+                                  disabled={replacingFileId === photo.id}
+                                  title="Replace this photo"
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-fg-muted hover:text-primary disabled:opacity-50"
+                                >
+                                  <FontAwesomeIcon icon={faPenToSquare} />
+                                </button>
+                              </div>
                             ))}
                           </div>
                         ) : (
@@ -582,20 +677,38 @@ const PendingTripsCard = ({
                           LM (stamped "checkout")
                         </span>
                         {selectedTrip.lm_checkout_stamped_photo ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              openPhoto({
-                                url: resolvePhotoUrl(
-                                  selectedTrip.lm_checkout_stamped_photo,
-                                ),
-                                label: "LM Stamped Checkout",
-                              })
-                            }
-                            className="shrink-0 w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
-                          >
-                            <FontAwesomeIcon icon={faEye} />
-                          </button>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openPhoto({
+                                  url: resolvePhotoUrl(
+                                    selectedTrip.lm_checkout_stamped_photo.url,
+                                  ),
+                                  label: "LM Stamped Checkout",
+                                })
+                              }
+                              className="shrink-0 w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
+                            >
+                              <FontAwesomeIcon icon={faEye} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                triggerReplace(
+                                  selectedTrip.lm_checkout_stamped_photo.id,
+                                )
+                              }
+                              disabled={
+                                replacingFileId ===
+                                selectedTrip.lm_checkout_stamped_photo.id
+                              }
+                              title="Replace this photo"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-fg-muted hover:text-primary disabled:opacity-50"
+                            >
+                              <FontAwesomeIcon icon={faPenToSquare} />
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-xs text-fg-subtle">
                             No Photo
@@ -618,21 +731,37 @@ const PendingTripsCard = ({
                     </div>
 
                     {selectedTrip.stamped_invoice_photo ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openPhoto({
-                            url: resolvePhotoUrl(
-                              selectedTrip.stamped_invoice_photo,
-                            ),
-                            label: "End Trip - Stamped Invoice",
-                          })
-                        }
-                        title="View end trip photo"
-                        className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
-                      >
-                        <FontAwesomeIcon icon={faEye} />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openPhoto({
+                              url: resolvePhotoUrl(
+                                selectedTrip.stamped_invoice_photo.url,
+                              ),
+                              label: "End Trip - Stamped Invoice",
+                            })
+                          }
+                          title="View end trip photo"
+                          className="shrink-0 w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
+                        >
+                          <FontAwesomeIcon icon={faEye} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            triggerReplace(selectedTrip.stamped_invoice_photo.id)
+                          }
+                          disabled={
+                            replacingFileId ===
+                            selectedTrip.stamped_invoice_photo.id
+                          }
+                          title="Replace this photo"
+                          className="shrink-0 flex h-10 w-10 items-center justify-center rounded-lg border border-border text-fg-muted hover:text-primary disabled:opacity-50"
+                        >
+                          <FontAwesomeIcon icon={faPenToSquare} />
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-fg-subtle">No Photo</span>
                     )}
@@ -683,19 +812,36 @@ const PendingTripsCard = ({
                           {/* UNLOAD + POD VIEW BUTTONS */}
                           <div className="shrink-0 flex flex-col items-end gap-1.5">
                             {stop.unloading_photo ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openPhoto({
-                                    url: resolvePhotoUrl(stop.unloading_photo),
-                                    label: `${stop.store_name} - Unloading Photo`,
-                                  })
-                                }
-                                title="View Unloading Photo"
-                                className="w-10 h-10 flex items-center justify-center bg-surface-active text-fg rounded-lg hover:bg-surface-hover"
-                              >
-                                <FontAwesomeIcon icon={faEye} />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openPhoto({
+                                      url: resolvePhotoUrl(
+                                        stop.unloading_photo.url,
+                                      ),
+                                      label: `${stop.store_name} - Unloading Photo`,
+                                    })
+                                  }
+                                  title="View Unloading Photo"
+                                  className="w-10 h-10 flex items-center justify-center bg-surface-active text-fg rounded-lg hover:bg-surface-hover"
+                                >
+                                  <FontAwesomeIcon icon={faEye} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    triggerReplace(stop.unloading_photo.id)
+                                  }
+                                  disabled={
+                                    replacingFileId === stop.unloading_photo.id
+                                  }
+                                  title="Replace Unloading Photo"
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-fg-muted hover:text-primary disabled:opacity-50"
+                                >
+                                  <FontAwesomeIcon icon={faPenToSquare} />
+                                </button>
+                              </div>
                             ) : (
                               <span className="text-xs text-fg-subtle">
                                 No Unload Photo
@@ -703,21 +849,37 @@ const PendingTripsCard = ({
                             )}
 
                             {stop.delivery_proof_photo ? (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  openPhoto({
-                                    url: resolvePhotoUrl(
-                                      stop.delivery_proof_photo,
-                                    ),
-                                    label: `${stop.store_name} - Proof of Delivery`,
-                                  })
-                                }
-                                title="View Proof of Delivery"
-                                className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
-                              >
-                                <FontAwesomeIcon icon={faEye} />
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    openPhoto({
+                                      url: resolvePhotoUrl(
+                                        stop.delivery_proof_photo.url,
+                                      ),
+                                      label: `${stop.store_name} - Proof of Delivery`,
+                                    })
+                                  }
+                                  title="View Proof of Delivery"
+                                  className="w-10 h-10 flex items-center justify-center bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover"
+                                >
+                                  <FontAwesomeIcon icon={faEye} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    triggerReplace(stop.delivery_proof_photo.id)
+                                  }
+                                  disabled={
+                                    replacingFileId ===
+                                    stop.delivery_proof_photo.id
+                                  }
+                                  title="Replace Proof of Delivery"
+                                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-border text-fg-muted hover:text-primary disabled:opacity-50"
+                                >
+                                  <FontAwesomeIcon icon={faPenToSquare} />
+                                </button>
+                              </div>
                             ) : (
                               <span className="text-xs text-fg-subtle">
                                 No POD
@@ -738,7 +900,9 @@ const PendingTripsCard = ({
                                 type="button"
                                 onClick={() =>
                                   openPhoto({
-                                    url: resolvePhotoUrl(stop.unloading_photo),
+                                    url: resolvePhotoUrl(
+                                      stop.unloading_photo.url,
+                                    ),
                                     label: `${stop.store_name} - Unloading Photo`,
                                   })
                                 }
@@ -764,7 +928,7 @@ const PendingTripsCard = ({
                                 onClick={() =>
                                   openPhoto({
                                     url: resolvePhotoUrl(
-                                      stop.delivery_proof_photo,
+                                      stop.delivery_proof_photo.url,
                                     ),
                                     label: `${stop.store_name} - Proof of Delivery`,
                                   })
@@ -788,6 +952,18 @@ const PendingTripsCard = ({
                     </div>
                   )}
                 </div>
+
+                {selectedTrip.return_reason && (
+                  <div className="mb-6 rounded-xl border border-danger/30 bg-danger/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-danger">
+                      Sent Back by Office for Correction
+                      {selectedTrip.returned_at && ` -- ${selectedTrip.returned_at}`}
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-fg">
+                      {selectedTrip.return_reason}
+                    </p>
+                  </div>
+                )}
 
                 {/* ===== NEW: REMARKS FOR FINANCE REVIEW ===== */}
                 {/* ===== COORDINATOR REMARKS ===== */}

@@ -30,3 +30,13 @@ export const forwardTripToFinance = (tripId, remarks) =>
 // =========================================================
 export const archiveOfficeTrip = (tripId) =>
   api.post(`/office/trips/${tripId}/archive`);
+
+// =========================================================
+// RETURN TO TRIP APPROVAL -- office found a problem and sends the
+// trip back to the coordinator's Trip Approval queue with a reason,
+// instead of forwarding it to Finance.
+// =========================================================
+export const returnTripToApproval = (tripId, remarks) =>
+  api.post(`/office/trips/${tripId}/return-to-approval`, {
+    remarks,
+  });

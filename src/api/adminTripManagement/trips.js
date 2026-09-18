@@ -20,6 +20,15 @@ export const approveTrip = (tripId, remarks) =>
 
 export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
 
+// Replaces one uploaded trip document photo in place (same File row,
+// new image) -- for when the driver photographed the wrong document or
+// the shot is unreadable. See replace_trip_file in app/api/admin/trips.py.
+export const replaceTripFile = (fileId, photo) => {
+  const formData = new FormData();
+  formData.append("photo", photo);
+  return api.post(`/admin/trips/files/${fileId}/replace`, formData);
+};
+
 export const getCompletedTrips = () => api.get("/admin/trips/completed");
 
 // Soft delete: hides a pending or completed trip from those lists

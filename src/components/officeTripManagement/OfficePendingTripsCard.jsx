@@ -13,6 +13,7 @@ import {
   reviewOfficeTrip,
   forwardTripToFinance,
   archiveOfficeTrip,
+  returnTripToApproval,
 } from "../../api/officeTripManagement/trip";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
@@ -31,6 +32,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [archivingId, setArchivingId] = useState(null);
+  const [returning, setReturning] = useState(false);
 
   // Image preview modal state
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
@@ -59,7 +61,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   };
 
   const handleCloseModal = () => {
-    if (submitting) {
+    if (submitting || returning) {
       return;
     }
 
@@ -134,6 +136,56 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleReturnToApproval = async () => {
+    if (!selectedTrip) {
+      return;
+    }
+
+    if (!officeRemarks.trim()) {
+      setRemarksError(
+        "Add a reason in Office Remarks before sending this trip back for correction.",
+      );
+      return;
+    }
+
+    if (
+      !(await confirmDialog(
+        `Send trip "${selectedTrip.ticket_no}" back to Trip Approval for correction?`,
+      ))
+    )
+      return;
+
+    try {
+      setReturning(true);
+      setRemarksError("");
+
+      await returnTripToApproval(selectedTrip.trip_id, officeRemarks.trim());
+
+      toast.success("Trip sent back to Trip Approval.");
+
+      setShowModal(false);
+      setSelectedTrip(null);
+      setOfficeRemarks("");
+      setSelectedImageUrl(null);
+
+      if (refreshTrips) {
+        await refreshTrips();
+      }
+    } catch (error) {
+      console.error("Failed to send trip back for correction:", error);
+
+      const detail = error.response?.data?.detail;
+
+      setRemarksError(
+        typeof detail === "string"
+          ? detail
+          : "Failed to send trip back for correction. Please try again.",
+      );
+    } finally {
+      setReturning(false);
     }
   };
 
@@ -288,7 +340,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
               <button
                 type="button"
                 onClick={handleCloseModal}
-                disabled={submitting}
+                disabled={submitting || returning}
                 aria-label="Close trip review"
                 className="rounded-lg px-3 py-2 text-xl text-fg-subtle hover:bg-surface-hover disabled:opacity-50"
               >
@@ -609,8 +661,10 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
 
                   <p className="mb-3 text-xs text-fg-subtle">
                     Review the trip details, coordinator remarks, route, PODs,
-                    and supporting documents before forwarding the trip to
-                    Finance.
+                    and supporting documents. Forward to Finance if
+                    everything checks out, or send it back to Trip Approval
+                    if something needs correcting -- either way, the remarks
+                    below are required and saved as the reason.
                   </p>
 
                   <textarea
@@ -623,7 +677,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                       }
                     }}
                     rows={5}
-                    placeholder="e.g. Documents and PODs verified. Trip is ready for Finance review."
+                    placeholder="e.g. Documents and PODs verified. Trip is ready for Finance review. -- or -- Missing POD for Stop 2, please re-check and resubmit."
                     className={`w-full rounded-xl border bg-surface p-3 text-sm text-fg outline-none transition focus:ring-2 focus:ring-primary/30 ${
                       remarksError ? "border-danger" : "border-border"
                     }`}
@@ -633,14 +687,25 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                     <p className="mt-2 text-xs text-danger">{remarksError}</p>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={handleForwardToFinance}
-                    disabled={submitting}
-                    className="mt-5 w-full rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting ? "Forwarding..." : "Forward to Finance Review"}
-                  </button>
+                  <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={handleForwardToFinance}
+                      disabled={submitting || returning}
+                      className="flex-1 rounded-xl bg-primary px-5 py-3 font-bold text-primary-foreground transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {submitting ? "Forwarding..." : "Forward to Finance Review"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleReturnToApproval}
+                      disabled={submitting || returning}
+                      className="flex-1 rounded-xl border border-danger px-5 py-3 font-bold text-danger transition hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {returning ? "Sending back..." : "Send Back for Correction"}
+                    </button>
+                  </div>
                 </div>
               </section>
             </div>
