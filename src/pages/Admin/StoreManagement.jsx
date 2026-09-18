@@ -12,6 +12,7 @@ import {
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import StoreLocationPicker from "../../components/adminTrips/StoreLocationPicker";
+import SearchSelect from "../../components/SearchSelect";
 
 const initialFormState = {
   name: "",
@@ -682,19 +683,22 @@ export default function StoreManagement() {
             {profilesLoading ? (
               <p className="text-sm text-fg-subtle">Loading profiles...</p>
             ) : (
-              <select
-                value={form.trip_rate_profile_id}
-                onChange={(e) => handleProfileChange(e.target.value)}
-                className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
-              >
-                <option value="">Select a profile</option>
-                {tripRateProfiles.map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {profile.profile_name} ({profile.helper_count} helper
-                    {profile.helper_count === 1 ? "" : "s"})
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={tripRateProfiles.find(
+                  (p) => String(p.id) === String(form.trip_rate_profile_id),
+                )}
+                options={tripRateProfiles}
+                onChange={(profile) => handleProfileChange(profile?.id || "")}
+                placeholder="Select a profile"
+                getOptionLabel={(profile) =>
+                  profile
+                    ? `${profile.profile_name} (${profile.helper_count} helper${
+                        profile.helper_count === 1 ? "" : "s"
+                      })`
+                    : ""
+                }
+                getOptionValue={(profile) => profile?.id}
+              />
             )}
           </div>
         </div>

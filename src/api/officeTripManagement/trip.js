@@ -23,3 +23,10 @@ export const forwardTripToFinance = (tripId, remarks) =>
   api.post(`/office/trips/${tripId}/forward-to-finance`, {
     remarks,
   });
+
+// =========================================================
+// ARCHIVE (soft delete) -- removes a trip from the pending office
+// review queue without deleting it, for cleaning up test/junk trips.
+// =========================================================
+export const archiveOfficeTrip = (tripId) =>
+  api.post(`/office/trips/${tripId}/archive`);

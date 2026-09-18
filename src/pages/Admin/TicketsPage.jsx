@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import {
   getTickets,
@@ -421,18 +422,14 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
                 Assign to (optional)
               </label>
-              <select
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-              >
-                <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.employee_name || u.username}
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={users.find((u) => String(u.id) === String(assigneeId))}
+                options={users}
+                onChange={(u) => setAssigneeId(u?.id || "")}
+                placeholder="Unassigned"
+                getOptionLabel={(u) => u?.employee_name || u?.username || ""}
+                getOptionValue={(u) => u?.id}
+              />
             </div>
           </div>
 
@@ -711,18 +708,14 @@ const TicketDetailModal = ({
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
                 Assigned to
               </label>
-              <select
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
-              >
-                <option value="">Unassigned</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.employee_name || u.username}
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={users.find((u) => String(u.id) === String(assigneeId))}
+                options={users}
+                onChange={(u) => setAssigneeId(u?.id || "")}
+                placeholder="Unassigned"
+                getOptionLabel={(u) => u?.employee_name || u?.username || ""}
+                getOptionValue={(u) => u?.id}
+              />
             </div>
           </div>
         </div>

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
+import SearchSelect from "../../components/SearchSelect";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -1206,23 +1207,24 @@ export default function TripMaintenance() {
             <label className="block text-sm font-medium mb-1 text-fg">
               Vehicle
             </label>
-            <select
-              value={maintenanceForm.vehicle_unit_id}
-              onChange={(e) =>
+            <SearchSelect
+              value={vehicleUnits.find(
+                (unit) =>
+                  String(unit.id) === String(maintenanceForm.vehicle_unit_id),
+              )}
+              options={vehicleUnits}
+              onChange={(unit) =>
                 setMaintenanceForm({
                   ...maintenanceForm,
-                  vehicle_unit_id: e.target.value,
+                  vehicle_unit_id: unit?.id || "",
                 })
               }
-              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-            >
-              <option value="">Select vehicle</option>
-              {vehicleUnits.map((unit) => (
-                <option key={unit.id} value={unit.id}>
-                  {unit.unit_code} - {unit.plate_number}
-                </option>
-              ))}
-            </select>
+              placeholder="Select vehicle"
+              getOptionLabel={(unit) =>
+                unit ? `${unit.unit_code} - ${unit.plate_number}` : ""
+              }
+              getOptionValue={(unit) => unit?.id}
+            />
           </div>
 
           <div>

@@ -8,6 +8,7 @@ import {
 } from "../../api/orgHierarchy";
 import { getAssignableUsers } from "../../api/users";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 import useModuleAccess from "../../hooks/useModuleAccess";
 
 const OrgHierarchyPage = () => {
@@ -232,18 +233,18 @@ const OrgHierarchyPage = () => {
             </p>
 
             <div className="mt-4">
-              <select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">Select a person</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.username} ({u.role})
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={users.find(
+                  (u) => String(u.id) === String(selectedUserId),
+                )}
+                options={users}
+                onChange={(u) => setSelectedUserId(u?.id || "")}
+                placeholder="Select a person"
+                getOptionLabel={(u) =>
+                  u ? `${u.employee_name || u.username} (${u.role})` : ""
+                }
+                getOptionValue={(u) => u?.id}
+              />
             </div>
 
             <div className="mt-6 flex justify-end gap-3">

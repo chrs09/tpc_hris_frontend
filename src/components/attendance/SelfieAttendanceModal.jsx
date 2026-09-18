@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button/Button";
 import { alertDialog } from "../ui/dialog/dialogService";
+import SearchSelect from "../SearchSelect";
 
 const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
   const videoRef = useRef(null);
@@ -357,19 +358,18 @@ const SelfieAttendanceModal = ({ isOpen, onClose, employees, onSubmit }) => {
       <div className="bg-surface rounded-xl shadow-xl w-full max-w-2xl p-5">
         <h2 className="text-lg font-bold mb-4">Selfie Attendance</h2>
 
-        <select
-          value={employeeId}
-          onChange={(e) => setEmployeeId(e.target.value)}
-          className="w-full border border-border bg-surface text-fg rounded h-10 px-3 mb-3"
-        >
-          <option value="">Select Employee</option>
-
-          {employees.map((emp) => (
-            <option key={emp.id} value={emp.id}>
-              {emp.name}
-            </option>
-          ))}
-        </select>
+        <div className="mb-3">
+          <SearchSelect
+            value={employees.find(
+              (emp) => String(emp.id) === String(employeeId),
+            )}
+            options={employees}
+            onChange={(emp) => setEmployeeId(emp?.id || "")}
+            placeholder="Select Employee"
+            getOptionLabel={(emp) => emp?.name || ""}
+            getOptionValue={(emp) => emp?.id}
+          />
+        </div>
 
         {!previewUrl ? (
           <video

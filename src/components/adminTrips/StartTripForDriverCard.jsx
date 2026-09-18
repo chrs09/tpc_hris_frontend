@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import SearchSelect from "../SearchSelect";
 import { getAvailableDrivers } from "../../api/adminTripManagement/trips";
 import { getStores } from "../../api/adminTripManagement/stores";
 import {
@@ -162,6 +163,21 @@ export default function StartTripForDriverCard({
       ? `${driver.employee_name} (${driver.username})`
       : driver.username;
 
+  // Only stores flagged with required_helper actually need a loader on
+  // this trip -- if none of the currently-selected destinations need
+  // one, there's nothing to pick, so the whole Helpers block is hidden
+  // rather than showing an empty/irrelevant picker.
+  const anyDestinationRequiresHelper = selectedDestinationIds.some((id) => {
+    const store = destinationStores.find((s) => s.id === id);
+    return Boolean(store?.required_helper);
+  });
+
+  useEffect(() => {
+    if (!anyDestinationRequiresHelper && selectedHelperIds.length > 0) {
+      setSelectedHelperIds([]);
+    }
+  }, [anyDestinationRequiresHelper]);
+
   const selectedDriver = drivers.find((d) => String(d.id) === String(driverId));
 
   const filteredDrivers = drivers.filter((driver) =>
@@ -311,18 +327,18 @@ export default function StartTripForDriverCard({
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Vehicle Unit
                 </label>
-                <select
-                  value={vehicleUnitId}
-                  onChange={(e) => setVehicleUnitId(e.target.value)}
-                  className={inputStyles}
-                >
-                  <option value="">Select vehicle unit</option>
-                  {vehicleUnits.map((vehicle) => (
-                    <option key={vehicle.id} value={vehicle.id}>
-                      {vehicle.plate_number || vehicle.unit_code}
-                    </option>
-                  ))}
-                </select>
+                <SearchSelect
+                  value={vehicleUnits.find(
+                    (v) => String(v.id) === String(vehicleUnitId),
+                  )}
+                  options={vehicleUnits}
+                  onChange={(vehicle) => setVehicleUnitId(vehicle?.id || "")}
+                  placeholder="Select vehicle unit"
+                  getOptionLabel={(vehicle) =>
+                    vehicle?.plate_number || vehicle?.unit_code || ""
+                  }
+                  getOptionValue={(vehicle) => vehicle?.id}
+                />
               </div>
 
               <div>
@@ -389,18 +405,16 @@ export default function StartTripForDriverCard({
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Origin Hub
                 </label>
-                <select
-                  value={originStoreId}
-                  onChange={(e) => setOriginStoreId(e.target.value)}
-                  className={inputStyles}
-                >
-                  <option value="">Select origin hub</option>
-                  {hubStores.map((store) => (
-                    <option key={store.id} value={store.id}>
-                      {store.name}
-                    </option>
-                  ))}
-                </select>
+                <SearchSelect
+                  value={hubStores.find(
+                    (s) => String(s.id) === String(originStoreId),
+                  )}
+                  options={hubStores}
+                  onChange={(store) => setOriginStoreId(store?.id || "")}
+                  placeholder="Select origin hub"
+                  getOptionLabel={(store) => store?.name || ""}
+                  getOptionValue={(store) => store?.id}
+                />
               </div>
 
               <div>
@@ -487,6 +501,7 @@ export default function StartTripForDriverCard({
                 </div>
               </div>
 
+              {anyDestinationRequiresHelper && (
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Helpers ({selectedHelperIds.length}/3)
@@ -530,6 +545,7 @@ export default function StartTripForDriverCard({
                   </div>
                 )}
               </div>
+              )}
 
               <button
                 onClick={handleSubmit}

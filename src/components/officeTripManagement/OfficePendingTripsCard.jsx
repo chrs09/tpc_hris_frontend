@@ -7,13 +7,16 @@ import {
   Popup,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { toast } from "react-hot-toast";
 
 import {
   reviewOfficeTrip,
   forwardTripToFinance,
+  archiveOfficeTrip,
 } from "../../api/officeTripManagement/trip";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
+import { confirmDialog } from "../ui/dialog/dialogService";
 
 export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   const { page, setPage, totalPages, paginatedItems } = usePagination(
@@ -27,6 +30,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   const [remarksError, setRemarksError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState("");
+  const [archivingId, setArchivingId] = useState(null);
 
   // Image preview modal state
   const [selectedImageUrl, setSelectedImageUrl] = useState(null);
@@ -69,6 +73,27 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
 
   const handleCloseImageModal = () => {
     setSelectedImageUrl(null);
+  };
+
+  const handleArchive = async (trip) => {
+    if (
+      !(await confirmDialog(
+        `Archive trip "${trip.ticket_no}"? It'll be removed from this list (not deleted) -- use this to clean up test/junk trips.`,
+      ))
+    )
+      return;
+
+    try {
+      setArchivingId(trip.trip_id);
+      await archiveOfficeTrip(trip.trip_id);
+      toast.success("Trip archived.");
+      if (refreshTrips) await refreshTrips();
+    } catch (error) {
+      console.error("Failed to archive trip:", error);
+      toast.error(error.response?.data?.detail || "Failed to archive trip.");
+    } finally {
+      setArchivingId(null);
+    }
   };
 
   const handleForwardToFinance = async () => {
@@ -220,14 +245,26 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={() => handleReview(trip.trip_id)}
-              disabled={loadingReview}
-              className="mt-5 w-full rounded-lg bg-fg px-4 py-2.5 font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {loadingReview ? "Loading..." : "Review Trip"}
-            </button>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleReview(trip.trip_id)}
+                disabled={loadingReview}
+                className="flex-1 rounded-lg bg-fg px-4 py-2.5 font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loadingReview ? "Loading..." : "Review Trip"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleArchive(trip)}
+                disabled={archivingId === trip.trip_id}
+                title="Archive (soft delete)"
+                className="rounded-lg border border-border px-3 py-2.5 text-sm font-medium text-fg-muted transition hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {archivingId === trip.trip_id ? "..." : "Archive"}
+              </button>
+            </div>
           </div>
         ))}
       </div>

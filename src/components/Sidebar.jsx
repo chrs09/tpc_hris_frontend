@@ -97,6 +97,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       u.role !== "superadmin" &&
       u.is_active &&
       (u.username.toLowerCase().includes(viewAsSearch.toLowerCase()) ||
+        (u.employee_name || "").toLowerCase().includes(viewAsSearch.toLowerCase()) ||
         (u.email || "").toLowerCase().includes(viewAsSearch.toLowerCase())),
   );
 
@@ -425,7 +426,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   <p className="text-sm text-fg mb-2">
                     View as{" "}
                     <span className="font-semibold capitalize">
-                      {viewAsPendingUser.username}
+                      {viewAsPendingUser.employee_name ||
+                        viewAsPendingUser.username}
                     </span>{" "}
                     <span className="text-fg-subtle capitalize">
                       ({viewAsPendingUser.role})
@@ -476,7 +478,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   <input
                     type="text"
                     autoFocus
-                    placeholder="Search username or email..."
+                    placeholder="Search name, username, or email..."
                     value={viewAsSearch}
                     onChange={(e) => setViewAsSearch(e.target.value)}
                     className="w-full p-2 rounded-lg border border-border bg-background text-fg mb-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -500,7 +502,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                         >
                           <span>
                             <span className="font-medium text-fg capitalize">
-                              {u.username}
+                              {u.employee_name || u.username}
                             </span>
                             <span className="ml-2 text-xs text-fg-subtle capitalize">
                               ({u.role})

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { getStores } from "../../api/adminTripManagement/stores";
 import {
@@ -245,18 +246,14 @@ const TripBypass = () => {
               </button>
             </p>
           )}
-          <select
-            className={inputStyles}
-            value={checkInStoreId}
-            onChange={(e) => setCheckInStoreId(e.target.value)}
-          >
-            <option value="">Select store the driver arrived at...</option>
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <SearchSelect
+            value={stores.find((s) => String(s.id) === String(checkInStoreId))}
+            options={stores}
+            onChange={(store) => setCheckInStoreId(store?.id || "")}
+            placeholder="Select store the driver arrived at..."
+            getOptionLabel={(store) => store?.name || ""}
+            getOptionValue={(store) => store?.id}
+          />
           <ReasonField reason={reason} setReason={setReason} />
           <button
             disabled={submitting || !checkInStoreId}
@@ -312,18 +309,16 @@ const TripBypass = () => {
               "This stop wasn't matched to a store at check-in -- pick the correct one below."}
           </p>
           {stop.requires_review && (
-            <select
-              className={inputStyles}
-              value={overrideStoreId}
-              onChange={(e) => setOverrideStoreId(e.target.value)}
-            >
-              <option value="">Select the correct store...</option>
-              {stores.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              value={stores.find(
+                (s) => String(s.id) === String(overrideStoreId),
+              )}
+              options={stores}
+              onChange={(store) => setOverrideStoreId(store?.id || "")}
+              placeholder="Select the correct store..."
+              getOptionLabel={(store) => store?.name || ""}
+              getOptionValue={(store) => store?.id}
+            />
           )}
           <PhotoField label="Delivery proof photo (optional)" onFile={setPodPhoto} />
           <ReasonField reason={reason} setReason={setReason} />
