@@ -10,6 +10,7 @@ import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
 import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
+import PrivacyPolicy from "./pages/Public/PrivacyPolicy";
 
 const App = () => {
   const navigate = useNavigate();
@@ -59,6 +60,7 @@ const App = () => {
         />
 
         <Route path="/attendance-kiosk" element={<AttendanceKiosk />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
         <Route
           path="/login"
