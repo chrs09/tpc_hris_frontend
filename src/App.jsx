@@ -10,7 +10,13 @@ import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
 import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
-import PrivacyPolicy from "./pages/Public/PrivacyPolicy";
+// Named LegalNotice (not "PrivacyPolicy") on purpose -- ad blockers'
+// filter lists commonly flag any *.js/*.jsx resource whose name contains
+// "privacy"/"policy" as a tracking-consent script, which blocked Vite's
+// raw dev-mode source request for this file (net::ERR_BLOCKED_BY_CLIENT)
+// even though the /privacy-policy route itself (a normal page URL, not a
+// bundled asset name) is unaffected.
+import LegalNotice from "./pages/Public/LegalNotice";
 
 const App = () => {
   const navigate = useNavigate();
@@ -60,7 +66,7 @@ const App = () => {
         />
 
         <Route path="/attendance-kiosk" element={<AttendanceKiosk />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/privacy-policy" element={<LegalNotice />} />
 
         <Route
           path="/login"

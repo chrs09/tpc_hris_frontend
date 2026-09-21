@@ -10,7 +10,7 @@ const Section = ({ title, children }) => (
   </section>
 );
 
-export default function PrivacyPolicy() {
+export default function LegalNotice() {
   return (
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-3xl">
