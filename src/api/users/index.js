@@ -41,6 +41,13 @@ export const getUserRevisions = async (userId) => {
   return res.data;
 };
 
+// Resets a user's password to the lastname+birthday (MMDDYYYY) convention
+// and returns it once, same as account creation.
+export const resetUserPassword = async (userId) => {
+  const res = await api.post(`/users/${userId}/reset-password`);
+  return res.data;
+};
+
 // Deactivate user (future feature)
 export const deactivateUser = async (userId) => {
   const res = await api.patch(`/users/${userId}/deactivate`);

@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button/Button";
 import SearchSelect from "../SearchSelect";
 import { getEmployeeList } from "../../api/employee";
-import { createUser, updateUser, getUserRevisions } from "../../api/users";
+import {
+  createUser,
+  updateUser,
+  getUserRevisions,
+  resetUserPassword,
+} from "../../api/users";
+import { confirmDialog } from "../ui/dialog/dialogService";
 
 const roleOptions = [
   { value: "admin", label: "Admin" },
@@ -40,6 +47,7 @@ const UserDrawer = ({
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const [revisions, setRevisions] = useState([]);
   const [revisionsLoading, setRevisionsLoading] = useState(false);
@@ -126,6 +134,34 @@ const UserDrawer = ({
     }
   };
 
+  const handleResetPassword = async () => {
+    if (
+      !(await confirmDialog(
+        `Reset ${editingUser.username}'s password? This immediately invalidates their current password.`,
+      ))
+    ) {
+      return;
+    }
+
+    try {
+      setResettingPassword(true);
+
+      const response = await resetUserPassword(editingUser.id);
+
+      setGeneratedCredentials(response);
+
+      await refreshUsers();
+
+      onClose();
+    } catch (err) {
+      toast.error(
+        err.response?.data?.detail || "Failed to reset password.",
+      );
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -177,6 +213,15 @@ const UserDrawer = ({
                   </button>
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={handleResetPassword}
+                disabled={resettingPassword}
+                className="w-full rounded-lg border border-border py-2 text-sm font-medium text-fg transition hover:bg-surface-active disabled:opacity-50"
+              >
+                {resettingPassword ? "Resetting..." : "Reset Password"}
+              </button>
             </div>
           )}
 
