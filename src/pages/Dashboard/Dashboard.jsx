@@ -34,6 +34,7 @@ import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
 import LeaveManagement from "../Leave/LeaveManagement";
+import SettingsPage from "../Admin/SettingsPage";
 import {
   isImpersonating,
   getImpersonatorUsername,
@@ -151,7 +152,7 @@ const Dashboard = () => {
               file_cash_advance_request check) can file a cash advance
               request, so this lives at a role-neutral path. */}
           <Route path="cash-advance" element={<DriverCashAdvance />} />
-          <Route path="settings" element={<div>Settings</div>} />
+          <Route path="settings" element={<SettingsPage />} />
         </Routes>
       </div>
     </div>
