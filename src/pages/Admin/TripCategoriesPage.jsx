@@ -10,6 +10,7 @@ import { toast } from "react-hot-toast";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 
 const EMPTY_FORM = {
   profile_name: "",
@@ -206,17 +207,26 @@ export default function TripCategoriesPage() {
             <label className="block text-sm font-medium mb-1 text-fg">
               Helpers
             </label>
-            <select
-              value={form.helper_count}
-              onChange={(e) =>
-                setForm({ ...form, helper_count: parseInt(e.target.value) })
+            <SearchSelect
+              value={
+                [
+                  { value: 0, label: "0" },
+                  { value: 1, label: "1" },
+                  { value: 2, label: "2" },
+                ].find(
+                  (option) => String(option.value) === String(form.helper_count),
+                ) || null
               }
-              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-            >
-              <option value="0">0</option>
-              <option value="1">1</option>
-              <option value="2">2</option>
-            </select>
+              options={[
+                { value: 0, label: "0" },
+                { value: 1, label: "1" },
+                { value: 2, label: "2" },
+              ]}
+              onChange={(option) =>
+                setForm({ ...form, helper_count: parseInt(option.value) })
+              }
+              placeholder="Select helper count"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

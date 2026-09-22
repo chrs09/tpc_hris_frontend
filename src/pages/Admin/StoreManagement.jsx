@@ -413,18 +413,28 @@ export default function StoreManagement() {
           placeholder="Search by store name..."
           className="w-full sm:max-w-xs rounded-lg border border-border px-3 py-2 bg-surface text-fg"
         />
-        <select
-          value={profileFilter}
-          onChange={(e) => setProfileFilter(e.target.value)}
-          className="w-full sm:w-56 rounded-lg border border-border px-3 py-2 bg-surface text-fg"
-        >
-          <option value="ALL">All Profiles</option>
-          {tripRateProfiles.map((profile) => (
-            <option key={profile.id} value={profile.code}>
-              {profile.profile_name}
-            </option>
-          ))}
-        </select>
+        <div className="w-full sm:w-56">
+          <SearchSelect
+            value={
+              [
+                { value: "ALL", label: "All Profiles" },
+                ...tripRateProfiles.map((profile) => ({
+                  value: profile.code,
+                  label: profile.profile_name,
+                })),
+              ].find((option) => option.value === profileFilter) || null
+            }
+            options={[
+              { value: "ALL", label: "All Profiles" },
+              ...tripRateProfiles.map((profile) => ({
+                value: profile.code,
+                label: profile.profile_name,
+              })),
+            ]}
+            onChange={(option) => setProfileFilter(option?.value ?? "ALL")}
+            placeholder="All Profiles"
+          />
+        </div>
         {(searchTerm || profileFilter !== "ALL") && (
           <button
             className="text-sm text-fg-muted hover:text-fg underline underline-offset-2 sm:ml-auto"
@@ -504,16 +514,26 @@ export default function StoreManagement() {
               <span>
                 Showing {startIndex + 1}–{endIndex} of {totalItems} stores
               </span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="ml-2 rounded-lg border border-border px-2 py-1 text-sm bg-surface text-fg"
-              >
-                <option value={10}>10 / page</option>
-                <option value={25}>25 / page</option>
-                <option value={50}>50 / page</option>
-                <option value={100}>100 / page</option>
-              </select>
+              <div className="ml-2 inline-block w-28 align-middle">
+                <SearchSelect
+                  value={
+                    [
+                      { value: 10, label: "10 / page" },
+                      { value: 25, label: "25 / page" },
+                      { value: 50, label: "50 / page" },
+                      { value: 100, label: "100 / page" },
+                    ].find((option) => option.value === itemsPerPage) || null
+                  }
+                  options={[
+                    { value: 10, label: "10 / page" },
+                    { value: 25, label: "25 / page" },
+                    { value: 50, label: "50 / page" },
+                    { value: 100, label: "100 / page" },
+                  ]}
+                  onChange={(option) => setItemsPerPage(Number(option.value))}
+                  placeholder="Per page"
+                />
+              </div>
             </div>
 
             <Pagination

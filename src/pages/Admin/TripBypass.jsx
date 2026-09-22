@@ -229,14 +229,27 @@ const TripBypass = () => {
     }
 
     if (nextActionType === "check-in") {
+      // Mirror the driver's own app: once a planned store has been
+      // delivered, it can't be checked into again (matches the backend
+      // guard in bypass_check_in). Legacy trips with no planned stores
+      // fall back to the full store list, same as the driver flow does.
+      const plannedStores = tripDetail.planned_stores || [];
+      const remainingPlannedStores = plannedStores.filter((s) => !s.delivered);
+      const checkInOptions =
+        plannedStores.length > 0
+          ? stores.filter((store) =>
+              remainingPlannedStores.some(
+                (s) => String(s.store_id) === String(store.id),
+              ),
+            )
+          : stores;
+
       return (
         <div className="space-y-3">
           <h3 className="font-semibold text-fg">Check In at Store</h3>
           {hasRemainingStores && (
             <p className="text-xs text-fg-subtle">
-              {(tripDetail.planned_stores || []).filter((s) => !s.delivered)
-                .length}{" "}
-              store(s) remaining.{" "}
+              {remainingPlannedStores.length} store(s) remaining.{" "}
               <button
                 type="button"
                 onClick={() => setForceCheckin(true)}
@@ -247,8 +260,10 @@ const TripBypass = () => {
             </p>
           )}
           <SearchSelect
-            value={stores.find((s) => String(s.id) === String(checkInStoreId))}
-            options={stores}
+            value={checkInOptions.find(
+              (s) => String(s.id) === String(checkInStoreId),
+            )}
+            options={checkInOptions}
             onChange={(store) => setCheckInStoreId(store?.id || "")}
             placeholder="Select store the driver arrived at..."
             getOptionLabel={(store) => store?.name || ""}

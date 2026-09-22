@@ -1,6 +1,18 @@
 // AddHolidayModal.jsx
 import { useState } from "react";
 import { createHoliday } from "../../api/holidays";
+import SearchSelect from "../SearchSelect";
+
+const holidayTypeOptions = [
+  { value: "regular", label: "Regular Holiday" },
+  { value: "special_non_working", label: "Special Non-Working" },
+  { value: "special_working", label: "Special Working" },
+];
+
+const scopeOptions = [
+  { value: "national", label: "National" },
+  { value: "local", label: "Local" },
+];
 
 export default function AddHolidayModal({ onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -83,29 +95,34 @@ export default function AddHolidayModal({ onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>Type</label>
-              <select
-                value={form.holiday_type}
-                onChange={(e) =>
-                  setForm({ ...form, holiday_type: e.target.value })
+              <SearchSelect
+                value={
+                  holidayTypeOptions.find(
+                    (option) => option.value === form.holiday_type,
+                  ) || null
                 }
-                className={inputClass}
-              >
-                <option value="regular">Regular Holiday</option>
-                <option value="special_non_working">Special Non-Working</option>
-                <option value="special_working">Special Working</option>
-              </select>
+                options={holidayTypeOptions}
+                onChange={(option) =>
+                  setForm({ ...form, holiday_type: option.value })
+                }
+                placeholder="Select Type"
+              />
             </div>
 
             <div>
               <label className={labelClass}>Scope</label>
-              <select
-                value={form.scope}
-                onChange={(e) => setForm({ ...form, scope: e.target.value })}
-                className={inputClass}
-              >
-                <option value="national">National</option>
-                <option value="local">Local</option>
-              </select>
+              <SearchSelect
+                value={
+                  scopeOptions.find(
+                    (option) => option.value === form.scope,
+                  ) || null
+                }
+                options={scopeOptions}
+                onChange={(option) =>
+                  setForm({ ...form, scope: option.value })
+                }
+                placeholder="Select Scope"
+              />
             </div>
           </div>
 

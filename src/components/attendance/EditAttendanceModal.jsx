@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Button } from "../ui/button/Button";
 import { attendanceStatus } from "../../constants/attendanceStatus";
 import ConfirmModal from "../ui/modals/ConfirmModal";
+import SearchSelect from "../SearchSelect";
 
 const EditAttendanceModal = ({
   editModal,
@@ -58,31 +59,26 @@ const EditAttendanceModal = ({
             </div>
           </div>
 
-          <select
-            value={editModal.status}
-            className="w-full border rounded-lg h-11 px-3 mb-4 text-white bg-[#1e1e1e]"
-            onChange={(e) => {
-              const newStatus = e.target.value;
+          <div className="mb-4">
+            <SearchSelect
+              value={editModal.status}
+              options={Object.values(attendanceStatus)}
+              placeholder="Select Status"
+              onChange={(newStatus) => {
+                setEditModal((prev) => ({
+                  ...prev,
+                  status: newStatus,
 
-              setEditModal((prev) => ({
-                ...prev,
-                status: newStatus,
-
-                ...(newStatus === "On Leave" || newStatus === "Absent"
-                  ? {
-                      timeIn: "",
-                      timeOut: "",
-                    }
-                  : {}),
-              }));
-            }}
-          >
-            {Object.values(attendanceStatus).map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+                  ...(newStatus === "On Leave" || newStatus === "Absent"
+                    ? {
+                        timeIn: "",
+                        timeOut: "",
+                      }
+                    : {}),
+                }));
+              }}
+            />
+          </div>
 
           {editModal && !["On Leave", "Absent"].includes(editModal.status) && (
             <div className="border-t border-gray-600 pt-4 mt-4 space-y-3">

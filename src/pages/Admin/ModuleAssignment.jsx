@@ -11,6 +11,7 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
+import SearchSelect from "../../components/SearchSelect";
 
 const ModuleAssignmentPage = () => {
   const role = localStorage.getItem("role");
@@ -56,6 +57,15 @@ const ModuleAssignmentPage = () => {
     filteredEmployees,
     15,
   );
+
+  const departmentOptions = [
+    { value: "", label: "All Departments" },
+    ...Object.entries(employeeRoleConvert).map(([key, label]) => ({
+      value: label,
+      label,
+      key,
+    })),
+  ];
 
   const openManage = (employee) => {
     setEditingEmployee(employee);
@@ -173,18 +183,18 @@ const ModuleAssignmentPage = () => {
               className="w-48 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
             />
 
-            <select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
-            >
-              <option value="">All Departments</option>
-              {Object.entries(employeeRoleConvert).map(([key, label]) => (
-                <option key={key} value={label}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <div className="w-48">
+              <SearchSelect
+                value={
+                  departmentOptions.find(
+                    (option) => option.value === department,
+                  ) || null
+                }
+                options={departmentOptions}
+                onChange={(option) => setDepartment(option?.value ?? "")}
+                placeholder="All Departments"
+              />
+            </div>
           </div>
         </div>
 

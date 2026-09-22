@@ -35,6 +35,7 @@ import AttendanceGridReview from "../../components/attendance/AttendanceGridRevi
 import EditAttendanceModal from "../../components/attendance/EditAttendanceModal";
 import BulkAttendanceModal from "../../components/attendance/BulkAttendanceModal";
 import Alert from "../../components/ui/modals/Alert";
+import SearchSelect from "../../components/SearchSelect";
 import { useAttendanceWeek } from "../../hooks/useAttendanceWeek";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -669,6 +670,42 @@ const AttendanceList = () => {
   };
 
   // ---------------------------------------
+  // SET STATUS (Grid Review panel)
+  //
+  // Missing-attendance placeholder records have no AttendanceRecord row
+  // yet, so setting their status creates one; real records just get
+  // their status field updated.
+  // ---------------------------------------
+
+  const handleSetAttendanceStatus = async (record, newStatus) => {
+    try {
+      if (record.is_missing_attendance) {
+        await markAttendance({
+          employee_id: record.employee_id,
+          attendance_date: record.attendance_date,
+          status: newStatus,
+          remarks: record.remarks || null,
+        });
+      } else {
+        await updateAttendance({
+          employee_id: record.employee_id,
+          attendance_date: record.attendance_date,
+          status: newStatus,
+          remarks: record.remarks || "",
+        });
+      }
+
+      await loadAttendance();
+
+      toast.success(`Status set to ${newStatus}.`);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to set status.");
+
+      throw err;
+    }
+  };
+
+  // ---------------------------------------
   // REJECT
   // ---------------------------------------
 
@@ -742,20 +779,17 @@ const AttendanceList = () => {
             </Button>
           )}
 
-          <select
-            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg text-sm"
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-          >
-            {Object.values(employeeRoles).map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
+          <div className="w-full sm:w-auto min-w-[10rem]">
+            <SearchSelect
+              value={filter}
+              options={Object.values(employeeRoles)}
+              onChange={(role) => {
+                setFilter(role);
+                setCurrentPage(1);
+              }}
+              placeholder="Select Role"
+            />
+          </div>
 
           {viewMode === "table" && (
             <input
@@ -895,6 +929,7 @@ const AttendanceList = () => {
           onApproveAttendance={handleApproveAttendance}
           onRejectAttendance={handleRejectAttendance}
           onUpdateAttendance={handleUpdateAttendance}
+          onSetStatus={handleSetAttendanceStatus}
           isSuperAdmin={isSuperAdmin}
         />
       )}

@@ -112,3 +112,35 @@ body {
     background-color 0.15s ease,
     color 0.15s ease;
 }
+
+/* Native <select> theming.
+   `color-scheme` (set on :root/.dark above) is supposed to be enough to
+   make the browser render a native <select>'s dropdown list in the right
+   palette, but on some Chromium/Windows builds the *popup listbox*
+   specifically ignores the inherited color-scheme and falls back to a
+   plain white list -- while the closed select box (styled via each
+   component's own bg- and text- classes) renders fine. That combination
+   produces unreadable near-white text on a white popup in dark mode. So
+   background/text color for both the select box and its options are
+   forced explicitly here as a page-wide fallback, instead of only
+   depending on color-scheme. A component's own bg-/text- utility
+   classes still win over this (class selectors beat a plain element
+   selector), this only fills in whatever a component didn't already set
+   itself -- and option elements can't be targeted with Tailwind classes
+   at all, so this is the only place that can style them. */
+select {
+  background-color: var(--surface);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+select option {
+  background-color: var(--surface);
+  color: var(--fg);
+}
+
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: var(--surface-hover);
+}

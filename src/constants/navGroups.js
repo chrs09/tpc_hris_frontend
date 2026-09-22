@@ -196,6 +196,29 @@ export function getNavGroups(role) {
       ],
     },
     {
+      label: "Cash Advance",
+      children: [
+        {
+          // Self-service filing -- every role except superadmin can file
+          // (see app/api/cash_advance_request.py's file_cash_advance_request),
+          // so this is deliberately not gated behind a moduleKey the same
+          // way Dashboard/Overview isn't.
+          label: "Cash Advance",
+          path: "/dashboard/cash-advance",
+          roles: [
+            "admin",
+            "driver",
+            "helper",
+            "employee",
+            "payroll_admin",
+            "coordinator_admin",
+            "coordinator",
+            "office_admin",
+          ],
+        },
+      ],
+    },
+    {
       label: "Finance",
       children: [
         {

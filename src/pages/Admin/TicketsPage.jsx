@@ -406,16 +406,22 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
                 Priority (optional)
               </label>
-              <select
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              >
-                <option value="">No priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+              <SearchSelect
+                value={
+                  [
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                  ].find((option) => option.value === priority) || null
+                }
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                ]}
+                onChange={(option) => setPriority(option?.value ?? "")}
+                placeholder="No priority"
+              />
             </div>
 
             <div>
@@ -675,33 +681,35 @@ const TicketDetailModal = ({
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
                 Status
               </label>
-              <select
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                {COLUMNS.map((column) => (
-                  <option key={column.key} value={column.key}>
-                    {column.label}
-                  </option>
-                ))}
-              </select>
+              <SearchSelect
+                value={COLUMNS.find((column) => column.key === status) || null}
+                options={COLUMNS}
+                onChange={(column) => setStatus(column?.key ?? "")}
+                getOptionValue={(column) => column.key}
+                placeholder="Select status"
+              />
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
                 Priority
               </label>
-              <select
-                className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              >
-                <option value="">No priority</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
+              <SearchSelect
+                value={
+                  [
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                  ].find((option) => option.value === priority) || null
+                }
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                ]}
+                onChange={(option) => setPriority(option?.value ?? "")}
+                placeholder="No priority"
+              />
             </div>
 
             <div className="col-span-2">

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getWallet, getWalletCutoffs } from "../../api/driver/trips";
+import SearchSelect from "../SearchSelect";
 
 export default function WalletCard() {
   const [cutoffs, setCutoffs] = useState([]);
@@ -43,17 +44,18 @@ export default function WalletCard() {
         <p className="text-sm text-fg-muted">Wallet Balance</p>
 
         {cutoffs.length > 0 && (
-          <select
-            value={selectedCutoff}
-            onChange={(e) => setSelectedCutoff(e.target.value)}
-            className="rounded-lg border border-border bg-surface-hover px-2 py-1 text-xs text-fg"
-          >
-            {cutoffs.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
+          <div className="w-48">
+            <SearchSelect
+              value={
+                cutoffs.find(
+                  (c) => String(c.value) === String(selectedCutoff),
+                ) || null
+              }
+              options={cutoffs}
+              onChange={(option) => setSelectedCutoff(option.value)}
+              placeholder="Select cutoff"
+            />
+          </div>
         )}
       </div>
 

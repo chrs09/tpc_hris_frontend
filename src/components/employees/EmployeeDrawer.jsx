@@ -5,6 +5,16 @@ import { updateEmployeeDetails } from "../../api/employee";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import EmployeeForm from "./EmployeeForm";
 import { confirmDialog } from "../ui/dialog/dialogService";
+import SearchSelect from "../SearchSelect";
+
+const INACTIVE_REASON_OPTIONS = [
+  { value: "RESIGNED", label: "Resigned" },
+  { value: "TERMINATED", label: "Terminated" },
+  { value: "AWOL", label: "AWOL" },
+  { value: "END_OF_CONTRACT", label: "End of Contract" },
+  { value: "RETIRED", label: "Retired" },
+  { value: "OTHERS", label: "Others" },
+];
 
 const tabs = [
   { key: "basic", label: "Basic Information" },
@@ -353,21 +363,18 @@ export default function EmployeeDrawer({
                 <label className="mb-1 block text-sm text-fg">
                   Inactive Reason <span className="text-danger">*</span>
                 </label>
-                <select
-                  value={formData.inactive_reason || ""}
-                  onChange={(e) =>
-                    handleChange("inactive_reason", e.target.value)
+                <SearchSelect
+                  value={
+                    INACTIVE_REASON_OPTIONS.find(
+                      (option) => option.value === formData.inactive_reason,
+                    ) || null
                   }
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                >
-                  <option value="">Select reason</option>
-                  <option value="RESIGNED">Resigned</option>
-                  <option value="TERMINATED">Terminated</option>
-                  <option value="AWOL">AWOL</option>
-                  <option value="END_OF_CONTRACT">End of Contract</option>
-                  <option value="RETIRED">Retired</option>
-                  <option value="OTHERS">Others</option>
-                </select>
+                  options={INACTIVE_REASON_OPTIONS}
+                  onChange={(option) =>
+                    handleChange("inactive_reason", option.value)
+                  }
+                  placeholder="Select reason"
+                />
               </div>
 
               <div>

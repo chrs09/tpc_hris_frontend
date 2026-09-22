@@ -30,6 +30,13 @@ export const deleteDeductionOption = async (optionId) => {
   return res.data;
 };
 
+// Requester-facing: the active deduction-per-pay presets (mirrors
+// tytan_mobile/src/api/driver/cashAdvance.ts's getDeductionOptions).
+export const getDeductionOptions = async () => {
+  const res = await api.get("/cash-advance-settings/deduction-options");
+  return res.data;
+};
+
 export const getTerms = async () => {
   const res = await api.get("/cash-advance-settings/terms");
   return res.data;

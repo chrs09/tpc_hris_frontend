@@ -17,6 +17,7 @@ import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
 // even though the /privacy-policy route itself (a normal page URL, not a
 // bundled asset name) is unaffected.
 import LegalNotice from "./pages/Public/LegalNotice";
+import MobileSessionBridge from "./pages/Public/MobileSessionBridge";
 
 const App = () => {
   const navigate = useNavigate();
@@ -67,6 +68,7 @@ const App = () => {
 
         <Route path="/attendance-kiosk" element={<AttendanceKiosk />} />
         <Route path="/privacy-policy" element={<LegalNotice />} />
+        <Route path="/mobile-session" element={<MobileSessionBridge />} />
 
         <Route
           path="/login"

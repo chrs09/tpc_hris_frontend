@@ -21,6 +21,7 @@ import PayslipModal from "../../components/payroll/PayslipModal";
 import usePagination from "../../hooks/usePagination";
 import { alertDialog } from "../../components/ui/dialog/dialogService";
 import Pagination from "../../components/ui/pagination/Pagination";
+import SearchSelect from "../../components/SearchSelect";
 import {
   savePayrollDeduction,
   savePayrollDeductionsBulk,
@@ -1196,28 +1197,30 @@ const PayrollList = () => {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <select
-            value={selectedPeriod}
-            onChange={(e) => setSelectedPeriod(Number(e.target.value))}
-            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg"
-          >
-            {periods.map((period, index) => (
-              <option key={index} value={index}>
-                {period.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            className="border border-border rounded-lg px-3 h-10 bg-surface text-fg"
-          >
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
+          <div className="w-56">
+            <SearchSelect
+              value={
+                periods
+                  .map((period, index) => ({ index, label: period.label }))
+                  .find((option) => option.index === selectedPeriod) || null
+              }
+              options={periods.map((period, index) => ({
+                index,
+                label: period.label,
+              }))}
+              getOptionValue={(option) => option.index}
+              onChange={(option) => setSelectedPeriod(Number(option.index))}
+              placeholder="Select period"
+            />
+          </div>
+          <div className="w-48">
+            <SearchSelect
+              value={departments.find((dept) => dept === department) || null}
+              options={departments}
+              onChange={(dept) => setDepartment(dept)}
+              placeholder="Select department"
+            />
+          </div>
           <input
             type="text"
             placeholder="Search employee..."

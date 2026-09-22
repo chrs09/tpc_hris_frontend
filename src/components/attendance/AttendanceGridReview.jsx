@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { attendanceStatus } from "../../constants/attendanceStatus";
+import SearchSelect from "../SearchSelect";
 
 const getPhoto = (record) => record.time_in_photo_url || null;
 
@@ -125,8 +127,11 @@ const getSideStatus = (record, side) => {
   return "Pending";
 };
 
+// An employee already marked Absent has no selfie to verify, so face
+// review (badges, stats, Approve/Reject) is skipped for them entirely --
+// there's nothing to review.
 const sideNeedsReview = (record, side) =>
-  NEEDS_REVIEW_LABELS.includes(getSideStatus(record, side));
+  !getIsAbsent(record) && NEEDS_REVIEW_LABELS.includes(getSideStatus(record, side));
 
 const recordNeedsReview = (record) =>
   sideNeedsReview(record, "time_in") ||
@@ -230,6 +235,7 @@ const AttendanceGridReview = ({
   onRejectAttendance,
   onUpdateAttendance,
   onAttendanceUpdated,
+  onSetStatus,
   isSuperAdmin = false,
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
@@ -383,6 +389,20 @@ const AttendanceGridReview = ({
     }
 
     await onUpdateAttendance(record, changes);
+
+    if (onAttendanceUpdated) {
+      await onAttendanceUpdated();
+    }
+  };
+
+  const handleSetStatus = async (record, newStatus) => {
+    if (!onSetStatus) {
+      console.warn("onSetStatus was not provided.");
+
+      return;
+    }
+
+    await onSetStatus(record, newStatus);
 
     if (onAttendanceUpdated) {
       await onAttendanceUpdated();
@@ -643,6 +663,7 @@ const AttendanceGridReview = ({
               onApproveAttendance={handleApprove}
               onRejectAttendance={handleReject}
               onUpdateAttendance={handleUpdateAttendance}
+              onSetStatus={handleSetStatus}
               isSuperAdmin={isSuperAdmin}
             />
           )}
@@ -672,6 +693,7 @@ const AttendanceGridReview = ({
                 onApproveAttendance={handleApprove}
                 onRejectAttendance={handleReject}
                 onUpdateAttendance={handleUpdateAttendance}
+                onSetStatus={handleSetStatus}
                 isSuperAdmin={isSuperAdmin}
               />
             </div>
@@ -714,6 +736,7 @@ const AttendanceDetail = ({
   onApproveAttendance,
   onRejectAttendance,
   onUpdateAttendance,
+  onSetStatus,
   isSuperAdmin = false,
 }) => {
   const [selectedAttendancePhoto, setSelectedAttendancePhoto] = useState(null);
@@ -739,6 +762,12 @@ const AttendanceDetail = ({
 
   const [savingAttendance, setSavingAttendance] = useState(false);
 
+  const [editStatus, setEditStatus] = useState(
+    record.status || attendanceStatus.Present,
+  );
+
+  const [savingStatus, setSavingStatus] = useState(false);
+
   /*
    * Keep local fields synchronized when
    * the selected employee changes.
@@ -750,14 +779,17 @@ const AttendanceDetail = ({
 
     setEditReason(record.remarks || "");
 
+    setEditStatus(record.status || attendanceStatus.Present);
+
     setSelectedAttendancePhoto(null);
-  }, [record.id, record.check_in_time, record.check_out_time, record.remarks]);
+  }, [record.id, record.check_in_time, record.check_out_time, record.remarks, record.status]);
 
   const hasTimedOut = Boolean(record.check_out_time);
 
   const canReviewSide = (side) =>
     isSuperAdmin &&
     !record.is_missing_attendance &&
+    !getIsAbsent(record) &&
     !["Auto Approved", "Approved", "Rejected"].includes(
       getSideStatus(record, side),
     );
@@ -805,6 +837,22 @@ const AttendanceDetail = ({
       console.error("Failed to update attendance details:", error);
     } finally {
       setSavingAttendance(false);
+    }
+  };
+
+  const handleSetStatus = async () => {
+    if (!onSetStatus || editStatus === (record.status || attendanceStatus.Present)) {
+      return;
+    }
+
+    try {
+      setSavingStatus(true);
+
+      await onSetStatus(record, editStatus);
+    } catch (error) {
+      console.error("Failed to set attendance status:", error);
+    } finally {
+      setSavingStatus(false);
     }
   };
 
@@ -857,6 +905,38 @@ const AttendanceDetail = ({
           {record.attendance_method || "N/A"}
         </span>
       </div>
+
+      {/* Set Status -- lets a superadmin directly set an employee's
+          day status (e.g. mark them Present, Absent, On Leave, etc.)
+          from the review panel instead of switching to Table View. */}
+      {isSuperAdmin && onSetStatus && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-3">
+          <label className="text-sm font-semibold text-gray-700 shrink-0">
+            Set Status
+          </label>
+
+          <div className="flex-1 min-w-30">
+            <SearchSelect
+              value={editStatus}
+              options={Object.values(attendanceStatus)}
+              onChange={(status) => setEditStatus(status)}
+              placeholder="Select Status"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSetStatus}
+            disabled={
+              savingStatus ||
+              editStatus === (record.status || attendanceStatus.Present)
+            }
+            className="rounded-lg bg-blue-600 text-white text-sm font-semibold px-3 py-2 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {savingStatus ? "Saving..." : "Save"}
+          </button>
+        </div>
+      )}
 
       {/* Photo Comparison */}
       <div>

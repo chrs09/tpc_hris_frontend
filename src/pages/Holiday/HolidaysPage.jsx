@@ -6,6 +6,9 @@ import { getHolidays, deleteHoliday, syncHolidays } from "../../api/holidays";
 import { Trash2, Pencil } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
+import SearchSelect from "../../components/SearchSelect";
+
+const yearOptions = Array.from({ length: 10 }, (_, i) => 2024 + i);
 
 export default function HolidaysPage() {
   const [holidays, setHolidays] = useState([]);
@@ -70,31 +73,13 @@ export default function HolidaysPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-fg">Holidays</h1>
-          <div className="relative">
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="appearance-none text-sm font-medium text-fg-muted bg-surface-hover border border-border rounded-full pl-3 pr-7 py-1 cursor-pointer hover:bg-surface-active transition-colors focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              {Array.from({ length: 10 }, (_, i) => 2024 + i).map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-            <svg
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-fg-subtle pointer-events-none"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+          <div className="w-28">
+            <SearchSelect
+              value={yearOptions.includes(year) ? year : null}
+              options={yearOptions}
+              onChange={(option) => setYear(Number(option))}
+              placeholder="Select Year"
+            />
           </div>
         </div>
 

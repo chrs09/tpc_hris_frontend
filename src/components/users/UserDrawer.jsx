@@ -4,6 +4,17 @@ import SearchSelect from "../SearchSelect";
 import { getEmployeeList } from "../../api/employee";
 import { createUser, updateUser, getUserRevisions } from "../../api/users";
 
+const roleOptions = [
+  { value: "admin", label: "Admin" },
+  { value: "driver", label: "Driver" },
+  { value: "helper", label: "Helper" },
+  { value: "employee", label: "Employee" },
+  { value: "coordinator_admin", label: "Coordinator Admin" },
+  { value: "coordinator", label: "Coordinator" },
+  { value: "payroll_admin", label: "Payroll Admin" },
+  { value: "office_admin", label: "Office Admin" },
+];
+
 const formatFieldName = (field) =>
   field === "is_active" ? "Status" : field.charAt(0).toUpperCase() + field.slice(1);
 
@@ -195,20 +206,12 @@ const UserDrawer = ({
 
           <div>
             <label className="block text-sm mb-1 text-fg">Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full border border-border rounded-lg p-2 bg-surface text-fg"
-            >
-              <option value="admin">Admin</option>
-              <option value="driver">Driver</option>
-              <option value="helper">Helper</option>
-              <option value="employee">Employee</option>
-              <option value="coordinator_admin">Coordinator Admin</option>
-              <option value="coordinator">Coordinator</option>
-              <option value="payroll_admin">Payroll Admin</option>
-              <option value="office_admin">Office Admin</option>
-            </select>
+            <SearchSelect
+              value={roleOptions.find((option) => option.value === role) || null}
+              options={roleOptions}
+              onChange={(option) => setRole(option?.value)}
+              placeholder="Select role"
+            />
           </div>
 
           {isDeactivating && (

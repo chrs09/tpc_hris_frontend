@@ -21,6 +21,7 @@ import OriginsPage from "../Admin/OriginsPage";
 import SuppliersPage from "../Admin/SuppliersPage";
 import TripPlanning from "../Coordinator/TripPlanning";
 import DriverTrips from "../Driver/DriverTrips";
+import DriverCashAdvance from "../Driver/DriverCashAdvance";
 import EmployeeListPage from "../Employee/EmployeeListPage";
 import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
@@ -145,6 +146,11 @@ const Dashboard = () => {
           <Route path="finance/expenses" element={<FinanceExpenses />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
+          {/* Not driver-only despite the component's filename -- any
+              employee (everyone except superadmin, per the backend's
+              file_cash_advance_request check) can file a cash advance
+              request, so this lives at a role-neutral path. */}
+          <Route path="cash-advance" element={<DriverCashAdvance />} />
           <Route path="settings" element={<div>Settings</div>} />
         </Routes>
       </div>

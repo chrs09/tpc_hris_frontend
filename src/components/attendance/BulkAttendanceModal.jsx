@@ -3,6 +3,7 @@ import { Button } from "../ui/button/Button";
 import { attendanceStatus } from "../../constants/attendanceStatus";
 import { employeeRoles } from "../../constants/employeeRole";
 import ConfirmModal from "../ui/modals/ConfirmModal";
+import SearchSelect from "../SearchSelect";
 
 const BulkAttendanceModal = ({
   isOpen,
@@ -73,17 +74,12 @@ const BulkAttendanceModal = ({
 
             <div className="mt-4 flex flex-col gap-2">
               <label className="text-white font-medium">Filter by Role:</label>
-              <select
+              <SearchSelect
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="border rounded px-3 h-9 text-white bg-[#1e1e1e] focus:outline-none focus:ring-2 focus:ring-[#d4d4d4] w-full"
-              >
-                {Object.values(employeeRoles).map((role) => (
-                  <option key={role} value={role}>
-                    {role}
-                  </option>
-                ))}
-              </select>
+                options={Object.values(employeeRoles)}
+                onChange={(role) => setRoleFilter(role)}
+                placeholder="Select Role"
+              />
             </div>
           </div>
 
@@ -112,31 +108,22 @@ const BulkAttendanceModal = ({
 
                     <div>
                       <p className="text-xs text-gray-400 mb-1">Status</p>
-                      <select
+                      <SearchSelect
                         disabled={alreadyRecorded}
                         value={
                           alreadyRecorded
                             ? alreadyRecordedStatus
                             : selections[emp.id] || "Present"
                         }
-                        onChange={(e) =>
+                        options={Object.values(attendanceStatus)}
+                        onChange={(status) =>
                           setSelections((prev) => ({
                             ...prev,
-                            [emp.id]: e.target.value,
+                            [emp.id]: status,
                           }))
                         }
-                        className={`w-full border border-border rounded px-2 h-9 ${
-                          alreadyRecorded
-                            ? "bg-gray-500 text-gray-300"
-                            : "bg-surface text-fg"
-                        }`}
-                      >
-                        {Object.values(attendanceStatus).map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
+                        placeholder="Select Status"
+                      />
                     </div>
                   </div>
                 );
@@ -169,31 +156,22 @@ const BulkAttendanceModal = ({
                         </td>
 
                         <td className="border p-2 text-center">
-                          <select
+                          <SearchSelect
                             disabled={alreadyRecorded}
                             value={
                               alreadyRecorded
                                 ? alreadyRecorded
                                 : selections[emp.id] || "Present"
                             }
-                            onChange={(e) =>
+                            options={Object.values(attendanceStatus)}
+                            onChange={(status) =>
                               setSelections((prev) => ({
                                 ...prev,
-                                [emp.id]: e.target.value,
+                                [emp.id]: status,
                               }))
                             }
-                            className={`w-full border border-border rounded px-2 h-8 ${
-                              alreadyRecorded
-                                ? "bg-gray-500 text-gray-300"
-                                : "bg-surface text-fg"
-                            }`}
-                          >
-                            {Object.values(attendanceStatus).map((status) => (
-                              <option key={status} value={status}>
-                                {status}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="Select Status"
+                          />
                         </td>
                       </tr>
                     );

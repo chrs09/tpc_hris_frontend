@@ -10,6 +10,17 @@ import AddEmployeeDrawer from "../../components/employees/AddEmployeeDrawer";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
+
+const SORT_BY_OPTIONS = [
+  { value: "lastname", label: "Last Name" },
+  { value: "id", label: "Employee ID" },
+];
+
+const SORT_ORDER_OPTIONS = [
+  { value: "asc", label: "Ascending" },
+  { value: "desc", label: "Descending" },
+];
 
 export default function EmployeeListPage() {
   const [isActive, setIsActive] = useState(1);
@@ -181,23 +192,30 @@ export default function EmployeeListPage() {
             <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface px-4 py-2">
               <span className="text-sm font-medium text-fg-muted">Sort:</span>
 
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg focus:outline-none"
-              >
-                <option value="lastname">Last Name</option>
-                <option value="id">Employee ID</option>
-              </select>
+              <div className="w-40">
+                <SearchSelect
+                  value={
+                    SORT_BY_OPTIONS.find((option) => option.value === sortBy) ||
+                    null
+                  }
+                  options={SORT_BY_OPTIONS}
+                  onChange={(option) => setSortBy(option.value)}
+                  placeholder="Sort by"
+                />
+              </div>
 
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="rounded-lg border border-border px-3 py-1.5 text-sm text-fg focus:outline-none"
-              >
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-              </select>
+              <div className="w-40">
+                <SearchSelect
+                  value={
+                    SORT_ORDER_OPTIONS.find(
+                      (option) => option.value === sortOrder,
+                    ) || null
+                  }
+                  options={SORT_ORDER_OPTIONS}
+                  onChange={(option) => setSortOrder(option.value)}
+                  placeholder="Order"
+                />
+              </div>
             </div>
           </div>
 

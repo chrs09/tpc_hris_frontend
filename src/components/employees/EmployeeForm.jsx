@@ -1,6 +1,7 @@
 import DefaultProfileImage from "./../../assets/logo/default/default-profile.jpg";
 import { civilStatusOptions } from "../../constants/civilStatus";
 import { employeeRoles } from "../../constants/employeeRole";
+import SearchSelect from "../SearchSelect";
 
 const getFileUrl = (filePath) => {
   if (!filePath) return "";
@@ -835,6 +836,7 @@ export default function EmployeeForm({
                   "UnionBank",
                   "Gcash",
                   "Cebuana",
+                  "Maribank",
                   "Other",
                 ]}
               />
@@ -1057,28 +1059,28 @@ function EditableArrayField({
 }) {
   const isSelect = Array.isArray(options) && options.length > 0;
 
+  const selectedOption = isSelect
+    ? options.find((option) =>
+        typeof option === "object"
+          ? String(option.value) === String(value)
+          : String(option) === String(value),
+      )
+    : null;
+
   return (
     <div className="space-y-1">
       <label className="text-sm text-fg font-semibold">{label}</label>
 
       {isEditing ? (
         isSelect ? (
-          <select
-            value={value || ""}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full border-b border-border focus:border-fg focus:outline-none py-2 bg-transparent text-fg"
-          >
-            <option value="">Select {label}</option>
-
-            {options.map((option) => (
-              <option
-                key={typeof option === "object" ? option.value : option}
-                value={typeof option === "object" ? option.value : option}
-              >
-                {typeof option === "object" ? option.label : option}
-              </option>
-            ))}
-          </select>
+          <SearchSelect
+            value={selectedOption || null}
+            options={options}
+            onChange={(option) =>
+              onChange(typeof option === "object" ? option.value : option)
+            }
+            placeholder={`Select ${label}`}
+          />
         ) : (
           <input
             type={type}
@@ -1209,31 +1211,22 @@ function EditableField({
 
       {isEditing ? (
         isSelect ? (
-          <select
-            value={value || ""}
-            onChange={(e) =>
+          <SearchSelect
+            value={selectedOption || null}
+            options={options}
+            onChange={(option) => {
+              const rawValue =
+                typeof option === "object" ? option.value : option;
+
               onChange(
                 field,
                 field === "schedule_template_id"
-                  ? Number(e.target.value)
-                  : e.target.value,
-              )
-            }
-            className={`w-full border-b focus:outline-none py-2 bg-transparent text-fg ${
-              error ? "border-danger" : "border-border"
-            }`}
-          >
-            <option value="">Select {label}</option>
-
-            {options.map((option) => (
-              <option
-                key={typeof option === "object" ? option.value : option}
-                value={typeof option === "object" ? option.value : option}
-              >
-                {typeof option === "object" ? option.label : option}
-              </option>
-            ))}
-          </select>
+                  ? Number(rawValue)
+                  : rawValue,
+              );
+            }}
+            placeholder={`Select ${label}`}
+          />
         ) : (
           <input
             type={type}

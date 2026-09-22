@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button/Button";
 import { getUserList, bulkCreateUsers } from "../../api/users";
 import UserDrawer from "../../components/users/UserDrawer";
+import SearchSelect from "../../components/SearchSelect";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -28,6 +29,25 @@ const UsersPage = () => {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const roleFilterOptions = [
+    { value: "all", label: "All Roles" },
+    { value: "superadmin", label: "Superadmin" },
+    { value: "admin", label: "Admin" },
+    { value: "driver", label: "Driver" },
+    { value: "helper", label: "Helper" },
+    { value: "employee", label: "Employee" },
+    { value: "coordinator_admin", label: "Coordinator Admin" },
+    { value: "coordinator", label: "Coordinator" },
+    { value: "payroll_admin", label: "Payroll Admin" },
+    { value: "office_admin", label: "Office Admin" },
+  ];
+
+  const statusFilterOptions = [
+    { value: "all", label: "All Status" },
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+  ];
 
   useEffect(() => {
     if (canAccess) fetchUsers();
@@ -178,38 +198,37 @@ const UsersPage = () => {
               />
             </div>
 
-            <select
-              value={roleFilter}
-              onChange={(e) => {
-                setRoleFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
-            >
-              <option value="all">All Roles</option>
-              <option value="superadmin">Superadmin</option>
-              <option value="admin">Admin</option>
-              <option value="driver">Driver</option>
-              <option value="helper">Helper</option>
-              <option value="employee">Employee</option>
-              <option value="coordinator_admin">Coordinator Admin</option>
-              <option value="coordinator">Coordinator</option>
-              <option value="payroll_admin">Payroll Admin</option>
-              <option value="office_admin">Office Admin</option>
-            </select>
+            <div className="w-44">
+              <SearchSelect
+                value={
+                  roleFilterOptions.find(
+                    (option) => option.value === roleFilter,
+                  ) || null
+                }
+                options={roleFilterOptions}
+                onChange={(option) => {
+                  setRoleFilter(option?.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Select role"
+              />
+            </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <div className="w-40">
+              <SearchSelect
+                value={
+                  statusFilterOptions.find(
+                    (option) => option.value === statusFilter,
+                  ) || null
+                }
+                options={statusFilterOptions}
+                onChange={(option) => {
+                  setStatusFilter(option?.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="Select status"
+              />
+            </div>
 
             <Button
               className="border border-border bg-surface px-4 py-2 text-fg shadow-sm transition hover:bg-surface-hover disabled:opacity-60"

@@ -8,6 +8,7 @@ import {
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 
 const STATUS_STYLES = {
@@ -86,17 +87,28 @@ export default function LeaveManagement() {
           Leave Requests
         </h1>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="appearance-none rounded-full border border-border bg-surface-hover px-3 py-1 text-sm font-medium text-fg-muted hover:bg-surface-active"
-        >
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="all">All</option>
-        </select>
+        <div className="w-40">
+          <SearchSelect
+            value={
+              [
+                { value: "pending", label: "Pending" },
+                { value: "approved", label: "Approved" },
+                { value: "rejected", label: "Rejected" },
+                { value: "cancelled", label: "Cancelled" },
+                { value: "all", label: "All" },
+              ].find((option) => option.value === statusFilter) || null
+            }
+            options={[
+              { value: "pending", label: "Pending" },
+              { value: "approved", label: "Approved" },
+              { value: "rejected", label: "Rejected" },
+              { value: "cancelled", label: "Cancelled" },
+              { value: "all", label: "All" },
+            ]}
+            onChange={(option) => setStatusFilter(option?.value ?? "pending")}
+            placeholder="Select status"
+          />
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-sm">

@@ -1153,24 +1153,29 @@ export default function TripMaintenance() {
             <label className="block text-sm font-medium mb-1 text-fg">
               Truck Type
             </label>
-            <select
-              value={vehicleForm.truck_type_id}
-              onChange={(e) =>
+            <SearchSelect
+              value={
+                truckTypes.find(
+                  (truckType) =>
+                    String(truckType.id) === String(vehicleForm.truck_type_id),
+                ) || null
+              }
+              options={truckTypes}
+              onChange={(truckType) =>
                 setVehicleForm({
                   ...vehicleForm,
-                  truck_type_id: e.target.value,
+                  truck_type_id: truckType?.id ?? "",
                 })
               }
-              className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-            >
-              <option value="">Select truck type (optional)</option>
-              {truckTypes.map((truckType) => (
-                <option key={truckType.id} value={truckType.id}>
-                  {truckType.name}
-                  {truckType.size ? ` (${truckType.size})` : ""}
-                </option>
-              ))}
-            </select>
+              getOptionLabel={(truckType) =>
+                truckType
+                  ? `${truckType.name}${
+                      truckType.size ? ` (${truckType.size})` : ""
+                    }`
+                  : ""
+              }
+              placeholder="Select truck type (optional)"
+            />
           </div>
 
           <DocumentFormSection

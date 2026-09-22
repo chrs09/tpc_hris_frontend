@@ -64,3 +64,45 @@ export const recordCashAdvanceDeduction = async (
   );
   return res.data;
 };
+
+// ---------------------------------------
+// Requester-facing (any employee filing their own request -- mirrors
+// tytan_mobile/src/api/driver/cashAdvance.ts 1:1 against the same
+// backend endpoints).
+// ---------------------------------------
+
+// File a new cash advance request. The approver is resolved server-side
+// from the requester's department head -- there's no approver to pick.
+export const fileCashAdvanceRequest = async ({
+  amount,
+  deduction_option_id,
+  reason,
+  terms_accepted,
+}) => {
+  const res = await api.post("/cash-advance-requests/", {
+    amount,
+    deduction_option_id,
+    reason,
+    terms_accepted,
+  });
+  return res.data;
+};
+
+// The logged-in user's own cash advance requests.
+export const getMyCashAdvanceRequests = async () => {
+  const res = await api.get("/cash-advance-requests/mine");
+  return res.data;
+};
+
+// Total outstanding balance across the user's approved, not-yet-fully-
+// paid cash advance requests.
+export const getMyCashAdvanceBalance = async () => {
+  const res = await api.get("/cash-advance-requests/my-balance");
+  return res.data;
+};
+
+// Cancel one of your own pending cash advance requests.
+export const cancelCashAdvanceRequest = async (requestId) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/cancel`);
+  return res.data;
+};

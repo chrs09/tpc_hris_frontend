@@ -10,6 +10,7 @@ import ExpenseDrawer from "../../components/financeExpenses/ExpenseDrawer";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 
 const money = (value) =>
   new Intl.NumberFormat("en-PH", {
@@ -843,17 +844,12 @@ function SummaryCard({ label, value }) {
 
 function Filter({ value, onChange, options }) {
   return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
+    <SearchSelect
+      value={options.includes(value) ? value : null}
+      options={options}
+      onChange={(option) => onChange(option)}
+      placeholder="Select..."
+    />
   );
 }
 

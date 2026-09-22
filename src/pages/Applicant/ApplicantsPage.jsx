@@ -14,6 +14,7 @@ import { employeeRoleConvert } from "../../constants/employeeRole";
 import DefaultThumbnail from "../../assets/logo/default/default-profile.jpg";
 import { alertDialog } from "../../components/ui/dialog/dialogService";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 
 const COLUMNS = [
   { key: "pending", label: "Pending" },
@@ -449,18 +450,19 @@ function ConvertApplicantModal({
             <label className="mb-2 block text-sm font-semibold text-fg-muted">
               Department
             </label>
-            <select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="">Select department</option>
-              {Object.entries(employeeRoleConvert).map(([key, label]) => (
-                <option key={key} value={label}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <SearchSelect
+              value={
+                Object.entries(employeeRoleConvert)
+                  .map(([key, label]) => ({ key, label }))
+                  .find((option) => option.label === department) || null
+              }
+              options={Object.entries(employeeRoleConvert).map(
+                ([key, label]) => ({ key, label }),
+              )}
+              getOptionValue={(option) => option.key}
+              onChange={(option) => setDepartment(option?.label ?? "")}
+              placeholder="Select department"
+            />
           </div>
 
           <div>
@@ -682,18 +684,21 @@ function ApplicantDrawer({
                 </h4>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <select
-                    value={selectedStatus}
-                    onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:bg-surface-active"
-                    disabled={isLocked}
-                  >
-                    {STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full">
+                    <SearchSelect
+                      value={
+                        STATUS_OPTIONS.find(
+                          (option) => option.value === selectedStatus,
+                        ) || null
+                      }
+                      options={STATUS_OPTIONS}
+                      onChange={(option) =>
+                        setSelectedStatus(option?.value ?? "")
+                      }
+                      placeholder="Select status"
+                      disabled={isLocked}
+                    />
+                  </div>
 
                   <button
                     onClick={onSaveStatus}

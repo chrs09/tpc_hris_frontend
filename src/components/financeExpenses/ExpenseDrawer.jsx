@@ -4,6 +4,8 @@ import { extractFinanceExpenseReceipt } from "../../api/financeExpenses";
 
 import { parseReceiptText } from "../../utils/expenseReceiptParser";
 
+import SearchSelect from "../SearchSelect";
+
 const emptyExpense = {
   expenseNumber: "",
   paymentType: "PO",
@@ -118,18 +120,13 @@ function SelectField({
         {label}
       </span>
 
-      <select
-        value={value ?? ""}
+      <SearchSelect
+        value={options.includes(value) ? value : null}
+        options={options}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+        onChange={(option) => onChange(option)}
+        placeholder={`Select ${label}`}
+      />
     </label>
   );
 }
@@ -876,24 +873,19 @@ export default function ExpenseDrawer({
                               {item.unit || "—"}
                             </span>
                           ) : (
-                            <select
-                              value={item.unit ?? "Piece"}
-                              disabled={saving}
-                              onChange={(e) =>
-                                updateItem(
-                                  index,
-                                  "unit",
-                                  e.target.value,
-                                )
+                            <SearchSelect
+                              value={
+                                units.includes(item.unit)
+                                  ? item.unit
+                                  : "Piece"
                               }
-                              className="h-9 w-full rounded-lg border border-border bg-surface px-2 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
-                            >
-                              {units.map((unit) => (
-                                <option key={unit} value={unit}>
-                                  {unit}
-                                </option>
-                              ))}
-                            </select>
+                              options={units}
+                              disabled={saving}
+                              onChange={(option) =>
+                                updateItem(index, "unit", option)
+                              }
+                              placeholder="Select Unit"
+                            />
                           )}
                         </td>
 

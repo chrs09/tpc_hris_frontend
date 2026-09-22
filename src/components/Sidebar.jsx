@@ -33,6 +33,7 @@ const GROUP_ICONS = {
   Customers: <Users size={18} />,
   Suppliers: <Building2 size={18} />,
   "Fleet Management": <Truck size={18} />,
+  "Cash Advance": <Wallet size={18} />,
   Finance: <Landmark size={18} />,
   Administrator: <Shield size={18} />,
 };

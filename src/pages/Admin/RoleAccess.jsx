@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ALL_ROLES, ROLE_ACCESS_GROUPS, roleLabel } from "../../constants/roleAccess";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import useModuleAccess from "../../hooks/useModuleAccess";
+import SearchSelect from "../../components/SearchSelect";
 
 const RoleAccessPage = () => {
   const { isVisible } = useModuleAccess();
@@ -11,6 +12,11 @@ const RoleAccessPage = () => {
   });
 
   const [selectedRole, setSelectedRole] = useState("admin");
+
+  const roleOptions = ALL_ROLES.map((role) => ({
+    value: role,
+    label: roleLabel(role),
+  }));
 
   if (!isSuperAdmin) {
     return (
@@ -38,17 +44,17 @@ const RoleAccessPage = () => {
             </p>
           </div>
 
-          <select
-            value={selectedRole}
-            onChange={(e) => setSelectedRole(e.target.value)}
-            className="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg shadow-sm outline-none"
-          >
-            {ALL_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {roleLabel(role)}
-              </option>
-            ))}
-          </select>
+          <div className="w-48">
+            <SearchSelect
+              value={
+                roleOptions.find((option) => option.value === selectedRole) ||
+                null
+              }
+              options={roleOptions}
+              onChange={(option) => setSelectedRole(option?.value)}
+              placeholder="Select role"
+            />
+          </div>
         </div>
 
         <div className="space-y-4">

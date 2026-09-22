@@ -8,6 +8,7 @@ import {
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 
 const initialForm = {
   target_role: "driver",
@@ -212,16 +213,27 @@ export default function Questionaire() {
                 <label className="mb-2 block text-sm font-medium text-fg-muted">
                   Target Role
                 </label>
-                <select
-                  value={form.target_role}
-                  onChange={(e) => handleChange("target_role", e.target.value)}
-                  className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="driver">Driver</option>
-                  <option value="helper">Helper</option>
-                  <option value="all">All</option>
-                </select>
+                <SearchSelect
+                  value={
+                    [
+                      { value: "admin", label: "Admin" },
+                      { value: "driver", label: "Driver" },
+                      { value: "helper", label: "Helper" },
+                      { value: "all", label: "All" },
+                    ].find((option) => option.value === form.target_role) ||
+                    null
+                  }
+                  options={[
+                    { value: "admin", label: "Admin" },
+                    { value: "driver", label: "Driver" },
+                    { value: "helper", label: "Helper" },
+                    { value: "all", label: "All" },
+                  ]}
+                  onChange={(option) =>
+                    handleChange("target_role", option?.value ?? "")
+                  }
+                  placeholder="Select target role"
+                />
               </div>
 
               {!editingQuestion && (
@@ -276,18 +288,27 @@ export default function Questionaire() {
                 <label className="mb-2 block text-sm font-medium text-fg-muted">
                   Question Type
                 </label>
-                <select
-                  value={form.question_type}
-                  onChange={(e) =>
-                    handleChange("question_type", e.target.value)
+                <SearchSelect
+                  value={
+                    [
+                      { value: "text", label: "Text" },
+                      { value: "textarea", label: "Textarea" },
+                      { value: "select", label: "Select" },
+                      { value: "date", label: "Date" },
+                    ].find((option) => option.value === form.question_type) ||
+                    null
                   }
-                  className="w-full rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
-                >
-                  <option value="text">Text</option>
-                  <option value="textarea">Textarea</option>
-                  <option value="select">Select</option>
-                  <option value="date">Date</option>
-                </select>
+                  options={[
+                    { value: "text", label: "Text" },
+                    { value: "textarea", label: "Textarea" },
+                    { value: "select", label: "Select" },
+                    { value: "date", label: "Date" },
+                  ]}
+                  onChange={(option) =>
+                    handleChange("question_type", option?.value ?? "")
+                  }
+                  placeholder="Select question type"
+                />
               </div>
 
               <div>
@@ -372,26 +393,41 @@ export default function Questionaire() {
                 className="rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
               />
 
-              <select
-                value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className="rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
-              >
-                <option value="all">All Roles</option>
-                <option value="admin">Admin</option>
-                <option value="driver">Driver</option>
-                <option value="helper">Helper</option>
-              </select>
+              <SearchSelect
+                value={
+                  [
+                    { value: "all", label: "All Roles" },
+                    { value: "admin", label: "Admin" },
+                    { value: "driver", label: "Driver" },
+                    { value: "helper", label: "Helper" },
+                  ].find((option) => option.value === roleFilter) || null
+                }
+                options={[
+                  { value: "all", label: "All Roles" },
+                  { value: "admin", label: "Admin" },
+                  { value: "driver", label: "Driver" },
+                  { value: "helper", label: "Helper" },
+                ]}
+                onChange={(option) => setRoleFilter(option?.value ?? "all")}
+                placeholder="All Roles"
+              />
 
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded-2xl border border-border bg-surface text-fg px-4 py-3 text-sm"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active Only</option>
-                <option value="inactive">Inactive Only</option>
-              </select>
+              <SearchSelect
+                value={
+                  [
+                    { value: "all", label: "All Status" },
+                    { value: "active", label: "Active Only" },
+                    { value: "inactive", label: "Inactive Only" },
+                  ].find((option) => option.value === statusFilter) || null
+                }
+                options={[
+                  { value: "all", label: "All Status" },
+                  { value: "active", label: "Active Only" },
+                  { value: "inactive", label: "Inactive Only" },
+                ]}
+                onChange={(option) => setStatusFilter(option?.value ?? "all")}
+                placeholder="All Status"
+              />
             </div>
           </div>
 

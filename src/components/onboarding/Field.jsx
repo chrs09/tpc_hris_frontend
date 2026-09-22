@@ -1,3 +1,5 @@
+import SearchSelect from "../SearchSelect";
+
 export default function Field({
   label,
   value,
@@ -10,6 +12,12 @@ export default function Field({
   required = false,
 }) {
   const isSelect = Array.isArray(options) && options.length > 0;
+
+  const getOptionValue = (option) => option?.value ?? option?.id ?? option;
+
+  const selectedOption = isSelect
+    ? options.find((option) => String(getOptionValue(option)) === String(value))
+    : null;
 
   const baseClass =
     "w-full rounded-2xl px-4 py-3 outline-none focus:ring-2 transition";
@@ -26,19 +34,16 @@ export default function Field({
       </label>
 
       {isSelect ? (
-        <select
-          name={name}
-          value={value || ""}
-          onChange={onChange}
-          className={`${baseClass} ${error ? errorClass : normalClass}`}
-        >
-          <option value="">Select {label}</option>
-          {options.map((option) => (
-            <option key={option.value ?? option} value={option.value ?? option}>
-              {option.label ?? option}
-            </option>
-          ))}
-        </select>
+        <SearchSelect
+          value={selectedOption || null}
+          options={options}
+          onChange={(option) =>
+            onChange({
+              target: { name, value: getOptionValue(option) },
+            })
+          }
+          placeholder={placeholder || `Select ${label}`}
+        />
       ) : type === "textarea" ? (
         <textarea
           name={name}

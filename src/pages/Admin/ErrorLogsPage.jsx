@@ -2,8 +2,19 @@ import { Fragment, useCallback, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { getErrorLogs } from "../../api/errorLogs";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import SearchSelect from "../../components/SearchSelect";
 
 const PAGE_SIZE = 50;
+
+const statusCodeOptions = [
+  { value: "", label: "All statuses" },
+  { value: "500", label: "500 (server errors)" },
+  { value: "422", label: "422 (validation)" },
+  { value: "404", label: "404 (not found)" },
+  { value: "403", label: "403 (forbidden)" },
+  { value: "401", label: "401 (unauthorized)" },
+  { value: "400", label: "400 (bad request)" },
+];
 
 const statusBadgeClass = (statusCode) => {
   if (statusCode >= 500) return "bg-danger/15 text-danger";
@@ -84,22 +95,21 @@ export default function ErrorLogsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <select
-            value={statusCode}
-            onChange={(e) => {
-              setStatusCode(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg"
-          >
-            <option value="">All statuses</option>
-            <option value="500">500 (server errors)</option>
-            <option value="422">422 (validation)</option>
-            <option value="404">404 (not found)</option>
-            <option value="403">403 (forbidden)</option>
-            <option value="401">401 (unauthorized)</option>
-            <option value="400">400 (bad request)</option>
-          </select>
+          <div className="w-52">
+            <SearchSelect
+              value={
+                statusCodeOptions.find(
+                  (option) => option.value === statusCode,
+                ) || null
+              }
+              options={statusCodeOptions}
+              onChange={(option) => {
+                setStatusCode(option?.value ?? "");
+                setPage(1);
+              }}
+              placeholder="All statuses"
+            />
+          </div>
 
           <button
             type="button"
