@@ -4,6 +4,7 @@ import {
   getMobileAppVersion,
   setMobileAppVersion,
   syncMobileAppVersionFromEas,
+  getMobileAppVersionEasHistory,
 } from "../../api/mobileAppVersion";
 import { Button } from "../../components/ui/button/Button";
 
@@ -23,6 +24,23 @@ const SettingsPage = () => {
   const [apkUrl, setApkUrl] = useState("");
   const [releaseNotes, setReleaseNotes] = useState("");
   const [updatedAt, setUpdatedAt] = useState(null);
+
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
+
+  const loadHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      setHistoryError(false);
+      const data = await getMobileAppVersionEasHistory("android", "preview");
+      setHistory(data);
+    } catch {
+      setHistoryError(true);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -45,6 +63,7 @@ const SettingsPage = () => {
     };
 
     load();
+    loadHistory();
   }, []);
 
   const handleSave = async (event) => {
@@ -117,6 +136,7 @@ const SettingsPage = () => {
                 toast.success(
                   `Synced latest EAS build (${data.latest_version}).`,
                 );
+                loadHistory();
               } catch (error) {
                 toast.error(
                   error.response?.data?.detail ||
@@ -199,6 +219,78 @@ const SettingsPage = () => {
               {saving ? "Saving..." : "Save"}
             </Button>
           </form>
+        )}
+      </div>
+
+      <div className="max-w-xl rounded-2xl border border-border bg-surface p-5">
+        <h2 className="text-lg font-semibold text-fg">Version History</h2>
+        <p className="mt-1 text-sm text-fg-subtle">
+          Recent Android "preview" builds pulled from EAS, newest first.
+        </p>
+
+        {historyLoading ? (
+          <p className="mt-4 text-sm text-fg-subtle">Loading...</p>
+        ) : historyError ? (
+          <p className="mt-4 text-sm text-fg-subtle">
+            Couldn't load build history from EAS.
+          </p>
+        ) : history.length === 0 ? (
+          <p className="mt-4 text-sm text-fg-subtle">No builds found yet.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-border">
+            {history.map((build) => {
+              const isCurrent = build.app_version === latestVersion;
+              return (
+                <li
+                  key={build.id}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-fg">
+                        {build.app_version || "Unknown version"}
+                      </span>
+                      {isCurrent && (
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                          Current
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          build.status === "FINISHED"
+                            ? "bg-emerald-500/10 text-emerald-600"
+                            : build.status === "ERRORED" ||
+                                build.status === "CANCELED"
+                              ? "bg-red-500/10 text-red-600"
+                              : "bg-amber-500/10 text-amber-600"
+                        }`}
+                      >
+                        {build.status}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-fg-subtle">
+                      {build.completed_at || build.created_at
+                        ? new Date(
+                            build.completed_at || build.created_at,
+                          ).toLocaleString()
+                        : "—"}
+                    </p>
+                  </div>
+
+                  {build.apk_url && (
+                    <a
+                      href={build.apk_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 text-sm font-semibold text-primary hover:underline"
+                    >
+                      Download
+                    </a>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     </div>

@@ -18,3 +18,10 @@ export const syncMobileAppVersionFromEas = async (platform, profile = "preview")
   );
   return res.data;
 };
+
+export const getMobileAppVersionEasHistory = async (platform, profile = "preview") => {
+  const res = await api.get(`/mobile-app-version/${platform}/eas-history`, {
+    params: { profile },
+  });
+  return res.data;
+};
