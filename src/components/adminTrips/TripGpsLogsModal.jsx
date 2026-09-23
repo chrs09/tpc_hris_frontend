@@ -334,7 +334,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                     type="button"
                                     onClick={() =>
                                       openPhoto({
-                                        url: item.stop.unloading_photo,
+                                        url: item.stop.unloading_photo?.url,
                                         label: `${item.store_name} - Unloading Photo`,
                                       })
                                     }
@@ -349,7 +349,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                     type="button"
                                     onClick={() =>
                                       openPhoto({
-                                        url: item.stop.delivery_proof_photo,
+                                        url: item.stop.delivery_proof_photo?.url,
                                         label: `${item.store_name} - Proof of Delivery`,
                                       })
                                     }
@@ -417,7 +417,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                 type="button"
                                 onClick={() =>
                                   openPhoto({
-                                    url: stop.unloading_photo,
+                                    url: stop.unloading_photo?.url,
                                     label: `${stop.store_name} - Unloading Photo`,
                                   })
                                 }
@@ -432,7 +432,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                                 type="button"
                                 onClick={() =>
                                   openPhoto({
-                                    url: stop.delivery_proof_photo,
+                                    url: stop.delivery_proof_photo?.url,
                                     label: `${stop.store_name} - Proof of Delivery`,
                                   })
                                 }
@@ -465,13 +465,13 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                           {data.invoice_photos.length === 1 ? "" : "s"})
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {data.invoice_photos.map((url, i) => (
+                          {data.invoice_photos.map((photo, i) => (
                             <button
-                              key={url}
+                              key={photo.id ?? photo.url}
                               type="button"
                               onClick={() =>
                                 openPhoto({
-                                  url,
+                                  url: photo.url,
                                   label: `Invoice Page ${i + 1}`,
                                 })
                               }
@@ -491,13 +491,13 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                           {data.lm_photos.length === 1 ? "" : "s"})
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {data.lm_photos.map((url, i) => (
+                          {data.lm_photos.map((photo, i) => (
                             <button
-                              key={url}
+                              key={photo.id ?? photo.url}
                               type="button"
                               onClick={() =>
                                 openPhoto({
-                                  url,
+                                  url: photo.url,
                                   label: `LM Page ${i + 1}`,
                                 })
                               }
@@ -515,7 +515,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                         type="button"
                         onClick={() =>
                           openPhoto({
-                            url: data.lm_checkout_stamped_photo,
+                            url: data.lm_checkout_stamped_photo?.url,
                             label: "LM Stamped Checkout",
                           })
                         }
@@ -531,7 +531,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                         type="button"
                         onClick={() =>
                           openPhoto({
-                            url: data.stamped_invoice_photo,
+                            url: data.stamped_invoice_photo?.url,
                             label: "Stamped Invoice (Checkin)",
                           })
                         }
