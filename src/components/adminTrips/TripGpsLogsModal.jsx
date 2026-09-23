@@ -650,7 +650,12 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
 
       {activePhoto && (
         <div
-          className="fixed inset-0 z-80 flex items-center justify-center bg-black/80 p-4"
+          // Leaflet's own internal elements (zoom controls, panes) use
+          // z-index values up to 1000, which can bleed through a modal
+          // at a "normal" stacking level like z-80 -- pushed well above
+          // that, matching the same always-on-top pattern SearchSelect's
+          // dropdown portal already uses elsewhere in this app.
+          className="fixed inset-0 z-9999 flex items-center justify-center bg-black/80 p-4"
           onClick={() => setActivePhoto(null)}
           role="dialog"
           aria-modal="true"
