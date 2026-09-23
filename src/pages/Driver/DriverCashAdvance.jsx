@@ -309,9 +309,10 @@ const DriverCashAdvance = () => {
         />
 
         <p className="mt-3 text-xs italic leading-5 text-fg-subtle">
-          I hereby authorize the company to deduct the amount above from my
-          salary every 15th and every end of the month, in the installment
-          selected below, until the amount is fully paid.
+          I authorize the Company to deduct the amount that I selected from
+          my salary per pay period for the full term of the cash advance. If
+          employment ends before full settlement, I authorize the Company to
+          deduct it from my last pay.
         </p>
 
         <label className="mt-4 mb-1 block text-sm font-semibold text-fg-subtle">
@@ -378,12 +379,6 @@ const DriverCashAdvance = () => {
             {estimatedPayPeriods === 1 ? "" : "s"} to fully deduct.
           </p>
         )}
-
-        <p className="mt-4 text-xs leading-5 text-fg-subtle">
-          Deductions continue every pay period until fully settled. If
-          employment ends before the final deduction, the remaining balance
-          is deducted from the last pay.
-        </p>
 
         {requiresTermsAcceptance && (
           <div className="mt-4 rounded-xl border border-border bg-background p-3">
