@@ -217,6 +217,16 @@ const DriverCashAdvance = () => {
       return;
     }
 
+    if (!selectedPurposeId) {
+      toast.error("Select a purpose.");
+      return;
+    }
+
+    if (isOtherPurposeSelected && !otherReason.trim()) {
+      toast.error("Please specify your reason for Other.");
+      return;
+    }
+
     if (!reason.trim()) {
       toast.error("Purpose is required.");
       return;
@@ -374,7 +384,9 @@ const DriverCashAdvance = () => {
             value={otherReason}
             onChange={(e) => setOtherReason(e.target.value)}
             placeholder="Please specify..."
-            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className={`mt-2 w-full rounded-xl border px-3 py-2.5 text-sm text-fg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+              otherReason.trim() ? "border-border" : "border-danger"
+            }`}
           />
         )}
 

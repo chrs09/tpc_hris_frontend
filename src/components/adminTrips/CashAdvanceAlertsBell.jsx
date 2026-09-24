@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -32,7 +33,9 @@ export default function CashAdvanceAlertsBell() {
   const [open, setOpen] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [acknowledgingId, setAcknowledgingId] = useState(null);
+  const [dropdownRect, setDropdownRect] = useState(null);
 
+  const buttonRef = useRef(null);
   const seenIdsRef = useRef(new Set());
   const fetchingRef = useRef(false);
   // Once the session's token is rejected (401), stop polling entirely
@@ -91,6 +94,35 @@ export default function CashAdvanceAlertsBell() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
+  // Positions the dropdown via a fixed-coordinate portal instead of
+  // Tailwind's `absolute` -- the bell lives inside the sidebar's own
+  // scrollable/overflow-hidden container, which was clipping an
+  // `absolute`-positioned dropdown on large screens (it never actually
+  // escaped the sidebar's box). Same fix pattern as SearchSelect.jsx.
+  useEffect(() => {
+    if (!open) return;
+
+    const updateRect = () => {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      const width = Math.min(320, window.innerWidth - 32);
+      const left = Math.min(
+        Math.max(rect.left, 16),
+        window.innerWidth - width - 16,
+      );
+      setDropdownRect({ top: rect.bottom + 8, left, width });
+    };
+
+    updateRect();
+    window.addEventListener("scroll", updateRect, true);
+    window.addEventListener("resize", updateRect);
+
+    return () => {
+      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("resize", updateRect);
+    };
+  }, [open]);
+
   const handleAcknowledge = async (id) => {
     try {
       setAcknowledgingId(id);
@@ -110,6 +142,7 @@ export default function CashAdvanceAlertsBell() {
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setOpen((prev) => !prev)}
         className="relative text-fg-muted hover:text-fg"
         title="Cash advance requests"
@@ -122,51 +155,67 @@ export default function CashAdvanceAlertsBell() {
         )}
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+      {open &&
+        dropdownRect &&
+        createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+            />
 
-          <div className="fixed left-1/2 top-16 z-50 w-[90vw] max-w-80 -translate-x-1/2 rounded-xl border border-border bg-surface shadow-xl md:absolute md:left-0 md:top-full md:mt-2 md:w-80 md:max-w-[90vw] md:translate-x-0">
-            <div className="border-b border-border px-4 py-3">
-              <p className="text-sm font-semibold text-fg">
-                New Cash Advance Requests
-              </p>
-              <p className="text-xs text-fg-subtle">
-                Review them under Finance → Cash Advance Approvals.
-              </p>
-            </div>
-
-            <div className="max-h-80 overflow-y-auto">
-              {alerts.length === 0 ? (
-                <p className="px-4 py-6 text-center text-sm text-fg-subtle">
-                  No new requests right now.
+            <div
+              style={{
+                position: "fixed",
+                top: dropdownRect.top,
+                left: dropdownRect.left,
+                width: dropdownRect.width,
+              }}
+              className="z-50 rounded-xl border border-border bg-surface shadow-xl"
+            >
+              <div className="border-b border-border px-4 py-3">
+                <p className="text-sm font-semibold text-fg">
+                  New Cash Advance Requests
                 </p>
-              ) : (
-                alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className="border-b border-border px-4 py-3 last:border-b-0"
-                  >
-                    <p className="text-sm text-fg">{alert.message}</p>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="text-xs text-fg-subtle">
-                        {new Date(alert.created_at).toLocaleString()}
-                      </span>
-                      <button
-                        onClick={() => handleAcknowledge(alert.id)}
-                        disabled={acknowledgingId === alert.id}
-                        className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-medium text-fg-muted hover:bg-surface-hover disabled:opacity-50"
-                      >
-                        {acknowledgingId === alert.id ? "..." : "Acknowledge"}
-                      </button>
+                <p className="text-xs text-fg-subtle">
+                  Review them under Finance → Cash Advance Approvals.
+                </p>
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                {alerts.length === 0 ? (
+                  <p className="px-4 py-6 text-center text-sm text-fg-subtle">
+                    No new requests right now.
+                  </p>
+                ) : (
+                  alerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="border-b border-border px-4 py-3 last:border-b-0"
+                    >
+                      <p className="text-sm text-fg">{alert.message}</p>
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <span className="text-xs text-fg-subtle">
+                          {new Date(alert.created_at).toLocaleString()}
+                        </span>
+                        <button
+                          onClick={() => handleAcknowledge(alert.id)}
+                          disabled={acknowledgingId === alert.id}
+                          className="shrink-0 rounded-lg border border-border px-2 py-1 text-xs font-medium text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+                        >
+                          {acknowledgingId === alert.id
+                            ? "..."
+                            : "Acknowledge"}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))
+                )}
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body,
+        )}
     </div>
   );
 }
