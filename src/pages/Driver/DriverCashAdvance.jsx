@@ -21,6 +21,12 @@ const STATUS_STYLES = {
   cancelled: "bg-slate-200 text-slate-700",
 };
 
+const OTHER_PURPOSE_ID = "__other__";
+const OTHER_PURPOSE_OPTION = {
+  id: OTHER_PURPOSE_ID,
+  label: "Other (please specify)",
+};
+
 const todayLong = () =>
   new Date().toLocaleDateString("en-PH", {
     year: "numeric",
@@ -55,6 +61,8 @@ const DriverCashAdvance = () => {
 
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
+  const [selectedPurposeId, setSelectedPurposeId] = useState(null);
+  const [otherReason, setOtherReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
 
@@ -150,6 +158,25 @@ const DriverCashAdvance = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount]);
 
+  const purposesWithOther = useMemo(
+    () => [...purposes, OTHER_PURPOSE_OPTION],
+    [purposes],
+  );
+  const isOtherPurposeSelected = selectedPurposeId === OTHER_PURPOSE_ID;
+
+  // Keeps `reason` (what actually gets submitted) in sync with either
+  // the picked preset purpose, or the free-typed text once "Other" is
+  // selected.
+  useEffect(() => {
+    if (isOtherPurposeSelected) {
+      setReason(otherReason);
+      return;
+    }
+    const picked = purposes.find((p) => p.id === selectedPurposeId);
+    setReason(picked?.label || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPurposeId, otherReason, purposes]);
+
   const exceedsMaxLoanAmount = useMemo(
     () => maxLoanAmount != null && numericAmount > maxLoanAmount,
     [maxLoanAmount, numericAmount],
@@ -211,6 +238,8 @@ const DriverCashAdvance = () => {
       setAmount("");
       setSelectedOptionId(null);
       setReason("");
+      setSelectedPurposeId(null);
+      setOtherReason("");
       setTermsAccepted(false);
       toast.success("Cash advance request submitted to your department head.");
       await loadRequests();
@@ -321,18 +350,31 @@ const DriverCashAdvance = () => {
         </label>
         {loadingPurposes ? (
           <p className="text-sm text-fg-subtle">Loading...</p>
-        ) : purposes.length === 0 ? (
+        ) : purposes.length === 0 && !isOtherPurposeSelected ? (
           <p className="text-sm text-fg-subtle">
             No purposes have been set up yet. Contact an admin.
           </p>
         ) : (
           <SearchSelect
-            value={purposes.find((p) => p.label === reason) || null}
-            options={purposes}
-            onChange={(option) => setReason(option?.label || "")}
+            value={
+              purposesWithOther.find((p) => p.id === selectedPurposeId) ||
+              null
+            }
+            options={purposesWithOther}
+            onChange={(option) => setSelectedPurposeId(option?.id ?? null)}
             placeholder="Select a purpose"
             getOptionLabel={(p) => p?.label || ""}
             getOptionValue={(p) => p?.id}
+          />
+        )}
+
+        {isOtherPurposeSelected && (
+          <input
+            type="text"
+            value={otherReason}
+            onChange={(e) => setOtherReason(e.target.value)}
+            placeholder="Please specify..."
+            className="mt-2 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         )}
 
@@ -467,11 +509,29 @@ const DriverCashAdvance = () => {
                   </p>
 
                   {item.status === "approved" && (
-                    <p className="mt-1 text-xs text-fg-subtle">
-                      {item.is_fully_paid
-                        ? "Fully paid"
-                        : `₱${item.remaining_balance.toLocaleString()} remaining of ₱${item.amount.toLocaleString()}`}
-                    </p>
+                    <>
+                      {item.approved_amount != null &&
+                        item.approved_amount !== item.amount && (
+                          <p className="mt-1 text-xs font-semibold text-fg">
+                            Requested Amount: ₱{item.amount.toLocaleString()}{" "}
+                            · Approved CA: ₱
+                            {item.approved_amount.toLocaleString()}
+                          </p>
+                        )}
+                      <p className="mt-1 text-xs text-fg-subtle">
+                        {item.is_fully_paid
+                          ? "Fully paid"
+                          : `₱${item.remaining_balance.toLocaleString()} remaining of ₱${(item.approved_amount ?? item.amount).toLocaleString()}`}
+                      </p>
+                      {item.release_reference && (
+                        <p className="mt-1 text-xs text-fg-subtle">
+                          Released via: {item.release_reference}
+                          {item.released_at
+                            ? ` (${new Date(item.released_at).toLocaleDateString()})`
+                            : ""}
+                        </p>
+                      )}
+                    </>
                   )}
 
                   <p className="mt-1 text-xs text-fg-subtle">

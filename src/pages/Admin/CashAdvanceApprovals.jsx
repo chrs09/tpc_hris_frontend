@@ -9,6 +9,7 @@ import {
   getOutstandingBalances,
   recordCashAdvanceDeduction,
   rejectCashAdvanceRequest,
+  setCashAdvanceReleaseInfo,
 } from "../../api/cashAdvanceRequests";
 import { getAssignableUsers } from "../../api/users";
 import usePagination from "../../hooks/usePagination";
@@ -57,6 +58,7 @@ export default function CashAdvanceApprovals() {
   const [loadingBalances, setLoadingBalances] = useState(false);
   const [balancesLoaded, setBalancesLoaded] = useState(false);
   const [recordingId, setRecordingId] = useState(null);
+  const [releasingId, setReleasingId] = useState(null);
   const balancesPagination = usePagination(balances, 10);
 
   const [assignableUsers, setAssignableUsers] = useState([]);
@@ -147,10 +149,30 @@ export default function CashAdvanceApprovals() {
   }, [tab, isSuperAdmin, balancesLoaded]);
 
   const handleApprove = async (request) => {
+    const input = await promptDialog(
+      `Approve how much for ${request.employee_name}? (requested ₱${request.amount.toLocaleString()})`,
+      String(request.amount),
+    );
+    if (input === null) return;
+
+    const approvedAmount = Number(input);
+    if (!approvedAmount || approvedAmount <= 0) {
+      toast.error("Enter a valid amount.");
+      return;
+    }
+    if (approvedAmount > request.amount) {
+      toast.error("Approved amount can't exceed the requested amount.");
+      return;
+    }
+
     try {
       setActioningId(request.id);
-      await approveCashAdvanceRequest(request.id);
-      toast.success("Cash advance approved.");
+      await approveCashAdvanceRequest(request.id, undefined, approvedAmount);
+      toast.success(
+        approvedAmount === request.amount
+          ? "Cash advance approved."
+          : `Cash advance approved for ₱${approvedAmount.toLocaleString()} (of ₱${request.amount.toLocaleString()} requested).`,
+      );
       await loadPending();
       if (allLoaded) await loadAll();
     } catch (error) {
@@ -227,6 +249,32 @@ export default function CashAdvanceApprovals() {
       toast.error(error.response?.data?.detail || "Failed to record deduction.");
     } finally {
       setRecordingId(null);
+    }
+  };
+
+  const handleSetRelease = async (request) => {
+    const input = await promptDialog(
+      `Payment/release reference for ${request.employee_name} (e.g. GCash ref, check no.):`,
+      request.release_reference || "",
+    );
+    if (input === null) return;
+    if (!input.trim()) {
+      toast.error("Enter a reference.");
+      return;
+    }
+
+    try {
+      setReleasingId(request.id);
+      await setCashAdvanceReleaseInfo(request.id, input.trim());
+      toast.success("Release info recorded.");
+      await loadBalances();
+      if (allLoaded) await loadAll();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.detail || "Failed to record release info.",
+      );
+    } finally {
+      setReleasingId(null);
     }
   };
 
@@ -436,7 +484,12 @@ export default function CashAdvanceApprovals() {
                       <th className="px-6 py-4 text-left font-medium">
                         Employee
                       </th>
-                      <th className="px-6 text-left font-medium">Amount</th>
+                      <th className="px-6 text-left font-medium">
+                        Requested
+                      </th>
+                      <th className="px-6 text-left font-medium">
+                        Approved CA
+                      </th>
                       <th className="px-6 text-left font-medium">
                         Deduction / Pay
                       </th>
@@ -463,6 +516,11 @@ export default function CashAdvanceApprovals() {
                         </td>
                         <td className="px-6 text-fg-muted">
                           ₱{req.amount.toLocaleString()}
+                        </td>
+                        <td className="px-6 text-fg-muted">
+                          {req.approved_amount != null
+                            ? `₱${req.approved_amount.toLocaleString()}`
+                            : "—"}
                         </td>
                         <td className="px-6 text-fg-muted">
                           ₱{req.deduction_per_pay_amount.toLocaleString()}
@@ -613,21 +671,56 @@ export default function CashAdvanceApprovals() {
                         </span>
                         <span className="ml-2 text-sm text-fg-subtle">
                           ₱{request.remaining_balance.toLocaleString()}{" "}
-                          remaining of ₱{request.amount.toLocaleString()}
+                          remaining of ₱
+                          {(
+                            request.approved_amount ?? request.amount
+                          ).toLocaleString()}
                         </span>
                       </div>
-                      <button
-                        onClick={() => handleOpenHistory(request)}
-                        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
-                      >
-                        Transaction History
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSetRelease(request)}
+                          disabled={releasingId === request.id}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+                        >
+                          {releasingId === request.id
+                            ? "Saving..."
+                            : request.release_reference
+                              ? "Edit Release Info"
+                              : "Record Release"}
+                        </button>
+                        <button
+                          onClick={() => handleOpenHistory(request)}
+                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
+                        >
+                          Transaction History
+                        </button>
+                      </div>
                     </div>
+
+                    {request.approved_amount != null &&
+                      request.approved_amount !== request.amount && (
+                        <p className="mt-1 text-xs font-semibold text-fg">
+                          Requested Amount: ₱
+                          {request.amount.toLocaleString()} · Approved CA: ₱
+                          {request.approved_amount.toLocaleString()}
+                        </p>
+                      )}
+
                     <p className="mt-1 text-xs text-fg-subtle">
                       ₱{request.deduction_per_pay_amount.toLocaleString()}{" "}
                       per pay · {request.total_deducted.toLocaleString()}{" "}
                       deducted so far
                     </p>
+
+                    {request.release_reference && (
+                      <p className="mt-1 text-xs text-fg-subtle">
+                        Released via: {request.release_reference}
+                        {request.released_at
+                          ? ` (${new Date(request.released_at).toLocaleDateString()})`
+                          : ""}
+                      </p>
+                    )}
                   </div>
                 ))
               )}

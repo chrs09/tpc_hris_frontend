@@ -10,9 +10,20 @@ export const getCashAdvanceRequestsForMyApproval = async () => {
   return res.data;
 };
 
-export const approveCashAdvanceRequest = async (requestId, remarks) => {
+// approvedAmount lets the approver grant less than what was requested
+// (e.g. requested 5000, approve 3000). Omit/null to approve the full
+// requested amount.
+export const approveCashAdvanceRequest = async (
+  requestId,
+  remarks,
+  approvedAmount,
+) => {
   const res = await api.post(`/cash-advance-requests/${requestId}/approve`, {
     remarks: remarks || null,
+    approved_amount:
+      approvedAmount === undefined || approvedAmount === null
+        ? null
+        : Number(approvedAmount),
   });
   return res.data;
 };
@@ -88,6 +99,19 @@ export const createOpeningBalance = async ({
     amount,
     deduction_per_pay_amount: deduction_per_pay_amount ?? null,
     note: note || null,
+  });
+  return res.data;
+};
+
+// Superadmin: records proof the approved funds were actually handed
+// over (a GCash/bank reference, check number, etc.). Can be called
+// again to correct/update the reference.
+export const setCashAdvanceReleaseInfo = async (
+  requestId,
+  releaseReference,
+) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/release`, {
+    release_reference: releaseReference,
   });
   return res.data;
 };
