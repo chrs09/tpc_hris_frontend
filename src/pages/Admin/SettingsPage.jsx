@@ -120,7 +120,8 @@ const SettingsPage = () => {
         <h1 className="text-2xl font-bold text-fg">Settings</h1>
       </div>
 
-      <div className="max-w-xl rounded-2xl border border-border bg-surface p-5">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
+      <div className="rounded-2xl border border-border bg-surface p-5 xl:w-105 xl:shrink-0">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-fg">
@@ -242,7 +243,7 @@ const SettingsPage = () => {
         )}
       </div>
 
-      <div className="max-w-4xl rounded-2xl border border-border bg-surface p-5">
+      <div className="min-w-0 flex-1 rounded-2xl border border-border bg-surface p-5">
         <h2 className="text-lg font-semibold text-fg">Version History</h2>
         <p className="mt-1 text-sm text-fg-subtle">
           Recent Android "preview" builds pulled from EAS, newest first.
@@ -259,8 +260,8 @@ const SettingsPage = () => {
         ) : history.length === 0 ? (
           <p className="mt-4 text-sm text-fg-subtle">No builds found yet.</p>
         ) : (
-          <div className="mt-4 flex flex-col gap-4 md:flex-row">
-            <ul className="max-h-[420px] min-w-0 flex-1 divide-y divide-border overflow-y-auto rounded-xl border border-border md:max-w-xs">
+          <div className="mt-4 flex flex-col gap-4 lg:flex-row">
+            <ul className="max-h-[420px] min-w-0 flex-1 divide-y divide-border overflow-y-auto rounded-xl border border-border lg:max-w-xs">
               {history.map((build) => {
                 const isCurrent = build.app_version === latestVersion;
                 const isSelected = build.id === selectedBuildId;
@@ -386,6 +387,29 @@ const SettingsPage = () => {
 
                     <div>
                       <p className="text-xs font-semibold text-fg-subtle">
+                        Release Notes
+                      </p>
+                      {isCurrent ? (
+                        releaseNotes ? (
+                          <p className="mt-1 whitespace-pre-wrap text-sm text-fg">
+                            {releaseNotes}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-sm text-fg-subtle">
+                            No release notes were entered for this version.
+                          </p>
+                        )
+                      ) : (
+                        <p className="mt-1 text-sm text-fg-subtle">
+                          Release notes are only recorded for the
+                          currently published version -- this build isn't
+                          it.
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold text-fg-subtle">
                         What changed (from the git commit built)
                       </p>
                       <p className="mt-1 whitespace-pre-wrap text-sm text-fg">
@@ -420,6 +444,7 @@ const SettingsPage = () => {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
