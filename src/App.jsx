@@ -18,6 +18,7 @@ import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
 // bundled asset name) is unaffected.
 import LegalNotice from "./pages/Public/LegalNotice";
 import MobileSessionBridge from "./pages/Public/MobileSessionBridge";
+import AppDownload from "./pages/Public/AppDownload";
 
 const App = () => {
   const navigate = useNavigate();
@@ -69,6 +70,7 @@ const App = () => {
         <Route path="/attendance-kiosk" element={<AttendanceKiosk />} />
         <Route path="/privacy-policy" element={<LegalNotice />} />
         <Route path="/mobile-session" element={<MobileSessionBridge />} />
+        <Route path="/get-app" element={<AppDownload />} />
 
         <Route
           path="/login"

@@ -42,6 +42,20 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
+// One step of a stop's Arrived -> Unloading Photo -> POD Uploaded
+// pipeline -- green/checked when done, greyed out otherwise. Same
+// pattern as OfficePendingTripsCard.jsx's StopStepBadge, kept local
+// here since the two components don't currently share a UI module.
+const StopStepBadge = ({ label, done }) => (
+  <span
+    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+      done ? "bg-success/15 text-success" : "bg-surface-active text-fg-subtle"
+    }`}
+  >
+    {done ? "✓" : "○"} {label}
+  </span>
+);
+
 /* Auto map bounds */
 const FitBounds = ({ coordinates }) => {
   const map = useMap();
@@ -783,14 +797,50 @@ const PendingTripsCard = ({
                         {/* STORE HEADER */}
                         <div className="flex justify-between items-start gap-4">
                           <div className="flex-1">
-                            <p className="font-semibold">
-                              <FontAwesomeIcon
-                                icon={faStore}
-                                className="mr-2"
-                              />
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="font-semibold">
+                                <FontAwesomeIcon
+                                  icon={faStore}
+                                  className="mr-2"
+                                />
 
-                              {stop.store_name}
-                            </p>
+                                {stop.store_name}
+                              </p>
+
+                              <span
+                                className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                                  stop.check_out_time
+                                    ? "bg-success/15 text-success"
+                                    : stop.check_in_time
+                                      ? "bg-primary/15 text-primary"
+                                      : "bg-surface-active text-fg-subtle"
+                                }`}
+                              >
+                                {stop.check_out_time
+                                  ? "Delivered"
+                                  : stop.check_in_time
+                                    ? "Arrived (In Progress)"
+                                    : "Pending"}
+                              </span>
+                            </div>
+
+                            {/* PER-STORE STATUS PIPELINE */}
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <StopStepBadge
+                                label="Arrived"
+                                done={Boolean(stop.check_in_time)}
+                              />
+                              <span className="text-fg-subtle">→</span>
+                              <StopStepBadge
+                                label="Unloading Photo"
+                                done={Boolean(stop.unloading_photo)}
+                              />
+                              <span className="text-fg-subtle">→</span>
+                              <StopStepBadge
+                                label="POD Uploaded"
+                                done={Boolean(stop.delivery_proof_photo)}
+                              />
+                            </div>
 
                             <p className="text-sm mt-2">
                               <FontAwesomeIcon

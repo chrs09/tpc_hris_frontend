@@ -2,6 +2,35 @@ import React from "react";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 
+// Renders a trip's planned route as an ordered stop-by-stop chain
+// instead of a flat "Store A, Store B, Store C" string, so a
+// coordinator can see the intended visiting order at a glance. These
+// trips are still ASSIGNED (driver hasn't checked out yet), so every
+// stop is shown as "pending" -- no per-store arrival/unload/POD
+// status exists yet; that appears once the trip is active (see
+// TripGpsLogsModal's Delivery Stops timeline).
+const DestinationSteps = ({ destinations }) => {
+  if (!destinations?.length) return "-";
+
+  return (
+    <ol className="flex flex-wrap items-center gap-1">
+      {destinations.map((name, index) => (
+        <li key={`${name}-${index}`} className="flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-surface-active px-2 py-0.5 text-xs font-medium text-fg-muted">
+            <span className="text-[10px] text-fg-subtle">{index + 1}.</span>
+            {name}
+          </span>
+          {index < destinations.length - 1 && (
+            <span className="text-fg-subtle" aria-hidden="true">
+              →
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+};
+
 // Trips the coordinator has dispatched but the driver hasn't checked
 // out (started) yet -- see GET /admin/trips/assigned.
 const AssignedTripsMonitor = ({ trips = [] }) => {
@@ -27,6 +56,9 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
                 Destination(s)
               </th>
               <th className="px-4 py-3 text-left font-medium">
+                Dispatched By
+              </th>
+              <th className="px-4 py-3 text-left font-medium">
                 Dispatched At
               </th>
             </tr>
@@ -35,7 +67,7 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-6 text-fg-subtle">
+                <td colSpan="7" className="text-center py-6 text-fg-subtle">
                   No assigned trips
                 </td>
               </tr>
@@ -52,9 +84,10 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
                   <td className="px-4 py-4">{trip.ticket_no || "-"}</td>
                   <td className="px-4 py-4">{trip.vehicle_unit || "-"}</td>
                   <td className="px-4 py-4">
-                    {trip.destinations?.length > 0
-                      ? trip.destinations.join(", ")
-                      : "-"}
+                    <DestinationSteps destinations={trip.destinations} />
+                  </td>
+                  <td className="px-4 py-4">
+                    {trip.dispatched_by_name || "-"}
                   </td>
                   <td className="px-4 py-4">{trip.dispatched_at || "-"}</td>
                 </tr>
@@ -94,10 +127,15 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
               </div>
 
               <div className="mt-2 text-sm">
-                <span className="text-fg-muted block">Destination(s)</span>
-                {trip.destinations?.length > 0
-                  ? trip.destinations.join(", ")
-                  : "-"}
+                <span className="text-fg-muted block mb-1">
+                  Destination(s)
+                </span>
+                <DestinationSteps destinations={trip.destinations} />
+              </div>
+
+              <div className="mt-2 text-sm">
+                <span className="text-fg-muted block">Dispatched By</span>
+                {trip.dispatched_by_name || "-"}
               </div>
 
               <div className="mt-2 text-sm">

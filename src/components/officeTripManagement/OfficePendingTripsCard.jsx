@@ -564,14 +564,52 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                   <div className="space-y-4">
                     {selectedTrip.stops.map((stop, index) => (
                       <div key={stop.id} className="rounded-xl border border-border p-5">
-                        <div className="mb-4">
-                          <p className="text-xs font-semibold uppercase text-fg-subtle">
-                            Stop {index + 1}
-                          </p>
+                        <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="text-xs font-semibold uppercase text-fg-subtle">
+                              Stop {index + 1}
+                            </p>
 
-                          <h4 className="mt-1 font-bold text-fg">
-                            {stop.store_name}
-                          </h4>
+                            <h4 className="mt-1 font-bold text-fg">
+                              {stop.store_name}
+                            </h4>
+                          </div>
+
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                              stop.check_out_time
+                                ? "bg-success/15 text-success"
+                                : stop.check_in_time
+                                  ? "bg-primary/15 text-primary"
+                                  : "bg-surface-hover text-fg-subtle"
+                            }`}
+                          >
+                            {stop.check_out_time
+                              ? "Delivered"
+                              : stop.check_in_time
+                                ? "Arrived (In Progress)"
+                                : "Pending"}
+                          </span>
+                        </div>
+
+                        {/* PER-STORE STATUS PIPELINE -- Arrived, Unloading
+                            Photo, POD, each marked done/not-done so office
+                            can see exactly what's missing for this stop. */}
+                        <div className="mb-4 flex flex-wrap items-center gap-2">
+                          <StopStepBadge
+                            label="Arrived"
+                            done={Boolean(stop.check_in_time)}
+                          />
+                          <span className="text-fg-subtle">→</span>
+                          <StopStepBadge
+                            label="Unloading Photo"
+                            done={Boolean(stop.unloading_photo)}
+                          />
+                          <span className="text-fg-subtle">→</span>
+                          <StopStepBadge
+                            label="POD Uploaded"
+                            done={Boolean(stop.delivery_proof_photo)}
+                          />
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -744,6 +782,22 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
         </div>
       )}
     </>
+  );
+}
+
+// One step of a stop's Arrived -> Unloading Photo -> POD Uploaded
+// pipeline -- green/checked when done, greyed out otherwise.
+function StopStepBadge({ label, done }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+        done
+          ? "bg-success/15 text-success"
+          : "bg-surface-hover text-fg-subtle"
+      }`}
+    >
+      {done ? "✓" : "○"} {label}
+    </span>
   );
 }
 
