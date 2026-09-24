@@ -42,14 +42,56 @@ export const getTerms = async () => {
   return res.data;
 };
 
-export const setTerms = async (content, maxPayPeriods, maxLoanAmount) => {
+const toNullableNumber = (value) =>
+  value === "" || value === null || value === undefined ? null : Number(value);
+
+export const setTerms = async (
+  content,
+  maxPayPeriods,
+  maxLoanAmount,
+  maxActiveRequests,
+) => {
   const res = await api.put("/cash-advance-settings/terms", {
     content,
     max_pay_periods: maxPayPeriods,
-    max_loan_amount:
-      maxLoanAmount === "" || maxLoanAmount === null || maxLoanAmount === undefined
-        ? null
-        : Number(maxLoanAmount),
+    max_loan_amount: toNullableNumber(maxLoanAmount),
+    max_active_requests: toNullableNumber(maxActiveRequests),
   });
+  return res.data;
+};
+
+// Purpose options (preset reasons a driver picks from)
+export const getAllPurposes = async () => {
+  const res = await api.get("/cash-advance-settings/purposes/all");
+  return res.data;
+};
+
+export const createPurpose = async ({ label, sort_order }) => {
+  const res = await api.post("/cash-advance-settings/purposes", {
+    label,
+    sort_order: sort_order ?? 0,
+  });
+  return res.data;
+};
+
+export const updatePurpose = async (purposeId, payload) => {
+  const res = await api.patch(
+    `/cash-advance-settings/purposes/${purposeId}`,
+    payload,
+  );
+  return res.data;
+};
+
+export const deletePurpose = async (purposeId) => {
+  const res = await api.delete(
+    `/cash-advance-settings/purposes/${purposeId}`,
+  );
+  return res.data;
+};
+
+// Requester-facing: the active purpose presets (mirrors
+// tytan_mobile/src/api/driver/cashAdvance.ts's getPurposes).
+export const getPurposes = async () => {
+  const res = await api.get("/cash-advance-settings/purposes");
   return res.data;
 };

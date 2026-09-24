@@ -65,6 +65,33 @@ export const recordCashAdvanceDeduction = async (
   return res.data;
 };
 
+// Superadmin: the full ledger of deductions recorded against one
+// request, newest first.
+export const getCashAdvanceTransactions = async (requestId) => {
+  const res = await api.get(
+    `/cash-advance-requests/${requestId}/transactions`,
+  );
+  return res.data;
+};
+
+// Superadmin: records a pre-existing balance (carried over from before
+// this system was used) as an already-approved request, so it shows up
+// in Outstanding Balances alongside normal requests.
+export const createOpeningBalance = async ({
+  user_id,
+  amount,
+  deduction_per_pay_amount,
+  note,
+}) => {
+  const res = await api.post("/cash-advance-requests/opening-balance", {
+    user_id,
+    amount,
+    deduction_per_pay_amount: deduction_per_pay_amount ?? null,
+    note: note || null,
+  });
+  return res.data;
+};
+
 // ---------------------------------------
 // Requester-facing (any employee filing their own request -- mirrors
 // tytan_mobile/src/api/driver/cashAdvance.ts 1:1 against the same
