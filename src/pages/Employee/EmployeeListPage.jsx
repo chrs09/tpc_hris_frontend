@@ -8,9 +8,11 @@ import EmployeeCard from "../../components/employees/EmployeeCard";
 import EmployeeDrawer from "../../components/employees/EmployeeDrawer";
 import AddEmployeeDrawer from "../../components/employees/AddEmployeeDrawer";
 import usePagination from "../../hooks/usePagination";
+import useViewType from "../../hooks/useViewType";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 
 const SORT_BY_OPTIONS = [
   { value: "lastname", label: "Last Name" },
@@ -35,6 +37,7 @@ export default function EmployeeListPage() {
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [sortBy, setSortBy] = useState("lastname");
   const [sortOrder, setSortOrder] = useState("asc");
+  const [viewType, setViewType] = useViewType("employees_view_type");
 
   const departmentOptions = useMemo(() => {
     const uniqueDepartments = [
@@ -263,6 +266,8 @@ export default function EmployeeListPage() {
           {isActive === 1 ? "active" : "inactive"} employee
           {filteredAndSortedEmployees.length !== 1 ? "s" : ""}
         </p>
+
+        <ViewToggle viewType={viewType} onChange={setViewType} />
       </div>
 
       {filteredAndSortedEmployees.length === 0 ? (
@@ -274,6 +279,66 @@ export default function EmployeeListPage() {
           <p className="mt-2 text-sm text-fg-subtle">
             Try changing your search or department filter.
           </p>
+        </div>
+      ) : viewType === "list" ? (
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <table className="w-full text-sm text-fg">
+            <thead className="bg-surface-hover text-fg-muted">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Name</th>
+                <th className="px-4 py-3 text-left font-medium">Position</th>
+                <th className="px-4 py-3 text-left font-medium">
+                  Department
+                </th>
+                <th className="px-4 py-3 text-left font-medium">Status</th>
+                <th className="px-4 py-3 text-left font-medium">ID</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.map((emp) => {
+                const fullName =
+                  `${emp.first_name || ""} ${emp.last_name || ""}`.trim() ||
+                  "Unnamed Employee";
+                return (
+                  <tr
+                    key={emp.id}
+                    className="border-t border-border hover:bg-surface-hover"
+                  >
+                    <td className="px-4 py-3 font-medium capitalize">
+                      {fullName}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {emp.position || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {emp.department || "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-lg px-2 py-1 text-xs ${
+                          emp.is_active
+                            ? "bg-success/15 text-success"
+                            : "bg-danger/15 text-danger"
+                        }`}
+                      >
+                        {emp.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-fg-subtle">{emp.id}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => handleView(emp.id)}
+                        className="font-medium text-primary hover:text-primary-hover"
+                      >
+                        View →
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">

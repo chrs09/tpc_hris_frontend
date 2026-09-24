@@ -8,7 +8,9 @@ import {
 } from "../../api/adminTripManagement/tripMaintenance";
 import { toast } from "react-hot-toast";
 import usePagination from "../../hooks/usePagination";
+import useViewType from "../../hooks/useViewType";
 import Pagination from "../../components/ui/pagination/Pagination";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 
 const EMPTY_FORM = {
   name: "",
@@ -23,6 +25,7 @@ export default function SuppliersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [viewType, setViewType] = useViewType("suppliers_view_type");
   const { page, setPage, totalPages, paginatedItems } = usePagination(
     suppliers,
     9,
@@ -88,7 +91,7 @@ export default function SuppliersPage() {
         <p className="text-fg-muted mt-1">Manage your supplier contacts.</p>
       </div>
 
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between items-center mb-4">
         <button
           onClick={() => {
             setEditingSupplier(null);
@@ -100,49 +103,112 @@ export default function SuppliersPage() {
           <Plus size={18} />
           Add Supplier
         </button>
+
+        <ViewToggle viewType={viewType} onChange={setViewType} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {paginatedItems.map((supplier) => (
-          <div
-            key={supplier.id}
-            className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
-          >
-            <div className="h-1 bg-amber-500 -mx-5 -mt-5 mb-4" />
+      {viewType === "list" ? (
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+          <table className="w-full text-sm text-fg">
+            <thead className="bg-surface-hover text-fg-muted">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Name</th>
+                <th className="px-4 py-3 text-left font-medium">
+                  Contact Person
+                </th>
+                <th className="px-4 py-3 text-left font-medium">Phone</th>
+                <th className="px-4 py-3 text-left font-medium">Email</th>
+                <th className="px-4 py-3 text-left font-medium">Address</th>
+                <th className="px-4 py-3 text-left font-medium">Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.map((supplier) => (
+                <tr
+                  key={supplier.id}
+                  className="border-t border-border hover:bg-surface-hover"
+                >
+                  <td className="px-4 py-3 font-medium">{supplier.name}</td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {supplier.contact_person || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {supplier.phone || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {supplier.email || "-"}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {supplier.address || "-"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs ${
+                        supplier.is_active
+                          ? "bg-success/15 text-success"
+                          : "bg-danger/15 text-danger"
+                      }`}
+                    >
+                      {supplier.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => handleEdit(supplier)}
+                      className="text-primary hover:text-primary-hover"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {paginatedItems.map((supplier) => (
+            <div
+              key={supplier.id}
+              className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
+            >
+              <div className="h-1 bg-amber-500 -mx-5 -mt-5 mb-4" />
 
-            <div className="flex justify-between items-start">
-              <h3 className="font-bold text-lg">{supplier.name}</h3>
-              <Building2 size={20} />
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-lg">{supplier.name}</h3>
+                <Building2 size={20} />
+              </div>
+
+              <div className="mt-3 space-y-1 text-sm text-fg-muted">
+                <p>{supplier.contact_person || "No contact person"}</p>
+                <p>{supplier.phone || "No phone"}</p>
+                <p>{supplier.email || "No email"}</p>
+                <p>{supplier.address || "No address"}</p>
+              </div>
+
+              <div className="mt-4 flex justify-between items-center">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs ${
+                    supplier.is_active
+                      ? "bg-success/15 text-success"
+                      : "bg-danger/15 text-danger"
+                  }`}
+                >
+                  {supplier.is_active ? "Active" : "Inactive"}
+                </span>
+
+                <button
+                  onClick={() => handleEdit(supplier)}
+                  className="text-primary hover:text-primary-hover"
+                >
+                  <Pencil size={16} />
+                </button>
+              </div>
             </div>
-
-            <div className="mt-3 space-y-1 text-sm text-fg-muted">
-              <p>{supplier.contact_person || "No contact person"}</p>
-              <p>{supplier.phone || "No phone"}</p>
-              <p>{supplier.email || "No email"}</p>
-              <p>{supplier.address || "No address"}</p>
-            </div>
-
-            <div className="mt-4 flex justify-between items-center">
-              <span
-                className={`px-3 py-1 rounded-full text-xs ${
-                  supplier.is_active
-                    ? "bg-success/15 text-success"
-                    : "bg-danger/15 text-danger"
-                }`}
-              >
-                {supplier.is_active ? "Active" : "Inactive"}
-              </span>
-
-              <button
-                onClick={() => handleEdit(supplier)}
-                className="text-primary hover:text-primary-hover"
-              >
-                <Pencil size={16} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
