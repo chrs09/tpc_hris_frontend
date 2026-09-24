@@ -28,6 +28,7 @@ const SettingsPage = () => {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState(false);
+  const [selectedBuildId, setSelectedBuildId] = useState(null);
 
   const loadHistory = async () => {
     try {
@@ -35,6 +36,11 @@ const SettingsPage = () => {
       setHistoryError(false);
       const data = await getMobileAppVersionEasHistory("android", "preview");
       setHistory(data);
+      setSelectedBuildId((current) =>
+        current && data.some((b) => b.id === current)
+          ? current
+          : (data[0]?.id ?? null),
+      );
     } catch {
       setHistoryError(true);
     } finally {
@@ -65,6 +71,20 @@ const SettingsPage = () => {
     load();
     loadHistory();
   }, []);
+
+  const handleUseAsCurrent = (build) => {
+    if (!build.apk_url) {
+      toast.error("This build has no download artifact yet.");
+      return;
+    }
+
+    setLatestVersion(build.app_version || "");
+    setApkUrl(build.apk_url);
+    toast.success(
+      `Loaded ${build.app_version} into the form above -- review and hit Save to publish it as the current version.`,
+    );
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -222,10 +242,12 @@ const SettingsPage = () => {
         )}
       </div>
 
-      <div className="max-w-xl rounded-2xl border border-border bg-surface p-5">
+      <div className="max-w-4xl rounded-2xl border border-border bg-surface p-5">
         <h2 className="text-lg font-semibold text-fg">Version History</h2>
         <p className="mt-1 text-sm text-fg-subtle">
           Recent Android "preview" builds pulled from EAS, newest first.
+          Click a version to see its details, or roll the published
+          version back to an older, known-stable build.
         </p>
 
         {historyLoading ? (
@@ -237,60 +259,166 @@ const SettingsPage = () => {
         ) : history.length === 0 ? (
           <p className="mt-4 text-sm text-fg-subtle">No builds found yet.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-border">
-            {history.map((build) => {
-              const isCurrent = build.app_version === latestVersion;
-              return (
-                <li
-                  key={build.id}
-                  className="flex items-center justify-between gap-3 py-3"
-                >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-fg">
-                        {build.app_version || "Unknown version"}
-                      </span>
-                      {isCurrent && (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
-                          Current
-                        </span>
-                      )}
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          build.status === "FINISHED"
-                            ? "bg-emerald-500/10 text-emerald-600"
-                            : build.status === "ERRORED" ||
-                                build.status === "CANCELED"
-                              ? "bg-red-500/10 text-red-600"
-                              : "bg-amber-500/10 text-amber-600"
-                        }`}
-                      >
-                        {build.status}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-fg-subtle">
-                      {build.completed_at || build.created_at
-                        ? new Date(
-                            build.completed_at || build.created_at,
-                          ).toLocaleString()
-                        : "—"}
-                    </p>
-                  </div>
-
-                  {build.apk_url && (
-                    <a
-                      href={build.apk_url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="shrink-0 text-sm font-semibold text-primary hover:underline"
+          <div className="mt-4 flex flex-col gap-4 md:flex-row">
+            <ul className="max-h-[420px] min-w-0 flex-1 divide-y divide-border overflow-y-auto rounded-xl border border-border md:max-w-xs">
+              {history.map((build) => {
+                const isCurrent = build.app_version === latestVersion;
+                const isSelected = build.id === selectedBuildId;
+                return (
+                  <li key={build.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBuildId(build.id)}
+                      className={`w-full px-3 py-3 text-left transition-colors ${
+                        isSelected ? "bg-primary/10" : "hover:bg-background"
+                      }`}
                     >
-                      Download
-                    </a>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-fg">
+                          {build.app_version || "Unknown version"}
+                        </span>
+                        {isCurrent && (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                            Current
+                          </span>
+                        )}
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                            build.status === "FINISHED"
+                              ? "bg-emerald-500/10 text-emerald-600"
+                              : build.status === "ERRORED" ||
+                                  build.status === "CANCELED"
+                                ? "bg-red-500/10 text-red-600"
+                                : "bg-amber-500/10 text-amber-600"
+                          }`}
+                        >
+                          {build.status}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-fg-subtle">
+                        {build.completed_at || build.created_at
+                          ? new Date(
+                              build.completed_at || build.created_at,
+                            ).toLocaleString()
+                          : "—"}
+                      </p>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="flex-1 rounded-xl border border-border bg-background p-4">
+              {(() => {
+                const build = history.find((b) => b.id === selectedBuildId);
+                if (!build) {
+                  return (
+                    <p className="text-sm text-fg-subtle">
+                      Select a version from the list to see its details.
+                    </p>
+                  );
+                }
+
+                const isCurrent = build.app_version === latestVersion;
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-xl font-bold text-fg">
+                          {build.app_version || "Unknown version"}
+                        </h3>
+                        <div className="mt-1 flex items-center gap-2">
+                          {isCurrent && (
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                              Current
+                            </span>
+                          )}
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                              build.status === "FINISHED"
+                                ? "bg-emerald-500/10 text-emerald-600"
+                                : build.status === "ERRORED" ||
+                                    build.status === "CANCELED"
+                                  ? "bg-red-500/10 text-red-600"
+                                  : "bg-amber-500/10 text-amber-600"
+                            }`}
+                          >
+                            {build.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {build.apk_url && (
+                        <a
+                          href={build.apk_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 text-sm font-semibold text-primary hover:underline"
+                        >
+                          Download
+                        </a>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs font-semibold text-fg-subtle">
+                          Started
+                        </p>
+                        <p className="text-fg">
+                          {build.created_at
+                            ? new Date(build.created_at).toLocaleString()
+                            : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-fg-subtle">
+                          Completed
+                        </p>
+                        <p className="text-fg">
+                          {build.completed_at
+                            ? new Date(build.completed_at).toLocaleString()
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-semibold text-fg-subtle">
+                        What changed (from the git commit built)
+                      </p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-fg">
+                        {build.git_commit_message || "No commit message."}
+                      </p>
+                      {build.git_commit_hash && (
+                        <p className="mt-1 font-mono text-xs text-fg-subtle">
+                          {build.git_commit_hash.slice(0, 10)}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      type="button"
+                      variant={isCurrent ? "outline" : "default"}
+                      disabled={isCurrent}
+                      onClick={() => handleUseAsCurrent(build)}
+                    >
+                      {isCurrent
+                        ? "This is the current version"
+                        : "Use as Current Version"}
+                    </Button>
+                    {!isCurrent && (
+                      <p className="text-xs text-fg-subtle">
+                        Loads this build into the form above -- nothing is
+                        published to drivers until you hit Save there.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         )}
       </div>
     </div>
