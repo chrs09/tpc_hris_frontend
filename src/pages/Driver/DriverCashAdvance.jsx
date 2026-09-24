@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Button } from "../../components/ui/button/Button";
+import SearchSelect from "../../components/SearchSelect";
 import {
   cancelCashAdvanceRequest,
   fileCashAdvanceRequest,
@@ -9,6 +10,7 @@ import {
 } from "../../api/cashAdvanceRequests";
 import {
   getDeductionOptions,
+  getPurposes,
   getTerms,
 } from "../../api/cashAdvanceSettings";
 
@@ -42,6 +44,9 @@ const DriverCashAdvance = () => {
   const [options, setOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [selectedOptionId, setSelectedOptionId] = useState(null);
+
+  const [purposes, setPurposes] = useState([]);
+  const [loadingPurposes, setLoadingPurposes] = useState(true);
 
   const [termsContent, setTermsContent] = useState("");
   const [maxPayPeriods, setMaxPayPeriods] = useState(6);
@@ -102,12 +107,25 @@ const DriverCashAdvance = () => {
     }
   }, []);
 
+  const loadPurposes = useCallback(async () => {
+    try {
+      setLoadingPurposes(true);
+      const data = await getPurposes();
+      setPurposes(data);
+    } catch (error) {
+      console.error("Failed to load purposes:", error);
+    } finally {
+      setLoadingPurposes(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadRequests();
     loadBalance();
     loadOptions();
     loadTerms();
-  }, [loadRequests, loadBalance, loadOptions, loadTerms]);
+    loadPurposes();
+  }, [loadRequests, loadBalance, loadOptions, loadTerms, loadPurposes]);
 
   const requiresTermsAcceptance = termsContent.trim().length > 0;
   const numericAmount = Number(amount);
@@ -120,6 +138,7 @@ const DriverCashAdvance = () => {
   const optionPeriods = (option) =>
     numericAmount > 0 ? Math.ceil(numericAmount / option.amount) : null;
   const isOptionDisabled = (option) => {
+    if (numericAmount > 0 && option.amount > numericAmount) return true;
     const periods = optionPeriods(option);
     return periods != null && periods > maxPayPeriods;
   };
@@ -177,7 +196,7 @@ const DriverCashAdvance = () => {
     }
 
     if (requiresTermsAcceptance && !termsAccepted) {
-      toast.error("You must acknowledge the guidelines above.");
+      toast.error("You must agree to the terms and condition above.");
       return;
     }
 
@@ -300,20 +319,22 @@ const DriverCashAdvance = () => {
         <label className="mt-3 mb-1 block text-sm font-semibold text-fg-subtle">
           Purpose
         </label>
-        <textarea
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="What is this cash advance for?"
-          rows={3}
-          className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
-
-        <p className="mt-3 text-xs italic leading-5 text-fg-subtle">
-          I authorize the Company to deduct the amount that I selected from
-          my salary per pay period for the full term of the cash advance. If
-          employment ends before full settlement, I authorize the Company to
-          deduct it from my last pay.
-        </p>
+        {loadingPurposes ? (
+          <p className="text-sm text-fg-subtle">Loading...</p>
+        ) : purposes.length === 0 ? (
+          <p className="text-sm text-fg-subtle">
+            No purposes have been set up yet. Contact an admin.
+          </p>
+        ) : (
+          <SearchSelect
+            value={purposes.find((p) => p.label === reason) || null}
+            options={purposes}
+            onChange={(option) => setReason(option?.label || "")}
+            placeholder="Select a purpose"
+            getOptionLabel={(p) => p?.label || ""}
+            getOptionValue={(p) => p?.id}
+          />
+        )}
 
         <label className="mt-4 mb-1 block text-sm font-semibold text-fg-subtle">
           Deduction per Pay Period
@@ -383,7 +404,7 @@ const DriverCashAdvance = () => {
         {requiresTermsAcceptance && (
           <div className="mt-4 rounded-xl border border-border bg-background p-3">
             <p className="mb-1 text-sm font-bold text-fg">
-              Cash Advance Guidelines
+              Terms and Condition
             </p>
             <p className="whitespace-pre-line text-xs leading-5 text-fg-subtle">
               {termsContent}
@@ -399,8 +420,7 @@ const DriverCashAdvance = () => {
             onChange={() => setTermsAccepted((prev) => !prev)}
             className="mt-0.5"
           />
-          Signature over-printed name -- I agree to the terms and authorize
-          this deduction.
+          I agree to the terms and authorize this deduction.
         </label>
 
         <Button type="submit" disabled={!canSubmit} className="mt-4 w-full">
