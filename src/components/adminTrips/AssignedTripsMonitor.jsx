@@ -4,6 +4,7 @@ import { cancelAssignedTrip } from "../../api/adminTripManagement/trips";
 import { promptDialog } from "../ui/dialog/dialogService";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
+import EditAssignedTripModal from "./EditAssignedTripModal";
 
 // Renders a trip's planned route as an ordered stop-by-stop chain
 // instead of a flat "Store A, Store B, Store C" string, so a
@@ -38,6 +39,7 @@ const DestinationSteps = ({ destinations }) => {
 // out (started) yet -- see GET /admin/trips/assigned.
 const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
   const [cancellingId, setCancellingId] = useState(null);
+  const [editingTrip, setEditingTrip] = useState(null);
 
   // Undoes a dispatch made by mistake -- only offered here because a trip
   // still in this list hasn't been started by the driver yet.
@@ -120,7 +122,15 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
                     {trip.dispatched_by_name || "-"}
                   </td>
                   <td className="px-4 py-4">{trip.dispatched_at || "-"}</td>
-                  <td className="px-4 py-4 text-right">
+                  <td className="px-4 py-4 text-right whitespace-nowrap">
+                    {trip.editable && (
+                      <button
+                        onClick={() => setEditingTrip(trip)}
+                        className="mr-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
+                      >
+                        Edit
+                      </button>
+                    )}
                     <button
                       onClick={() => handleCancel(trip)}
                       disabled={cancellingId === trip.id}
@@ -182,6 +192,14 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
                 {trip.dispatched_at || "-"}
               </div>
 
+              {trip.editable && (
+                <button
+                  onClick={() => setEditingTrip(trip)}
+                  className="mt-3 mr-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
+                >
+                  Edit trip
+                </button>
+              )}
               <button
                 onClick={() => handleCancel(trip)}
                 disabled={cancellingId === trip.id}
@@ -195,6 +213,14 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
       </div>
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {editingTrip && (
+        <EditAssignedTripModal
+          trip={editingTrip}
+          onClose={() => setEditingTrip(null)}
+          onSaved={onChanged}
+        />
+      )}
     </>
   );
 };

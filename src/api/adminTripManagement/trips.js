@@ -18,6 +18,11 @@ export const getAssignedTrips = () => api.get("/admin/trips/assigned");
 export const cancelAssignedTrip = (tripId, reason) =>
   api.post(`/admin/trips/${tripId}/cancel`, { reason });
 
+// Correct a dispatched trip the driver hasn't started yet (driver, vehicle,
+// hub, shipment numbers, destinations in order, helpers).
+export const updateAssignedTrip = (tripId, payload) =>
+  api.put(`/admin/trips/${tripId}/assignment`, payload);
+
 // CHANGED: now accepts remarks and sends it as the JSON body,
 // matching the backend's approve_trip(remarks: str = Body(..., embed=True)).
 export const approveTrip = (tripId, remarks) =>
