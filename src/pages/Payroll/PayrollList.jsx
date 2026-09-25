@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { TailSpin } from "react-loader-spinner";
 import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
@@ -26,6 +26,7 @@ import {
   savePayrollDeduction,
   savePayrollDeductionsBulk,
   getPayrollDeductions,
+  getCashAdvanceForCutoff,
 } from "../../api/payroll/payroll_deductions";
 
 /*
@@ -50,6 +51,31 @@ const getPagibigEmployeeShare = (monthlyBasic) => {
   const monthlyPagibigEE = 200;
 
   return monthlyPagibigEE / 2;
+};
+
+// This cutoff's cash advance deduction: HR's typed value if any, else
+// what was already posted for this cutoff, else each advance's per-pay
+// amount -- the default never exceeds the pay available after other
+// deductions, and nothing ever exceeds what's owed.
+const getCashAdvance = (info, adj, availablePay) => {
+  const owed = info ? Number(info.balance_before || 0) : null;
+  let amount;
+  if (adj.cashAdvance !== undefined) {
+    amount = Number(adj.cashAdvance || 0);
+  } else if (info) {
+    const base = info.posted != null ? info.posted : info.suggested;
+    amount = Math.min(Number(base || 0), Math.max(availablePay, 0));
+  } else {
+    amount = 0;
+  }
+  if (owed !== null) amount = Math.min(amount, owed);
+  amount = Math.max(Math.round(amount * 100) / 100, 0);
+  return {
+    cashAdvance: amount,
+    cashAdvanceBalanceBefore: owed,
+    cashAdvanceBalanceAfter:
+      owed !== null ? Math.max(Math.round((owed - amount) * 100) / 100, 0) : null,
+  };
 };
 
 const PayrollList = () => {
@@ -80,6 +106,11 @@ const PayrollList = () => {
   // the backend. If you want these saved, they'll need employee/payroll
   // fields + an API endpoint on your end.
   const [adjustments, setAdjustments] = useState({});
+
+  // Cash advance owed per employee for the active cutoff (from their
+  // approved cash advances), keyed by employee id -- pre-fills the Cash
+  // Advance column. Posted to the cash advance balance on save.
+  const [cashAdvanceInfo, setCashAdvanceInfo] = useState({});
 
   const getAdjustmentKey = (employeeId, period) =>
     `${employeeId}_${period.cutoffStart}_${period.cutoffEnd}`;
@@ -218,6 +249,32 @@ const PayrollList = () => {
 
     loadSavedDeductions();
   }, [activePeriod, department, employees]);
+
+  const departmentEmployeeIds = useMemo(
+    () =>
+      employees
+        .filter((emp) => emp.department === department)
+        .map((emp) => emp.id),
+    [employees, department],
+  );
+
+  const loadCashAdvanceInfo = useCallback(async () => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    try {
+      const data = await getCashAdvanceForCutoff(
+        `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+        departmentEmployeeIds,
+      );
+      setCashAdvanceInfo(data);
+    } catch (err) {
+      console.error("Failed to load cash advance balances", err);
+      setCashAdvanceInfo({});
+    }
+  }, [activePeriod, departmentEmployeeIds]);
+
+  useEffect(() => {
+    loadCashAdvanceInfo();
+  }, [loadCashAdvanceInfo]);
 
   const payrollRows = useMemo(() => {
     return employees
@@ -773,7 +830,6 @@ const PayrollList = () => {
               : 0;
 
         const sssLoan = Number(adj.sssLoan || 0);
-        const cashAdvance = Number(adj.cashAdvance || 0);
         const personalDeduction = Number(adj.personalDeduction || 0);
 
         const govtDeductions =
@@ -781,6 +837,15 @@ const PayrollList = () => {
           philhealthDeduction +
           pagibigDeduction +
           withholdingTax;
+
+        const ca = getCashAdvance(
+          cashAdvanceInfo[String(employee.id)],
+          adj,
+          isTripBasedEmployee
+            ? tripPay
+            : grossPay - govtDeductions - sssLoan - personalDeduction,
+        );
+        const cashAdvance = ca.cashAdvance;
 
         const otherDeductions = sssLoan + cashAdvance + personalDeduction;
 
@@ -859,10 +924,12 @@ const PayrollList = () => {
             pagibigDeduction: 0,
             withholdingTax: 0,
             sssLoan: 0,
-            cashAdvance: 0,
+            cashAdvance,
+            cashAdvanceBalanceBefore: ca.cashAdvanceBalanceBefore,
+            cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
             personalDeduction: 0,
-            totalDeductions: 0,
-            netPay: tripPay,
+            totalDeductions: cashAdvance,
+            netPay: tripPay - cashAdvance,
 
             attendanceCount: records.length,
 
@@ -945,6 +1012,8 @@ const PayrollList = () => {
           withholdingTax,
           sssLoan,
           cashAdvance,
+          cashAdvanceBalanceBefore: ca.cashAdvanceBalanceBefore,
+          cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
           personalDeduction,
           totalDeductions,
 
@@ -967,6 +1036,7 @@ const PayrollList = () => {
     otApprovals,
     searchEmployee,
     adjustments,
+    cashAdvanceInfo,
   ]);
 
   const summary = useMemo(() => {
@@ -1076,24 +1146,31 @@ const PayrollList = () => {
   // `payroll_deductions` table, then opens the payslip modal. Backend
   // upserts on (employee_id, cutoff_period) so re-generating a payslip
   // for the same cutoff updates the existing row instead of duplicating it.
+  // One employee's saved payroll record for the active cutoff. Trip-based
+  // employees (drivers/helpers) are saved too so their cash advance
+  // deduction is posted; they have no statutory deductions.
+  const toDeductionPayload = (row) => ({
+    cutoff_period: `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+    employee_id: row.employee.id,
+    department,
+    gross_pay: row.grossPay,
+    sss_deduction: row.isTripBasedEmployee ? 0 : row.sssDeduction,
+    philhealth_deduction: row.isTripBasedEmployee ? 0 : row.philhealthDeduction,
+    pagibig_deduction: row.isTripBasedEmployee ? 0 : row.pagibigDeduction,
+    tardiness_deduction: row.isTripBasedEmployee ? 0 : row.tardinessDeduction,
+    undertime_deduction: row.isTripBasedEmployee ? 0 : row.undertimeDeduction,
+    absent_deduction: row.isTripBasedEmployee ? 0 : row.absentDeduction || 0,
+    cash_advance_deduction: row.cashAdvance || 0,
+    net_pay: row.netPay,
+  });
+
   const handleGeneratePayslip = async (row) => {
-    if (!row.isTripBasedEmployee) {
+    if (row.employee) {
       setSavingPayslipFor(row.employee.id);
 
       try {
-        await savePayrollDeduction({
-          cutoff_period: `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
-          employee_id: row.employee.id,
-          department,
-          gross_pay: row.grossPay,
-          sss_deduction: row.sssDeduction,
-          philhealth_deduction: row.philhealthDeduction,
-          pagibig_deduction: row.pagibigDeduction,
-          tardiness_deduction: row.tardinessDeduction,
-          undertime_deduction: row.undertimeDeduction,
-          absent_deduction: row.absentDeduction,
-          net_pay: row.netPay,
-        });
+        await savePayrollDeduction(toDeductionPayload(row));
+        await loadCashAdvanceInfo();
       } catch (err) {
         console.error("Failed to save payroll_deductions", err);
 
@@ -1115,22 +1192,7 @@ const PayrollList = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingPayroll, setIsGeneratingPayroll] = useState(false);
 
-  const buildDeductionRows = () =>
-    payrollRows
-      .filter((row) => !row.isTripBasedEmployee)
-      .map((row) => ({
-        cutoff_period: `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
-        employee_id: row.employee.id,
-        department,
-        gross_pay: row.grossPay,
-        sss_deduction: row.sssDeduction,
-        philhealth_deduction: row.philhealthDeduction,
-        pagibig_deduction: row.pagibigDeduction,
-        tardiness_deduction: row.tardinessDeduction,
-        undertime_deduction: row.undertimeDeduction,
-        absent_deduction: row.absentDeduction,
-        net_pay: row.netPay,
-      }));
+  const buildDeductionRows = () => payrollRows.map(toDeductionPayload);
 
   // Bulk-saves every row's deductions for the active cutoff to
   // `payroll_deductions`. Shared by "Generate Payroll" and "Export Excel"
@@ -1142,6 +1204,7 @@ const PayrollList = () => {
 
     try {
       await savePayrollDeductionsBulk(deductionRows);
+      await loadCashAdvanceInfo();
 
       return true;
     } catch (err) {
@@ -1166,7 +1229,7 @@ const PayrollList = () => {
 
     if (saved) {
       alertDialog(
-        `Payroll deductions saved for ${payrollRows.filter((r) => !r.isTripBasedEmployee).length} employee(s).`,
+        `Payroll deductions saved for ${payrollRows.length} employee(s). Cash advance deductions were posted to each employee's cash advance balance.`,
       );
     }
   };
@@ -1737,23 +1800,29 @@ const PayrollList = () => {
                     </td>
 
                     <td className="px-4 py-3">
-                      {row.isTripBasedEmployee ? (
-                        "--"
-                      ) : (
-                        <input
-                          type="number"
-                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
-                          value={row.cashAdvance || ""}
-                          placeholder="0"
-                          onChange={(e) =>
-                            updateAdjustment(
-                              row.employee.id,
-                              activePeriod,
-                              "cashAdvance",
-                              e.target.value,
-                            )
-                          }
-                        />
+                      <input
+                        type="number"
+                        min="0"
+                        className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
+                        value={row.cashAdvance || ""}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateAdjustment(
+                            row.employee.id,
+                            activePeriod,
+                            "cashAdvance",
+                            e.target.value,
+                          )
+                        }
+                      />
+                      {row.cashAdvanceBalanceBefore != null && (
+                        <p
+                          className="mt-1 text-[11px] text-fg-subtle"
+                          title="Cash advance owed before this cutoff -> after this deduction"
+                        >
+                          Bal ₱{row.cashAdvanceBalanceBefore.toFixed(2)} → ₱
+                          {row.cashAdvanceBalanceAfter.toFixed(2)}
+                        </p>
                       )}
                     </td>
 

@@ -8,7 +8,8 @@ import api from "../services/api";
 // {
 //   cutoff_period, employee_id, department, gross_pay,
 //   sss_deduction, philhealth_deduction, pagibig_deduction,
-//   tardiness_deduction, undertime_deduction, absent_deduction, net_pay
+//   tardiness_deduction, undertime_deduction, absent_deduction,
+//   cash_advance_deduction, net_pay
 // }
 export const savePayrollDeduction = async (payload) => {
   const res = await api.post("/payroll-deductions/save", payload);
@@ -34,6 +35,22 @@ export const getPayrollDeductions = async ({
   });
 
   return res.data;
+};
+
+// Cash advance to deduct this cutoff, keyed by employee id:
+// { suggested, posted, balance_before } -- see
+// app/services/cash_advance_payroll.py. Employees with nothing owed are
+// left out.
+export const getCashAdvanceForCutoff = async (cutoffPeriod, employeeIds) => {
+  if (!employeeIds.length) return {};
+  const res = await api.get("/payroll-deductions/cash-advance", {
+    params: {
+      cutoff_period: cutoffPeriod,
+      employee_ids: employeeIds.join(","),
+    },
+  });
+
+  return res.data || {};
 };
 
 export const getEmployeePayrollDeductions = async (employeeId) => {

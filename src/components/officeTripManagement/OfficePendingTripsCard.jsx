@@ -19,12 +19,15 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import { confirmDialog } from "../ui/dialog/dialogService";
 import TripRemarksList from "../adminTrips/TripRemarksList";
+import useViewType from "../../hooks/useViewType";
+import ViewToggle from "../ui/viewToggle/ViewToggle";
 
 export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   const { page, setPage, totalPages, paginatedItems } = usePagination(
     trips,
     9,
   );
+  const [viewType, setViewType] = useViewType("office_trip_review_view_type");
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [loadingReview, setLoadingReview] = useState(false);
@@ -224,6 +227,91 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
         </div>
       )}
 
+      <div className="mb-4 flex justify-end">
+        <ViewToggle viewType={viewType} onChange={setViewType} />
+      </div>
+
+      {viewType === "list" ? (
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+          <table className="w-full min-w-205 text-sm text-fg">
+            <thead className="bg-surface-hover text-fg-muted">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Ticket No.</th>
+                <th className="px-4 py-3 text-left font-medium">Driver</th>
+                <th className="px-4 py-3 text-left font-medium">Stops</th>
+                <th className="px-4 py-3 text-left font-medium">
+                  Sent By (Coordinator)
+                </th>
+                <th className="px-4 py-3 text-left font-medium">
+                  Coordinator Settlement
+                </th>
+                <th className="px-4 py-3 text-left font-medium">
+                  Coordinator Remarks
+                </th>
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="py-6 text-center text-fg-subtle">
+                    No trips waiting for office review.
+                  </td>
+                </tr>
+              ) : (
+                paginatedItems.map((trip) => (
+                  <tr
+                    key={trip.trip_id}
+                    className="border-t border-border hover:bg-surface-hover"
+                  >
+                    <td className="px-4 py-3 font-semibold">
+                      {trip.ticket_no}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {trip.username || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {trip.stops_count ?? 0}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {trip.coordinator_name || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {trip.coordinator_settlement_date || "-"}
+                    </td>
+                    <td className="max-w-xs px-4 py-3 text-fg-muted">
+                      <p className="line-clamp-2">
+                        {trip.coordinator_remarks || "-"}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleReview(trip.trip_id)}
+                          disabled={loadingReview}
+                          className="rounded-lg bg-fg px-3 py-1.5 text-xs font-semibold text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {loadingReview ? "Loading..." : "Review Trip"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleArchive(trip)}
+                          disabled={archivingId === trip.trip_id}
+                          title="Archive (soft delete)"
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:border-danger hover:text-danger disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {archivingId === trip.trip_id ? "..." : "Archive"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {paginatedItems.map((trip) => (
           <div
@@ -321,6 +409,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
           </div>
         ))}
       </div>
+      )}
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 

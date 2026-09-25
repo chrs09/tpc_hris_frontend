@@ -280,6 +280,12 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   const sssLoan = Number(payroll.sssLoan ?? 0);
 
   const cashAdvance = Number(payroll.cashAdvance ?? 0);
+  // Cash advance still owed after this payslip's deduction (null if the
+  // employee has no cash advance).
+  const cashAdvanceBalanceAfter =
+    payroll.cashAdvanceBalanceAfter != null
+      ? Number(payroll.cashAdvanceBalanceAfter)
+      : null;
 
   const personalDeduction = Number(payroll.personalDeduction ?? 0);
 
@@ -414,8 +420,15 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
             />
 
             <PayslipValue
+              label="Cash Advance"
+              value={cashAdvance}
+              isMoney
+              negative
+            />
+
+            <PayslipValue
               label="Other Deductions"
-              value={totalOtherDeductions}
+              value={totalOtherDeductions - cashAdvance}
               isMoney
               negative
             />
@@ -427,6 +440,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               negative
               bold
             />
+
+            {cashAdvanceBalanceAfter != null && (
+              <PayslipValue
+                label="CA Balance Left"
+                value={cashAdvanceBalanceAfter}
+                isMoney
+              />
+            )}
           </section>
         </div>
 
@@ -745,6 +766,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
             isMoney
             negative
           />
+
+          {cashAdvanceBalanceAfter != null && (
+            <PayslipValue
+              label="CA Balance Left"
+              value={cashAdvanceBalanceAfter}
+              isMoney
+            />
+          )}
 
           <PayslipValue
             label="Other Deductions"
