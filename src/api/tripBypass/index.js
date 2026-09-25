@@ -34,6 +34,16 @@ export const bypassStartUnloading = async (tripId, stopId, formData) => {
   return res.data;
 };
 
+// Links a stop the driver's app couldn't match to a store (GPS outside
+// every store's radius) to the planned store the driver was really at.
+export const bypassAssignStopStore = async (tripId, stopId, formData) => {
+  const res = await api.post(
+    `/admin/trips/bypass/${tripId}/stops/${stopId}/assign-store`,
+    formData,
+  );
+  return res.data;
+};
+
 export const bypassCheckOut = async (tripId, stopId, formData) => {
   const res = await api.post(
     `/admin/trips/bypass/${tripId}/stops/${stopId}/check-out`,

@@ -56,6 +56,8 @@ export default function StoreManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
+  // Store opened read-only via View (Edit is offered inside it).
+  const [viewingStore, setViewingStore] = useState(null);
   const [form, setForm] = useState(initialFormState);
   const [searchTerm, setSearchTerm] = useState("");
   const [profileFilter, setProfileFilter] = useState("ALL");
@@ -298,9 +300,9 @@ export default function StoreManagement() {
         <td className="px-6 py-4">
           <button
             className="text-primary hover:text-primary-hover"
-            onClick={() => openEditModal(store)}
+            onClick={() => setViewingStore(store)}
           >
-            Edit
+            View
           </button>
         </td>
       </tr>
@@ -348,9 +350,9 @@ export default function StoreManagement() {
 
           <button
             className="text-sm text-primary hover:text-primary-hover"
-            onClick={() => openEditModal(store)}
+            onClick={() => setViewingStore(store)}
           >
-            Edit
+            View
           </button>
         </div>
 
@@ -546,6 +548,79 @@ export default function StoreManagement() {
       </div>
 
       <MaintenanceModal
+        isOpen={Boolean(viewingStore)}
+        onClose={() => setViewingStore(null)}
+        title="Store Details"
+        cancelLabel="Close"
+        saveLabel="Edit"
+        onSave={() => {
+          const store = viewingStore;
+          setViewingStore(null);
+          openEditModal(store);
+        }}
+      >
+        {viewingStore && (
+          <div className="space-y-4">
+            {viewingStore.photo_url && (
+              <img
+                src={viewingStore.photo_url}
+                alt=""
+                onClick={() => setPreviewUrl(viewingStore.photo_url)}
+                className="h-32 w-full cursor-zoom-in rounded-xl border border-border object-cover"
+              />
+            )}
+
+            <div>
+              <p className="text-lg font-semibold text-fg">
+                {viewingStore.name}
+              </p>
+              <p className="text-sm text-fg-muted">
+                {viewingStore.address || "No address"}
+              </p>
+            </div>
+
+            <StoreLocationPicker
+              latitude={viewingStore.latitude}
+              longitude={viewingStore.longitude}
+              radiusMeters={viewingStore.allowed_radius_meters}
+              readOnly
+            />
+
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <dt className="text-xs text-fg-subtle">Outlet Number</dt>
+                <dd className="text-fg">{viewingStore.outlet_number || "-"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-fg-subtle">Profile</dt>
+                <dd className="text-fg">
+                  {viewingStore.profile || "Unassigned"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-fg-subtle">Allowed Radius</dt>
+                <dd className="text-fg">
+                  {viewingStore.allowed_radius_meters} m
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-fg-subtle">Required Helper</dt>
+                <dd className="text-fg">{viewingStore.required_helper}</dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-xs text-fg-subtle">Coordinates</dt>
+                <dd className="text-fg">
+                  {viewingStore.latitude != null && viewingStore.longitude != null
+                    ? `${viewingStore.latitude}, ${viewingStore.longitude}`
+                    : "-"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
+      </MaintenanceModal>
+
+      <MaintenanceModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editingStore ? "Edit Store" : "Add Store"}
@@ -626,6 +701,7 @@ export default function StoreManagement() {
             <StoreLocationPicker
               latitude={form.latitude}
               longitude={form.longitude}
+              radiusMeters={form.allowed_radius_meters}
               onChange={({ lat, lng, address }) =>
                 setForm((prev) => ({
                   ...prev,

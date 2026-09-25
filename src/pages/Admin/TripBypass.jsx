@@ -13,6 +13,7 @@ import {
   bypassStartUnloading,
   bypassCheckOut,
   bypassCheckin,
+  bypassAssignStopStore,
 } from "../../api/tripBypass";
 
 const getErrorMessage = (error) =>
@@ -83,6 +84,7 @@ const TripBypass = () => {
   const [lmPhoto, setLmPhoto] = useState(null);
   const [lmStampedPhoto, setLmStampedPhoto] = useState(null);
   const [forceCheckin, setForceCheckin] = useState(false);
+  const [assignStoreId, setAssignStoreId] = useState("");
 
   const loadTrips = useCallback(async () => {
     try {
@@ -129,6 +131,7 @@ const TripBypass = () => {
     setLmPhoto(null);
     setLmStampedPhoto(null);
     setForceCheckin(false);
+    setAssignStoreId("");
   }, [selectedTripId, loadDetail]);
 
   const refreshAfterAction = async () => {
@@ -215,8 +218,74 @@ const TripBypass = () => {
   const nextActionType =
     hasRemainingStores && forceCheckin ? "checkin" : rawNextActionType;
 
+  // A delivered stop with no store: the driver's app couldn't match
+  // their GPS to any remaining store. Its delivery doesn't count toward a
+  // planned store, so the trip would keep asking for "Arrived at Next
+  // Store" -- it has to be linked to the right store first.
+  const unmatchedStop =
+    tripDetail?.status === "ACTIVE" &&
+    (tripDetail.planned_stores || []).length > 0
+      ? (tripDetail.stops || []).find(
+          (s) => s.status === "DELIVERED" && !s.store_id,
+        )
+      : null;
+
+  const renderAssignStore = () => {
+    const remaining = (tripDetail.planned_stores || []).filter(
+      (s) => !s.delivered,
+    );
+    const stopNumber =
+      (tripDetail.stops || []).findIndex(
+        (s) => s.stop_id === unmatchedStop.stop_id,
+      ) + 1;
+    return (
+      <div className="space-y-3">
+        <h3 className="font-semibold text-fg">
+          Which store was stop #{stopNumber}?
+        </h3>
+        <p className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-fg">
+          The driver delivered at stop #{stopNumber}, but their location
+          didn't match any of this trip's stores, so it isn't counted as
+          delivered yet. Pick the store they were actually at. After that,
+          the trip moves on to the next store or to Checkin.
+        </p>
+        <SearchSelect
+          value={remaining.find(
+            (s) => String(s.store_id) === String(assignStoreId),
+          )}
+          options={remaining}
+          onChange={(s) => setAssignStoreId(s?.store_id || "")}
+          placeholder="Select the store for this stop..."
+          getOptionLabel={(s) => s?.store_name || `Store #${s?.store_id}`}
+          getOptionValue={(s) => s?.store_id}
+        />
+        <ReasonField reason={reason} setReason={setReason} />
+        <button
+          disabled={submitting || !assignStoreId}
+          onClick={() =>
+            runAction("Link this stop to the selected store", () => {
+              const fd = new FormData();
+              fd.append("store_id", assignStoreId);
+              fd.append("reason", reason);
+              return bypassAssignStopStore(
+                tripDetail.trip_id,
+                unmatchedStop.stop_id,
+                fd,
+              ).finally(() => setAssignStoreId(""));
+            })
+          }
+          className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          Link Stop to Store
+        </button>
+      </div>
+    );
+  };
+
   const renderForm = () => {
     if (!tripDetail) return null;
+
+    if (unmatchedStop) return renderAssignStore();
 
     if (!nextActionType) {
       return (

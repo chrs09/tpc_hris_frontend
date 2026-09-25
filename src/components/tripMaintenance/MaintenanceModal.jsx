@@ -1,7 +1,15 @@
 import React from "react";
 import { X } from "lucide-react";
 
-const MaintenanceModal = ({ isOpen, onClose, title, children, onSave }) => {
+const MaintenanceModal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  onSave,
+  saveLabel = "Save",
+  cancelLabel = "Cancel",
+}) => {
   if (!isOpen) return null;
 
   return (
@@ -25,14 +33,14 @@ const MaintenanceModal = ({ isOpen, onClose, title, children, onSave }) => {
             onClick={onClose}
             className="px-4 py-2 rounded-lg border border-border text-fg hover:bg-surface-hover"
           >
-            Cancel
+            {cancelLabel}
           </button>
 
           <button
             onClick={onSave}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover"
           >
-            Save
+            {saveLabel}
           </button>
         </div>
       </div>
