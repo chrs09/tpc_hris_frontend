@@ -101,6 +101,23 @@ const resolvePhotoUrl = (rawUrl) => {
   }
 };
 
+// Completed tab: every trip here has passed Finance (that's what marks a
+// trip COMPLETED), shown with who approved it and when.
+const FinanceStatus = ({ trip }) => (
+  <div>
+    <span className="inline-flex rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
+      {trip.status_label || "Completed"}
+    </span>
+    {(trip.finance_approved_by || trip.finance_approved_at) && (
+      <p className="mt-1 text-xs text-fg-subtle">
+        {[trip.finance_approved_by, trip.finance_approved_at]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+    )}
+  </div>
+);
+
 const PendingTripsCard = ({
   trips = [],
   refreshTrips,
@@ -318,6 +335,9 @@ const PendingTripsCard = ({
                 Stores Assigned
               </th>
               <th className="px-6 py-3 text-left font-medium">Stops</th>
+              {mode === "completed" && (
+                <th className="px-6 py-3 text-left font-medium">Status</th>
+              )}
               <th></th>
             </tr>
           </thead>
@@ -362,6 +382,11 @@ const PendingTripsCard = ({
                   )}
                 </td>
                 <td className="px-6 py-4">{trip.stops_count}</td>
+                {mode === "completed" && (
+                  <td className="px-6 py-4">
+                    <FinanceStatus trip={trip} />
+                  </td>
+                )}
 
                 <td className="px-6 py-4 text-right">
                   <div className="flex justify-end gap-2">
@@ -449,6 +474,13 @@ const PendingTripsCard = ({
                 <p className="text-fg-muted">Stops</p>
                 {trip.stops_count}
               </div>
+
+              {mode === "completed" && (
+                <div className="col-span-2">
+                  <p className="text-fg-muted">Status</p>
+                  <FinanceStatus trip={trip} />
+                </div>
+              )}
 
               <div className="col-span-2">
                 <p className="text-fg-muted">Stores Assigned</p>
