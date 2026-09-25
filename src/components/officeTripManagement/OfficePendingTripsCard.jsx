@@ -18,6 +18,7 @@ import {
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import { confirmDialog } from "../ui/dialog/dialogService";
+import TripRemarksList from "../adminTrips/TripRemarksList";
 
 export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
   const { page, setPage, totalPages, paginatedItems } = usePagination(
@@ -459,6 +460,11 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                   </div>
                 </div>
               </section>
+
+              <TripRemarksList
+                remarks={selectedTrip.added_remarks}
+                onOpenImage={setSelectedImageUrl}
+              />
 
               <section>
                 <h3 className="mb-4 text-lg font-bold text-fg">

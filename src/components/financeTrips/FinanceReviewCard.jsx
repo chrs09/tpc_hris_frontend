@@ -26,6 +26,7 @@ import {
   Store,
   User,
 } from "lucide-react";
+import TripRemarksList from "../adminTrips/TripRemarksList";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -697,6 +698,20 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                   </div>
 
                   <hr className="my-6" />
+
+                  {selectedTrip.added_remarks?.length > 0 && (
+                    <div className="mb-6">
+                      <TripRemarksList
+                        remarks={selectedTrip.added_remarks}
+                        onOpenImage={(url) =>
+                          setActivePhoto({
+                            url: resolvePhotoUrl(url),
+                            label: "Remark photo",
+                          })
+                        }
+                      />
+                    </div>
+                  )}
 
                   {/* OFFICE PERSONNEL REVIEW */}
                   <h3 className="mb-3 flex items-center gap-2 text-lg font-semibold">

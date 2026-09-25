@@ -4,6 +4,7 @@ import {
   archiveTrip,
   reviewTrip,
   replaceTripFile,
+  addTripRemark,
 } from "../../api/adminTripManagement/trips";
 import toast from "react-hot-toast";
 import { confirmDialog } from "../ui/dialog/dialogService";
@@ -151,6 +152,37 @@ const PendingTripsCard = ({
   const replaceInputRef = useRef(null);
   const [pendingReplaceFileId, setPendingReplaceFileId] = useState(null);
   const [replacingFileId, setReplacingFileId] = useState(null);
+
+  // Remarks on an approved trip (photos are locked once approved).
+  const [remarkText, setRemarkText] = useState("");
+  const [remarkImage, setRemarkImage] = useState(null);
+  const [remarkInputKey, setRemarkInputKey] = useState(0);
+  const [addingRemark, setAddingRemark] = useState(false);
+
+  const canReplacePhotos =
+    mode === "pending" && selectedTrip?.status === "PENDING_APPROVAL";
+
+  const handleAddRemark = async () => {
+    if (!selectedTrip) return;
+    if (!remarkText.trim() && !remarkImage) {
+      toast.error("Add a remark, an image, or both.");
+      return;
+    }
+    try {
+      setAddingRemark(true);
+      await addTripRemark(selectedTrip.trip_id, remarkText.trim(), remarkImage);
+      toast.success("Remark added.");
+      setRemarkText("");
+      setRemarkImage(null);
+      setRemarkInputKey((k) => k + 1);
+      const res = await reviewTrip(selectedTrip.trip_id);
+      setSelectedTrip(res.data);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to add remark.");
+    } finally {
+      setAddingRemark(false);
+    }
+  };
 
   const triggerReplace = (fileId) => {
     setPendingReplaceFileId(fileId);
@@ -678,6 +710,7 @@ const PendingTripsCard = ({
                                 >
                                   Page {i + 1}
                                 </button>
+                                {canReplacePhotos && (
                                 <button
                                   type="button"
                                   onClick={() => triggerReplace(photo.id)}
@@ -687,6 +720,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -722,6 +756,7 @@ const PendingTripsCard = ({
                                 >
                                   Page {i + 1}
                                 </button>
+                                {canReplacePhotos && (
                                 <button
                                   type="button"
                                   onClick={() => triggerReplace(photo.id)}
@@ -731,6 +766,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -762,6 +798,7 @@ const PendingTripsCard = ({
                             >
                               <FontAwesomeIcon icon={faEye} />
                             </button>
+                            {canReplacePhotos && (
                             <button
                               type="button"
                               onClick={() =>
@@ -778,6 +815,7 @@ const PendingTripsCard = ({
                             >
                               <FontAwesomeIcon icon={faPenToSquare} />
                             </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-xs text-fg-subtle">
@@ -817,6 +855,7 @@ const PendingTripsCard = ({
                         >
                           <FontAwesomeIcon icon={faEye} />
                         </button>
+                        {canReplacePhotos && (
                         <button
                           type="button"
                           onClick={() =>
@@ -831,6 +870,7 @@ const PendingTripsCard = ({
                         >
                           <FontAwesomeIcon icon={faPenToSquare} />
                         </button>
+                        )}
                       </div>
                     ) : (
                       <span className="text-xs text-fg-subtle">No Photo</span>
@@ -934,6 +974,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faEye} />
                                 </button>
+                                {canReplacePhotos && (
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -947,6 +988,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                )}
                               </div>
                             ) : (
                               <span className="text-xs text-fg-subtle">
@@ -971,6 +1013,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faEye} />
                                 </button>
+                                {canReplacePhotos && (
                                 <button
                                   type="button"
                                   onClick={() =>
@@ -985,6 +1028,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                )}
                               </div>
                             ) : (
                               <span className="text-xs text-fg-subtle">
@@ -1102,6 +1146,90 @@ const PendingTripsCard = ({
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+
+                {/* ===== REMARKS ON AN APPROVED TRIP ===== */}
+                {(selectedTrip.added_remarks?.length > 0 ||
+                  !canReplacePhotos) && (
+                  <div className="mb-6 rounded-xl border border-border p-4">
+                    <p className="font-semibold text-fg">Remarks</p>
+                    {!canReplacePhotos && (
+                      <p className="mt-1 text-xs text-fg-muted">
+                        This trip is approved, so its photos can&apos;t be
+                        changed. Add a note, a photo, or both instead.
+                      </p>
+                    )}
+
+                    {selectedTrip.added_remarks?.length > 0 && (
+                      <ul className="mt-3 space-y-2">
+                        {selectedTrip.added_remarks.map((item) => (
+                          <li
+                            key={item.id}
+                            className="rounded-lg border border-border bg-surface p-3 text-sm"
+                          >
+                            <p className="text-xs text-fg-subtle">
+                              {item.created_by || "-"}
+                              {item.created_at ? ` · ${item.created_at}` : ""}
+                            </p>
+                            {item.text && (
+                              <p className="mt-1 whitespace-pre-wrap text-fg">
+                                {item.text}
+                              </p>
+                            )}
+                            {item.image_url && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPhoto({
+                                    url: resolvePhotoUrl(item.image_url),
+                                    label: "Remark photo",
+                                  })
+                                }
+                                className="mt-2 block"
+                              >
+                                <img
+                                  src={resolvePhotoUrl(item.image_url)}
+                                  alt="Remark attachment"
+                                  className="h-24 w-24 rounded-lg border border-border object-cover"
+                                />
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {!canReplacePhotos && (
+                      <div className="mt-3 space-y-2">
+                        <textarea
+                          value={remarkText}
+                          onChange={(e) => setRemarkText(e.target.value)}
+                          rows={3}
+                          placeholder="e.g. Correct invoice photo attached -- driver sent the wrong page."
+                          className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg"
+                        />
+                        <input
+                          key={remarkInputKey}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setRemarkImage(e.target.files?.[0] || null)
+                          }
+                          className="w-full text-sm text-fg-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-active file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-fg"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddRemark}
+                          disabled={
+                            addingRemark || (!remarkText.trim() && !remarkImage)
+                          }
+                          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+                        >
+                          {addingRemark ? "Adding..." : "Add Remark"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 

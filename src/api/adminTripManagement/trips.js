@@ -30,9 +30,19 @@ export const approveTrip = (tripId, remarks) =>
 
 export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
 
+// Remark on an approved trip (its photos are locked): text, an image,
+// or both.
+export const addTripRemark = (tripId, text, image) => {
+  const formData = new FormData();
+  if (text) formData.append("text", text);
+  if (image) formData.append("image", image);
+  return api.post(`/admin/trips/${tripId}/remarks`, formData);
+};
+
 // Replaces one uploaded trip document photo in place (same File row,
 // new image) -- for when the driver photographed the wrong document or
-// the shot is unreadable. See replace_trip_file in app/api/admin/trips.py.
+// the shot is unreadable. Only while the trip awaits coordinator
+// approval. See replace_trip_file in app/api/admin/trips.py.
 export const replaceTripFile = (fileId, photo) => {
   const formData = new FormData();
   formData.append("photo", photo);
