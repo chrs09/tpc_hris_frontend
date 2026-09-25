@@ -314,6 +314,9 @@ const PendingTripsCard = ({
               <th className="px-6 py-3 text-left font-medium">Driver</th>
               <th className="px-6 py-3 text-left font-medium">Ticket</th>
               <th className="px-6 py-3 text-left font-medium">Start</th>
+              <th className="px-6 py-3 text-left font-medium">
+                Stores Assigned
+              </th>
               <th className="px-6 py-3 text-left font-medium">Stops</th>
               <th></th>
             </tr>
@@ -342,6 +345,22 @@ const PendingTripsCard = ({
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
                 <td className="px-6 py-4 uppercase">{trip.ticket_no}</td>
                 <td className="px-6 py-4">{trip.start_time}</td>
+                <td className="px-6 py-4">
+                  {trip.stores?.length ? (
+                    <ol className="space-y-0.5">
+                      {trip.stores.map((name, index) => (
+                        <li key={`${name}-${index}`} className="text-sm">
+                          <span className="text-xs text-fg-subtle">
+                            {index + 1}.
+                          </span>{" "}
+                          {name}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td className="px-6 py-4">{trip.stops_count}</td>
 
                 <td className="px-6 py-4 text-right">
@@ -429,6 +448,11 @@ const PendingTripsCard = ({
               <div>
                 <p className="text-fg-muted">Stops</p>
                 {trip.stops_count}
+              </div>
+
+              <div className="col-span-2">
+                <p className="text-fg-muted">Stores Assigned</p>
+                {trip.stores?.length ? trip.stores.join(" → ") : "-"}
               </div>
             </div>
           </div>
@@ -1012,6 +1036,40 @@ const PendingTripsCard = ({
                     <p className="mt-2 whitespace-pre-wrap text-sm text-fg">
                       {selectedTrip.return_reason}
                     </p>
+                  </div>
+                )}
+
+                {/* ===== TRIP BYPASS REMARKS ===== */}
+                {selectedTrip.bypass_remarks?.length > 0 && (
+                  <div className="mb-6 rounded-xl border border-warning/30 bg-warning/15 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-warning">
+                      Completed by Coordinator (Trip Bypass)
+                    </p>
+                    <p className="mt-1 text-xs text-fg-muted">
+                      These steps were done on the driver&apos;s behalf, with
+                      the coordinator&apos;s remarks.
+                    </p>
+                    <ul className="mt-3 space-y-2">
+                      {selectedTrip.bypass_remarks.map((item) => (
+                        <li
+                          key={item.id}
+                          className="rounded-lg border border-border bg-surface p-3 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-semibold text-fg">
+                              {item.action_label}
+                            </span>
+                            <span className="text-xs text-fg-subtle">
+                              {item.performed_by || "-"}
+                              {item.created_at ? ` · ${item.created_at}` : ""}
+                            </span>
+                          </div>
+                          <p className="mt-1 whitespace-pre-wrap text-fg-muted">
+                            {item.reason || "No remarks"}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 

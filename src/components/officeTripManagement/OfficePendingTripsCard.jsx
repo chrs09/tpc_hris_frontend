@@ -485,7 +485,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                   />
 
                   <PhotoCard
-                    title="Stamped Invoice (Checkin)"
+                    title="LM (stamped 'check-in')"
                     src={selectedTrip.stamped_invoice_photo}
                     onPreview={setSelectedImageUrl}
                   />

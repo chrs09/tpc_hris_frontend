@@ -532,13 +532,13 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                         onClick={() =>
                           openPhoto({
                             url: data.stamped_invoice_photo?.url,
-                            label: "Stamped Invoice (Checkin)",
+                            label: "LM (stamped 'check-in')",
                           })
                         }
                         className="flex items-center gap-1.5 rounded-lg bg-surface-hover px-2.5 py-1.5 text-xs font-medium text-fg hover:bg-surface-active"
                       >
                         <FileText size={12} />
-                        Stamped Invoice (Checkin)
+                        LM (stamped 'check-in')
                       </button>
                     )}
                   </div>

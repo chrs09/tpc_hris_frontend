@@ -571,13 +571,13 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                                 url: resolvePhotoUrl(
                                   selectedTrip.stamped_invoice_photo,
                                 ),
-                                label: "Stamped Invoice (Checkin)",
+                                label: "LM (stamped 'check-in')",
                               })
                             }
                             className="flex items-center gap-2 rounded-lg bg-surface-hover px-3 py-2 text-sm transition hover:bg-surface-active"
                           >
                             <Eye size={14} />
-                            Stamped Invoice (Checkin)
+                            LM (stamped 'check-in')
                           </button>
                         )}
 

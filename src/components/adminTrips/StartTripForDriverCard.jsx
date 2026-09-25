@@ -131,6 +131,10 @@ export default function StartTripForDriverCard({
   const addShipmentNumber = () => {
     const value = shipmentNoInput.trim();
     if (!value) return;
+    if (!/^\d{8}$/.test(value)) {
+      toast.error("Shipment number must be exactly 8 digits (numbers only).");
+      return;
+    }
     if (shipmentNumbers.includes(value)) {
       toast.error("That shipment number is already added.");
       return;
@@ -375,15 +379,19 @@ export default function StartTripForDriverCard({
                 <div className="flex gap-2">
                   <input
                     type="text"
+                    inputMode="numeric"
+                    maxLength={8}
                     value={shipmentNoInput}
-                    onChange={(e) => setShipmentNoInput(e.target.value)}
+                    onChange={(e) =>
+                      setShipmentNoInput(e.target.value.replace(/\D/g, ""))
+                    }
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
                         addShipmentNumber();
                       }
                     }}
-                    placeholder="Enter shipment number"
+                    placeholder="8-digit shipment number"
                     disabled={shipmentNumbers.length >= MAX_SHIPMENT_NUMBERS}
                     className={inputStyles}
                   />
