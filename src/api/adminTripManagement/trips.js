@@ -13,6 +13,11 @@ export const getActiveTrips = () => api.get("/admin/trips/active");
 // Dispatched trips the driver hasn't checked out (started) yet.
 export const getAssignedTrips = () => api.get("/admin/trips/assigned");
 
+// Undo a dispatch: cancels a trip the driver hasn't started yet and
+// releases its vehicle/helpers. A reason is required.
+export const cancelAssignedTrip = (tripId, reason) =>
+  api.post(`/admin/trips/${tripId}/cancel`, { reason });
+
 // CHANGED: now accepts remarks and sends it as the JSON body,
 // matching the backend's approve_trip(remarks: str = Body(..., embed=True)).
 export const approveTrip = (tripId, remarks) =>

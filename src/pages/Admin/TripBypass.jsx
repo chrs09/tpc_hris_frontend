@@ -4,6 +4,7 @@ import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { getStores } from "../../api/adminTripManagement/stores";
+import { cancelAssignedTrip } from "../../api/adminTripManagement/trips";
 import {
   getBypassableTrips,
   getBypassTripDetail,
@@ -68,6 +69,9 @@ const TripBypass = () => {
   const [stores, setStores] = useState([]);
 
   const [reason, setReason] = useState("");
+  // Optional: when this step really happened (Philippine time), for
+  // recording a trip from an earlier day. Blank = now.
+  const [performedAt, setPerformedAt] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   // Step-specific fields
@@ -116,6 +120,7 @@ const TripBypass = () => {
   useEffect(() => {
     loadDetail(selectedTripId);
     setReason("");
+    setPerformedAt("");
     setOdometerReading("");
     setCheckInStoreId("");
     setOverrideStoreId("");
@@ -129,6 +134,7 @@ const TripBypass = () => {
   const refreshAfterAction = async () => {
     await Promise.all([loadTrips(), loadDetail(selectedTripId)]);
     setReason("");
+    setPerformedAt("");
   };
 
   const runAction = async (label, fn) => {
@@ -149,6 +155,45 @@ const TripBypass = () => {
       const response = await fn();
       toast.success(response?.message || "Done.");
       await refreshAfterAction();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      // 409 = the trip moved on since this screen loaded (the driver or
+      // another coordinator acted) -- reload it so the next step shown
+      // is the real one instead of leaving the admin on stale state.
+      if (error.response?.status === 409) await refreshAfterAction();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Every bypass form sends the reason, plus the actual date/time when
+  // the admin entered one.
+  const buildForm = () => {
+    const fd = new FormData();
+    fd.append("reason", reason);
+    if (performedAt) fd.append("performed_at", performedAt);
+    return fd;
+  };
+
+  const handleCancelTrip = async () => {
+    if (!reason.trim()) {
+      toast.error("Enter a reason first -- it is required to cancel a trip.");
+      return;
+    }
+    if (
+      !(await confirmDialog(
+        "Cancel this trip? The driver never started it, so it is closed out and its vehicle and helpers are released.",
+      ))
+    ) {
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await cancelAssignedTrip(tripDetail.trip_id, reason.trim());
+      toast.success("Trip cancelled.");
+      setSelectedTripId(null);
+      setTripDetail(null);
+      await loadTrips();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -177,7 +222,8 @@ const TripBypass = () => {
       return (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-subtle">
           This trip has no driver step currently waiting to be bypassed
-          (status: {tripDetail.status}, step: {tripDetail.current_step}).
+          (currently:{" "}
+          {tripDetail.current_step_label || tripDetail.current_step}).
         </div>
       );
     }
@@ -204,13 +250,13 @@ const TripBypass = () => {
             label="LM stamped 'checkout' photo (optional)"
             onFile={setLmStampedPhoto}
           />
+          <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
             disabled={submitting}
             onClick={() =>
               runAction("Complete Checkout for this driver", () => {
-                const fd = new FormData();
-                fd.append("reason", reason);
+                const fd = buildForm();
                 fd.append("odometer_reading", odometerReading || 0);
                 if (invoicePhoto) fd.append("invoice_photo", invoicePhoto);
                 if (lmPhoto) fd.append("lm_photo", lmPhoto);
@@ -224,6 +270,19 @@ const TripBypass = () => {
           >
             Submit Checkout
           </button>
+          <div className="border-t border-border pt-3 text-xs text-fg-subtle">
+            This trip never actually happened (e.g. dispatched by
+            mistake)?{" "}
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={handleCancelTrip}
+              className="font-semibold text-danger underline disabled:opacity-50"
+            >
+              Cancel this trip instead
+            </button>{" "}
+            (uses the reason above).
+          </div>
         </div>
       );
     }
@@ -246,7 +305,20 @@ const TripBypass = () => {
 
       return (
         <div className="space-y-3">
-          <h3 className="font-semibold text-fg">Check In at Store</h3>
+          <h3 className="font-semibold text-fg">
+            {tripDetail.current_step === "DELIVERED"
+              ? "Arrived at Next Store"
+              : "Arrived at Store"}
+          </h3>
+          <p className="text-xs text-fg-subtle">
+            Same as the driver tapping{" "}
+            <span className="font-semibold">
+              {tripDetail.current_step === "DELIVERED"
+                ? "Arrived at Next Store"
+                : "Arrived at Store"}
+            </span>{" "}
+            on their phone.
+          </p>
           {hasRemainingStores && (
             <p className="text-xs text-fg-subtle">
               {remainingPlannedStores.length} store(s) remaining.{" "}
@@ -269,20 +341,21 @@ const TripBypass = () => {
             getOptionLabel={(store) => store?.name || ""}
             getOptionValue={(store) => store?.id}
           />
+          <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
             disabled={submitting || !checkInStoreId}
             onClick={() =>
-              runAction("Check the driver in at this store", () => {
-                const fd = new FormData();
-                fd.append("reason", reason);
+              runAction("Mark the driver as arrived at this store", () => {
+                const fd = buildForm();
                 fd.append("store_id", checkInStoreId);
+                fd.append("expected_step", tripDetail.current_step);
                 return bypassCheckIn(tripDetail.trip_id, fd);
               })
             }
             className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            Submit Check-In
+            Submit Arrived at Store
           </button>
         </div>
       );
@@ -315,7 +388,8 @@ const TripBypass = () => {
       return (
         <div className="space-y-3">
           <h3 className="font-semibold text-fg">
-            Delivered / POD (at {stop.store || "unmatched location"})
+            Delivered - Upload Proof (at{" "}
+            {stop.store || "unmatched location"})
           </h3>
           <p className="text-xs text-fg-subtle">
             Reuses the store location the driver already checked in at as
@@ -336,13 +410,13 @@ const TripBypass = () => {
             />
           )}
           <PhotoField label="Delivery proof photo (optional)" onFile={setPodPhoto} />
+          <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
             disabled={submitting}
             onClick={() =>
               runAction("Mark this stop as delivered", () => {
-                const fd = new FormData();
-                fd.append("reason", reason);
+                const fd = buildForm();
                 if (podPhoto) fd.append("proof_photo", podPhoto);
                 if (overrideStoreId) fd.append("store_id", overrideStoreId);
                 return bypassCheckOut(tripDetail.trip_id, stop.stop_id, fd);
@@ -350,7 +424,7 @@ const TripBypass = () => {
             }
             className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            Submit Delivered / POD
+            Submit Delivered
           </button>
         </div>
       );
@@ -366,11 +440,11 @@ const TripBypass = () => {
               onClick={() => setForceCheckin(false)}
               className="text-xs font-semibold text-primary underline"
             >
-              &larr; Back to Check In at Store
+              &larr; Back to Arrived at Next Store
             </button>
           )}
           <ActionCard
-            title="Checkin (complete trip)"
+            title="Checkin (final step, back at the hub)"
             description={
               hasRemainingStores
                 ? "Completes the trip early, skipping the remaining planned stores. Sends it for approval, releasing the vehicle and any helpers. Photo optional."
@@ -380,10 +454,10 @@ const TripBypass = () => {
             setReason={setReason}
             submitting={submitting}
             photoLabel="Stamped invoice photo (optional)"
+            extra={<TimeField value={performedAt} onChange={setPerformedAt} />}
             onSubmit={(photo) =>
               runAction("Complete this trip", () => {
-                const fd = new FormData();
-                fd.append("reason", reason);
+                const fd = buildForm();
                 if (photo) fd.append("photo", photo);
                 return bypassCheckin(tripDetail.trip_id, fd);
               })
@@ -406,7 +480,8 @@ const TripBypass = () => {
         </h1>
         <p className="mt-1 text-sm text-fg-subtle">
           Act as a driver to complete a step they missed on a stuck trip --
-          e.g. uploading a forgotten POD photo. Every action here is
+          e.g. uploading a forgotten delivery proof photo. Each action has
+          the same name as the button on the driver's phone. Every action here is
           logged for audit.
         </p>
       </div>
@@ -439,7 +514,7 @@ const TripBypass = () => {
                     {t.driver_name || `Driver #${t.driver_id}`}
                   </div>
                   <div className="text-xs text-fg-subtle">
-                    {t.status} / {t.current_step}
+                    {t.current_step_label || t.current_step}
                     {t.ticket_no && ` • ${t.ticket_no}`}
                   </div>
                   {t.destination_store && (
@@ -469,7 +544,8 @@ const TripBypass = () => {
                   {tripDetail.driver_name || `Driver #${tripDetail.driver_id}`}
                 </h2>
                 <p className="text-xs text-fg-subtle">
-                  {tripDetail.status} / {tripDetail.current_step}
+                  {tripDetail.current_step_label ||
+                    tripDetail.current_step}
                   {tripDetail.ticket_no && ` • ${tripDetail.ticket_no}`}
                 </p>
               </div>
@@ -482,6 +558,29 @@ const TripBypass = () => {
     </div>
   );
 };
+
+// Optional "when did this really happen" -- for recording a trip from
+// an earlier day. Blank means now. Read as Philippine time by the
+// backend, which also refuses a future time or one that would put the
+// step before the previous one.
+const TimeField = ({ value, onChange }) => (
+  <div>
+    <label className="mb-1 block text-xs font-medium text-fg-subtle">
+      Actual date &amp; time (optional)
+    </label>
+    <input
+      type="datetime-local"
+      className={inputStyles}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    />
+    <p className="mt-1 text-xs text-fg-subtle">
+      Leave blank to record this as happening now. Fill it in when
+      the trip really happened earlier, so it lands on the correct
+      day and payroll cutoff.
+    </p>
+  </div>
+);
 
 const ReasonField = ({ reason, setReason }) => (
   <div>
@@ -520,6 +619,7 @@ const ActionCard = ({
   submitting,
   photoLabel,
   onSubmit,
+  extra,
 }) => {
   const [photo, setPhoto] = useState(null);
 
@@ -530,6 +630,7 @@ const ActionCard = ({
         <p className="text-xs text-fg-subtle">{description}</p>
       </div>
       {photoLabel && <PhotoField label={photoLabel} onFile={setPhoto} />}
+      {extra}
       <ReasonField reason={reason} setReason={setReason} />
       <button
         disabled={submitting}

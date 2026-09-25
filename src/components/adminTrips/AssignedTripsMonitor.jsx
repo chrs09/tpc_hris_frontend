@@ -1,4 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
+import toast from "react-hot-toast";
+import { cancelAssignedTrip } from "../../api/adminTripManagement/trips";
+import { promptDialog } from "../ui/dialog/dialogService";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 
@@ -33,7 +36,33 @@ const DestinationSteps = ({ destinations }) => {
 
 // Trips the coordinator has dispatched but the driver hasn't checked
 // out (started) yet -- see GET /admin/trips/assigned.
-const AssignedTripsMonitor = ({ trips = [] }) => {
+const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
+  const [cancellingId, setCancellingId] = useState(null);
+
+  // Undoes a dispatch made by mistake -- only offered here because a trip
+  // still in this list hasn't been started by the driver yet.
+  const handleCancel = async (trip) => {
+    const reason = await promptDialog(
+      `Cancel ${trip.driver_name || "this"}'s trip ${trip.trip_code || ""}? Its vehicle and helpers are released. Reason (required):`,
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("A reason is required to cancel a trip.");
+      return;
+    }
+
+    try {
+      setCancellingId(trip.id);
+      await cancelAssignedTrip(trip.id, reason.trim());
+      toast.success("Trip cancelled.");
+      if (onChanged) await onChanged();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to cancel trip.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   const { page, setPage, totalPages, paginatedItems } = usePagination(
     trips,
     10,
@@ -61,13 +90,14 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
               <th className="px-4 py-3 text-left font-medium">
                 Dispatched At
               </th>
+              <th className="px-4 py-3" />
             </tr>
           </thead>
 
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center py-6 text-fg-subtle">
+                <td colSpan="8" className="text-center py-6 text-fg-subtle">
                   No assigned trips
                 </td>
               </tr>
@@ -90,6 +120,15 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
                     {trip.dispatched_by_name || "-"}
                   </td>
                   <td className="px-4 py-4">{trip.dispatched_at || "-"}</td>
+                  <td className="px-4 py-4 text-right">
+                    <button
+                      onClick={() => handleCancel(trip)}
+                      disabled={cancellingId === trip.id}
+                      className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+                    >
+                      {cancellingId === trip.id ? "Cancelling..." : "Cancel"}
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -142,6 +181,14 @@ const AssignedTripsMonitor = ({ trips = [] }) => {
                 <span className="text-fg-muted block">Dispatched At</span>
                 {trip.dispatched_at || "-"}
               </div>
+
+              <button
+                onClick={() => handleCancel(trip)}
+                disabled={cancellingId === trip.id}
+                className="mt-3 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+              >
+                {cancellingId === trip.id ? "Cancelling..." : "Cancel trip"}
+              </button>
             </div>
           ))
         )}

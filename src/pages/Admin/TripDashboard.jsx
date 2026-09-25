@@ -102,7 +102,7 @@ const TripDashboard = () => {
           Dispatched to a driver, but not yet checked out (started).
         </p>
 
-        <AssignedTripsMonitor trips={assignedTrips} />
+        <AssignedTripsMonitor trips={assignedTrips} onChanged={loadTrips} />
       </div>
 
       {/* ACTIVE */}
