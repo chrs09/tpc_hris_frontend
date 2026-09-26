@@ -20,6 +20,7 @@ import useModuleAccess from "../hooks/useModuleAccess";
 import ThemeToggle from "./ui/ThemeToggle";
 import HubAlertsBell from "./adminTrips/HubAlertsBell";
 import CashAdvanceAlertsBell from "./adminTrips/CashAdvanceAlertsBell";
+import ManualEntryAlertsBell from "./adminTrips/ManualEntryAlertsBell";
 import toast from "react-hot-toast";
 
 // Icons are kept here (JSX) rather than in the shared navGroups data
@@ -179,6 +180,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         <div className="flex items-center gap-3">
           <HubAlertsBell />
           <CashAdvanceAlertsBell />
+          <ManualEntryAlertsBell />
           <ThemeToggle />
           <button
             onClick={() => setIsMobileOpen(true)}
@@ -218,12 +220,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <ThemeToggle />
               <HubAlertsBell />
               <CashAdvanceAlertsBell />
+              <ManualEntryAlertsBell />
             </div>
           )}
           {isCollapsed && (
             <div className="flex flex-col items-center gap-3">
               <HubAlertsBell />
               <CashAdvanceAlertsBell />
+              <ManualEntryAlertsBell />
             </div>
           )}
           <button

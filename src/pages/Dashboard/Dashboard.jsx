@@ -8,6 +8,7 @@ import AdminTrips from "../Admin/AdminTrips";
 import TripDashboard from "../Admin/TripDashboard";
 import TripAssignment from "../Admin/TripAssignment";
 import TripBypassPage from "../Admin/TripBypass";
+import TripManualEntriesPage from "../Admin/TripManualEntries";
 import OrgHierarchy from "../Admin/OrgHierarchy";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
 import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
@@ -128,6 +129,10 @@ const Dashboard = () => {
           <Route path="admin/trip-dashboard" element={<TripDashboard />} />
           <Route path="admin/trip-assignment" element={<TripAssignment />} />
           <Route path="admin/trip-bypass" element={<TripBypassPage />} />
+          <Route
+            path="admin/trip-manual-entries"
+            element={<TripManualEntriesPage />}
+          />
           <Route path="admin/stores" element={<StoreManagement />} />
           <Route path="applicants" element={<ApplicantsPage />} />
           <Route path="applicant/questionaire" element={<Questionaire />} />

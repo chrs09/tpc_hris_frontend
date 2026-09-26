@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import PhotoPicker from "../../components/ui/photoPicker/PhotoPicker";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { getStores } from "../../api/adminTripManagement/stores";
 import { cancelAssignedTrip } from "../../api/adminTripManagement/trips";
@@ -138,6 +139,12 @@ const TripBypass = () => {
     await Promise.all([loadTrips(), loadDetail(selectedTripId)]);
     setReason("");
     setPerformedAt("");
+    // Photos belong to the step just submitted -- clear them so the next
+    // step (e.g. the next store's Delivered) doesn't re-send them.
+    setPodPhoto(null);
+    setInvoicePhoto(null);
+    setLmPhoto(null);
+    setLmStampedPhoto(null);
   };
 
   const runAction = async (label, fn) => {
@@ -313,10 +320,19 @@ const TripBypass = () => {
             value={odometerReading}
             onChange={(e) => setOdometerReading(e.target.value)}
           />
-          <PhotoField label="Invoice photo (optional)" onFile={setInvoicePhoto} />
-          <PhotoField label="LM photo (optional)" onFile={setLmPhoto} />
+          <PhotoField
+            label="Invoice photo (optional)"
+            file={invoicePhoto}
+            onFile={setInvoicePhoto}
+          />
+          <PhotoField
+            label="LM photo (optional)"
+            file={lmPhoto}
+            onFile={setLmPhoto}
+          />
           <PhotoField
             label="LM stamped 'checkout' photo (optional)"
+            file={lmStampedPhoto}
             onFile={setLmStampedPhoto}
           />
           <TimeField value={performedAt} onChange={setPerformedAt} />
@@ -478,7 +494,11 @@ const TripBypass = () => {
               getOptionValue={(store) => store?.id}
             />
           )}
-          <PhotoField label="Delivery proof photo (optional)" onFile={setPodPhoto} />
+          <PhotoField
+            label="Delivery proof photo (optional)"
+            file={podPhoto}
+            onFile={setPodPhoto}
+          />
           <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
@@ -666,17 +686,12 @@ const ReasonField = ({ reason, setReason }) => (
   </div>
 );
 
-const PhotoField = ({ label, onFile }) => (
+const PhotoField = ({ label, file, onFile }) => (
   <div>
     <label className="mb-1 block text-xs font-medium text-fg-subtle">
       {label}
     </label>
-    <input
-      type="file"
-      accept="image/*"
-      onChange={(e) => onFile(e.target.files?.[0] || null)}
-      className="w-full text-sm text-fg-subtle"
-    />
+    <PhotoPicker file={file} onChange={onFile} />
   </div>
 );
 
@@ -698,7 +713,9 @@ const ActionCard = ({
         <h3 className="font-semibold text-fg">{title}</h3>
         <p className="text-xs text-fg-subtle">{description}</p>
       </div>
-      {photoLabel && <PhotoField label={photoLabel} onFile={setPhoto} />}
+      {photoLabel && (
+        <PhotoField label={photoLabel} file={photo} onFile={setPhoto} />
+      )}
       {extra}
       <ReasonField reason={reason} setReason={setReason} />
       <button

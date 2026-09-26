@@ -94,6 +94,10 @@ export const ROLE_ACCESS_GROUPS = [
         label: "Trip Bypass",
         roles: ["superadmin"],
       },
+      {
+        label: "Trip Manual Entries",
+        roles: ["superadmin", "coordinator_admin"],
+      },
     ],
   },
   {

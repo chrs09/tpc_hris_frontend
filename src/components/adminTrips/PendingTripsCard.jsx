@@ -1119,11 +1119,11 @@ const PendingTripsCard = ({
                 {selectedTrip.bypass_remarks?.length > 0 && (
                   <div className="mb-6 rounded-xl border border-warning/30 bg-warning/15 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-warning">
-                      Completed by Coordinator (Trip Bypass)
+                      Entered on the Driver&apos;s Behalf
                     </p>
                     <p className="mt-1 text-xs text-fg-muted">
-                      These steps were done on the driver&apos;s behalf, with
-                      the coordinator&apos;s remarks.
+                      Steps done through Trip Bypass, or the whole trip
+                      recorded in Trip Manual Entries, with the reason given.
                     </p>
                     <ul className="mt-3 space-y-2">
                       {selectedTrip.bypass_remarks.map((item) => (
