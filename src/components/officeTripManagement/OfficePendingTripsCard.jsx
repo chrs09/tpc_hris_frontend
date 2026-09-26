@@ -19,6 +19,7 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import { confirmDialog } from "../ui/dialog/dialogService";
 import TripRemarksList from "../adminTrips/TripRemarksList";
+import BypassRemarksList from "../adminTrips/BypassRemarksList";
 import useViewType from "../../hooks/useViewType";
 import ViewToggle from "../ui/viewToggle/ViewToggle";
 
@@ -549,6 +550,8 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                   </div>
                 </div>
               </section>
+
+              <BypassRemarksList remarks={selectedTrip.bypass_remarks} />
 
               <TripRemarksList
                 remarks={selectedTrip.added_remarks}

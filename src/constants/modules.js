@@ -119,6 +119,11 @@ export const MODULE_GROUPS = [
         label: "Vehicle Maintenance",
         path: "/dashboard/admin/trip-maintenance?tab=maintenance",
       },
+      {
+        key: "fuel_requests",
+        label: "Fuel Requests",
+        path: "/dashboard/admin/fuel-requests",
+      },
     ],
   },
   {

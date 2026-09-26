@@ -9,6 +9,7 @@ import TripDashboard from "../Admin/TripDashboard";
 import TripAssignment from "../Admin/TripAssignment";
 import TripBypassPage from "../Admin/TripBypass";
 import TripManualEntriesPage from "../Admin/TripManualEntries";
+import FuelRequestsPage from "../Admin/FuelRequests";
 import OrgHierarchy from "../Admin/OrgHierarchy";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
 import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
@@ -141,6 +142,7 @@ const Dashboard = () => {
             element={<ScheduleTemplatesPage />}
           />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
+          <Route path="admin/fuel-requests" element={<FuelRequestsPage />} />
           <Route path="admin/trip-categories" element={<TripCategoriesPage />} />
           <Route path="admin/origins" element={<OriginsPage />} />
           <Route path="admin/suppliers" element={<SuppliersPage />} />

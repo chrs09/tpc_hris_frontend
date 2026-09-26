@@ -201,6 +201,12 @@ export function getNavGroups(role) {
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "fleet_management.vehicle_maintenance",
         },
+        {
+          label: "Fuel Requests",
+          path: "/dashboard/admin/fuel-requests",
+          roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "fleet_management.fuel_requests",
+        },
       ],
     },
     {

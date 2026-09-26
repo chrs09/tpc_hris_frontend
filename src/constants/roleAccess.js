@@ -120,6 +120,7 @@ export const ROLE_ACCESS_GROUPS = [
         label: "Vehicle Maintenance",
         roles: ["superadmin", "coordinator_admin"],
       },
+      { label: "Fuel Requests", roles: ["superadmin", "coordinator_admin"] },
     ],
   },
   {
