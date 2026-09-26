@@ -40,3 +40,20 @@ export const removeTicketImage = async (ticketId) => {
   const res = await api.delete(`/tickets/${ticketId}/image`);
   return res.data;
 };
+
+// Comments/remarks on a ticket, oldest first.
+export const getTicketComments = async (ticketId) => {
+  const res = await api.get(`/tickets/${ticketId}/comments`);
+  return res.data;
+};
+
+export const addTicketComment = async (ticketId, body) => {
+  const res = await api.post(`/tickets/${ticketId}/comments`, { body });
+  return res.data;
+};
+
+// Only the comment's author can delete it.
+export const deleteTicketComment = async (ticketId, commentId) => {
+  const res = await api.delete(`/tickets/${ticketId}/comments/${commentId}`);
+  return res.data;
+};

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { MessageSquare } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -11,6 +12,9 @@ import {
   uploadTicketImage,
   removeTicketImage,
   getTicketAssignees,
+  getTicketComments,
+  addTicketComment,
+  deleteTicketComment,
 } from "../../api/tickets";
 
 const getErrorMessage = (error) =>
@@ -183,6 +187,7 @@ export default function TicketsPage() {
             loadTickets();
           }}
           onImageChanged={loadTickets}
+          onCommentsChanged={loadTickets}
         />
       )}
     </div>
@@ -241,7 +246,18 @@ const TicketCard = ({ ticket, onDragStart, onClick }) => {
       )}
 
       <div className="mt-2 flex items-center justify-between text-[11px] text-fg-subtle">
-        <span>By {ticket.created_by_username || "Unknown"}</span>
+        <span className="flex items-center gap-2">
+          By {ticket.created_by_username || "Unknown"}
+          {ticket.comment_count > 0 && (
+            <span
+              className="flex items-center gap-0.5"
+              title={`${ticket.comment_count} comment(s)`}
+            >
+              <MessageSquare size={11} />
+              {ticket.comment_count}
+            </span>
+          )}
+        </span>
         {ticket.assigned_to_username && (
           <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary">
             {ticket.assigned_to_username}
@@ -505,6 +521,7 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
 const TicketDetailModal = ({
   ticket,
   users = [],
+  onCommentsChanged,
   onClose,
   onChanged,
   onImageChanged,
@@ -735,6 +752,8 @@ const TicketDetailModal = ({
           </div>
         </div>
 
+        <TicketComments ticket={ticket} onChanged={onCommentsChanged} />
+
         <div className="mt-6 flex items-center justify-between gap-2">
           <button
             type="button"
@@ -766,5 +785,143 @@ const TicketDetailModal = ({
         </div>
       </div>
     </div>
+  );
+};
+
+// Comment thread inside the ticket window: the creator adds remarks or
+// follow-ups, IT replies. Saved immediately (separate from the ticket's
+// Save button). Each person can delete only their own comments.
+const TicketComments = ({ ticket, onChanged }) => {
+  const [comments, setComments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [body, setBody] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getTicketComments(ticket.id)
+      .then((data) => {
+        if (!cancelled) setComments(data);
+      })
+      .catch((error) => {
+        if (!cancelled) toast.error(getErrorMessage(error));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ticket.id]);
+
+  const handlePost = async () => {
+    const text = body.trim();
+    if (!text) return;
+    try {
+      setPosting(true);
+      const comment = await addTicketComment(ticket.id, text);
+      setComments((prev) => [...prev, comment]);
+      setBody("");
+      onChanged?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const handleDelete = async (comment) => {
+    if (!(await confirmDialog("Delete this comment?"))) return;
+    try {
+      await deleteTicketComment(ticket.id, comment.id);
+      setComments((prev) => prev.filter((c) => c.id !== comment.id));
+      onChanged?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  return (
+    <section className="mt-6 border-t border-border pt-4">
+      <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-fg">
+        <MessageSquare size={15} />
+        Comments {comments.length > 0 && `(${comments.length})`}
+      </h4>
+
+      {loading ? (
+        <p className="text-xs text-fg-subtle">Loading comments...</p>
+      ) : comments.length === 0 ? (
+        <p className="text-xs text-fg-subtle">
+          No comments yet. Add remarks or follow-ups below.
+        </p>
+      ) : (
+        <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+          {comments.map((comment) => (
+            <li
+              key={comment.id}
+              className={`rounded-xl border p-3 text-sm ${
+                comment.is_mine
+                  ? "border-primary/30 bg-primary/5"
+                  : "border-border bg-surface-hover"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-fg">
+                  {comment.user_name || "Unknown"}
+                  {comment.is_creator && (
+                    <span className="rounded-full bg-surface-active px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">
+                      Creator
+                    </span>
+                  )}
+                </span>
+                <span className="flex items-center gap-2 text-[11px] text-fg-subtle">
+                  {comment.created_at
+                    ? new Date(comment.created_at + "Z").toLocaleString()
+                    : ""}
+                  {comment.is_mine && (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(comment)}
+                      className="text-fg-subtle hover:text-danger"
+                      aria-label="Delete comment"
+                      title="Delete comment"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </span>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-fg-muted">
+                {comment.body}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="mt-3 flex items-end gap-2">
+        <textarea
+          rows={2}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              handlePost();
+            }
+          }}
+          placeholder="Write a comment... (Ctrl+Enter to post)"
+          className="w-full resize-none rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+        />
+        <button
+          type="button"
+          onClick={handlePost}
+          disabled={posting || !body.trim()}
+          className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+        >
+          {posting ? "Posting..." : "Post"}
+        </button>
+      </div>
+    </section>
   );
 };
