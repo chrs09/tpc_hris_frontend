@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { MessageSquare } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
@@ -526,6 +526,14 @@ const TicketDetailModal = ({
   onChanged,
   onImageChanged,
 }) => {
+  const scrollRef = useRef(null);
+  // After posting, bring the new comment into view.
+  const thread = useTicketComments(ticket, onCommentsChanged, () =>
+    requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }),
+  );
   const [title, setTitle] = useState(ticket.title);
   const [description, setDescription] = useState(ticket.description || "");
   const [priority, setPriority] = useState(ticket.priority || "");
@@ -612,8 +620,10 @@ const TicketDetailModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
+      {/* Fixed height: title bar and comment box stay put, the middle
+          (details + comment thread) scrolls -- like a Facebook post. */}
+      <div className="flex h-[88vh] max-h-[860px] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-6 py-4">
           <h3 className="text-lg font-bold text-fg">
             Edit Ticket
             {ticket.ticket_no && (
@@ -631,6 +641,7 @@ const TicketDetailModal = ({
           </button>
         </div>
 
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
         <p className="mb-4 text-xs text-fg-subtle">
           Created by {ticket.created_by_username || "Unknown"} on{" "}
           {ticket.created_at
@@ -752,8 +763,6 @@ const TicketDetailModal = ({
           </div>
         </div>
 
-        <TicketComments ticket={ticket} onChanged={onCommentsChanged} />
-
         <div className="mt-6 flex items-center justify-between gap-2">
           <button
             type="button"
@@ -783,15 +792,23 @@ const TicketDetailModal = ({
             </button>
           </div>
         </div>
+
+        <CommentThread thread={thread} />
+        </div>
+
+        <div className="shrink-0 border-t border-border bg-surface px-6 py-3">
+          <CommentComposer thread={thread} />
+        </div>
       </div>
     </div>
   );
 };
 
-// Comment thread inside the ticket window: the creator adds remarks or
-// follow-ups, IT replies. Saved immediately (separate from the ticket's
-// Save button). Each person can delete only their own comments.
-const TicketComments = ({ ticket, onChanged }) => {
+// Ticket comments: the creator adds remarks or follow-ups, IT replies.
+// Saved immediately (separate from the ticket's Save button). Each person
+// can delete only their own comments. The thread scrolls with the ticket
+// details; the composer is pinned at the bottom of the window.
+const useTicketComments = (ticket, onChanged, onPosted) => {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState("");
@@ -814,7 +831,7 @@ const TicketComments = ({ ticket, onChanged }) => {
     };
   }, [ticket.id]);
 
-  const handlePost = async () => {
+  const post = async () => {
     const text = body.trim();
     if (!text) return;
     try {
@@ -823,6 +840,7 @@ const TicketComments = ({ ticket, onChanged }) => {
       setComments((prev) => [...prev, comment]);
       setBody("");
       onChanged?.();
+      onPosted?.();
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -830,7 +848,7 @@ const TicketComments = ({ ticket, onChanged }) => {
     }
   };
 
-  const handleDelete = async (comment) => {
+  const remove = async (comment) => {
     if (!(await confirmDialog("Delete this comment?"))) return;
     try {
       await deleteTicketComment(ticket.id, comment.id);
@@ -840,6 +858,12 @@ const TicketComments = ({ ticket, onChanged }) => {
       toast.error(getErrorMessage(error));
     }
   };
+
+  return { comments, loading, body, setBody, posting, post, remove };
+};
+
+const CommentThread = ({ thread }) => {
+  const { comments, loading, remove } = thread;
 
   return (
     <section className="mt-6 border-t border-border pt-4">
@@ -855,7 +879,7 @@ const TicketComments = ({ ticket, onChanged }) => {
           No comments yet. Add remarks or follow-ups below.
         </p>
       ) : (
-        <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+        <ul className="space-y-2">
           {comments.map((comment) => (
             <li
               key={comment.id}
@@ -881,7 +905,7 @@ const TicketComments = ({ ticket, onChanged }) => {
                   {comment.is_mine && (
                     <button
                       type="button"
-                      onClick={() => handleDelete(comment)}
+                      onClick={() => remove(comment)}
                       className="text-fg-subtle hover:text-danger"
                       aria-label="Delete comment"
                       title="Delete comment"
@@ -898,30 +922,36 @@ const TicketComments = ({ ticket, onChanged }) => {
           ))}
         </ul>
       )}
-
-      <div className="mt-3 flex items-end gap-2">
-        <textarea
-          rows={2}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-              e.preventDefault();
-              handlePost();
-            }
-          }}
-          placeholder="Write a comment... (Ctrl+Enter to post)"
-          className="w-full resize-none rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-        />
-        <button
-          type="button"
-          onClick={handlePost}
-          disabled={posting || !body.trim()}
-          className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
-        >
-          {posting ? "Posting..." : "Post"}
-        </button>
-      </div>
     </section>
+  );
+};
+
+const CommentComposer = ({ thread }) => {
+  const { body, setBody, posting, post } = thread;
+
+  return (
+    <div className="flex items-end gap-2">
+      <textarea
+        rows={2}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            post();
+          }
+        }}
+        placeholder="Write a comment... (Ctrl+Enter to post)"
+        className="max-h-32 w-full resize-none rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+      />
+      <button
+        type="button"
+        onClick={post}
+        disabled={posting || !body.trim()}
+        className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+      >
+        {posting ? "Posting..." : "Post"}
+      </button>
+    </div>
   );
 };
