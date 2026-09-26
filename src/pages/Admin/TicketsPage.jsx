@@ -10,9 +10,8 @@ import {
   deleteTicket,
   uploadTicketImage,
   removeTicketImage,
+  getTicketAssignees,
 } from "../../api/tickets";
-import { getAssignableUsers } from "../../api/users";
-import { getUserId } from "../../api/config";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -52,7 +51,8 @@ export default function TicketsPage() {
 
   useEffect(() => {
     loadTickets();
-    getAssignableUsers()
+    // Only IT employees can be assigned a ticket.
+    getTicketAssignees()
       .then((data) => setUsers(data))
       .catch(() => setUsers([]));
   }, [loadTickets]);
@@ -199,6 +199,11 @@ const TicketCard = ({ ticket, onDragStart, onClick }) => {
       onClick={onClick}
       className="cursor-grab rounded-xl border border-border bg-surface p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
     >
+      {ticket.ticket_no && (
+        <p className="mb-0.5 font-mono text-[10px] font-semibold tracking-wide text-fg-subtle">
+          {ticket.ticket_no}
+        </p>
+      )}
       <div className="flex items-start justify-between gap-2">
         <h4 className="text-sm font-semibold text-fg">{ticket.title}</h4>
         {ticket.priority && (
@@ -299,9 +304,6 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("");
-  // Defaults to assigning the ticket to whoever's creating it -- still
-  // editable before submitting, in case it's meant for someone else.
-  const [assigneeId, setAssigneeId] = useState(getUserId() || "");
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -326,7 +328,6 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
         title: title.trim(),
         description: description.trim() || undefined,
         priority: priority || undefined,
-        assignedToUserId: assigneeId ? Number(assigneeId) : undefined,
       });
 
       if (image) {
@@ -426,16 +427,15 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
 
             <div>
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
-                Assign to (optional)
+                Assigned to
               </label>
-              <SearchSelect
-                value={users.find((u) => String(u.id) === String(assigneeId))}
-                options={users}
-                onChange={(u) => setAssigneeId(u?.id || "")}
-                placeholder="Unassigned"
-                getOptionLabel={(u) => u?.employee_name || u?.username || ""}
-                getOptionValue={(u) => u?.id}
-              />
+              <p className="rounded-xl border border-border bg-surface-hover p-3 text-sm text-fg-muted">
+                {users.length
+                  ? `IT -- ${users
+                      .map((u) => u.employee_name || u.username)
+                      .join(", ")}`
+                  : "IT (no IT employee set up yet)"}
+              </p>
             </div>
           </div>
 
@@ -567,7 +567,7 @@ const TicketDetailModal = ({
         status,
         // 0 explicitly unassigns -- see TicketUpdate's comment on the
         // backend for why this can't just be `null`/omitted.
-        assigned_to_user_id: assigneeId ? Number(assigneeId) : 0,
+        ...(assigneeId ? { assigned_to_user_id: Number(assigneeId) } : {}),
       });
       toast.success("Ticket updated.");
       onChanged();
@@ -597,7 +597,14 @@ const TicketDetailModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-bold text-fg">Edit Ticket</h3>
+          <h3 className="text-lg font-bold text-fg">
+            Edit Ticket
+            {ticket.ticket_no && (
+              <span className="ml-2 font-mono text-sm font-semibold text-fg-subtle">
+                {ticket.ticket_no}
+              </span>
+            )}
+          </h3>
           <button
             type="button"
             onClick={onClose}
@@ -714,13 +721,13 @@ const TicketDetailModal = ({
 
             <div className="col-span-2">
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
-                Assigned to
+                Assigned to (IT)
               </label>
               <SearchSelect
                 value={users.find((u) => String(u.id) === String(assigneeId))}
                 options={users}
-                onChange={(u) => setAssigneeId(u?.id || "")}
-                placeholder="Unassigned"
+                onChange={(u) => u && setAssigneeId(u.id)}
+                placeholder="Select IT employee"
                 getOptionLabel={(u) => u?.employee_name || u?.username || ""}
                 getOptionValue={(u) => u?.id}
               />

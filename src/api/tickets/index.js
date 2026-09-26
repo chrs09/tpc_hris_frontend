@@ -7,18 +7,15 @@ export const getTickets = async () => {
   return res.data;
 };
 
-export const createTicket = async ({
-  title,
-  description,
-  priority,
-  assignedToUserId,
-}) => {
-  const res = await api.post("/tickets", {
-    title,
-    description,
-    priority,
-    assigned_to_user_id: assignedToUserId,
-  });
+// Tickets are assigned to IT automatically (never the creator).
+export const createTicket = async ({ title, description, priority }) => {
+  const res = await api.post("/tickets", { title, description, priority });
+  return res.data;
+};
+
+// The IT employees a ticket can be (re)assigned to.
+export const getTicketAssignees = async () => {
+  const res = await api.get("/tickets/assignees");
   return res.data;
 };
 
