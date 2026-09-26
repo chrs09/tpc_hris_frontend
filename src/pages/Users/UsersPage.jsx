@@ -255,7 +255,11 @@ const UsersPage = () => {
           <div className="rounded-2xl border border-success/30 bg-success/10 p-4 text-success shadow-sm">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <div className="font-semibold">User Created Successfully</div>
+                <div className="font-semibold">
+                  {generatedCredentials.message === "Password reset successfully"
+                    ? "Password Reset Successfully"
+                    : "User Created Successfully"}
+                </div>
                 <div className="mt-1 text-sm">
                   Username: <strong>{generatedCredentials.username}</strong>
                 </div>

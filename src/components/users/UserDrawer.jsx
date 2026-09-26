@@ -43,6 +43,7 @@ const UserDrawer = ({
   const [employeeId, setEmployeeId] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [role, setRole] = useState("driver");
+  const [username, setUsername] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,6 +66,7 @@ const UserDrawer = ({
   useEffect(() => {
     if (editingUser) {
       setRole(editingUser.role);
+      setUsername(editingUser.username || "");
       setIsActive(editingUser.is_active);
       setReason("");
       fetchRevisions(editingUser.id);
@@ -108,11 +110,20 @@ const UserDrawer = ({
       return;
     }
 
+    const trimmedUsername = username.trim();
+    if (isEditMode && trimmedUsername.length < 3) {
+      setError("Username must be at least 3 characters.");
+      return;
+    }
+
     setLoading(true);
 
     try {
       if (isEditMode) {
         await updateUser(editingUser.id, {
+          ...(trimmedUsername !== editingUser.username
+            ? { username: trimmedUsername }
+            : {}),
           role,
           is_active: isActive,
           reason: reason.trim() || undefined,
@@ -135,9 +146,20 @@ const UserDrawer = ({
   };
 
   const handleResetPassword = async () => {
+    // A username typed in the box but not saved yet is saved first, so
+    // the credentials shown afterwards are the ones they'll actually use.
+    const newUsername = username.trim();
+    const renaming = newUsername !== editingUser.username;
+    if (renaming && newUsername.length < 3) {
+      setError("Username must be at least 3 characters.");
+      return;
+    }
+
     if (
       !(await confirmDialog(
-        `Reset ${editingUser.username}'s password? This immediately invalidates their current password.`,
+        renaming
+          ? `Save the new username "${newUsername}" and reset the password? This immediately invalidates their current password.`
+          : `Reset ${editingUser.username}'s password? This immediately invalidates their current password.`,
       ))
     ) {
       return;
@@ -145,6 +167,10 @@ const UserDrawer = ({
 
     try {
       setResettingPassword(true);
+
+      if (renaming) {
+        await updateUser(editingUser.id, { username: newUsername });
+      }
 
       const response = await resetUserPassword(editingUser.id);
 
@@ -175,8 +201,22 @@ const UserDrawer = ({
           {isEditMode && (
             <div className="bg-surface-hover p-4 rounded-xl border border-border space-y-3">
               <div>
-                <p className="text-xs text-fg-subtle">Username</p>
-                <p className="font-semibold">{editingUser.username}</p>
+                <label className="mb-1 block text-xs text-fg-subtle">
+                  Username
+                </label>
+                <input
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  maxLength={50}
+                  autoComplete="off"
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                {username.trim() !== editingUser.username && (
+                  <p className="mt-1 text-[11px] text-warning">
+                    They&apos;ll log in with the new username from now on.
+                    Their password doesn&apos;t change.
+                  </p>
+                )}
               </div>
 
               <div>

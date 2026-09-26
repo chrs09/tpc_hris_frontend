@@ -41,8 +41,9 @@ export const getUserRevisions = async (userId) => {
   return res.data;
 };
 
-// Resets a user's password to the lastname+birthday (MMDDYYYY) convention
-// and returns it once, same as account creation.
+// Resets a user's password to lastname+birthday (MMDDYYYY), or
+// lastname+current year if there's no birthday in the 201 file, and
+// returns it once, same as account creation.
 export const resetUserPassword = async (userId) => {
   const res = await api.post(`/users/${userId}/reset-password`);
   return res.data;
