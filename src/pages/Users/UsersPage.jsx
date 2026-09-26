@@ -256,16 +256,40 @@ const UsersPage = () => {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="font-semibold">
-                  {generatedCredentials.message === "Password reset successfully"
-                    ? "Password Reset Successfully"
-                    : "User Created Successfully"}
+                  {{
+                    username_updated: "Username Updated",
+                    password_reset: "Password Reset Successfully",
+                    username_and_password_updated:
+                      "Username and Password Updated",
+                  }[generatedCredentials.kind] || "User Created Successfully"}
                 </div>
                 <div className="mt-1 text-sm">
                   Username: <strong>{generatedCredentials.username}</strong>
+                  {generatedCredentials.previous_username && (
+                    <span className="ml-1 text-xs opacity-80">
+                      (was {generatedCredentials.previous_username})
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm">
-                  Temporary Password:{" "}
-                  <strong>{generatedCredentials.temporary_password}</strong>
+                  {generatedCredentials.temporary_password ? (
+                    <>
+                      {generatedCredentials.kind === "password_reset" ||
+                      generatedCredentials.kind ===
+                        "username_and_password_updated"
+                        ? "New Password: "
+                        : "Temporary Password: "}
+                      <strong>{generatedCredentials.temporary_password}</strong>
+                    </>
+                  ) : (
+                    <>
+                      Password: <strong>unchanged</strong>
+                      <span className="ml-1 text-xs opacity-80">
+                        -- their current password still works. Use Reset
+                        Password to issue a new one.
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 

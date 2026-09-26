@@ -120,14 +120,23 @@ const UserDrawer = ({
 
     try {
       if (isEditMode) {
+        const renamed = trimmedUsername !== editingUser.username;
         await updateUser(editingUser.id, {
-          ...(trimmedUsername !== editingUser.username
-            ? { username: trimmedUsername }
-            : {}),
+          ...(renamed ? { username: trimmedUsername } : {}),
           role,
           is_active: isActive,
           reason: reason.trim() || undefined,
         });
+        // Show the login they'll use now. The password can't be shown
+        // (only a one-way hash is stored) -- it simply didn't change.
+        if (renamed) {
+          setGeneratedCredentials({
+            kind: "username_updated",
+            username: trimmedUsername,
+            previous_username: editingUser.username,
+            temporary_password: null,
+          });
+        }
       } else {
         const response = await createUser({
           employee_id: parseInt(employeeId),
@@ -174,7 +183,11 @@ const UserDrawer = ({
 
       const response = await resetUserPassword(editingUser.id);
 
-      setGeneratedCredentials(response);
+      setGeneratedCredentials({
+        ...response,
+        kind: renaming ? "username_and_password_updated" : "password_reset",
+        previous_username: renaming ? editingUser.username : undefined,
+      });
 
       await refreshUsers();
 
