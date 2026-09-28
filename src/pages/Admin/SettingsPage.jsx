@@ -7,6 +7,7 @@ import {
   getMobileAppVersionEasHistory,
 } from "../../api/mobileAppVersion";
 import { Button } from "../../components/ui/button/Button";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 // The mobile app is currently distributed as a directly-sideloaded APK
 // (not through Google Play), which has no store-driven update
@@ -14,6 +15,7 @@ import { Button } from "../../components/ui/button/Button";
 // prompts testers to update when they're running an outdated build.
 // See tytan_mobile/src/hooks/useAppVersionCheck.ts.
 const SettingsPage = () => {
+  const canEditPage = usePageCanEdit();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -135,7 +137,8 @@ const SettingsPage = () => {
             </p>
           </div>
 
-          <Button
+          {canEditPage && (
+            <Button
             type="button"
             variant="outline"
             className="shrink-0"
@@ -170,6 +173,7 @@ const SettingsPage = () => {
           >
             {syncing ? "Syncing..." : "Sync from EAS"}
           </Button>
+          )}
         </div>
 
         {loading ? (
@@ -236,9 +240,11 @@ const SettingsPage = () => {
               </p>
             )}
 
-            <Button type="submit" disabled={saving}>
+            {canEditPage && (
+              <Button type="submit" disabled={saving}>
               {saving ? "Saving..." : "Save"}
             </Button>
+            )}
           </form>
         )}
       </div>
@@ -422,7 +428,8 @@ const SettingsPage = () => {
                       )}
                     </div>
 
-                    <Button
+                    {canEditPage && (
+                      <Button
                       type="button"
                       variant={isCurrent ? "outline" : "default"}
                       disabled={isCurrent}
@@ -432,6 +439,7 @@ const SettingsPage = () => {
                         ? "This is the current version"
                         : "Use as Current Version"}
                     </Button>
+                    )}
                     {!isCurrent && (
                       <p className="text-xs text-fg-subtle">
                         Loads this build into the form above -- nothing is

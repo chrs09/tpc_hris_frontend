@@ -37,6 +37,9 @@ import {
   deleteTruckType,
 } from "../../api/adminTripManagement/truckTypes";
 import { toast } from "react-hot-toast";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 // Remembers the user's Cards/List preference for the Vehicle List tab
 // across visits -- purely a per-browser UI convenience, not synced.
@@ -248,6 +251,7 @@ const DocumentFormSection = ({
 };
 
 export default function TripMaintenance() {
+  const canEditPage = usePageCanEdit();
   const [searchParams] = useSearchParams();
   const initialTab =
     searchParams.get("tab") === "maintenance" ? "maintenance" : "units";
@@ -314,8 +318,37 @@ export default function TripMaintenance() {
     }
   };
 
-  const unitsPagination = usePagination(vehicleUnits, 9);
-  const maintenancePagination = usePagination(maintenanceRecords, 10);
+  // One search box per tab.
+  const [unitSearch, setUnitSearch] = useState("");
+  const [recordSearch, setRecordSearch] = useState("");
+  const [truckTypeSearch, setTruckTypeSearch] = useState("");
+  const filteredUnits = vehicleUnits.filter((unit) =>
+    matchesSearch(
+      unitSearch,
+      unit.unit_code,
+      unit.plate_number,
+      unit.truck_type_name,
+      unit.truck_type_size,
+      unit.description,
+      unit.or_number,
+      unit.cr_number,
+    ),
+  );
+  const filteredRecords = maintenanceRecords.filter((record) =>
+    matchesSearch(
+      recordSearch,
+      record.vehicle_unit,
+      record.maintenance_type,
+      record.description,
+      record.service_date,
+      record.next_due_date,
+    ),
+  );
+  const filteredTruckTypes = truckTypes.filter((truckType) =>
+    matchesSearch(truckTypeSearch, truckType.name, truckType.size),
+  );
+  const unitsPagination = usePagination(filteredUnits, 9);
+  const maintenancePagination = usePagination(filteredRecords, 10);
 
   const loadVehicleUnits = async () => {
     try {
@@ -646,12 +679,15 @@ export default function TripMaintenance() {
                 />
                 <input
                   type="text"
-                  placeholder="Search unit..."
+                  value={unitSearch}
+                  onChange={(e) => setUnitSearch(e.target.value)}
+                  placeholder="Search unit, plate, type..."
                   className="border border-border rounded-lg pl-10 pr-4 py-2 bg-surface text-fg"
                 />
               </div>
 
-              <button
+              {canEditPage && (
+                <button
                 onClick={() => {
                   setEditingUnit(null);
 
@@ -664,6 +700,7 @@ export default function TripMaintenance() {
                 <Plus size={18} />
                 Add Unit
               </button>
+              )}
             </div>
 
             <div className="flex items-center gap-1 border border-border rounded-lg p-1 self-start bg-surface">
@@ -786,12 +823,14 @@ export default function TripMaintenance() {
                               >
                                 <ClipboardList size={16} />
                               </button>
-                              <button
+                              {canEditPage && (
+                                <button
                                 onClick={() => handleEditUnit(unit)}
                                 className="text-primary hover:text-primary-hover"
                               >
                                 <Pencil size={16} />
                               </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -862,12 +901,14 @@ export default function TripMaintenance() {
                     >
                       <ClipboardList size={16} />
                     </button>
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleEditUnit(unit)}
                       className="text-primary hover:text-primary-hover"
                     >
                       <Pencil size={16} />
                     </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -886,8 +927,14 @@ export default function TripMaintenance() {
       {/* VEHICLE MAINTENANCE */}
       {activeTab === "maintenance" && (
         <>
-          <div className="flex justify-between mb-4">
-            <button
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <SearchInput
+              value={recordSearch}
+              onChange={setRecordSearch}
+              placeholder="Search unit, type, date..."
+            />
+            {canEditPage && (
+              <button
               onClick={() => {
                 setEditingRecord(null);
                 setMaintenanceForm(EMPTY_MAINTENANCE_FORM);
@@ -898,6 +945,7 @@ export default function TripMaintenance() {
               <Plus size={18} />
               Add Record
             </button>
+            )}
           </div>
 
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
@@ -914,7 +962,7 @@ export default function TripMaintenance() {
                 </tr>
               </thead>
               <tbody>
-                {maintenanceRecords.length === 0 ? (
+                {filteredRecords.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="text-center py-6 text-fg-subtle">
                       No maintenance records
@@ -946,18 +994,22 @@ export default function TripMaintenance() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button
+                          {canEditPage && (
+                            <button
                             onClick={() => handleEditRecord(record)}
                             className="text-primary hover:text-primary-hover"
                           >
                             <Pencil size={16} />
                           </button>
-                          <button
+                          )}
+                          {canEditPage && (
+                            <button
                             onClick={() => handleDeleteRecord(record)}
                             className="text-danger hover:text-danger-hover"
                           >
                             <Trash2 size={16} />
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1019,7 +1071,8 @@ export default function TripMaintenance() {
               </div>
 
               <div className="flex gap-2 pt-1">
-                <button
+                {canEditPage && (
+                  <button
                   onClick={
                     editingTruckType
                       ? handleUpdateTruckType
@@ -1030,6 +1083,7 @@ export default function TripMaintenance() {
                   <Plus size={16} />
                   {editingTruckType ? "Save" : "Add"}
                 </button>
+                )}
 
                 {editingTruckType && (
                   <button
@@ -1043,7 +1097,13 @@ export default function TripMaintenance() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 bg-surface border border-border rounded-xl overflow-hidden">
+          <div className="lg:col-span-2 space-y-3">
+          <SearchInput
+            value={truckTypeSearch}
+            onChange={setTruckTypeSearch}
+            placeholder="Search truck types..."
+          />
+          <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm text-fg">
               <thead className="bg-surface-hover text-fg-muted">
                 <tr>
@@ -1053,14 +1113,14 @@ export default function TripMaintenance() {
                 </tr>
               </thead>
               <tbody>
-                {truckTypes.length === 0 ? (
+                {filteredTruckTypes.length === 0 ? (
                   <tr>
                     <td colSpan="3" className="text-center py-6 text-fg-subtle">
                       No truck types yet
                     </td>
                   </tr>
                 ) : (
-                  truckTypes.map((truckType) => (
+                  filteredTruckTypes.map((truckType) => (
                     <tr
                       key={truckType.id}
                       className="border-t border-border hover:bg-surface-hover"
@@ -1071,18 +1131,22 @@ export default function TripMaintenance() {
                       <td className="px-4 py-3">{truckType.size || "-"}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button
+                          {canEditPage && (
+                            <button
                             onClick={() => handleEditTruckType(truckType)}
                             className="text-primary hover:text-primary-hover"
                           >
                             <Pencil size={16} />
                           </button>
-                          <button
+                          )}
+                          {canEditPage && (
+                            <button
                             onClick={() => handleDeleteTruckType(truckType)}
                             className="text-danger hover:text-danger-hover"
                           >
                             <Trash2 size={16} />
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1090,6 +1154,7 @@ export default function TripMaintenance() {
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         </div>
       )}

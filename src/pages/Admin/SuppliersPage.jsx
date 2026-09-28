@@ -11,6 +11,9 @@ import usePagination from "../../hooks/usePagination";
 import useViewType from "../../hooks/useViewType";
 import Pagination from "../../components/ui/pagination/Pagination";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const EMPTY_FORM = {
   name: "",
@@ -21,13 +24,25 @@ const EMPTY_FORM = {
 };
 
 export default function SuppliersPage() {
+  const canEditPage = usePageCanEdit();
   const [suppliers, setSuppliers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewType, setViewType] = useViewType("suppliers_view_type");
+  const [search, setSearch] = useState("");
+  const filteredSuppliers = suppliers.filter((supplier) =>
+    matchesSearch(
+      search,
+      supplier.name,
+      supplier.contact_person,
+      supplier.phone,
+      supplier.email,
+      supplier.address,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    suppliers,
+    filteredSuppliers,
     9,
   );
 
@@ -91,8 +106,9 @@ export default function SuppliersPage() {
         <p className="text-fg-muted mt-1">Manage your supplier contacts.</p>
       </div>
 
-      <div className="flex justify-between items-center mb-4">
-        <button
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        {canEditPage && (
+          <button
           onClick={() => {
             setEditingSupplier(null);
             setForm(EMPTY_FORM);
@@ -103,7 +119,14 @@ export default function SuppliersPage() {
           <Plus size={18} />
           Add Supplier
         </button>
+        )}
 
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search suppliers..."
+          className="sm:ml-auto"
+        />
         <ViewToggle viewType={viewType} onChange={setViewType} />
       </div>
 
@@ -154,12 +177,14 @@ export default function SuppliersPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleEdit(supplier)}
                       className="text-primary hover:text-primary-hover"
                     >
                       <Pencil size={16} />
                     </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -198,12 +223,14 @@ export default function SuppliersPage() {
                   {supplier.is_active ? "Active" : "Inactive"}
                 </span>
 
-                <button
+                {canEditPage && (
+                  <button
                   onClick={() => handleEdit(supplier)}
                   className="text-primary hover:text-primary-hover"
                 >
                   <Pencil size={16} />
                 </button>
+                )}
               </div>
             </div>
           ))}

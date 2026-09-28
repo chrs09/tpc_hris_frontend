@@ -9,6 +9,8 @@ const MaintenanceModal = ({
   onSave,
   saveLabel = "Save",
   cancelLabel = "Cancel",
+  // Hide the save/primary button (e.g. view-only access).
+  hideSave = false,
 }) => {
   if (!isOpen) return null;
 
@@ -36,12 +38,14 @@ const MaintenanceModal = ({
             {cancelLabel}
           </button>
 
+          {!hideSave && (
           <button
             onClick={onSave}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover"
           >
             {saveLabel}
           </button>
+          )}
         </div>
       </div>
     </div>

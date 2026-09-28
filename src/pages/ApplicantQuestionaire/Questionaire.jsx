@@ -9,6 +9,7 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const initialForm = {
   target_role: "driver",
@@ -21,6 +22,7 @@ const initialForm = {
 };
 
 export default function Questionaire() {
+  const canEditPage = usePageCanEdit();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -192,13 +194,15 @@ export default function Questionaire() {
               </p>
             </div>
 
-            <button
+            {canEditPage && (
+              <button
               type="button"
               onClick={handleAddClick}
               className="rounded-2xl bg-fg px-5 py-3 text-sm font-medium text-background hover:opacity-90"
             >
               Add Question
             </button>
+            )}
           </div>
         </div>
 
@@ -495,13 +499,15 @@ export default function Questionaire() {
                       </div>
                     </div>
 
-                    <button
+                    {canEditPage && (
+                      <button
                       type="button"
                       onClick={() => handleEditClick(question)}
                       className="mt-3 w-full rounded-xl border border-border px-3 py-2 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                     >
                       Edit
                     </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -560,13 +566,15 @@ export default function Questionaire() {
                           </span>
                         </td>
                         <td className="px-3 py-3">
-                          <button
+                          {canEditPage && (
+                            <button
                             type="button"
                             onClick={() => handleEditClick(question)}
                             className="rounded-xl border border-border px-3 py-2 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                           >
                             Edit
                           </button>
+                          )}
                         </td>
                       </tr>
                     ))}

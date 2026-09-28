@@ -33,6 +33,9 @@ import {
   faBoxArchive,
   faPenToSquare,
 } from "@fortawesome/free-solid-svg-icons";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 /* Leaflet icon fix */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -125,6 +128,7 @@ const PendingTripsCard = ({
   onArchived,
   mode = "pending",
 }) => {
+  const canEditPage = usePageCanEdit();
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
@@ -223,8 +227,22 @@ const PendingTripsCard = ({
   // Clamps back to the new last page (rather than an empty page) once
   // the current page's last row is archived/approved away -- see
   // usePagination's render-time clamp.
+  const [search, setSearch] = useState("");
+  const filteredTrips = trips.filter((trip) =>
+    matchesSearch(
+      search,
+      trip.id,
+      trip.trip_code,
+      trip.username,
+      trip.ticket_no,
+      trip.stores,
+      trip.start_time,
+      trip.status_label,
+      trip.finance_approved_by,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
-    usePagination(trips, 5);
+    usePagination(filteredTrips, 5);
 
   const handleReview = async (tripId) => {
     const res = await reviewTrip(tripId);
@@ -353,6 +371,9 @@ const PendingTripsCard = ({
 
   return (
     <>
+      <div className="mb-3 flex justify-end">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search trip, driver, shipment, store..." />
+      </div>
       {/* ======================= DESKTOP TABLE ======================= */}
       <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full text-sm text-fg">
@@ -429,7 +450,8 @@ const PendingTripsCard = ({
                       {mode === "pending" ? "Review" : "View"}
                     </button>
 
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleArchive(trip)}
                       disabled={archivingId === trip.id}
                       title="Archive trip"
@@ -437,6 +459,7 @@ const PendingTripsCard = ({
                     >
                       <FontAwesomeIcon icon={faBoxArchive} />
                     </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -475,7 +498,8 @@ const PendingTripsCard = ({
                   <FontAwesomeIcon icon={faEye} />
                 </button>
 
-                <button
+                {canEditPage && (
+                  <button
                   onClick={() => handleArchive(trip)}
                   disabled={archivingId === trip.id}
                   title="Archive trip"
@@ -483,6 +507,7 @@ const PendingTripsCard = ({
                 >
                   <FontAwesomeIcon icon={faBoxArchive} />
                 </button>
+                )}
               </div>
             </div>
 
@@ -711,7 +736,8 @@ const PendingTripsCard = ({
                                   Page {i + 1}
                                 </button>
                                 {canReplacePhotos && (
-                                <button
+                                (canEditPage ? (
+                                  <button
                                   type="button"
                                   onClick={() => triggerReplace(photo.id)}
                                   disabled={replacingFileId === photo.id}
@@ -720,6 +746,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                ) : null)
                                 )}
                               </div>
                             ))}
@@ -757,7 +784,8 @@ const PendingTripsCard = ({
                                   Page {i + 1}
                                 </button>
                                 {canReplacePhotos && (
-                                <button
+                                (canEditPage ? (
+                                  <button
                                   type="button"
                                   onClick={() => triggerReplace(photo.id)}
                                   disabled={replacingFileId === photo.id}
@@ -766,6 +794,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                ) : null)
                                 )}
                               </div>
                             ))}
@@ -799,7 +828,8 @@ const PendingTripsCard = ({
                               <FontAwesomeIcon icon={faEye} />
                             </button>
                             {canReplacePhotos && (
-                            <button
+                            (canEditPage ? (
+                              <button
                               type="button"
                               onClick={() =>
                                 triggerReplace(
@@ -815,6 +845,7 @@ const PendingTripsCard = ({
                             >
                               <FontAwesomeIcon icon={faPenToSquare} />
                             </button>
+                            ) : null)
                             )}
                           </div>
                         ) : (
@@ -856,7 +887,8 @@ const PendingTripsCard = ({
                           <FontAwesomeIcon icon={faEye} />
                         </button>
                         {canReplacePhotos && (
-                        <button
+                        (canEditPage ? (
+                          <button
                           type="button"
                           onClick={() =>
                             triggerReplace(selectedTrip.stamped_invoice_photo.id)
@@ -870,6 +902,7 @@ const PendingTripsCard = ({
                         >
                           <FontAwesomeIcon icon={faPenToSquare} />
                         </button>
+                        ) : null)
                         )}
                       </div>
                     ) : (
@@ -975,7 +1008,8 @@ const PendingTripsCard = ({
                                   <FontAwesomeIcon icon={faEye} />
                                 </button>
                                 {canReplacePhotos && (
-                                <button
+                                (canEditPage ? (
+                                  <button
                                   type="button"
                                   onClick={() =>
                                     triggerReplace(stop.unloading_photo.id)
@@ -988,6 +1022,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                ) : null)
                                 )}
                               </div>
                             ) : (
@@ -1014,7 +1049,8 @@ const PendingTripsCard = ({
                                   <FontAwesomeIcon icon={faEye} />
                                 </button>
                                 {canReplacePhotos && (
-                                <button
+                                (canEditPage ? (
+                                  <button
                                   type="button"
                                   onClick={() =>
                                     triggerReplace(stop.delivery_proof_photo.id)
@@ -1028,6 +1064,7 @@ const PendingTripsCard = ({
                                 >
                                   <FontAwesomeIcon icon={faPenToSquare} />
                                 </button>
+                                ) : null)
                                 )}
                               </div>
                             ) : (
@@ -1218,7 +1255,8 @@ const PendingTripsCard = ({
                           }
                           className="w-full text-sm text-fg-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-active file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-fg"
                         />
-                        <button
+                        {canEditPage && (
+                          <button
                           type="button"
                           onClick={handleAddRemark}
                           disabled={
@@ -1228,6 +1266,7 @@ const PendingTripsCard = ({
                         >
                           {addingRemark ? "Adding..." : "Add Remark"}
                         </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1274,7 +1313,8 @@ const PendingTripsCard = ({
                       )}
                     </div>
 
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={handleApprove}
                       disabled={submitting}
                       className="mt-6 bg-primary text-primary-foreground hover:bg-primary-hover py-3 w-full rounded-xl font-bold disabled:opacity-60"
@@ -1283,6 +1323,7 @@ const PendingTripsCard = ({
                         ? "Approving..."
                         : "Approve & Send to Office Review"}
                     </button>
+                    )}
                   </>
                 )}
               </div>

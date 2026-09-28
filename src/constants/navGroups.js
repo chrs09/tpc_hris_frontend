@@ -271,6 +271,14 @@ export function getNavGroups(role) {
           moduleKey: "administrator.hierarchy",
         },
         {
+          // Same access as Hierarchy (it's a visual view of it). Only a
+          // real superadmin can change a head's module access from here.
+          label: "Org Chart",
+          path: "/dashboard/org-chart",
+          roles: ["superadmin"],
+          moduleKey: "administrator.hierarchy",
+        },
+        {
           // Not module-grantable -- see modules.js: granting this would
           // let a non-superadmin grant themselves further access.
           label: "Module Assignment",

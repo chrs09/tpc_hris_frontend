@@ -36,3 +36,31 @@ export const setCashAdvanceHead = async (department, headUserId) => {
   });
   return res.data;
 };
+
+// Org chart tree (Administrator -> Org Chart): units with their head,
+// member rules and resolved members, plus choices for the rule pickers.
+export const getOrgChart = async () => {
+  const res = await api.get("/org-chart");
+  return res.data;
+};
+
+// Superadmin only.
+export const createOrgUnit = async (name, parentId) => {
+  const res = await api.post("/org-chart/units", {
+    name,
+    parent_id: parentId ?? null,
+  });
+  return res.data;
+};
+
+// changes: { name, parent_id (-1 = top level), head_user_id (0 = none),
+//   positions, roles, departments, employee_ids }
+export const updateOrgUnit = async (unitId, changes) => {
+  const res = await api.put(`/org-chart/units/${unitId}`, changes);
+  return res.data;
+};
+
+export const deleteOrgUnit = async (unitId) => {
+  const res = await api.delete(`/org-chart/units/${unitId}`);
+  return res.data;
+};

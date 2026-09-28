@@ -11,6 +11,7 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const money = (value) =>
   new Intl.NumberFormat("en-PH", {
@@ -193,6 +194,7 @@ const buildExpenseFormData = (expense) => {
 };
 
 export default function FinanceExpenses() {
+  const canEditPage = usePageCanEdit();
   const [rows, setRows] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -479,13 +481,15 @@ export default function FinanceExpenses() {
             </p>
           </div>
 
-          <button
+          {canEditPage && (
+            <button
             type="button"
             onClick={openCreate}
             className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary-hover"
           >
             + Add Expense
           </button>
+          )}
         </div>
 
         {/* ======================================
@@ -663,13 +667,15 @@ export default function FinanceExpenses() {
                         View
                       </button>
 
-                      <button
+                      {canEditPage && (
+                        <button
                         type="button"
                         onClick={() => openEdit(row)}
                         className="rounded-md px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                       >
                         Edit
                       </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -761,13 +767,15 @@ export default function FinanceExpenses() {
                             View
                           </button>
 
-                          <button
+                          {canEditPage && (
+                            <button
                             type="button"
                             onClick={() => openEdit(row)}
                             className="rounded-md px-2.5 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                           >
                             Edit
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -27,6 +27,9 @@ import {
   User,
 } from "lucide-react";
 import TripRemarksList from "../adminTrips/TripRemarksList";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -74,14 +77,29 @@ function FitBounds({ coordinates }) {
 }
 
 export default function FinanceReviewCard({ trips = [], refreshTrips }) {
+  const canEditPage = usePageCanEdit();
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [activePhoto, setActivePhoto] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [approving, setApproving] = useState(false);
 
+  const [search, setSearch] = useState("");
+  const filteredTrips = trips.filter((trip) =>
+    matchesSearch(
+      search,
+      trip.shipment_number,
+      trip.ticket_no,
+      trip.driver_first_name,
+      trip.driver_last_name,
+      `${trip.driver_first_name || ""} ${trip.driver_last_name || ""}`,
+      trip.coordinator_name,
+      trip.coordinator_remarks,
+      trip.office_remarks,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
-    usePagination(trips, 5);
+    usePagination(filteredTrips, 5);
 
   const handleCloseModal = () => {
     if (approving) {
@@ -209,6 +227,14 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
 
   return (
     <>
+      <div className="mb-3 flex justify-end">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search shipment, driver, coordinator..."
+        />
+      </div>
+
       {/* DESKTOP TABLE */}
       <div className="hidden overflow-hidden rounded-xl bg-surface md:block">
         <table className="w-full text-sm text-fg">
@@ -738,7 +764,8 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                   )}
 
                   {selectedTrip.status === "finance_review" && (
-                    <button
+                    (canEditPage ? (
+                      <button
                       type="button"
                       onClick={handleApprove}
                       disabled={approving}
@@ -746,6 +773,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                     >
                       {approving ? "Approving..." : "Approve Trip"}
                     </button>
+                    ) : null)
                   )}
                 </div>
               </div>

@@ -9,8 +9,10 @@ import Pagination from "../../components/ui/pagination/Pagination";
 import useModuleAccess from "../../hooks/useModuleAccess";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { toast } from "react-hot-toast";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const UsersPage = () => {
+  const canEditPage = usePageCanEdit();
   const { isVisible } = useModuleAccess();
   const canAccess = isVisible({
     roles: ["superadmin"],
@@ -230,15 +232,18 @@ const UsersPage = () => {
               />
             </div>
 
-            <Button
+            {canEditPage && (
+              <Button
               className="border border-border bg-surface px-4 py-2 text-fg shadow-sm transition hover:bg-surface-hover disabled:opacity-60"
               onClick={handleBulkCreate}
               disabled={bulkCreating}
             >
               {bulkCreating ? "Creating..." : "Bulk Create Accounts"}
             </Button>
+            )}
 
-            <Button
+            {canEditPage && (
+              <Button
               className="bg-primary px-4 py-2 text-primary-foreground shadow-sm transition hover:bg-primary-hover"
               onClick={() => {
                 setEditingUser(null);
@@ -247,6 +252,7 @@ const UsersPage = () => {
             >
               + Create User
             </Button>
+            )}
           </div>
         </div>
 

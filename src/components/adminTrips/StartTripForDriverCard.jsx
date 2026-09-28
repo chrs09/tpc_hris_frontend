@@ -8,6 +8,7 @@ import {
   getAvailableVehicleUnits,
   dispatchTrip,
 } from "../../api/tripManagement";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -36,6 +37,7 @@ export default function StartTripForDriverCard({
   onStarted,
   alwaysExpanded = false,
 }) {
+  const canEditPage = usePageCanEdit();
   const [expanded, setExpanded] = useState(alwaysExpanded);
 
   const [drivers, setDrivers] = useState([]);
@@ -555,13 +557,15 @@ export default function StartTripForDriverCard({
               </div>
               )}
 
-              <button
+              {canEditPage && (
+                <button
                 onClick={handleSubmit}
                 disabled={submitting || !canSubmit}
                 className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {submitting ? "Dispatching..." : "Dispatch Trip"}
               </button>
+              )}
             </>
           )}
         </div>

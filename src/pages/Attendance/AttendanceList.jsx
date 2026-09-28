@@ -47,15 +47,13 @@ import { DatePicker } from "@mui/x-date-pickers";
 
 const AttendanceList = () => {
   const today = format(new Date(), "yyyy-MM-dd");
-  const role = localStorage.getItem("role");
-  const isSuperAdmin = role === "superadmin";
 
   // Sub-permissions under the "Attendance" module (Module Assignment page)
   // -- lets a customized employee be granted just one of the two view
   // modes below instead of the whole page. Unset (not customized) always
   // means both are open, same fallback rule useModuleAccess.isVisible uses
   // for every other nav item.
-  const { hasCustomAccess, grantedModules } = useModuleAccess();
+  const { hasCustomAccess, grantedModules, canEditModule } = useModuleAccess();
   // Neither view-specific key granted (even though this employee's
   // access is otherwise customized) means the superadmin never bothered
   // narrowing it down -- granting "Attendance" alone still opens both
@@ -72,7 +70,16 @@ const AttendanceList = () => {
     !hasAnyAttendanceViewGrant ||
     grantedModules.has("hris.attendance_grid_view");
 
-  const { isEditableDate, formattedRange } = useAttendanceWeek(isSuperAdmin);
+  // Superadmin, or granted this view with "Can edit: Yes" on the Org
+  // Chart -- same rule the backend enforces for attendance edits.
+  const canEditList =
+    canEditModule("hris.attendance_list_view") ||
+    canEditModule("hris.attendance_grid_view");
+  const canEditGrid = canEditModule("hris.attendance_grid_view");
+
+  const { isEditableDate, formattedRange } = useAttendanceWeek(
+    canEditList || canEditGrid,
+  );
 
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
   const [attendanceData, setAttendanceData] = useState([]);
@@ -767,7 +774,7 @@ const AttendanceList = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          {viewMode === "table" && isSuperAdmin && (
+          {viewMode === "table" && canEditList && (
             <Button onClick={() => setShowBulkModal(true)}>
               Check Attendance
             </Button>
@@ -893,7 +900,7 @@ const AttendanceList = () => {
             statusColors={statusColors}
             getStatusSymbol={getStatusSymbol}
             isEditableDate={isEditableDate}
-            isSuperAdmin={isSuperAdmin}
+            isSuperAdmin={canEditList}
             today={today}
             onPreviewAttendance={(attendance, type) =>
               setPreviewModal({
@@ -930,7 +937,7 @@ const AttendanceList = () => {
           onRejectAttendance={handleRejectAttendance}
           onUpdateAttendance={handleUpdateAttendance}
           onSetStatus={handleSetAttendanceStatus}
-          isSuperAdmin={isSuperAdmin}
+          isSuperAdmin={canEditGrid}
         />
       )}
 

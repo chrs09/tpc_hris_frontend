@@ -11,6 +11,9 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const EMPTY_FORM = {
   profile_name: "",
@@ -22,12 +25,17 @@ const EMPTY_FORM = {
 };
 
 export default function TripCategoriesPage() {
+  const canEditPage = usePageCanEdit();
   const [tripRates, setTripRates] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [search, setSearch] = useState("");
+  const filteredRates = tripRates.filter((rate) =>
+    matchesSearch(search, rate.profile_name, rate.code, rate.helper_count),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    tripRates,
+    filteredRates,
     9,
   );
 
@@ -105,8 +113,14 @@ export default function TripCategoriesPage() {
         </p>
       </div>
 
-      <div className="flex justify-between mb-4">
-        <button
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search categories..."
+        />
+        {canEditPage && (
+          <button
           onClick={() => {
             setEditingProfile(null);
             setForm(EMPTY_FORM);
@@ -117,6 +131,7 @@ export default function TripCategoriesPage() {
           <Plus size={18} />
           Add Category
         </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -169,12 +184,14 @@ export default function TripCategoriesPage() {
             </div>
 
             <div className="flex justify-between">
-              <button
+              {canEditPage && (
+                <button
                 onClick={() => handleEdit(rate)}
                 className="p-2 rounded-lg hover:bg-primary/10 text-primary"
               >
                 <Pencil size={18} />
               </button>
+              )}
             </div>
           </div>
         ))}

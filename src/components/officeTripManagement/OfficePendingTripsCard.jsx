@@ -22,10 +22,24 @@ import TripRemarksList from "../adminTrips/TripRemarksList";
 import BypassRemarksList from "../adminTrips/BypassRemarksList";
 import useViewType from "../../hooks/useViewType";
 import ViewToggle from "../ui/viewToggle/ViewToggle";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
+  const canEditPage = usePageCanEdit();
+  const [search, setSearch] = useState("");
+  const filteredTrips = trips.filter((trip) =>
+    matchesSearch(
+      search,
+      trip.ticket_no,
+      trip.username,
+      trip.coordinator_name,
+      trip.coordinator_remarks,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    trips,
+    filteredTrips,
     9,
   );
   const [viewType, setViewType] = useViewType("office_trip_review_view_type");
@@ -228,7 +242,12 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
         </div>
       )}
 
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search shipment, driver, coordinator..."
+        />
         <ViewToggle viewType={viewType} onChange={setViewType} />
       </div>
 
@@ -295,7 +314,8 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                         >
                           {loadingReview ? "Loading..." : "Review Trip"}
                         </button>
-                        <button
+                        {canEditPage && (
+                          <button
                           type="button"
                           onClick={() => handleArchive(trip)}
                           disabled={archivingId === trip.trip_id}
@@ -304,6 +324,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                         >
                           {archivingId === trip.trip_id ? "..." : "Archive"}
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -397,7 +418,8 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                 {loadingReview ? "Loading..." : "Review Trip"}
               </button>
 
-              <button
+              {canEditPage && (
+                <button
                 type="button"
                 onClick={() => handleArchive(trip)}
                 disabled={archivingId === trip.trip_id}
@@ -406,6 +428,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
               >
                 {archivingId === trip.trip_id ? "..." : "Archive"}
               </button>
+              )}
             </div>
           </div>
         ))}
@@ -824,7 +847,8 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                   )}
 
                   <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                    <button
+                    {canEditPage && (
+                      <button
                       type="button"
                       onClick={handleForwardToFinance}
                       disabled={submitting || returning}
@@ -832,8 +856,10 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                     >
                       {submitting ? "Forwarding..." : "Forward to Finance Review"}
                     </button>
+                    )}
 
-                    <button
+                    {canEditPage && (
+                      <button
                       type="button"
                       onClick={handleReturnToApproval}
                       disabled={submitting || returning}
@@ -841,6 +867,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                     >
                       {returning ? "Sending back..." : "Send Back for Correction"}
                     </button>
+                    )}
                   </div>
                 </div>
               </section>

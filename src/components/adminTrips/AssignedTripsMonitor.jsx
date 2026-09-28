@@ -5,6 +5,9 @@ import { promptDialog } from "../ui/dialog/dialogService";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import EditAssignedTripModal from "./EditAssignedTripModal";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 // Renders a trip's planned route as an ordered stop-by-stop chain
 // instead of a flat "Store A, Store B, Store C" string, so a
@@ -38,6 +41,7 @@ const DestinationSteps = ({ destinations }) => {
 // Trips the coordinator has dispatched but the driver hasn't checked
 // out (started) yet -- see GET /admin/trips/assigned.
 const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
+  const canEditPage = usePageCanEdit();
   const [cancellingId, setCancellingId] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
 
@@ -65,13 +69,29 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
     }
   };
 
+  const [search, setSearch] = useState("");
+  const filteredTrips = trips.filter((trip) =>
+    matchesSearch(
+      search,
+      trip.driver_name,
+      trip.trip_code,
+      trip.ticket_no,
+      trip.vehicle_unit,
+      trip.origin_store,
+      trip.destinations,
+      trip.dispatched_by_name,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    trips,
+    filteredTrips,
     10,
   );
 
   return (
     <>
+      <div className="mb-3 flex justify-end">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search driver, trip, shipment, store..." />
+      </div>
       {/* DESKTOP TABLE */}
       <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full text-fg text-sm">
@@ -124,20 +144,24 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
                   <td className="px-4 py-4">{trip.dispatched_at || "-"}</td>
                   <td className="px-4 py-4 text-right whitespace-nowrap">
                     {trip.editable && (
-                      <button
+                      (canEditPage ? (
+                        <button
                         onClick={() => setEditingTrip(trip)}
                         className="mr-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
                       >
                         Edit
                       </button>
+                      ) : null)
                     )}
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleCancel(trip)}
                       disabled={cancellingId === trip.id}
                       className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
                     >
                       {cancellingId === trip.id ? "Cancelling..." : "Cancel"}
                     </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -193,20 +217,24 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
               </div>
 
               {trip.editable && (
-                <button
+                (canEditPage ? (
+                  <button
                   onClick={() => setEditingTrip(trip)}
                   className="mt-3 mr-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
                 >
                   Edit trip
                 </button>
+                ) : null)
               )}
-              <button
+              {canEditPage && (
+                <button
                 onClick={() => handleCancel(trip)}
                 disabled={cancellingId === trip.id}
                 className="mt-3 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
               >
                 {cancellingId === trip.id ? "Cancelling..." : "Cancel trip"}
               </button>
+              )}
             </div>
           ))
         )}

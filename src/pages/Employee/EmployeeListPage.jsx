@@ -13,6 +13,7 @@ import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import useModuleAccess from "../../hooks/useModuleAccess";
 
 const SORT_BY_OPTIONS = [
   { value: "lastname", label: "Last Name" },
@@ -25,6 +26,10 @@ const SORT_ORDER_OPTIONS = [
 ];
 
 export default function EmployeeListPage() {
+  // Add/edit only for people allowed to change employee records (same
+  // rule as the backend: admin role, or HRIS -> Employees with "Can edit").
+  const { canEdit } = useModuleAccess();
+  const canEditEmployees = canEdit("hris.employees", ["admin"]);
   const [isActive, setIsActive] = useState(1);
   const { employees, loading, refetch } = useEmployees(isActive);
 
@@ -151,12 +156,14 @@ export default function EmployeeListPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="h-11 w-fit rounded-xl bg-primary px-5 text-primary-foreground shadow-sm transition hover:bg-primary-hover"
-          >
-            + Add Employee
-          </button>
+          {canEditEmployees && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="h-11 w-fit rounded-xl bg-primary px-5 text-primary-foreground shadow-sm transition hover:bg-primary-hover"
+            >
+              + Add Employee
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col gap-4 rounded-2xl bg-surface p-4 shadow-sm">
@@ -351,6 +358,7 @@ export default function EmployeeListPage() {
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 
       <EmployeeDrawer
+        canEdit={canEditEmployees}
         key={selectedEmployee?.id}
         isOpen={isViewOpen}
         employee={selectedEmployee}

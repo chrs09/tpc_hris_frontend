@@ -7,11 +7,26 @@ import { Trash2, Pencil } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const yearOptions = Array.from({ length: 10 }, (_, i) => 2024 + i);
 
 export default function HolidaysPage() {
+  const canEditPage = usePageCanEdit();
   const [holidays, setHolidays] = useState([]);
+  const [search, setSearch] = useState("");
+  const filteredHolidays = holidays.filter((h) =>
+    matchesSearch(
+      search,
+      h.holiday_name,
+      h.holiday_date,
+      h.holiday_type,
+      h.city,
+      h.scope,
+    ),
+  );
   const [year, setYear] = useState(new Date().getFullYear());
   const [showModal, setShowModal] = useState(false);
   const [editingHoliday, setEditingHoliday] = useState(null);
@@ -83,8 +98,14 @@ export default function HolidaysPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search holiday, date, city..."
+          />
+          {canEditPage && (
+            <button
             onClick={handleSync}
             disabled={syncing}
             className="flex items-center gap-1.5 text-sm font-medium text-fg-muted border border-border rounded-lg px-3.5 py-2 hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -104,7 +125,9 @@ export default function HolidaysPage() {
             </svg>
             {syncing ? "Syncing…" : "Sync from API"}
           </button>
-          <button
+          )}
+          {canEditPage && (
+            <button
             onClick={() => setShowModal(true)}
             className="flex items-center gap-1.5 text-sm font-medium text-white bg-red-600 rounded-lg px-3.5 py-2 hover:bg-red-700 shadow-sm transition-colors"
           >
@@ -123,6 +146,7 @@ export default function HolidaysPage() {
             </svg>
             Add Holiday
           </button>
+          )}
         </div>
       </div>
 
@@ -132,12 +156,12 @@ export default function HolidaysPage() {
           <div className="bg-surface border border-border rounded-xl p-6 text-center text-sm text-fg-subtle">
             Loading holidays…
           </div>
-        ) : holidays.length === 0 ? (
+        ) : filteredHolidays.length === 0 ? (
           <div className="bg-surface border border-dashed border-border rounded-xl p-6 text-center text-sm text-fg-subtle">
             No holidays found for {year}
           </div>
         ) : (
-          holidays.map((h) => (
+          filteredHolidays.map((h) => (
             <div
               key={h.id}
               className="bg-surface border border-border rounded-xl shadow-sm p-4"
@@ -151,22 +175,26 @@ export default function HolidaysPage() {
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
+                  {canEditPage && (
+                    <button
                     onClick={() => setEditingHoliday(h)}
                     title="Edit holiday"
                     className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-primary hover:bg-primary/10 transition-colors"
                   >
                     <Pencil className="w-4 h-4" />
                   </button>
+                  )}
 
                   {h.source === "manual" && (
-                    <button
+                    (canEditPage ? (
+                      <button
                       onClick={() => handleDelete(h.id)}
                       title="Delete holiday"
                       className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-danger hover:bg-danger/10 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
+                    ) : null)
                   )}
                 </div>
               </div>
@@ -235,7 +263,7 @@ export default function HolidaysPage() {
                   Loading holidays…
                 </td>
               </tr>
-            ) : holidays.length === 0 ? (
+            ) : filteredHolidays.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
@@ -245,7 +273,7 @@ export default function HolidaysPage() {
                 </td>
               </tr>
             ) : (
-              holidays.map((h) => (
+              filteredHolidays.map((h) => (
                 <tr
                   key={h.id}
                   className="border-b border-border last:border-0 hover:bg-surface-hover transition-colors"
@@ -284,22 +312,26 @@ export default function HolidaysPage() {
                   </td>
                   <td className="px-5 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button
+                      {canEditPage && (
+                        <button
                         onClick={() => setEditingHoliday(h)}
                         title="Edit holiday"
                         className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-primary hover:bg-primary/10 transition-colors"
                       >
                         <Pencil className="w-4 h-4" />
                       </button>
+                      )}
 
                       {h.source === "manual" && (
-                        <button
+                        (canEditPage ? (
+                          <button
                           onClick={() => handleDelete(h.id)}
                           title="Delete holiday"
                           className="inline-flex items-center justify-center w-7 h-7 rounded-lg text-fg-subtle hover:text-danger hover:bg-danger/10 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
+                        ) : null)
                       )}
                     </div>
                   </td>

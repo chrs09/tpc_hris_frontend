@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import TripGpsLogsModal from "./TripGpsLogsModal";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
+import SearchInput from "../ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 // Badge color per current_step -- mirrors CURRENT_STEP_LABELS in
 // app/api/admin/trips.py so the live status a driver's own button tap
@@ -29,13 +31,27 @@ const StepBadge = ({ step, label }) => (
 
 const ActiveTripsMonitor = ({ trips = [] }) => {
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [search, setSearch] = useState("");
+  const filteredTrips = trips.filter((trip) =>
+    matchesSearch(
+      search,
+      trip.username,
+      trip.trip_code,
+      trip.ticket_no,
+      trip.current_step_label,
+      trip.current_stop,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    trips,
+    filteredTrips,
     10,
   );
 
   return (
     <>
+      <div className="mb-3 flex justify-end">
+        <SearchInput value={search} onChange={setSearch} placeholder="Search driver, trip, shipment..." />
+      </div>
       {/* DESKTOP TABLE */}
       <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full text-fg text-sm">

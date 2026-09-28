@@ -13,6 +13,7 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import StoreLocationPicker from "../../components/adminTrips/StoreLocationPicker";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const initialFormState = {
   name: "",
@@ -52,6 +53,7 @@ const ImagePreviewOverlay = ({ url, onClose }) => (
 );
 
 export default function StoreManagement() {
+  const canEditPage = usePageCanEdit();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -399,12 +401,14 @@ export default function StoreManagement() {
             requirements.
           </p>
         </div>
-        <button
+        {canEditPage && (
+          <button
           className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
           onClick={openCreateModal}
         >
           Add Store
         </button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -553,6 +557,7 @@ export default function StoreManagement() {
         title="Store Details"
         cancelLabel="Close"
         saveLabel="Edit"
+        hideSave={!canEditPage}
         onSave={() => {
           const store = viewingStore;
           setViewingStore(null);
@@ -674,7 +679,8 @@ export default function StoreManagement() {
                   onClick={() => setPreviewUrl(photoPreview)}
                   className="h-32 w-full cursor-zoom-in rounded-xl border border-border object-cover"
                 />
-                <button
+                {canEditPage && (
+                  <button
                   type="button"
                   onClick={handleRemovePhoto}
                   disabled={uploadingPhoto}
@@ -682,6 +688,7 @@ export default function StoreManagement() {
                 >
                   ✕
                 </button>
+                )}
               </div>
             ) : (
               <input

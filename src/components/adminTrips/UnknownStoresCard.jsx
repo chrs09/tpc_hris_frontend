@@ -2,8 +2,10 @@ import { useState } from "react";
 import { approveStoreFromStop } from "../../api/adminTripManagement/stores";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const UnknownStoresCard = ({ stops = [], onApproved }) => {
+  const canEditPage = usePageCanEdit();
   const { page, setPage, totalPages, paginatedItems } = usePagination(
     stops,
     10,
@@ -197,13 +199,15 @@ const UnknownStoresCard = ({ stops = [], onApproved }) => {
                 Cancel
               </button>
 
-              <button
+              {canEditPage && (
+                <button
                 onClick={handleApprove}
                 disabled={loading}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg text-sm cursor-pointer"
               >
                 {loading ? "Saving..." : "Approve & Save"}
               </button>
+              )}
             </div>
           </div>
         </div>

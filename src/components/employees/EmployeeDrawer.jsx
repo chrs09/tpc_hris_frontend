@@ -28,6 +28,8 @@ export default function EmployeeDrawer({
   isOpen,
   onClose,
   onSuccess,
+  // False = view-only (no Edit button); see useModuleAccess().canEdit.
+  canEdit = true,
 }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [isEditing, setIsEditing] = useState(false);
@@ -277,7 +279,11 @@ export default function EmployeeDrawer({
           )}
 
           <div className="flex items-center gap-3">
-            {!isEditing ? (
+            {!canEdit ? (
+              <span className="rounded-full bg-surface-active px-3 py-1 text-xs font-medium text-fg-muted">
+                View only
+              </span>
+            ) : !isEditing ? (
               <button
                 type="button"
                 onClick={handleEdit}

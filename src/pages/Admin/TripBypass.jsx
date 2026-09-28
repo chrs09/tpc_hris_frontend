@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import PhotoPicker from "../../components/ui/photoPicker/PhotoPicker";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { getStores } from "../../api/adminTripManagement/stores";
@@ -61,6 +62,7 @@ const getNextAction = (trip) => {
 };
 
 const TripBypass = () => {
+  const canEditPage = usePageCanEdit();
   const [trips, setTrips] = useState([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [selectedTripId, setSelectedTripId] = useState(null);
@@ -291,6 +293,14 @@ const TripBypass = () => {
 
   const renderForm = () => {
     if (!tripDetail) return null;
+
+    if (!canEditPage) {
+      return (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-subtle">
+          You have view-only access to Trip Bypass.
+        </div>
+      );
+    }
 
     if (unmatchedStop) return renderAssignStore();
 

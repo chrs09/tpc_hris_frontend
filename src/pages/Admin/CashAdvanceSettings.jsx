@@ -15,8 +15,10 @@ import {
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import useModuleAccess from "../../hooks/useModuleAccess";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const CashAdvanceSettingsPage = () => {
+  const canEditPage = usePageCanEdit();
   const { isVisible } = useModuleAccess();
   const isSuperAdmin = isVisible({
     roles: ["superadmin"],
@@ -323,13 +325,15 @@ const CashAdvanceSettingsPage = () => {
                 className="w-40 rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
-            <button
+            {canEditPage && (
+              <button
               onClick={handleAddOption}
               disabled={savingOption}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
               {savingOption ? "Adding..." : "+ Add Amount"}
             </button>
+            )}
           </div>
 
           <div className="mt-4 space-y-2">
@@ -361,18 +365,22 @@ const CashAdvanceSettingsPage = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleToggleActive(option)}
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                     >
                       {option.is_active ? "Deactivate" : "Activate"}
                     </button>
-                    <button
+                    )}
+                    {canEditPage && (
+                      <button
                       onClick={() => handleDeleteOption(option)}
                       className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10"
                     >
                       Delete
                     </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -403,13 +411,15 @@ const CashAdvanceSettingsPage = () => {
                 className="w-64 rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
-            <button
+            {canEditPage && (
+              <button
               onClick={handleAddPurpose}
               disabled={savingPurpose}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
               {savingPurpose ? "Adding..." : "+ Add Purpose"}
             </button>
+            )}
           </div>
 
           <div className="mt-4 space-y-2">
@@ -436,18 +446,22 @@ const CashAdvanceSettingsPage = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleTogglePurposeActive(purpose)}
                       className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover"
                     >
                       {purpose.is_active ? "Deactivate" : "Activate"}
                     </button>
-                    <button
+                    )}
+                    {canEditPage && (
+                      <button
                       onClick={() => handleDeletePurpose(purpose)}
                       className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10"
                     >
                       Delete
                     </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -511,13 +525,15 @@ const CashAdvanceSettingsPage = () => {
                 className="w-36 rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
-            <button
+            {canEditPage && (
+              <button
               onClick={handleSaveLimits}
               disabled={savingMaxPeriods}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
               {savingMaxPeriods ? "Saving..." : "Save"}
             </button>
+            )}
           </div>
         </div>
 
@@ -546,13 +562,15 @@ const CashAdvanceSettingsPage = () => {
                     ? `Last updated ${new Date(termsUpdatedAt).toLocaleString()}`
                     : "Not set yet."}
                 </p>
-                <button
+                {canEditPage && (
+                  <button
                   onClick={handleSaveTerms}
                   disabled={savingTerms}
                   className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                 >
                   {savingTerms ? "Saving..." : "Save Terms"}
                 </button>
+                )}
               </div>
             </>
           )}

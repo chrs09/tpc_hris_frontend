@@ -10,8 +10,10 @@ import { getAssignableUsers } from "../../api/users";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import useModuleAccess from "../../hooks/useModuleAccess";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const OrgHierarchyPage = () => {
+  const canEditPage = usePageCanEdit();
   const { isVisible } = useModuleAccess();
   const isSuperAdmin = isVisible({
     roles: ["superadmin"],
@@ -177,12 +179,14 @@ const OrgHierarchyPage = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
+                        {canEditPage && (
+                          <button
                           onClick={() => openEdit(row.department, "head", row.head)}
                           className="rounded-lg border border-border px-4 py-1.5 text-sm text-fg transition hover:bg-surface-hover"
                         >
                           {row.head ? "Change" : "Set Head"}
                         </button>
+                        )}
                       </td>
                       <td className="border-l border-border px-6 py-4 text-fg-muted">
                         {caRow?.head ? (
@@ -255,13 +259,15 @@ const OrgHierarchyPage = () => {
               >
                 Cancel
               </button>
-              <button
+              {canEditPage && (
+                <button
                 onClick={handleSave}
                 disabled={saving}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save"}
               </button>
+              )}
             </div>
           </div>
         </div>

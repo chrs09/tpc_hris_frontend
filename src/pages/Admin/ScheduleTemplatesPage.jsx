@@ -8,6 +8,9 @@ import {
   updateScheduleTemplate,
   deleteScheduleTemplate,
 } from "../../api/scheduleTemplates";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -63,13 +66,18 @@ const summarizeDays = (template) => {
 };
 
 export default function ScheduleTemplatesPage() {
+  const canEditPage = usePageCanEdit();
   const [templates, setTemplates] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [formData, setFormData] = useState(emptyFormData());
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const filteredTemplates = templates.filter((template) =>
+    matchesSearch(search, template.name, template.description),
+  );
 
   const loadTemplates = async () => {
     try {
@@ -162,13 +170,22 @@ export default function ScheduleTemplatesPage() {
           </p>
         </div>
 
-        <button
+        <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search schedules..."
+        />
+        {canEditPage && (
+          <button
           type="button"
           onClick={openCreate}
           className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
         >
           + New Schedule
         </button>
+        )}
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
@@ -192,17 +209,17 @@ export default function ScheduleTemplatesPage() {
                     Loading...
                   </td>
                 </tr>
-              ) : templates.length === 0 ? (
+              ) : filteredTemplates.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
                     className="px-6 py-12 text-center text-fg-subtle"
                   >
-                    No schedules yet.
+                    {templates.length ? "No schedules match your search." : "No schedules yet."}
                   </td>
                 </tr>
               ) : (
-                templates.map((template) => (
+                filteredTemplates.map((template) => (
                   <tr
                     key={template.id}
                     className="border-t border-border transition hover:bg-surface-hover"
@@ -218,14 +235,17 @@ export default function ScheduleTemplatesPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button
+                        {canEditPage && (
+                          <button
                           type="button"
                           onClick={() => openEdit(template)}
                           className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
                         >
                           Edit
                         </button>
-                        <button
+                        )}
+                        {canEditPage && (
+                          <button
                           type="button"
                           onClick={() => handleDelete(template)}
                           disabled={deletingId === template.id}
@@ -235,6 +255,7 @@ export default function ScheduleTemplatesPage() {
                             ? "Deleting..."
                             : "Delete"}
                         </button>
+                        )}
                       </div>
                     </td>
                   </tr>

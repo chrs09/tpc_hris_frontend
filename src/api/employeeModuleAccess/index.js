@@ -6,9 +6,16 @@ export const getEmployeesWithAccess = async (department) => {
   return res.data;
 };
 
-export const setEmployeeModuleAccess = async (employeeId, moduleKeys) => {
+// readOnlyKeys (optional): granted keys that are view-only ("Can edit:
+// No"). Leave it out to keep each key's current setting.
+export const setEmployeeModuleAccess = async (
+  employeeId,
+  moduleKeys,
+  readOnlyKeys,
+) => {
   const res = await api.put(`/employee-module-access/${employeeId}`, {
     module_keys: moduleKeys,
+    ...(readOnlyKeys ? { read_only_keys: readOnlyKeys } : {}),
   });
   return res.data;
 };

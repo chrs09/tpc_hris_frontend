@@ -10,6 +10,9 @@ import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
@@ -19,14 +22,28 @@ const STATUS_STYLES = {
 };
 
 export default function LeaveManagement() {
+  const canEditPage = usePageCanEdit();
   const [leaves, setLeaves] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(false);
   const [actioningId, setActioningId] = useState(null);
 
   const viewerRole = localStorage.getItem("role");
+  const [search, setSearch] = useState("");
+  const filteredLeaves = leaves.filter((leave) =>
+    matchesSearch(
+      search,
+      leave.employee_name,
+      leave.employee_role,
+      leave.leave_type,
+      leave.start_date,
+      leave.end_date,
+      leave.reason,
+      leave.status,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    leaves,
+    filteredLeaves,
     15,
   );
 
@@ -86,6 +103,12 @@ export default function LeaveManagement() {
         <h1 className="text-xl font-semibold text-fg">
           Leave Requests
         </h1>
+
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search name, type, reason..."
+        />
 
         <div className="w-40">
           <SearchSelect
@@ -181,20 +204,24 @@ export default function LeaveManagement() {
                         </span>
                       ) : (
                         <div className="flex gap-2">
-                          <button
+                          {canEditPage && (
+                            <button
                             onClick={() => handleApprove(leave.id)}
                             disabled={actioningId === leave.id}
                             className="rounded-lg bg-success px-3 py-1 text-xs font-semibold text-success-foreground disabled:opacity-50"
                           >
                             Approve
                           </button>
-                          <button
+                          )}
+                          {canEditPage && (
+                            <button
                             onClick={() => handleReject(leave.id)}
                             disabled={actioningId === leave.id}
                             className="rounded-lg bg-danger px-3 py-1 text-xs font-semibold text-danger-foreground disabled:opacity-50"
                           >
                             Reject
                           </button>
+                          )}
                         </div>
                       )
                     ) : (

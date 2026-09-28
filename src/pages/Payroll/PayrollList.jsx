@@ -28,6 +28,7 @@ import {
   getPayrollDeductions,
   getCashAdvanceForCutoff,
 } from "../../api/payroll/payroll_deductions";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 /*
  * Government contribution lookup used by Admin payroll.
@@ -79,6 +80,7 @@ const getCashAdvance = (info, adj, availablePay) => {
 };
 
 const PayrollList = () => {
+  const canEditPage = usePageCanEdit();
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1165,7 +1167,8 @@ const PayrollList = () => {
   });
 
   const handleGeneratePayslip = async (row) => {
-    if (row.employee) {
+    // View-only: just open the payslip, nothing is saved.
+    if (row.employee && canEditPage) {
       setSavingPayslipFor(row.employee.id);
 
       try {
@@ -1198,6 +1201,8 @@ const PayrollList = () => {
   // `payroll_deductions`. Shared by "Generate Payroll" and "Export Excel"
   // so both buttons persist the exact same data the same way.
   const saveAllDeductions = async ({ onErrorSuffix = "" } = {}) => {
+    // View-only: Export Excel still works, nothing is saved.
+    if (!canEditPage) return true;
     const deductionRows = buildDeductionRows();
 
     if (deductionRows.length === 0) return true;
@@ -1292,13 +1297,15 @@ const PayrollList = () => {
             className="border border-border rounded-lg px-3 h-10 bg-surface text-fg w-full sm:w-auto"
           />
 
-          <button
+          {canEditPage && (
+            <button
             className="bg-blue-600 text-white px-4 rounded-lg disabled:opacity-60"
             disabled={isGeneratingPayroll}
             onClick={handleGeneratePayroll}
           >
             {isGeneratingPayroll ? "Saving..." : "Generate Payroll"}
           </button>
+          )}
 
           <button
             className="bg-green-600 text-white px-4 rounded-lg hover:bg-green-700 transition disabled:opacity-60"
@@ -1924,22 +1931,26 @@ const PayrollList = () => {
                                 )
                               }
                             />
-                            <button
+                            {canEditPage && (
+                              <button
                               className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs"
                               onClick={() => handleApproveOT(row)}
                             >
                               Approve OT
                             </button>
+                            )}
                           </div>
                         ) : null}
 
                         {row.otStatus === "Approved" ? (
-                          <button
+                          (canEditPage ? (
+                            <button
                             className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs"
                             onClick={() => handleReverseOT(row)}
                           >
                             Reverse OT
                           </button>
+                          ) : null)
                         ) : null}
                       </div>
                     </td>

@@ -14,6 +14,9 @@ import {
   issueFuelCode,
   returnFuelReceipt,
 } from "../../api/fuelRequests";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -86,8 +89,19 @@ export default function FuelRequests() {
     }
   }, [searchParams, setSearchParams]);
 
+  const [search, setSearch] = useState("");
+  const filteredRequests = requests.filter((req) =>
+    matchesSearch(
+      search,
+      req.driver_name,
+      req.plate_number,
+      req.city,
+      req.fuel_code,
+      req.created_at,
+    ),
+  );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
-    requests,
+    filteredRequests,
     15,
   );
 
@@ -111,7 +125,13 @@ export default function FuelRequests() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search driver, plate, city, code..."
+          className="sm:order-last sm:ml-auto"
+        />
         {FILTERS.map((f) => (
           <button
             key={f.key || "all"}
@@ -215,6 +235,7 @@ export default function FuelRequests() {
 }
 
 function FuelRequestModal({ requestId, onClose, onChanged }) {
+  const canEditPage = usePageCanEdit();
   const [req, setReq] = useState(null);
   const [fuelCode, setFuelCode] = useState("");
   const [liters, setLiters] = useState("");
@@ -382,7 +403,8 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button
+                  {canEditPage && (
+                    <button
                     type="button"
                     disabled={busy}
                     onClick={handleDecline}
@@ -390,7 +412,9 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                   >
                     Decline
                   </button>
-                  <button
+                  )}
+                  {canEditPage && (
+                    <button
                     type="button"
                     disabled={busy || !fuelCode.trim() || !liters}
                     onClick={handleIssue}
@@ -398,6 +422,7 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                   >
                     {busy ? "Sending..." : "Send to Driver"}
                   </button>
+                  )}
                 </div>
               </section>
             ) : (
@@ -433,7 +458,8 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                 </div>
                 {req.status === "receipt_submitted" && (
                   <div className="flex gap-2">
-                    <button
+                    {canEditPage && (
+                      <button
                       type="button"
                       disabled={busy}
                       onClick={handleReturn}
@@ -441,7 +467,9 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                     >
                       Send Back
                     </button>
-                    <button
+                    )}
+                    {canEditPage && (
+                      <button
                       type="button"
                       disabled={busy}
                       onClick={() =>
@@ -454,6 +482,7 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                     >
                       Confirm Receipt (Complete)
                     </button>
+                    )}
                   </div>
                 )}
               </section>

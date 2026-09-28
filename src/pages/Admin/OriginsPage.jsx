@@ -8,6 +8,9 @@ import {
   createOrigin,
   updateOrigin,
 } from "../../api/adminTripManagement/origins";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const initialFormState = {
   name: "",
@@ -23,11 +26,16 @@ const initialFormState = {
 // same way Trip Category & Rates is its own page instead of living
 // inside another form.
 export default function OriginsPage() {
+  const canEditPage = usePageCanEdit();
   const [origins, setOrigins] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingOrigin, setEditingOrigin] = useState(null);
   const [form, setForm] = useState(initialFormState);
+  const filteredOrigins = origins.filter((origin) =>
+    matchesSearch(search, origin.name, origin.address),
+  );
   const [saving, setSaving] = useState(false);
 
   const loadOrigins = async () => {
@@ -111,12 +119,21 @@ export default function OriginsPage() {
             Checkin.
           </p>
         </div>
-        <button
+        <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search origins..."
+        />
+        {canEditPage && (
+          <button
           className="inline-flex items-center rounded-lg bg-primary px-4 py-2 text-primary-foreground hover:bg-primary-hover"
           onClick={openCreateModal}
         >
           Add Origin
         </button>
+        )}
+        </div>
       </div>
 
       <div className="rounded-3xl border border-border bg-surface shadow-sm">
@@ -126,24 +143,26 @@ export default function OriginsPage() {
             <div className="p-8 text-center text-fg-subtle">
               Loading origins...
             </div>
-          ) : origins.length === 0 ? (
+          ) : filteredOrigins.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-fg-subtle">
               No origins yet.
             </div>
           ) : (
-            origins.map((origin) => (
+            filteredOrigins.map((origin) => (
               <div
                 key={origin.id}
                 className="rounded-2xl border border-border bg-surface p-4 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-3">
                   <p className="font-semibold text-fg">{origin.name}</p>
-                  <button
+                  {canEditPage && (
+                    <button
                     className="text-sm text-primary hover:text-primary-hover"
                     onClick={() => openEditModal(origin)}
                   >
                     Edit
                   </button>
+                  )}
                 </div>
                 <p className="mt-2 text-sm text-fg-muted">
                   {origin.latitude}, {origin.longitude}
@@ -182,14 +201,14 @@ export default function OriginsPage() {
                     Loading origins...
                   </td>
                 </tr>
-              ) : origins.length === 0 ? (
+              ) : filteredOrigins.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-fg-subtle">
                     No origins yet.
                   </td>
                 </tr>
               ) : (
-                origins.map((origin) => (
+                filteredOrigins.map((origin) => (
                   <tr
                     key={origin.id}
                     className="border-b border-border last:border-b-0"
@@ -202,12 +221,14 @@ export default function OriginsPage() {
                       {origin.allowed_radius_meters} m
                     </td>
                     <td className="px-6 py-4">
-                      <button
+                      {canEditPage && (
+                        <button
                         className="text-primary hover:text-primary-hover"
                         onClick={() => openEditModal(origin)}
                       >
                         Edit
                       </button>
+                      )}
                     </td>
                   </tr>
                 ))

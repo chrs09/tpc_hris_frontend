@@ -18,6 +18,9 @@ import SearchSelect from "../../components/SearchSelect";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 import useModuleAccess from "../../hooks/useModuleAccess";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
@@ -35,6 +38,7 @@ const STATUS_STYLES = {
 // Also includes an "All Requests" tab (every status, full history) for
 // the Finance module, backed by GET /cash-advance-requests/all.
 export default function CashAdvanceApprovals() {
+  const canEditPage = usePageCanEdit();
   const { isSuperAdmin } = useModuleAccess();
 
   const [tab, setTab] = useState("pending");
@@ -47,8 +51,23 @@ export default function CashAdvanceApprovals() {
   const [loadingAll, setLoadingAll] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
 
-  const pendingPagination = usePagination(pending, 10);
-  const allPagination = usePagination(allRequests, 15);
+  // One search box, applied to whichever tab is open.
+  const [search, setSearch] = useState("");
+  const matchesRequest = (r) =>
+    matchesSearch(
+      search,
+      r.employee_name,
+      r.reason,
+      r.status,
+      r.amount,
+      r.approved_amount,
+      r.requested_by_name,
+      r.release_reference,
+    );
+  const filteredPending = pending.filter(matchesRequest);
+  const filteredAll = allRequests.filter(matchesRequest);
+  const pendingPagination = usePagination(filteredPending, 10);
+  const allPagination = usePagination(filteredAll, 15);
 
   // Superadmin-only: outstanding balances + recording pre-existing
   // ("opening") balances carried over from before this system was
@@ -59,7 +78,10 @@ export default function CashAdvanceApprovals() {
   const [balancesLoaded, setBalancesLoaded] = useState(false);
   const [recordingId, setRecordingId] = useState(null);
   const [releasingId, setReleasingId] = useState(null);
-  const balancesPagination = usePagination(balances, 10);
+  const balancesPagination = usePagination(
+    balances.filter(matchesRequest),
+    10,
+  );
 
   const [assignableUsers, setAssignableUsers] = useState([]);
   const [openingBalanceUser, setOpeningBalanceUser] = useState(null);
@@ -368,14 +390,22 @@ export default function CashAdvanceApprovals() {
           )}
         </div>
 
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search name, reason, status, amount..."
+        />
+
         {tab === "pending" &&
           (loadingPending ? (
             <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-sm text-fg-muted">
               Loading...
             </div>
-          ) : pending.length === 0 ? (
+          ) : filteredPending.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-6 text-center text-sm text-fg-muted">
-              No pending cash advance requests for you to review.
+              {pending.length
+                ? "No pending requests match your search."
+                : "No pending cash advance requests for you to review."}
             </div>
           ) : (
             <div className="space-y-4">
@@ -441,20 +471,24 @@ export default function CashAdvanceApprovals() {
                   </p>
 
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={() => handleApprove(req)}
                       disabled={actioningId === req.id}
                       className="rounded-xl bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {actioningId === req.id ? "Working..." : "Approve"}
                     </button>
-                    <button
+                    )}
+                    {canEditPage && (
+                      <button
                       onClick={() => handleReject(req)}
                       disabled={actioningId === req.id}
                       className="rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-danger-foreground disabled:opacity-50"
                     >
                       Reject
                     </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -641,13 +675,15 @@ export default function CashAdvanceApprovals() {
                     className="w-56 rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <button
+                {canEditPage && (
+                  <button
                   onClick={handleAddOpeningBalance}
                   disabled={savingOpeningBalance}
                   className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                 >
                   {savingOpeningBalance ? "Adding..." : "+ Add Balance"}
                 </button>
+                )}
               </div>
             </div>
 
@@ -678,7 +714,8 @@ export default function CashAdvanceApprovals() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
+                        {canEditPage && (
+                          <button
                           onClick={() => handleSetRelease(request)}
                           disabled={releasingId === request.id}
                           className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
@@ -689,6 +726,7 @@ export default function CashAdvanceApprovals() {
                               ? "Edit Release Info"
                               : "Record Release"}
                         </button>
+                        )}
                         <button
                           onClick={() => handleOpenHistory(request)}
                           className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
@@ -820,7 +858,8 @@ export default function CashAdvanceApprovals() {
                       className="w-40 rounded-lg border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
                     />
                   </div>
-                  <button
+                  {canEditPage && (
+                    <button
                     onClick={handleAddDeduction}
                     disabled={recordingId === historyRequest.id}
                     className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
@@ -829,6 +868,7 @@ export default function CashAdvanceApprovals() {
                       ? "Adding..."
                       : "+ Add"}
                   </button>
+                  )}
                 </div>
               </div>
             )}

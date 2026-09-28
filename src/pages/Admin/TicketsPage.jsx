@@ -16,6 +16,9 @@ import {
   addTicketComment,
   deleteTicketComment,
 } from "../../api/tickets";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
+import { matchesSearch } from "../../utils/search";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -34,7 +37,9 @@ const PRIORITY_STYLES = {
 };
 
 export default function TicketsPage() {
+  const canEditPage = usePageCanEdit();
   const [tickets, setTickets] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [draggingTicket, setDraggingTicket] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -98,13 +103,22 @@ export default function TicketsPage() {
           </p>
         </div>
 
-        <button
+        <div className="flex flex-wrap items-center gap-2">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Search ticket no., title, person..."
+        />
+        {canEditPage && (
+          <button
           type="button"
           onClick={() => setShowCreateModal(true)}
           className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
         >
           + New Ticket
         </button>
+        )}
+        </div>
       </div>
 
       {loading ? (
@@ -115,7 +129,17 @@ export default function TicketsPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((column) => {
             const columnTickets = tickets.filter(
-              (t) => t.status === column.key,
+              (t) =>
+                t.status === column.key &&
+                matchesSearch(
+                  search,
+                  t.ticket_no,
+                  t.title,
+                  t.description,
+                  t.priority,
+                  t.created_by_username,
+                  t.assigned_to_username,
+                ),
             );
 
             return (
@@ -196,11 +220,13 @@ export default function TicketsPage() {
 
 const TicketCard = ({ ticket, onDragStart, onClick }) => {
   const [previewOpen, setPreviewOpen] = useState(false);
+  // View-only: cards can't be dragged to another column.
+  const canDrag = usePageCanEdit();
 
   return (
     <div
-      draggable
-      onDragStart={onDragStart}
+      draggable={canDrag}
+      onDragStart={canDrag ? onDragStart : undefined}
       onClick={onClick}
       className="cursor-grab rounded-xl border border-border bg-surface p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
     >
@@ -526,6 +552,7 @@ const TicketDetailModal = ({
   onChanged,
   onImageChanged,
 }) => {
+  const canEditPage = usePageCanEdit();
   const scrollRef = useRef(null);
   // After posting, bring the new comment into view.
   const thread = useTicketComments(ticket, onCommentsChanged, () =>
@@ -764,7 +791,8 @@ const TicketDetailModal = ({
         </div>
 
         <div className="mt-6 flex items-center justify-between gap-2">
-          <button
+          {canEditPage && (
+            <button
             type="button"
             onClick={handleDelete}
             disabled={deleting || saving}
@@ -772,6 +800,7 @@ const TicketDetailModal = ({
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
+          )}
 
           <div className="flex gap-2">
             <button
@@ -782,7 +811,8 @@ const TicketDetailModal = ({
             >
               Cancel
             </button>
-            <button
+            {canEditPage && (
+              <button
               type="button"
               onClick={handleSave}
               disabled={saving || deleting}
@@ -790,6 +820,7 @@ const TicketDetailModal = ({
             >
               {saving ? "Saving..." : "Save"}
             </button>
+            )}
           </div>
         </div>
 
@@ -797,7 +828,13 @@ const TicketDetailModal = ({
         </div>
 
         <div className="shrink-0 border-t border-border bg-surface px-6 py-3">
-          <CommentComposer thread={thread} />
+          {canEditPage ? (
+            <CommentComposer thread={thread} />
+          ) : (
+            <p className="text-center text-xs text-fg-subtle">
+              View only -- you can read comments but not post.
+            </p>
+          )}
         </div>
       </div>
     </div>

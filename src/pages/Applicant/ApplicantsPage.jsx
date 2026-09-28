@@ -15,6 +15,7 @@ import DefaultThumbnail from "../../assets/logo/default/default-profile.jpg";
 import { alertDialog } from "../../components/ui/dialog/dialogService";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const COLUMNS = [
   { key: "pending", label: "Pending" },
@@ -526,6 +527,7 @@ function ApplicantDrawer({
   onViewSubmittedForm,
   onOpenRemarkPreview,
 }) {
+  const canEditPage = usePageCanEdit();
   if (!isOpen) return null;
 
   const isLocked = isApplicantLocked(applicant);
@@ -662,12 +664,14 @@ function ApplicantDrawer({
 
                   {applicant.status === "hired" &&
                     !applicant.is_converted_to_employee && (
-                      <button
+                      (canEditPage ? (
+                        <button
                         onClick={() => onOpenConvert(applicant)}
                         className="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
                       >
                         Convert to Employee
                       </button>
+                      ) : null)
                     )}
 
                   {applicant.is_converted_to_employee && (
@@ -700,7 +704,8 @@ function ApplicantDrawer({
                     />
                   </div>
 
-                  <button
+                  {canEditPage && (
+                    <button
                     onClick={onSaveStatus}
                     disabled={
                       changingStatus ||
@@ -711,6 +716,7 @@ function ApplicantDrawer({
                   >
                     {changingStatus ? "Updating..." : "Update Status"}
                   </button>
+                  )}
                 </div>
               </div>
 
@@ -776,7 +782,8 @@ function ApplicantDrawer({
                             </p>
                           </div>
 
-                          <button
+                          {canEditPage && (
+                            <button
                             type="button"
                             onClick={() => {
                               setRemarkImage(null);
@@ -786,6 +793,7 @@ function ApplicantDrawer({
                           >
                             Remove
                           </button>
+                          )}
                         </div>
 
                         {remarkImagePreview && (
@@ -802,13 +810,15 @@ function ApplicantDrawer({
                   </div>
 
                   <div className="flex justify-end">
-                    <button
+                    {canEditPage && (
+                      <button
                       onClick={onSaveRemark}
                       disabled={savingRemark}
                       className="rounded-xl bg-fg px-4 py-2 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {savingRemark ? "Saving..." : "Save Remark"}
                     </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1112,6 +1122,7 @@ function OnboardingReviewModal({
   onClose,
   onBirthdayUpdated,
 }) {
+  const canEditPage = usePageCanEdit();
   const [editingBirthday, setEditingBirthday] = useState(false);
   const [birthdayDraft, setBirthdayDraft] = useState("");
   const [savingBirthday, setSavingBirthday] = useState(false);
@@ -1295,7 +1306,8 @@ function OnboardingReviewModal({
                         onChange={(e) => setBirthdayDraft(e.target.value)}
                         className="w-full rounded-lg border border-border bg-background p-1.5 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                       />
-                      <button
+                      {canEditPage && (
+                        <button
                         type="button"
                         onClick={handleSaveBirthday}
                         disabled={savingBirthday}
@@ -1303,6 +1315,7 @@ function OnboardingReviewModal({
                       >
                         {savingBirthday ? "..." : "Save"}
                       </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setEditingBirthday(false)}

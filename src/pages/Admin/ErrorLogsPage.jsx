@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { getErrorLogs } from "../../api/errorLogs";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
 
 const PAGE_SIZE = 50;
 
@@ -52,6 +53,17 @@ export default function ErrorLogsPage() {
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  // Sent to the server (logs are loaded a page at a time), a moment
+  // after typing stops.
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
   const [statusCode, setStatusCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -65,6 +77,7 @@ export default function ErrorLogsPage() {
         limit: PAGE_SIZE,
         offset: (page - 1) * PAGE_SIZE,
         statusCode: statusCode || undefined,
+        search: debouncedSearch || undefined,
       });
       setLogs(data.items || []);
       setTotal(data.total || 0);
@@ -75,7 +88,7 @@ export default function ErrorLogsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusCode]);
+  }, [page, statusCode, debouncedSearch]);
 
   useEffect(() => {
     loadLogs();
@@ -94,7 +107,12 @@ export default function ErrorLogsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search URL, error, user..."
+          />
           <div className="w-52">
             <SearchSelect
               value={

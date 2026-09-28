@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
+import { PageAccessProvider } from "../../hooks/usePageAccess";
 import DashboardHome from "./DashboardHome";
 import AttendanceList from "../Attendance/AttendanceList";
 import UsersPage from "../Users/UsersPage";
@@ -11,6 +12,7 @@ import TripBypassPage from "../Admin/TripBypass";
 import TripManualEntriesPage from "../Admin/TripManualEntries";
 import FuelRequestsPage from "../Admin/FuelRequests";
 import OrgHierarchy from "../Admin/OrgHierarchy";
+import OrgChart from "../Admin/OrgChart";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
 import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
 import ModuleAssignment from "../Admin/ModuleAssignment";
@@ -104,6 +106,7 @@ const Dashboard = () => {
             </div>
           </div>
         )}
+        <PageAccessProvider>
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="attendance" element={<AttendanceList />} />
@@ -112,6 +115,7 @@ const Dashboard = () => {
           <Route path="payroll" element={<PayrollList />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="hierarchy" element={<OrgHierarchy />} />
+          <Route path="org-chart" element={<OrgChart />} />
           <Route
             path="cash-advance-settings"
             element={<CashAdvanceSettings />}
@@ -161,6 +165,7 @@ const Dashboard = () => {
           <Route path="cash-advance" element={<DriverCashAdvance />} />
           <Route path="settings" element={<SettingsPage />} />
         </Routes>
+        </PageAccessProvider>
       </div>
     </div>
   );
