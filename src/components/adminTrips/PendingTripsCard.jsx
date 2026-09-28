@@ -6,8 +6,12 @@ import {
   replaceTripFile,
   addTripRemark,
 } from "../../api/adminTripManagement/trips";
+import {
+  approveManualEntry,
+  rejectManualEntry,
+} from "../../api/tripManualEntries";
 import toast from "react-hot-toast";
-import { confirmDialog } from "../ui/dialog/dialogService";
+import { confirmDialog, promptDialog } from "../ui/dialog/dialogService";
 import {
   MapContainer,
   TileLayer,
@@ -104,6 +108,26 @@ const resolvePhotoUrl = (rawUrl) => {
     return `${apiBaseUrl}${cleanPath}`;
   }
 };
+
+// Where the trip came from: recorded on the Trip Manual Entries page, or
+// done by the driver on the phone app.
+const TripSourceBadge = ({ trip }) =>
+  trip.is_manual_entry ? (
+    <span className="inline-flex whitespace-nowrap rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-warning">
+      Manual Entry
+    </span>
+  ) : (
+    <span className="inline-flex whitespace-nowrap rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold normal-case text-fg-muted">
+      Driver App
+    </span>
+  );
+
+// A coordinator_admin's manual entry still waiting for a superadmin.
+const AwaitingSuperadminBadge = () => (
+  <span className="inline-flex whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-primary">
+    Awaiting Superadmin
+  </span>
+);
 
 // Completed tab: every trip here has passed Finance (that's what marks a
 // trip COMPLETED), shown with who approved it and when.
@@ -239,6 +263,8 @@ const PendingTripsCard = ({
       trip.start_time,
       trip.status_label,
       trip.finance_approved_by,
+      trip.is_manual_entry ? "manual entry" : "driver app",
+      trip.awaiting_manual_approval ? "awaiting superadmin" : null,
     ),
   );
   const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
@@ -303,6 +329,55 @@ const PendingTripsCard = ({
         error.response?.data?.detail ||
           "Failed to approve the trip. Please try again.",
       );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isSuperadmin = localStorage.getItem("role") === "superadmin";
+  const awaitingManual = selectedTrip?.status === "PENDING_MANUAL_APPROVAL";
+
+  const handleApproveManualEntry = async () => {
+    if (
+      !(await confirmDialog(
+        `Accept the manual entry ${selectedTrip.trip_code || selectedTrip.ticket_no}? It will then wait here for the normal coordinator approval.`,
+      ))
+    ) {
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const res = await approveManualEntry(selectedTrip.trip_id, remarks.trim());
+      toast.success(res?.message || "Manual entry approved.");
+      setShowModal(false);
+      setSelectedTrip(null);
+      setRemarks("");
+      await refreshTrips();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to approve the entry.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRejectManualEntry = async () => {
+    const reason = await promptDialog(
+      "Reason for rejecting this manual entry (the trip will be cancelled):",
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("A reason is required.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const res = await rejectManualEntry(selectedTrip.trip_id, reason.trim());
+      toast.success(res?.message || "Manual entry rejected.");
+      setShowModal(false);
+      setSelectedTrip(null);
+      await refreshTrips();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to reject the entry.");
     } finally {
       setSubmitting(false);
     }
@@ -403,8 +478,10 @@ const PendingTripsCard = ({
               >
                 <td className="px-6 py-4">{trip.id}</td>
                 <td className="px-6 py-4 uppercase">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {trip.trip_code || "-"}
+                    <TripSourceBadge trip={trip} />
+                    {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
                     {trip.return_reason && (
                       <span
                         title={`Sent back for correction: ${trip.return_reason}`}
@@ -450,7 +527,7 @@ const PendingTripsCard = ({
                       {mode === "pending" ? "Review" : "View"}
                     </button>
 
-                    {canEditPage && (
+                    {canEditPage && !trip.awaiting_manual_approval && (
                       <button
                       onClick={() => handleArchive(trip)}
                       disabled={archivingId === trip.id}
@@ -475,14 +552,18 @@ const PendingTripsCard = ({
             key={trip.id}
             className="bg-surface border border-border text-fg p-4 rounded-xl"
           >
-            {trip.return_reason && (
-              <div
-                title={trip.return_reason}
-                className="mb-2 inline-block rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger"
-              >
-                Correction Requested
-              </div>
-            )}
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              <TripSourceBadge trip={trip} />
+              {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
+              {trip.return_reason && (
+                <span
+                  title={trip.return_reason}
+                  className="inline-block rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger"
+                >
+                  Correction Requested
+                </span>
+              )}
+            </div>
 
             <div className="flex justify-between items-center">
               <div>
@@ -498,7 +579,7 @@ const PendingTripsCard = ({
                   <FontAwesomeIcon icon={faEye} />
                 </button>
 
-                {canEditPage && (
+                {canEditPage && !trip.awaiting_manual_approval && (
                   <button
                   onClick={() => handleArchive(trip)}
                   disabled={archivingId === trip.id}
@@ -568,6 +649,8 @@ const PendingTripsCard = ({
               <h2 className="text-xl font-bold flex items-center gap-3">
                 <FontAwesomeIcon icon={faRoute} />
                 Trip Review — {selectedTrip.trip_code || selectedTrip.ticket_no}
+                <TripSourceBadge trip={selectedTrip} />
+                {awaitingManual && <AwaitingSuperadminBadge />}
               </h2>
 
               <button
@@ -1273,8 +1356,60 @@ const PendingTripsCard = ({
                 )}
 
                 {/* ===== NEW: REMARKS FOR FINANCE REVIEW ===== */}
+                {/* ===== MANUAL ENTRY WAITING FOR SUPERADMIN ===== */}
+                {mode === "pending" && awaitingManual && (
+                  <>
+                    <hr className="my-6 border-border" />
+                    <div className="rounded-xl border border-primary/30 bg-primary/10 p-4">
+                      <p className="font-semibold text-fg">
+                        Manual entry waiting for superadmin approval
+                      </p>
+                      <p className="mt-1 text-xs text-fg-muted">
+                        A coordinator admin entered this trip on the Trip
+                        Manual Entries page. Once a superadmin accepts it, it
+                        goes through the normal coordinator approval here.
+                      </p>
+                    </div>
+
+                    {isSuperadmin ? (
+                      <>
+                        <label className="mt-4 mb-2 block text-sm font-semibold text-fg">
+                          Remarks (optional)
+                        </label>
+                        <textarea
+                          value={remarks}
+                          onChange={(e) => setRemarks(e.target.value)}
+                          rows={3}
+                          placeholder="e.g. Confirmed with the driver and coordinator."
+                          className="w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <button
+                            onClick={handleRejectManualEntry}
+                            disabled={submitting}
+                            className="rounded-xl border border-danger/40 py-3 font-bold text-danger hover:bg-danger/10 disabled:opacity-60"
+                          >
+                            Reject Entry
+                          </button>
+                          <button
+                            onClick={handleApproveManualEntry}
+                            disabled={submitting}
+                            className="rounded-xl bg-primary py-3 font-bold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+                          >
+                            {submitting ? "Saving..." : "Accept Entry"}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-3 text-xs italic text-fg-subtle">
+                        Only a superadmin can accept or reject this entry.
+                      </p>
+                    )}
+                  </>
+                )}
+
                 {/* ===== COORDINATOR REMARKS ===== */}
-                {mode === "pending" && (
+                {mode === "pending" && !awaitingManual && (
                   <>
                     <hr className="my-6 border-border" />
 

@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Tags, Plus, Pencil } from "lucide-react";
+import { Tags, Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import {
   getRateProfiles,
   createRateProfile,
   updateRateProfile,
+  deleteRateProfile,
 } from "../../api/adminTripManagement/tripMaintenance";
+import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { toast } from "react-hot-toast";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -31,8 +33,14 @@ export default function TripCategoriesPage() {
   const [editingProfile, setEditingProfile] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState("");
-  const filteredRates = tripRates.filter((rate) =>
-    matchesSearch(search, rate.profile_name, rate.code, rate.helper_count),
+  // Archived categories are hidden unless this is on.
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivingId, setArchivingId] = useState(null);
+  const archivedCount = tripRates.filter((rate) => !rate.is_active).length;
+  const filteredRates = tripRates.filter(
+    (rate) =>
+      (showArchived || rate.is_active) &&
+      matchesSearch(search, rate.profile_name, rate.code, rate.helper_count),
   );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
     filteredRates,
@@ -82,6 +90,44 @@ export default function TripCategoriesPage() {
     }
   };
 
+  // Archive = deactivate: the category stays on past trips and payroll,
+  // but can't be picked for new ones.
+  const handleArchive = async (profile) => {
+    const storeNote = profile.store_count
+      ? ` ${profile.store_count} store(s) still use it -- new trips to those stores will be blocked until they're moved to another category.`
+      : "";
+    if (
+      !(await confirmDialog(
+        `Archive "${profile.profile_name}"? It will be hidden and can't be used for new trips. Past trips keep their rates.${storeNote}`,
+      ))
+    ) {
+      return;
+    }
+    try {
+      setArchivingId(profile.id);
+      await deleteRateProfile(profile.id);
+      toast.success("Category archived");
+      await loadRateProfiles();
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Failed to archive category");
+    } finally {
+      setArchivingId(null);
+    }
+  };
+
+  const handleRestore = async (profile) => {
+    try {
+      setArchivingId(profile.id);
+      await updateRateProfile(profile.id, { is_active: true });
+      toast.success("Category restored");
+      await loadRateProfiles();
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Failed to restore category");
+    } finally {
+      setArchivingId(null);
+    }
+  };
+
   const handleEdit = (profile) => {
     setEditingProfile(profile);
     setForm({
@@ -119,6 +165,16 @@ export default function TripCategoriesPage() {
           onChange={setSearch}
           placeholder="Search categories..."
         />
+        <label className="flex items-center gap-2 text-sm text-fg-muted">
+          <input
+            type="checkbox"
+            checked={showArchived}
+            onChange={(e) => setShowArchived(e.target.checked)}
+            className="h-4 w-4 accent-primary"
+          />
+          Show archived ({archivedCount})
+        </label>
+        <div className="flex-1" />
         {canEditPage && (
           <button
           onClick={() => {
@@ -138,15 +194,29 @@ export default function TripCategoriesPage() {
         {paginatedItems.map((rate) => (
           <div
             key={rate.id}
-            className="bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg"
+            className={`bg-surface border border-border rounded-2xl p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 overflow-hidden text-fg ${
+              rate.is_active ? "" : "opacity-60"
+            }`}
           >
-            <div className="h-1 bg-emerald-500 -mx-5 -mt-5 mb-4" />
+            <div
+              className={`h-1 -mx-5 -mt-5 mb-4 ${
+                rate.is_active ? "bg-emerald-500" : "bg-fg-subtle"
+              }`}
+            />
 
             <div className="flex justify-between">
               <div>
-                <h3 className="font-bold text-lg">{rate.profile_name}</h3>
+                <h3 className="flex items-center gap-2 font-bold text-lg">
+                  {rate.profile_name}
+                  {!rate.is_active && (
+                    <span className="rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
+                      Archived
+                    </span>
+                  )}
+                </h3>
                 <p className="text-sm text-fg-muted">
                   {rate.helper_count} Helper(s)
+                  {rate.store_count > 0 && ` · ${rate.store_count} store(s)`}
                 </p>
               </div>
 
@@ -183,16 +253,39 @@ export default function TripCategoriesPage() {
               </div>
             </div>
 
-            <div className="flex justify-between">
-              {canEditPage && (
-                <button
-                onClick={() => handleEdit(rate)}
-                className="p-2 rounded-lg hover:bg-primary/10 text-primary"
-              >
-                <Pencil size={18} />
-              </button>
-              )}
-            </div>
+            {canEditPage && (
+              <div className="mt-3 flex justify-between">
+                {rate.is_active ? (
+                  <>
+                    <button
+                      onClick={() => handleEdit(rate)}
+                      title="Edit"
+                      className="p-2 rounded-lg hover:bg-primary/10 text-primary"
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleArchive(rate)}
+                      disabled={archivingId === rate.id}
+                      title="Archive"
+                      className="flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-fg-muted hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                    >
+                      <Archive size={16} />
+                      Archive
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleRestore(rate)}
+                    disabled={archivingId === rate.id}
+                    className="ml-auto flex items-center gap-1.5 rounded-lg px-2 py-2 text-sm text-primary hover:bg-primary/10 disabled:opacity-50"
+                  >
+                    <ArchiveRestore size={16} />
+                    Restore
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

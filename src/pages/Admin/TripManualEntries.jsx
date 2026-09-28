@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { useSearchParams } from "react-router-dom";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
@@ -15,7 +15,6 @@ import {
   approveManualEntry,
   createManualEntry,
   rejectManualEntry,
-  getManualEntries,
   getManualEntryOptions,
 } from "../../api/tripManualEntries";
 
@@ -44,7 +43,8 @@ const emptyForm = {
 // was down that day). The trip is created already finished -- every
 // store delivered, no GPS or geofence checks -- and goes into the normal
 // Trip Approvals flow. A coordinator_admin's entry first waits for a
-// superadmin to approve or reject it (Recent Manual Entries list).
+// superadmin to accept or reject it -- done from Trip Approvals, or from
+// the View window the alert bell opens here (?view=<trip id>).
 export default function TripManualEntries() {
   const { isSuperAdmin, role } = useModuleAccess();
   const canEnter = isSuperAdmin || role === "coordinator_admin";
@@ -63,10 +63,9 @@ export default function TripManualEntries() {
     }
   }, [searchParams, setSearchParams]);
 
-  // After an approve/reject: refresh the list, the open View window and
-  // the alert bell count.
+  // After an approve/reject: refresh the open View window and the alert
+  // bell count.
   const afterDecision = async () => {
-    await loadEntries();
     setViewRefreshKey((k) => k + 1);
     window.dispatchEvent(new Event("manual-entries-changed"));
   };
@@ -78,7 +77,6 @@ export default function TripManualEntries() {
   });
   const [hubs, setHubs] = useState([]);
   const [destinations, setDestinations] = useState([]);
-  const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -94,14 +92,6 @@ export default function TripManualEntries() {
   const setField = (field, value) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const loadEntries = useCallback(async () => {
-    try {
-      setEntries(await getManualEntries());
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  }, []);
-
   useEffect(() => {
     if (!canEnter) return;
     const load = async () => {
@@ -116,7 +106,6 @@ export default function TripManualEntries() {
           : storeRes.data?.items || [];
         setHubs(storeList.filter((s) => s.is_hub));
         setDestinations(storeList.filter((s) => !s.is_hub));
-        await loadEntries();
       } catch (error) {
         toast.error(getErrorMessage(error));
       } finally {
@@ -124,7 +113,7 @@ export default function TripManualEntries() {
       }
     };
     load();
-  }, [canEnter, loadEntries]);
+  }, [canEnter]);
 
   const storeName = (id) =>
     destinations.find((s) => s.id === id)?.name || `Store #${id}`;
@@ -249,7 +238,8 @@ export default function TripManualEntries() {
       const res = await createManualEntry(fd);
       toast.success(`${res.trip_code}: ${res.message}`);
       resetForm();
-      await loadEntries();
+      // A coordinator admin's entry adds to the superadmin's alert bell.
+      window.dispatchEvent(new Event("manual-entries-changed"));
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -295,8 +285,6 @@ export default function TripManualEntries() {
     }
   };
 
-  const waitingCount = entries.filter((e) => e.awaiting_approval).length;
-
   if (!canEnter) {
     return (
       <div className="space-y-5">
@@ -332,7 +320,7 @@ export default function TripManualEntries() {
       {loading ? (
         <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
       ) : (
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+        <div className="max-w-4xl">
           {/* ================= FORM ================= */}
           <div className="space-y-5 rounded-2xl border border-border bg-surface p-5">
             <Section title="Driver & Vehicle">
@@ -629,107 +617,6 @@ export default function TripManualEntries() {
             </button>
           </div>
 
-          {/* ================= RECENT ENTRIES ================= */}
-          <div className="h-fit rounded-2xl border border-border bg-surface p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="font-semibold text-fg">Recent Manual Entries</h3>
-              {waitingCount > 0 && (
-                <span className="rounded-full bg-warning/15 px-2.5 py-1 text-xs font-semibold text-warning">
-                  {waitingCount} waiting for approval
-                </span>
-              )}
-            </div>
-            {entries.length === 0 ? (
-              <p className="mt-3 text-sm text-fg-subtle">
-                No manual entries yet.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {[...entries]
-                  .sort((a, b) => b.awaiting_approval - a.awaiting_approval)
-                  .map((entry) => (
-                  <li
-                    key={entry.trip_id}
-                    className={`rounded-xl border p-3 text-sm ${
-                      entry.awaiting_approval
-                        ? "border-warning/40 bg-warning/5"
-                        : "border-border"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-semibold text-fg">
-                          {entry.trip_code} · {entry.driver_name || "-"}
-                        </p>
-                        <p className="text-xs text-fg-subtle">
-                          {entry.ticket_no}
-                        </p>
-                      </div>
-                      <EntryStatus status={entry.status} />
-                    </div>
-                    <p className="mt-1 text-xs text-fg-muted">
-                      {entry.start_time} → {entry.end_time}
-                    </p>
-                    {entry.stores?.length > 0 && (
-                      <p className="mt-1 text-xs text-fg-muted">
-                        {entry.stores.join(" → ")}
-                      </p>
-                    )}
-                    {entry.reason && (
-                      <p className="mt-1 whitespace-pre-wrap text-xs text-fg-subtle">
-                        “{entry.reason}”
-                      </p>
-                    )}
-                    <p className="mt-1 text-[11px] text-fg-subtle">
-                      Entered by {entry.entered_by || "-"} · {entry.entered_at}
-                    </p>
-                    {entry.decision && (
-                      <p
-                        className={`mt-1 text-[11px] ${
-                          entry.decision.approved ? "text-success" : "text-danger"
-                        }`}
-                      >
-                        {entry.decision.approved ? "Approved" : "Rejected"} by{" "}
-                        {entry.decision.by || "-"} · {entry.decision.at}
-                        {entry.decision.reason
-                          ? ` -- ${entry.decision.reason}`
-                          : ""}
-                      </p>
-                    )}
-                    <div className="mt-2 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setViewingId(entry.trip_id)}
-                        className="flex-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
-                      >
-                        View
-                      </button>
-                    {entry.awaiting_approval && isSuperAdmin && (
-                      <>
-                        <button
-                          type="button"
-                          disabled={decidingId === entry.trip_id}
-                          onClick={() => handleApprove(entry)}
-                          className="flex-1 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          disabled={decidingId === entry.trip_id}
-                          onClick={() => handleReject(entry)}
-                          className="flex-1 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </div>
       )}
 
@@ -792,26 +679,3 @@ const IconButton = ({ label, disabled = false, onClick, children }) => (
     {children}
   </button>
 );
-
-const STATUS_LABELS = {
-  PENDING_MANUAL_APPROVAL: ["Waiting for Superadmin", "bg-warning/15 text-warning"],
-  PENDING_APPROVAL: ["In Trip Approvals", "bg-primary/15 text-primary"],
-  PENDING_OFFICE_REVIEW: ["Office Review", "bg-surface-active text-fg-muted"],
-  PENDING_FINANCE_REVIEW: ["Finance Review", "bg-surface-active text-fg-muted"],
-  COMPLETED: ["Approved by Finance", "bg-success/15 text-success"],
-  CANCELLED: ["Rejected", "bg-danger/15 text-danger"],
-};
-
-const EntryStatus = ({ status }) => {
-  const [label, classes] = STATUS_LABELS[status] || [
-    status,
-    "bg-surface-active text-fg-muted",
-  ];
-  return (
-    <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${classes}`}
-    >
-      {label}
-    </span>
-  );
-};
