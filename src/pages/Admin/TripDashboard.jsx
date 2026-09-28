@@ -8,19 +8,23 @@ import {
 import SummaryCard from "../../components/adminTrips/SummaryCards";
 import AssignedTripsMonitor from "../../components/adminTrips/AssignedTripsMonitor";
 import ActiveTripsMonitor from "../../components/adminTrips/ActiveTripsMonitor";
+import TripApprovalPipeline from "../../components/adminTrips/TripApprovalPipeline";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 // Trip Dashboard -- a live look at every trip currently in motion:
 // dispatched but not yet checked out ("Assigned"), and checked out and
 // in progress ("Active", with the real driver-triggered step shown per
 // trip -- Checkout, Arrived, Unloading, Delivered, Checkin). Trips
-// waiting on coordinator/office/finance approval live on their own
-// review pages instead (Trip Approvals, Trip Confirmation, Finance).
+// waiting on coordinator/office/finance approval are reviewed on their
+// own pages (Trip Approvals, Trip Confirmation, Finance); the Trip
+// Approval Status list below only shows where each one is.
 const TripDashboard = () => {
   const [summary, setSummary] = useState({});
   const [assignedTrips, setAssignedTrips] = useState([]);
   const [activeTrips, setActiveTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Bumped by the background refresh so the approval list reloads too.
+  const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
 
   const loadTrips = async () => {
     try {
@@ -54,6 +58,7 @@ const TripDashboard = () => {
       refreshing = true;
       try {
         await loadTrips();
+        setPipelineRefreshKey((k) => k + 1);
       } finally {
         refreshing = false;
       }
@@ -117,6 +122,21 @@ const TripDashboard = () => {
         </p>
 
         <ActiveTripsMonitor trips={activeTrips} />
+      </div>
+
+      {/* APPROVAL STATUS */}
+      <div>
+        <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
+          Trip Approval Status
+        </h2>
+
+        <p className="mb-4 text-sm text-fg-subtle">
+          Finished trips and where they are in approval -- Pending
+          Approval (coordinator), Pending Office Approval, Pending Finance
+          Approval, or Approved.
+        </p>
+
+        <TripApprovalPipeline refreshKey={pipelineRefreshKey} />
       </div>
     </div>
   );

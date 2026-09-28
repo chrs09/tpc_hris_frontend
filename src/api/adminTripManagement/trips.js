@@ -69,3 +69,16 @@ export const getHubAlerts = () => api.get("/admin/trips/hub-alerts");
 
 export const acknowledgeHubAlert = (notificationId) =>
   api.post(`/admin/trips/hub-alerts/${notificationId}/acknowledge`);
+
+// Trip Dashboard: every finished trip and its approval stage
+// (coordinator -> office -> finance -> approved). Server-side filter,
+// search and paging; also returns per-status counts.
+export const getApprovalPipeline = ({ status, search, limit = 20, offset = 0 } = {}) =>
+  api.get("/admin/trips/approval-pipeline", {
+    params: {
+      status: status || undefined,
+      search: search?.trim() || undefined,
+      limit,
+      offset,
+    },
+  });
