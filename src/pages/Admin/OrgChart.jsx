@@ -423,6 +423,15 @@ function UnitCard({
         <p className="px-3 py-2 text-xs text-fg-subtle">No head assigned</p>
       )}
 
+      {unit.head && unit.approves?.length > 0 && (
+        <p className="px-3 pb-2 text-[11px] text-fg-subtle">
+          Approves:{" "}
+          {APPROVAL_TYPES.filter((t) => unit.approves.includes(t.key))
+            .map((t) => t.label)
+            .join(", ")}
+        </p>
+      )}
+
       {alsoLeads.length > 0 && (
         <div className="flex flex-wrap gap-1 border-t border-border px-3 py-2">
           {alsoLeads.map((u) => (
@@ -566,6 +575,7 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
   const [departments, setDepartments] = useState(unit?.rules.departments || []);
   const [employeeIds, setEmployeeIds] = useState(unit?.rules.employee_ids || []);
   const [alsoIds, setAlsoIds] = useState(unit?.also_reports_to || []);
+  const [approves, setApproves] = useState(unit?.approves || []);
   const [users, setUsers] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -617,6 +627,7 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
         departments,
         employee_ids: employeeIds,
         also_reports_to: alsoIds.filter((id) => id !== parentId),
+        approves,
       });
       toast.success("Unit saved.");
       await onSaved();
@@ -773,6 +784,46 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
               )}
             </Field>
           </div>
+
+          <div className="space-y-3 rounded-xl border border-border p-4">
+            <div>
+              <p className="text-sm font-semibold">Immediate head approves</p>
+              <p className="text-xs text-fg-subtle">
+                What this unit&apos;s head approves for everyone under them.
+                Requests go up layer by layer and stop at every head with the
+                type ticked -- the last one finishes it. The head&apos;s own
+                requests go to the unit above.
+              </p>
+            </div>
+            {!headId && (
+              <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+                Pick a head above first -- with no head, this unit is skipped.
+              </p>
+            )}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {APPROVAL_TYPES.map((type) => {
+                const on = approves.includes(type.key);
+                return (
+                  <label
+                    key={type.key}
+                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                      on
+                        ? "border-primary bg-primary/10 text-fg"
+                        : "border-border text-fg-muted hover:border-primary/50"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => toggleIn(approves, setApproves, type.key)}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    {type.label}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
@@ -796,6 +847,13 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
     </div>
   );
 }
+
+// What an org unit's head can approve (app/services/approval_chain.py).
+const APPROVAL_TYPES = [
+  { key: "cash_advance", label: "Cash Advance" },
+  { key: "attendance", label: "Attendance" },
+  { key: "overtime", label: "Overtime" },
+];
 
 const Field = ({ label, children }) => (
   <div>

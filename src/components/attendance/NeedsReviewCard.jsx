@@ -134,16 +134,20 @@ const NeedsReviewCard = () => {
                       record.time_in_face_review_status,
                     ) &&
                       `Time In: ${
-                        REVIEW_REASON_LABEL[record.time_in_face_review_status]
+                        record.time_in_outside_geofence
+                          ? "Outside Geofence"
+                          : REVIEW_REASON_LABEL[record.time_in_face_review_status]
                       }`,
                     record.check_out_time &&
                       NEEDS_REVIEW_STATUSES.includes(
                         record.time_out_face_review_status,
                       ) &&
                       `Time Out: ${
-                        REVIEW_REASON_LABEL[
-                          record.time_out_face_review_status
-                        ]
+                        record.time_out_outside_geofence
+                          ? "Outside Geofence"
+                          : REVIEW_REASON_LABEL[
+                              record.time_out_face_review_status
+                            ]
                       }`,
                   ]
                     .filter(Boolean)

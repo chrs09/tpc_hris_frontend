@@ -18,6 +18,7 @@ import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
 import ModuleAssignment from "../Admin/ModuleAssignment";
 import RoleAccess from "../Admin/RoleAccess";
 import OvertimeApprovals from "../Overtime/OvertimeApprovals";
+import AttendanceApprovals from "../Attendance/AttendanceApprovals";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripCategoriesPage from "../Admin/TripCategoriesPage";
@@ -127,6 +128,10 @@ const Dashboard = () => {
           <Route path="module-assignment" element={<ModuleAssignment />} />
           <Route path="role-access" element={<RoleAccess />} />
           <Route path="overtime-approvals" element={<OvertimeApprovals />} />
+          <Route
+            path="attendance-approvals"
+            element={<AttendanceApprovals />}
+          />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="error-logs" element={<ErrorLogsPage />} />
           <Route path="tickets" element={<TicketsPage />} />

@@ -20,7 +20,7 @@ const tabOf = (path) =>
 
 export function PageAccessProvider({ children }) {
   const location = useLocation();
-  const { role, canEdit } = useModuleAccess();
+  const { role, canEdit, approverOf } = useModuleAccess();
 
   const value = useMemo(() => {
     const items = getNavGroups(role).flatMap((g) => g.children || []);
@@ -35,11 +35,19 @@ export function PageAccessProvider({ children }) {
       candidates[0];
 
     if (!match) return { moduleKey: null, canEdit: true };
+    // An Org Chart head can approve on the matching approval page even
+    // without the module itself (the backend checks it's their turn).
+    const approvesHere = items.some(
+      (item) =>
+        item.approverKind &&
+        pathOf(item.path) === location.pathname &&
+        approverOf[item.approverKind],
+    );
     return {
       moduleKey: match.moduleKey,
-      canEdit: canEdit(match.moduleKey, match.roles || []),
+      canEdit: approvesHere || canEdit(match.moduleKey, match.roles || []),
     };
-  }, [location.pathname, location.search, role, canEdit]);
+  }, [location.pathname, location.search, role, canEdit, approverOf]);
 
   return (
     <PageAccessContext.Provider value={value}>{children}</PageAccessContext.Provider>

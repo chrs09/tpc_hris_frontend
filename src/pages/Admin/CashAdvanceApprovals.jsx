@@ -18,6 +18,8 @@ import SearchSelect from "../../components/SearchSelect";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 import useModuleAccess from "../../hooks/useModuleAccess";
+import ApprovalProgress from "../../components/approvals/ApprovalProgress";
+import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
@@ -37,9 +39,39 @@ const STATUS_STYLES = {
 //
 // Also includes an "All Requests" tab (every status, full history) for
 // the Finance module, backed by GET /cash-advance-requests/all.
+// All Requests "Approver" column: who approved (each head in order for
+// an Org Chart chain), or whose turn it is while still pending.
+const ApproverCell = ({ req }) => {
+  const approvedBy = (req.approval_log || [])
+    .filter((entry) => entry.action === "approved")
+    .map((entry) => entry.name);
+  if (req.status === "pending") {
+    const current = req.approval_steps?.find((s) => s.state === "current");
+    return (
+      <div>
+        {approvedBy.length > 0 && (
+          <p className="text-xs text-success">✓ {approvedBy.join(" → ")}</p>
+        )}
+        <p className="text-xs">
+          Waiting: {current?.name || req.requested_by_name || "—"}
+        </p>
+      </div>
+    );
+  }
+  if (approvedBy.length > 0 && req.status !== "rejected") {
+    return <span>{approvedBy.join(" → ")}</span>;
+  }
+  return <span>{req.approved_by_name || req.requested_by_name || "—"}</span>;
+};
+
 export default function CashAdvanceApprovals() {
   const canEditPage = usePageCanEdit();
-  const { isSuperAdmin } = useModuleAccess();
+  const { isSuperAdmin, hasCustomAccess, grantedModules } = useModuleAccess();
+  // Full history + balances are Finance's; an Org Chart head only gets
+  // the requests waiting on them.
+  const hasFinanceAccess =
+    isSuperAdmin ||
+    (hasCustomAccess && grantedModules.has("finance.cash_advance"));
 
   const [tab, setTab] = useState("pending");
 
@@ -172,8 +204,13 @@ export default function CashAdvanceApprovals() {
 
   const handleApprove = async (request) => {
     const input = await promptDialog(
-      `Approve how much for ${request.employee_name}? (requested ₱${request.amount.toLocaleString()})`,
-      String(request.amount),
+      `Approve how much for ${request.employee_name}? (requested ₱${request.amount.toLocaleString()}${
+        request.approved_amount != null && request.approved_amount !== request.amount
+          ? `, ₱${request.approved_amount.toLocaleString()} approved so far`
+          : ""
+      })`,
+      // An earlier head in the Org Chart chain may have lowered it.
+      String(request.approved_amount ?? request.amount),
     );
     if (input === null) return;
 
@@ -189,11 +226,18 @@ export default function CashAdvanceApprovals() {
 
     try {
       setActioningId(request.id);
-      await approveCashAdvanceRequest(request.id, undefined, approvedAmount);
+      const result = await approveCashAdvanceRequest(
+        request.id,
+        undefined,
+        approvedAmount,
+      );
+      const next = result?.approval_steps?.find((s) => s.state === "current");
       toast.success(
-        approvedAmount === request.amount
-          ? "Cash advance approved."
-          : `Cash advance approved for ₱${approvedAmount.toLocaleString()} (of ₱${request.amount.toLocaleString()} requested).`,
+        result?.status === "pending" && next
+          ? `Approved -- passed to ${next.name} for the next approval.`
+          : approvedAmount === request.amount
+            ? "Cash advance approved."
+            : `Cash advance approved for ₱${approvedAmount.toLocaleString()} (of ₱${request.amount.toLocaleString()} requested).`,
       );
       await loadPending();
       if (allLoaded) await loadAll();
@@ -366,16 +410,18 @@ export default function CashAdvanceApprovals() {
           >
             Pending Approvals
           </button>
-          <button
-            onClick={() => setTab("all")}
-            className={`px-4 py-2 text-sm font-medium ${
-              tab === "all"
-                ? "border-b-2 border-primary text-primary"
-                : "text-fg-subtle hover:text-fg"
-            }`}
-          >
-            All Requests
-          </button>
+          {hasFinanceAccess && (
+            <button
+              onClick={() => setTab("all")}
+              className={`px-4 py-2 text-sm font-medium ${
+                tab === "all"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-fg-subtle hover:text-fg"
+              }`}
+            >
+              All Requests
+            </button>
+          )}
           {isSuperAdmin && (
             <button
               onClick={() => setTab("balances")}
@@ -469,6 +515,9 @@ export default function CashAdvanceApprovals() {
                     </span>
                     {req.reason}
                   </p>
+
+                  <ApprovalProgress steps={req.approval_steps} className="mt-2" />
+                  <ApprovedBy log={req.approval_log} money className="mt-2" />
 
                   <div className="mt-4 flex flex-wrap gap-3">
                     {canEditPage && (
@@ -575,7 +624,7 @@ export default function CashAdvanceApprovals() {
                           </span>
                         </td>
                         <td className="px-6 text-fg-muted">
-                          {req.requested_by_name || "—"}
+                          <ApproverCell req={req} />
                         </td>
                         <td className="px-6 py-4 text-fg-muted">
                           {new Date(req.created_at).toLocaleDateString()}

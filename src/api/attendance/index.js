@@ -139,3 +139,17 @@ export const kioskSelfieAttendance = async (formData) => {
 
   return res.data;
 };
+
+// Bell: time in/out outside the allowed area still waiting for review
+// (superadmin, or Attendance grid view with "Can edit: Yes").
+export const getGeofenceAlerts = async () => {
+  const res = await api.get("/attendance/geofence-alerts");
+  return res.data;
+};
+
+// Org chart heads: attendance (time in/out needing review) whose turn is
+// with me.
+export const getAttendanceForMyApproval = async () => {
+  const res = await api.get("/attendance/for-my-approval");
+  return res.data;
+};

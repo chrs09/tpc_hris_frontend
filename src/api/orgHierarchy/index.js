@@ -64,3 +64,11 @@ export const deleteOrgUnit = async (unitId) => {
   const res = await api.delete(`/org-chart/units/${unitId}`);
   return res.data;
 };
+
+// What the logged-in user approves as an Org Chart head
+// ({ cash_advance, overtime, attendance } booleans) -- shows the matching
+// approval pages in the menu (see useModuleAccess.js).
+export const getMyApprovalKinds = async () => {
+  const res = await api.get("/org-chart/my-approvals");
+  return res.data;
+};

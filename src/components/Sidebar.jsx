@@ -21,6 +21,7 @@ import ThemeToggle from "./ui/ThemeToggle";
 import HubAlertsBell from "./adminTrips/HubAlertsBell";
 import CashAdvanceAlertsBell from "./adminTrips/CashAdvanceAlertsBell";
 import ManualEntryAlertsBell from "./adminTrips/ManualEntryAlertsBell";
+import GeofenceAlertsBell from "./attendance/GeofenceAlertsBell";
 import FuelRequestAlertsBell from "./adminTrips/FuelRequestAlertsBell";
 import toast from "react-hot-toast";
 
@@ -30,7 +31,7 @@ const GROUP_ICONS = {
   Dashboard: <LayoutDashboard size={18} />,
   HRIS: <Users size={18} />,
   Payroll: <Wallet size={18} />,
-  "OT Approvals": <Users size={18} />,
+  Approvals: <Users size={18} />,
   "Trip Management": <Truck size={18} />,
   Customers: <Users size={18} />,
   Suppliers: <Building2 size={18} />,
@@ -182,6 +183,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           <HubAlertsBell />
           <CashAdvanceAlertsBell />
           <ManualEntryAlertsBell />
+          <GeofenceAlertsBell />
           <FuelRequestAlertsBell />
           <ThemeToggle />
           <button
@@ -223,6 +225,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <HubAlertsBell />
               <CashAdvanceAlertsBell />
               <ManualEntryAlertsBell />
+              <GeofenceAlertsBell />
               <FuelRequestAlertsBell />
             </div>
           )}
@@ -231,6 +234,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <HubAlertsBell />
               <CashAdvanceAlertsBell />
               <ManualEntryAlertsBell />
+              <GeofenceAlertsBell />
               <FuelRequestAlertsBell />
             </div>
           )}

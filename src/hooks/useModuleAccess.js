@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getMyModuleAccess } from "../api/employeeModuleAccess";
-import { getAmIDepartmentHead } from "../api/orgHierarchy";
+import { getAmIDepartmentHead, getMyApprovalKinds } from "../api/orgHierarchy";
 
 // Shared per-employee module-grant state (Module Assignment page), used
 // by both Sidebar.jsx and SectionTabs.jsx so the same "what can this
@@ -23,6 +23,9 @@ export default function useModuleAccess() {
   // specifically-designated approver, checked per-request) can review
   // overtime. See requiresDepartmentHead below.
   const [isDepartmentHead, setIsDepartmentHead] = useState(false);
+  // What this user approves as an Org Chart head (unit ticked for Cash
+  // Advance / Overtime / Attendance) -- shows those approval pages.
+  const [approverOf, setApproverOf] = useState({});
 
   useEffect(() => {
     if (isSuperAdmin) return;
@@ -39,9 +42,15 @@ export default function useModuleAccess() {
     getAmIDepartmentHead()
       .then((data) => setIsDepartmentHead(Boolean(data.is_department_head)))
       .catch(() => setIsDepartmentHead(false));
+    getMyApprovalKinds()
+      .then((data) => setApproverOf(data || {}))
+      .catch(() => setApproverOf({}));
   }, [isSuperAdmin]);
 
   const isVisible = (item) => {
+    // Approval pages for Org Chart heads (never for superadmin, who
+    // already has the regular menu item).
+    if (item.approverKind) return !isSuperAdmin && Boolean(approverOf[item.approverKind]);
     if (role === "superadmin") return true;
     if (item.requiresDepartmentHead) return isDepartmentHead;
     if (!item.moduleKey) return item.roles.includes(role);
@@ -75,6 +84,7 @@ export default function useModuleAccess() {
     grantedModules,
     hasCustomAccess,
     isDepartmentHead,
+    approverOf,
     isVisible,
   };
 }

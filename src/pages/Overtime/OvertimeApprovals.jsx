@@ -8,6 +8,8 @@ import {
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
+import ApprovalProgress from "../../components/approvals/ApprovalProgress";
+import ApprovedBy from "../../components/approvals/ApprovedBy";
 
 export default function OvertimeApprovals() {
   const [requests, setRequests] = useState([]);
@@ -28,7 +30,10 @@ export default function OvertimeApprovals() {
       setEditedHours((prev) => {
         const next = { ...prev };
         data.forEach((r) => {
-          if (next[r.id] === undefined) next[r.id] = r.computed_hours;
+          // An earlier head in the Org Chart chain may have set hours.
+          if (next[r.id] === undefined) {
+            next[r.id] = r.approved_hours ?? r.computed_hours;
+          }
         });
         return next;
       });
@@ -47,10 +52,15 @@ export default function OvertimeApprovals() {
   const handleApprove = async (request) => {
     try {
       setActioningId(request.id);
-      await approveOvertimeRequest(request.id, {
+      const result = await approveOvertimeRequest(request.id, {
         approvedHours: Number(editedHours[request.id] ?? request.computed_hours),
       });
-      toast.success("Overtime request approved.");
+      const next = result?.approval_steps?.find((s) => s.state === "current");
+      toast.success(
+        result?.status === "pending" && next
+          ? `Approved -- passed to ${next.name} for the next approval.`
+          : "Overtime request approved.",
+      );
       await loadRequests();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to approve.");
@@ -122,6 +132,9 @@ export default function OvertimeApprovals() {
                 </div>
 
                 <p className="mt-3 text-sm text-fg-muted">{req.reason}</p>
+
+                <ApprovalProgress steps={req.approval_steps} className="mt-2" />
+                <ApprovedBy log={req.approval_log} className="mt-2" />
 
                 {req.selfie_photo_url && (
                   <button

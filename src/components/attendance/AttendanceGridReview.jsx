@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { attendanceStatus } from "../../constants/attendanceStatus";
 import SearchSelect from "../SearchSelect";
+import ApprovalProgress from "../approvals/ApprovalProgress";
 
 const getPhoto = (record) => record.time_in_photo_url || null;
 
@@ -971,6 +972,9 @@ const AttendanceDetail = ({
             matchScore={record.time_in_face_match_score}
             reviewStatus={record.time_in_face_review_status}
             reviewReason={record.time_in_face_review_reason}
+            outsideGeofence={record.time_in_outside_geofence}
+            geofenceNote={record.time_in_geofence_note}
+            approvalSteps={record.time_in_review?.approval_steps}
             canReview={canReviewIn}
             onApprove={() => onApproveAttendance(record, "time_in")}
             onReject={() => onRejectAttendance(record, "time_in")}
@@ -990,6 +994,9 @@ const AttendanceDetail = ({
               matchScore={record.time_out_face_match_score}
               reviewStatus={record.time_out_face_review_status}
               reviewReason={record.time_out_face_review_reason}
+              outsideGeofence={record.time_out_outside_geofence}
+              geofenceNote={record.time_out_geofence_note}
+              approvalSteps={record.time_out_review?.approval_steps}
               canReview={canReviewOut}
               onApprove={() => onApproveAttendance(record, "time_out")}
               onReject={() => onRejectAttendance(record, "time_out")}
@@ -1151,12 +1158,21 @@ const SideReviewSection = ({
   matchScore,
   reviewStatus,
   reviewReason,
+  outsideGeofence,
+  geofenceNote,
+  approvalSteps,
   canReview,
   onApprove,
   onReject,
   onViewPhoto,
 }) => {
   const hasScore = matchScore !== null && matchScore !== undefined;
+  // The geofence note is shown on its own line below, so drop it from
+  // the combined review reason to avoid saying it twice.
+  const faceReason =
+    geofenceNote && reviewReason?.startsWith(geofenceNote)
+      ? reviewReason.slice(geofenceNote.length).trim()
+      : reviewReason;
 
   return (
     <div className="space-y-2">
@@ -1165,7 +1181,7 @@ const SideReviewSection = ({
       <div className="flex items-start justify-between gap-2 px-1">
         <SideReviewMessage
           reviewStatus={reviewStatus}
-          reviewReason={reviewReason}
+          reviewReason={faceReason}
         />
 
         {hasScore && (
@@ -1174,6 +1190,19 @@ const SideReviewSection = ({
           </span>
         )}
       </div>
+
+      {outsideGeofence && (
+        <div className="mx-1 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5">
+          <p className="text-xs font-semibold text-red-700">
+            📍 Outside geofence
+          </p>
+          {geofenceNote && (
+            <p className="text-[11px] text-red-600">{geofenceNote}</p>
+          )}
+        </div>
+      )}
+
+      <ApprovalProgress steps={approvalSteps} className="px-1" />
 
       {canReview && (
         <div className="grid grid-cols-2 gap-2">

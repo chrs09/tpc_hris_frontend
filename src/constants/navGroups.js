@@ -81,8 +81,23 @@ export function getNavGroups(role) {
       ],
     },
     {
-      label: "OT Approvals",
+      label: "Approvals",
       children: [
+        {
+          // Org Chart heads with Cash Advance / Attendance ticked (see
+          // approverKind in useModuleAccess.js). Superadmin and Finance
+          // use the Finance -> Cash Advance Approvals item instead.
+          label: "Cash Advance Approvals",
+          path: "/dashboard/cash-advance-approvals",
+          roles: [],
+          approverKind: "cash_advance",
+        },
+        {
+          label: "Attendance Approvals",
+          path: "/dashboard/attendance-approvals",
+          roles: [],
+          approverKind: "attendance",
+        },
         {
           label: "OT Approvals",
           path: "/dashboard/overtime-approvals",
