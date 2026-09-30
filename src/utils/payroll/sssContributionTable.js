@@ -93,3 +93,28 @@ export const getSSSEmployeeDeduction = (grossPay) => {
 
   return bracket ? bracket.employeeDeduction : 0;
 };
+
+// The SSS bracket a gross pay falls into (null when there's no pay), for
+// showing where the deduction came from.
+export const getSSSBracket = (grossPay) => {
+  const amount = Number(grossPay || 0);
+  if (amount <= 0) return null;
+  return (
+    SSS_CONTRIBUTION_TABLE.find((row) => amount >= row.min && amount <= row.max) ||
+    null
+  );
+};
+
+const peso = (value) =>
+  `₱${Number(value).toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+// e.g. "₱10,250.00 – ₱10,749.99" or "₱34,750.00 and up".
+export const formatSSSRange = (bracket) =>
+  !bracket
+    ? ""
+    : bracket.max === Infinity
+      ? `${peso(bracket.min)} and up`
+      : `${peso(bracket.min)} – ${peso(bracket.max)}`;

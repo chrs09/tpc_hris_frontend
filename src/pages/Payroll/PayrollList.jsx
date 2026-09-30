@@ -16,7 +16,11 @@ import { getApprovedOvertimeRequests } from "../../api/overtimeRequests";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import { getExpectedHoursForDate } from "../../utils/payroll/attendance/attendanceTimeUtils";
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
-import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
+import {
+  formatSSSRange,
+  getSSSBracket,
+  getSSSEmployeeDeduction,
+} from "../../utils/payroll/sssContributionTable";
 import PayslipModal from "../../components/payroll/PayslipModal";
 import usePagination from "../../hooks/usePagination";
 import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -829,6 +833,9 @@ const PayrollList = () => {
           monthlyBasicForContributions,
         );
         const computedSSS = getSSSEmployeeDeduction(grossPay);
+        // Where the SSS amount comes from: the bracket this cutoff's gross
+        // pay falls into (shown next to the deduction).
+        const sssBracket = getSSSBracket(grossPay);
 
         sssDeduction =
           adj.sssDeduction !== undefined
@@ -1058,6 +1065,8 @@ const PayrollList = () => {
           leavePay,
           others,
           sssDeduction,
+          sssBracket,
+          sssComputed: payrollType === "Monthly" ? computedSSS : 0,
           philhealthDeduction,
           pagibigDeduction,
           withholdingTax,
@@ -1851,20 +1860,34 @@ const PayrollList = () => {
                       {row.isTripBasedEmployee ? (
                         "--"
                       ) : (
-                        <input
-                          type="number"
-                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
-                          value={row.sssDeduction || ""}
-                          placeholder="0"
-                          onChange={(e) =>
-                            updateAdjustment(
-                              row.employee.id,
-                              activePeriod,
-                              "sssDeduction",
-                              e.target.value,
-                            )
-                          }
-                        />
+                        <div>
+                          <input
+                            type="number"
+                            className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
+                            value={row.sssDeduction || ""}
+                            placeholder="0"
+                            onChange={(e) =>
+                              updateAdjustment(
+                                row.employee.id,
+                                activePeriod,
+                                "sssDeduction",
+                                e.target.value,
+                              )
+                            }
+                          />
+                          {row.sssBracket && (
+                            <p
+                              className="mt-1 whitespace-nowrap text-[10px] text-fg-subtle"
+                              title={`Gross pay ₱${row.grossPay.toFixed(2)} falls in the SSS range ${formatSSSRange(row.sssBracket)}, which is ₱${row.sssBracket.employeeDeduction.toFixed(2)}.`}
+                            >
+                              {formatSSSRange(row.sssBracket)}
+                              {row.sssComputed > 0 &&
+                              Number(row.sssDeduction || 0) !== row.sssComputed
+                                ? ` · table ₱${row.sssComputed.toFixed(2)} (edited)`
+                                : ""}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </td>
 

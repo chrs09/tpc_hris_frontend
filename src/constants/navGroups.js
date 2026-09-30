@@ -86,6 +86,14 @@ export function getNavGroups(role) {
           roles: ["superadmin", "payroll_admin"],
           moduleKey: "payroll.payroll",
         },
+        {
+          // Read-only: every SSS pay range with its deduction, plus the
+          // PhilHealth / Pag-IBIG / tax rules payroll uses.
+          label: "Contribution Tables",
+          path: "/dashboard/contribution-tables",
+          roles: ["superadmin", "payroll_admin"],
+          moduleKey: "payroll.payroll",
+        },
       ],
     },
     {

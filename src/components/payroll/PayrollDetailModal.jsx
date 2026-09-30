@@ -5,6 +5,7 @@ import {
 } from "../../api/payroll/overtimeApproval";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import toast from "react-hot-toast";
+import { formatSSSRange } from "../../utils/payroll/sssContributionTable";
 
 const weekdayOf = (date) =>
   new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "long" });
@@ -489,6 +490,14 @@ const PayrollDetailModal = ({
                   <p className="font-bold text-red-600">
                     ₱{Number(payroll.sssDeduction || 0).toFixed(2)}
                   </p>
+                  {payroll.sssBracket && (
+                    <p className="mt-1 text-[11px] text-fg-subtle">
+                      Range {formatSSSRange(payroll.sssBracket)}
+                      <br />
+                      (gross ₱{Number(payroll.grossPay || 0).toFixed(2)} → table ₱
+                      {payroll.sssBracket.employeeDeduction.toFixed(2)})
+                    </p>
+                  )}
                 </div>
 
                 <div className="border border-border rounded-lg p-3">

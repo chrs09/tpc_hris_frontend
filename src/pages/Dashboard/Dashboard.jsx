@@ -33,6 +33,7 @@ import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
 import PayrollList from "../Payroll/PayrollList";
 import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
+import ContributionTablesPage from "../Payroll/ContributionTablesPage";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
 import TicketsPage from "../Admin/TicketsPage";
@@ -116,6 +117,7 @@ const Dashboard = () => {
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
+          <Route path="contribution-tables" element={<ContributionTablesPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="hierarchy" element={<OrgHierarchy />} />
           <Route path="org-chart" element={<OrgChart />} />
