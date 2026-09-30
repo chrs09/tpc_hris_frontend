@@ -11,6 +11,15 @@ import { promptDialog } from "../../components/ui/dialog/dialogService";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
 
+// created_at comes back as UTC without a zone marker.
+const filedOn = (value) =>
+  value
+    ? new Date(/Z|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`).toLocaleDateString(
+        "en-PH",
+        { month: "short", day: "numeric", year: "numeric" },
+      )
+    : "";
+
 export default function OvertimeApprovals() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,10 +123,11 @@ export default function OvertimeApprovals() {
                   <div>
                     <p className="font-semibold text-fg">{req.employee_name}</p>
                     <p className="text-sm text-fg-subtle">
-                      {req.ot_date} · Clocked in {req.time_in}
+                      {req.ot_date} · {req.time_in}
                       {req.time_out
                         ? ` – ${req.time_out} (${req.computed_hours}h)`
-                        : " – still clocked in"}
+                        : " – not finished yet"}
+                      {req.created_at && ` · Filed ${filedOn(req.created_at)}`}
                     </p>
                   </div>
                   {req.can_approve ? (
@@ -135,9 +145,18 @@ export default function OvertimeApprovals() {
 
                 {req.after_attendance_time_out && (
                   <p className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger">
-                    After attendance time out -- call-back. Attendance time
-                    out was {req.attendance_time_out}; confirm they came back
-                    before approving.
+                    {req.filed_in_advance
+                      ? `Left at ${req.attendance_time_out}, before the planned end -- adjust the approved hours if needed.`
+                      : `After attendance time out (${req.attendance_time_out}) -- call-back. Confirm they came back before approving.`}
+                  </p>
+                )}
+
+                {req.filed_in_advance && !req.after_attendance_time_out && (
+                  <p className="mt-2 text-xs font-semibold text-primary">
+                    Filed in advance
+                    {req.attendance_time_out
+                      ? ` · attendance time out ${req.attendance_time_out}`
+                      : " · no attendance time out yet -- check again later"}
                   </p>
                 )}
 
@@ -145,7 +164,7 @@ export default function OvertimeApprovals() {
                   <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs">
                     <p className="font-semibold text-warning">
                       {req.filed_late
-                        ? "Late filing -- forgot to clock in/out"
+                        ? "Filed the next day"
                         : "Time out typed in -- forgot to clock out"}
                     </p>
                     {req.late_note && !req.filed_late && (

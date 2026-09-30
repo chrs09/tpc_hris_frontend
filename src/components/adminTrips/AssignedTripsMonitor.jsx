@@ -38,32 +38,188 @@ const DestinationSteps = ({ destinations }) => {
   );
 };
 
+const Detail = ({ label, children }) => (
+  <div>
+    <p className="text-xs font-medium text-fg-subtle">{label}</p>
+    <div className="mt-0.5 text-sm text-fg">{children || "-"}</div>
+  </div>
+);
+
+// View / Edit / Delete for one row. Edit only while the driver hasn't
+// started the trip; Edit and Delete only for people who can edit.
+const TripActions = ({ trip, canEditPage, deleting, onView, onEdit, onDelete }) => (
+  <div className="inline-flex flex-wrap items-center gap-2">
+    <button
+      type="button"
+      onClick={onView}
+      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
+    >
+      View
+    </button>
+    {canEditPage && (
+      <button
+        type="button"
+        onClick={onEdit}
+        disabled={!trip.editable}
+        title={trip.editable ? undefined : "The driver already started this trip"}
+        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        Edit
+      </button>
+    )}
+    {canEditPage && (
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={deleting}
+        className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+      >
+        {deleting ? "Deleting..." : "Delete"}
+      </button>
+    )}
+  </div>
+);
+
+// Everything about one assigned trip, with Edit and Delete. Delete
+// cancels the trip (vehicle and helpers released, shipment numbers
+// freed); it stays in history as Cancelled.
+const AssignedTripViewModal = ({
+  trip,
+  canEditPage,
+  deleting,
+  onEdit,
+  onDelete,
+  onClose,
+}) => (
+  <div
+    className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
+    onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+  >
+    <div className="flex max-h-[92vh] w-full max-w-lg flex-col rounded-t-2xl border border-border bg-surface text-fg sm:rounded-2xl">
+      <div className="flex items-center justify-between border-b border-border px-5 py-4">
+        <div>
+          <h2 className="text-lg font-bold">
+            {trip.trip_code || `Trip #${trip.id}`}
+          </h2>
+          <p className="text-xs text-fg-subtle">
+            {trip.current_step_label || "Assigned"}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="rounded-lg px-2 py-1 text-xl leading-none text-fg-subtle hover:bg-surface-hover hover:text-fg"
+        >
+          &times;
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Detail label="Driver">{trip.driver_name}</Detail>
+          <Detail label="Vehicle">{trip.vehicle_unit}</Detail>
+          <Detail label="Trip Category">{trip.trip_profile}</Detail>
+          <Detail label="Origin">{trip.origin_store}</Detail>
+          <Detail label="Dispatched By">{trip.dispatched_by_name}</Detail>
+          <Detail label="Dispatched At">{trip.dispatched_at}</Detail>
+        </div>
+
+        <Detail label="Shipment No.">
+          {trip.shipment_numbers?.length ? (
+            <div className="flex flex-wrap gap-1.5">
+              {trip.shipment_numbers.map((number) => (
+                <span
+                  key={number}
+                  className="rounded-full bg-surface-active px-2.5 py-0.5 text-xs font-medium"
+                >
+                  {number}
+                </span>
+              ))}
+            </div>
+          ) : (
+            trip.ticket_no
+          )}
+        </Detail>
+
+        <Detail label="Destination(s)">
+          <DestinationSteps destinations={trip.destinations} />
+        </Detail>
+
+        <Detail label="Helpers">
+          {trip.helpers?.length
+            ? trip.helpers.map((helper) => helper.name).join(", ")
+            : "None"}
+        </Detail>
+
+        {!trip.editable && (
+          <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+            The driver has already started this trip, so it can&apos;t be
+            edited anymore.
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-3">
+        {canEditPage && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="mr-auto rounded-xl border border-danger/40 px-4 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+          >
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover"
+        >
+          Close
+        </button>
+        {canEditPage && trip.editable && (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+          >
+            Edit
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
 // Trips the coordinator has dispatched but the driver hasn't checked
 // out (started) yet -- see GET /admin/trips/assigned.
 const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
   const canEditPage = usePageCanEdit();
   const [cancellingId, setCancellingId] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
+  const [viewingTrip, setViewingTrip] = useState(null);
 
   // Undoes a dispatch made by mistake -- only offered here because a trip
   // still in this list hasn't been started by the driver yet.
   const handleCancel = async (trip) => {
     const reason = await promptDialog(
-      `Cancel ${trip.driver_name || "this"}'s trip ${trip.trip_code || ""}? Its vehicle and helpers are released. Reason (required):`,
+      `Delete ${trip.driver_name || "this"}'s trip ${trip.trip_code || ""}? Its vehicle and helpers are released and it's kept in history as Cancelled. Reason (required):`,
     );
     if (reason === null) return;
     if (!reason.trim()) {
-      toast.error("A reason is required to cancel a trip.");
+      toast.error("A reason is required to delete a trip.");
       return;
     }
 
     try {
       setCancellingId(trip.id);
       await cancelAssignedTrip(trip.id, reason.trim());
-      toast.success("Trip cancelled.");
+      toast.success("Trip deleted.");
+      setViewingTrip(null);
       if (onChanged) await onChanged();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to cancel trip.");
+      toast.error(error.response?.data?.detail || "Failed to delete trip.");
     } finally {
       setCancellingId(null);
     }
@@ -143,25 +299,14 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
                   </td>
                   <td className="px-4 py-4">{trip.dispatched_at || "-"}</td>
                   <td className="px-4 py-4 text-right whitespace-nowrap">
-                    {trip.editable && (
-                      (canEditPage ? (
-                        <button
-                        onClick={() => setEditingTrip(trip)}
-                        className="mr-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
-                      >
-                        Edit
-                      </button>
-                      ) : null)
-                    )}
-                    {canEditPage && (
-                      <button
-                      onClick={() => handleCancel(trip)}
-                      disabled={cancellingId === trip.id}
-                      className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
-                    >
-                      {cancellingId === trip.id ? "Cancelling..." : "Cancel"}
-                    </button>
-                    )}
+                    <TripActions
+                      trip={trip}
+                      canEditPage={canEditPage}
+                      deleting={cancellingId === trip.id}
+                      onView={() => setViewingTrip(trip)}
+                      onEdit={() => setEditingTrip(trip)}
+                      onDelete={() => handleCancel(trip)}
+                    />
                   </td>
                 </tr>
               ))
@@ -216,31 +361,36 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
                 {trip.dispatched_at || "-"}
               </div>
 
-              {trip.editable && (
-                (canEditPage ? (
-                  <button
-                  onClick={() => setEditingTrip(trip)}
-                  className="mt-3 mr-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
-                >
-                  Edit trip
-                </button>
-                ) : null)
-              )}
-              {canEditPage && (
-                <button
-                onClick={() => handleCancel(trip)}
-                disabled={cancellingId === trip.id}
-                className="mt-3 rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
-              >
-                {cancellingId === trip.id ? "Cancelling..." : "Cancel trip"}
-              </button>
-              )}
+              <div className="mt-3">
+                <TripActions
+                  trip={trip}
+                  canEditPage={canEditPage}
+                  deleting={cancellingId === trip.id}
+                  onView={() => setViewingTrip(trip)}
+                  onEdit={() => setEditingTrip(trip)}
+                  onDelete={() => handleCancel(trip)}
+                />
+              </div>
             </div>
           ))
         )}
       </div>
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {viewingTrip && (
+        <AssignedTripViewModal
+          trip={viewingTrip}
+          canEditPage={canEditPage}
+          deleting={cancellingId === viewingTrip.id}
+          onEdit={() => {
+            setEditingTrip(viewingTrip);
+            setViewingTrip(null);
+          }}
+          onDelete={() => handleCancel(viewingTrip)}
+          onClose={() => setViewingTrip(null)}
+        />
+      )}
 
       {editingTrip && (
         <EditAssignedTripModal

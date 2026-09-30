@@ -1,41 +1,9 @@
 import api from "../services/api";
 
-// Employee self-service -- action-based clock-in/out flow.
-// Tells the dashboard whether to show "Overtime In" (not yet eligible /
-// eligible) or "Overtime Out" (already clocked in to an ongoing request).
+// Employee self-service. Only used now to find an overtime still open
+// from the old clock-in flow (state "ongoing"), so it can be finished.
 export const getOvertimeEligibility = async () => {
   const res = await api.get("/overtime-requests/eligibility");
-  return res.data;
-};
-
-// Clocks in to overtime. Requires a live selfie photo (File/Blob) and a
-// reason. Location (if available/granted) is only used to stamp a
-// geofence label onto the selfie's watermark for a visual record -- it's
-// never required or enforced the way trip GPS is. The approver is
-// resolved server-side from the employee's department head.
-export const clockInOvertime = async ({ photo, reason, lat, long }) => {
-  const formData = new FormData();
-  formData.append("photo", photo);
-  formData.append("reason", reason);
-  if (lat != null && long != null) {
-    formData.append("lat", lat);
-    formData.append("long", long);
-  }
-  const res = await api.post("/overtime-requests/clock-in", formData);
-  return res.data;
-};
-
-export const clockOutOvertime = async (requestId, { lat, long } = {}) => {
-  let body;
-  if (lat != null && long != null) {
-    body = new FormData();
-    body.append("lat", lat);
-    body.append("long", long);
-  }
-  const res = await api.post(
-    `/overtime-requests/${requestId}/clock-out`,
-    body,
-  );
   return res.data;
 };
 
@@ -78,25 +46,27 @@ export const rejectOvertimeRequest = async (requestId, remarks) => {
   return res.data;
 };
 
-// Late filing (forgot to clock in/out) -- only days in the current
-// payroll cutoff. Options = those days with pre-filled times.
-export const getMissedOvertimeOptions = async () => {
-  const res = await api.get("/overtime-requests/missed/options");
+// Overtime filing (no clock in/out): today -- before extending work or
+// after -- or yesterday if it wasn't filed on the day. Options = those
+// two days with pre-filled times.
+export const getOvertimeFilingOptions = async () => {
+  const res = await api.get("/overtime-requests/file/options");
   return res.data;
 };
 
-export const fileMissedOvertime = async ({ otDate, timeIn, timeOut, reason, photo }) => {
+export const fileOvertime = async ({ otDate, timeIn, timeOut, reason, photo }) => {
   const formData = new FormData();
   formData.append("ot_date", otDate);
   formData.append("time_in", timeIn);
   formData.append("time_out", timeOut);
   formData.append("reason", reason);
   if (photo) formData.append("photo", photo);
-  const res = await api.post("/overtime-requests/missed", formData);
+  const res = await api.post("/overtime-requests/file", formData);
   return res.data;
 };
 
-// Clocked in but forgot to clock out: enter the real end time.
+// Overtime clocked in under the old flow and never clocked out: enter
+// the real end time.
 export const finishOvertime = async (requestId, { timeOut, note }) => {
   const formData = new FormData();
   formData.append("time_out", timeOut);

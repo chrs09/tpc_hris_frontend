@@ -16,6 +16,15 @@ const formatDate = (value) =>
     year: "numeric",
   });
 
+// created_at comes back as UTC without a zone marker.
+const filedOn = (value) =>
+  value
+    ? new Date(/Z|[+-]\d\d:\d\d$/.test(value) ? value : `${value}Z`).toLocaleDateString(
+        "en-PH",
+        { month: "short", day: "numeric", year: "numeric" },
+      )
+    : "";
+
 export default function OvertimeHistoryList({ requests, onChanged }) {
   const [cancellingId, setCancellingId] = useState(null);
 
@@ -55,10 +64,25 @@ export default function OvertimeHistoryList({ requests, onChanged }) {
                 {formatDate(req.ot_date)}
               </p>
               <p className="mt-1 text-xs text-fg-subtle">
-                Clocked in {req.time_in}
+                {req.time_in}
                 {req.time_out
                   ? ` – ${req.time_out} (${req.computed_hours}h)`
-                  : " – still clocked in"}
+                  : " – not finished (enter the time out)"}
+              </p>
+              {(req.filed_in_advance || req.filed_late || req.after_attendance_time_out) && (
+                <p className="mt-1 text-[11px] font-semibold text-warning">
+                  {[
+                    req.filed_in_advance && "Filed in advance",
+                    req.filed_late && "Filed the next day",
+                    req.after_attendance_time_out &&
+                      (req.filed_in_advance ? "Left before the planned end" : "Call-back"),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-fg-subtle">
+                Filed {filedOn(req.created_at)}
               </p>
               <p className="mt-1 text-xs uppercase tracking-wide text-fg-subtle">
                 Head: {req.requested_by_name || "—"}
@@ -82,7 +106,7 @@ export default function OvertimeHistoryList({ requests, onChanged }) {
           {req.selfie_photo_url && (
             <img
               src={req.selfie_photo_url}
-              alt="Clock-in selfie"
+              alt="Overtime photo"
               className="mt-2 h-16 w-16 rounded-lg border border-border object-cover"
             />
           )}
