@@ -133,6 +133,31 @@ export default function OvertimeApprovals() {
 
                 <p className="mt-3 text-sm text-fg-muted">{req.reason}</p>
 
+                {req.after_attendance_time_out && (
+                  <p className="mt-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger">
+                    After attendance time out -- call-back. Attendance time
+                    out was {req.attendance_time_out}; confirm they came back
+                    before approving.
+                  </p>
+                )}
+
+                {(req.filed_late || req.manual_time_out) && (
+                  <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs">
+                    <p className="font-semibold text-warning">
+                      {req.filed_late
+                        ? "Late filing -- forgot to clock in/out"
+                        : "Time out typed in -- forgot to clock out"}
+                    </p>
+                    {req.late_note && !req.filed_late && (
+                      <p className="text-fg-muted">“{req.late_note}”</p>
+                    )}
+                    <p className="text-fg-muted">
+                      Attendance time out that day:{" "}
+                      {req.attendance_time_out || "none recorded"}
+                    </p>
+                  </div>
+                )}
+
                 <ApprovalProgress steps={req.approval_steps} className="mt-2" />
                 <ApprovedBy log={req.approval_log} className="mt-2" />
 

@@ -77,3 +77,30 @@ export const rejectOvertimeRequest = async (requestId, remarks) => {
   });
   return res.data;
 };
+
+// Late filing (forgot to clock in/out) -- only days in the current
+// payroll cutoff. Options = those days with pre-filled times.
+export const getMissedOvertimeOptions = async () => {
+  const res = await api.get("/overtime-requests/missed/options");
+  return res.data;
+};
+
+export const fileMissedOvertime = async ({ otDate, timeIn, timeOut, reason, photo }) => {
+  const formData = new FormData();
+  formData.append("ot_date", otDate);
+  formData.append("time_in", timeIn);
+  formData.append("time_out", timeOut);
+  formData.append("reason", reason);
+  if (photo) formData.append("photo", photo);
+  const res = await api.post("/overtime-requests/missed", formData);
+  return res.data;
+};
+
+// Clocked in but forgot to clock out: enter the real end time.
+export const finishOvertime = async (requestId, { timeOut, note }) => {
+  const formData = new FormData();
+  formData.append("time_out", timeOut);
+  formData.append("note", note);
+  const res = await api.post(`/overtime-requests/${requestId}/finish`, formData);
+  return res.data;
+};

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Search, X } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -40,6 +40,9 @@ export default function TicketsPage() {
   const canEditPage = usePageCanEdit();
   const [tickets, setTickets] = useState([]);
   const [search, setSearch] = useState("");
+  // Per-column search (To Do / In Progress / Review / Done), on top of
+  // the page-wide one above.
+  const [columnSearch, setColumnSearch] = useState({});
   const [loading, setLoading] = useState(true);
   const [draggingTicket, setDraggingTicket] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -128,9 +131,19 @@ export default function TicketsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((column) => {
-            const columnTickets = tickets.filter(
+            const inColumn = tickets.filter((t) => t.status === column.key);
+            const columnQuery = columnSearch[column.key] || "";
+            const columnTickets = inColumn.filter(
               (t) =>
-                t.status === column.key &&
+                matchesSearch(
+                  columnQuery,
+                  t.ticket_no,
+                  t.title,
+                  t.description,
+                  t.priority,
+                  t.created_by_username,
+                  t.assigned_to_username,
+                ) &&
                 matchesSearch(
                   search,
                   t.ticket_no,
@@ -150,20 +163,55 @@ export default function TicketsPage() {
                   e.preventDefault();
                   handleDrop(column.key);
                 }}
-                className="flex min-h-[200px] flex-col gap-3 rounded-2xl border border-border bg-surface-hover/50 p-3"
+                // Fixed height: the header and search stay put, the cards
+                // scroll inside the column.
+                className="flex h-[70vh] min-h-[420px] flex-col gap-3 rounded-2xl border border-border bg-surface-hover/50 p-3 xl:h-[calc(100vh-260px)]"
               >
                 <div className="flex items-center justify-between px-1">
                   <h3 className="text-sm font-semibold text-fg">
                     {column.label}
                   </h3>
                   <span className="text-xs text-fg-subtle">
-                    {columnTickets.length}
+                    {columnTickets.length === inColumn.length
+                      ? inColumn.length
+                      : `${columnTickets.length} of ${inColumn.length}`}
                   </span>
                 </div>
 
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-subtle"
+                  />
+                  <input
+                    value={columnQuery}
+                    onChange={(e) =>
+                      setColumnSearch((prev) => ({
+                        ...prev,
+                        [column.key]: e.target.value,
+                      }))
+                    }
+                    placeholder={`Search ${column.label}...`}
+                    className="w-full rounded-lg border border-border bg-surface py-1.5 pl-8 pr-7 text-xs text-fg placeholder:text-fg-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                  />
+                  {columnQuery && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setColumnSearch((prev) => ({ ...prev, [column.key]: "" }))
+                      }
+                      aria-label="Clear search"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-fg-subtle hover:text-fg"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="-mr-1 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
                 {columnTickets.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-fg-subtle">
-                    No tickets here.
+                    {inColumn.length ? "No tickets match." : "No tickets here."}
                   </div>
                 ) : (
                   columnTickets.map((ticket) => (
@@ -184,6 +232,7 @@ export default function TicketsPage() {
                     />
                   ))
                 )}
+                </div>
               </div>
             );
           })}
