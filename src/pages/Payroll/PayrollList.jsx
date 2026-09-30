@@ -4,8 +4,8 @@ import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
 import { attendanceRecord } from "../../api/attendance";
 import { getHolidays } from "../../api/holidays/index";
-import { getPayrollCutoff } from "../../utils/payroll/payrollCutoff";
-import { getPayrollPeriods } from "../../utils/payroll/getPayrollPeriods";
+import { describeRule, periodsFromRule } from "../../utils/payroll/cutoffRules";
+import { getPayrollCutoffRules } from "../../api/payroll/payrollCutoffs";
 import PayrollDetailModal from "../../components/payroll/PayrollDetailModal";
 import {
   approveOT,
@@ -19,9 +19,14 @@ import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
 import { getSSSEmployeeDeduction } from "../../utils/payroll/sssContributionTable";
 import PayslipModal from "../../components/payroll/PayslipModal";
 import usePagination from "../../hooks/usePagination";
-import { alertDialog } from "../../components/ui/dialog/dialogService";
+import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
+import {
+  formatMissingDates,
+  getCutoffCompleteness,
+} from "../../utils/payroll/cutoffCompleteness";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SearchSelect from "../../components/SearchSelect";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import {
   savePayrollDeduction,
   savePayrollDeductionsBulk,
@@ -77,6 +82,21 @@ const getCashAdvance = (info, adj, availablePay) => {
     cashAdvanceBalanceAfter:
       owed !== null ? Math.max(Math.round((owed - amount) * 100) / 100, 0) : null,
   };
+};
+
+// Placeholder while a department has no cutoff rule (nothing matches it).
+const HOLIDAY_TYPE_LABELS = {
+  regular: "Regular",
+  special_non_working: "Special Non-Working",
+  special_working: "Special Working",
+};
+
+const NO_PERIOD = {
+  label: "",
+  cutoffStart: "",
+  cutoffEnd: "",
+  payoutDate: "",
+  payrollType: "",
 };
 
 const PayrollList = () => {
@@ -191,14 +211,21 @@ const PayrollList = () => {
     ].sort();
   }, [employees]);
 
-  const cutoffInfo = useMemo(() => {
-    return getPayrollCutoff(department, new Date());
-  }, [department]);
+  // Cutoffs come from the Payroll Cutoffs page (one rule per department)
+  // instead of being hard-coded; a department without one shows a notice.
+  const [cutoffRules, setCutoffRules] = useState(null);
+  useEffect(() => {
+    getPayrollCutoffRules()
+      .then((data) => setCutoffRules(data.rules || []))
+      .catch(() => setCutoffRules([]));
+  }, []);
+  const cutoffRule = useMemo(
+    () => (cutoffRules || []).find((rule) => rule.department === department) || null,
+    [cutoffRules, department],
+  );
 
-  const periods = useMemo(() => {
-    return getPayrollPeriods(department, 24);
-  }, [department]);
-  const activePeriod = periods[selectedPeriod] || cutoffInfo;
+  const periods = useMemo(() => periodsFromRule(cutoffRule, 24), [cutoffRule]);
+  const activePeriod = periods[selectedPeriod] || periods[0] || NO_PERIOD;
 
   // Re-hydrates the manual SSS/PhilHealth/Pag-IBIG override inputs from
   // whatever was last saved to `payroll_deductions` for this cutoff +
@@ -855,7 +882,28 @@ const PayrollList = () => {
 
         const netPay = grossPay - totalDeductions;
 
+        // Completeness: every scheduled working day in the cutoff should
+        // have a record (valid or not). A day with none -- e.g. system
+        // downtime -- would otherwise just drop out of the pay.
+        const completeness = getCutoffCompleteness({
+          schedule: employee.schedule_template,
+          records,
+          cutoffStart: activePeriod.cutoffStart,
+          cutoffEnd: activePeriod.cutoffEnd,
+          holidayDates: holidays.map((h) => h.holiday_date),
+        });
+
         if (!isTripBasedEmployee) {
+          if (completeness.missingDates.length > 0) {
+            const n = completeness.missingDates.length;
+            warnings.push(
+              `${n} day${n === 1 ? "" : "s"} with no attendance record: ${formatMissingDates(completeness.missingDates)}`,
+            );
+          }
+          if (!completeness.hasSchedule) {
+            warnings.push("No schedule -- days can't be checked");
+          }
+
           if (missingTimeouts > 0) {
             warnings.push(`${missingTimeouts} Missing Timeout`);
           }
@@ -951,6 +999,7 @@ const PayrollList = () => {
           attendanceCount,
           missingTimeouts,
           warnings,
+          completeness,
 
           daysWorked,
 
@@ -1040,6 +1089,26 @@ const PayrollList = () => {
     adjustments,
     cashAdvanceInfo,
   ]);
+
+  // Holidays inside the selected cutoff, oldest first.
+  const cutoffHolidays = useMemo(
+    () =>
+      activePeriod.cutoffStart
+        ? holidays
+            .filter(
+              (h) =>
+                h.holiday_date >= activePeriod.cutoffStart &&
+                h.holiday_date <= activePeriod.cutoffEnd,
+            )
+            .sort((a, b) => a.holiday_date.localeCompare(b.holiday_date))
+        : [],
+    [holidays, activePeriod.cutoffStart, activePeriod.cutoffEnd],
+  );
+
+  // Employees with scheduled days that have no attendance record at all.
+  const incompleteRows = payrollRows.filter(
+    (row) => !row.isTripBasedEmployee && row.completeness?.missingDates.length > 0,
+  );
 
   const summary = useMemo(() => {
     return {
@@ -1226,6 +1295,20 @@ const PayrollList = () => {
   };
 
   const handleGeneratePayroll = async () => {
+    if (
+      incompleteRows.length > 0 &&
+      !(await confirmDialog(
+        `${incompleteRows.length} employee(s) have scheduled days with no attendance record in this cutoff (e.g. ${incompleteRows
+          .slice(0, 3)
+          .map(
+            (row) =>
+              `${row.employee.first_name}: ${formatMissingDates(row.completeness.missingDates)}`,
+          )
+          .join("; ")}). Those days are not paid or deducted until a record is added. Generate payroll anyway?`,
+      ))
+    ) {
+      return;
+    }
     setIsGeneratingPayroll(true);
 
     const saved = await saveAllDeductions();
@@ -1253,6 +1336,67 @@ const PayrollList = () => {
 
   return (
     <div className="space-y-6 p-6">
+      <SectionTabs group="Payroll" />
+
+      {cutoffRules && !cutoffRule && department && (
+        <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
+          No payroll cutoff is set for <strong>{department}</strong>, so there
+          are no cutoff periods to show. Set it in Payroll &rarr; Payroll
+          Cutoffs.
+        </div>
+      )}
+      {cutoffRule && (
+        <div className="text-xs text-fg-subtle">
+          <p>
+            {department} cutoff: {describeRule(cutoffRule)}
+          </p>
+          <p className="mt-0.5">
+            Holidays this cutoff
+            {activePeriod.cutoffStart &&
+              ` (${activePeriod.cutoffStart} to ${activePeriod.cutoffEnd})`}
+            :{" "}
+            {cutoffHolidays.length === 0 ? (
+              "none"
+            ) : (
+              cutoffHolidays.map((h, index) => (
+                <span key={`${h.holiday_date}-${h.holiday_name}`}>
+                  {index > 0 && " · "}
+                  <span className="font-semibold text-fg-muted">
+                    {formatMissingDates([h.holiday_date])}
+                  </span>{" "}
+                  {h.holiday_name}
+                  {h.holiday_type && ` (${HOLIDAY_TYPE_LABELS[h.holiday_type] || h.holiday_type})`}
+                </span>
+              ))
+            )}
+          </p>
+        </div>
+      )}
+
+      {incompleteRows.length > 0 && (
+        <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+          <p className="font-semibold">
+            {incompleteRows.length} employee
+            {incompleteRows.length === 1 ? " has" : "s have"} scheduled days with
+            no attendance record in this cutoff
+          </p>
+          <p className="mt-1 text-xs">
+            {incompleteRows
+              .slice(0, 5)
+              .map(
+                (row) =>
+                  `${row.employee.first_name} ${row.employee.last_name}: ${formatMissingDates(row.completeness.missingDates)}`,
+              )
+              .join(" · ")}
+            {incompleteRows.length > 5 ? ` · and ${incompleteRows.length - 5} more` : ""}
+          </p>
+          <p className="mt-1 text-xs text-fg-muted">
+            Those days aren&apos;t paid or deducted until a record is added (e.g.
+            enter the attendance for the downtime day, or mark it absent/leave).
+          </p>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -1300,7 +1444,7 @@ const PayrollList = () => {
           {canEditPage && (
             <button
             className="bg-blue-600 text-white px-4 rounded-lg disabled:opacity-60"
-            disabled={isGeneratingPayroll}
+            disabled={isGeneratingPayroll || !cutoffRule}
             onClick={handleGeneratePayroll}
           >
             {isGeneratingPayroll ? "Saving..." : "Generate Payroll"}
@@ -1513,7 +1657,9 @@ const PayrollList = () => {
 
                   <th className="px-4 py-3 text-left">Status</th>
 
-                  <th className="px-4 py-3 text-left">Attendance Records</th>
+                  <th className="px-4 py-3 text-left" title="Scheduled working days in this cutoff that have an attendance record (present, absent, leave...), out of all scheduled days so far">
+                    Days (recorded / scheduled)
+                  </th>
                   <th className="px-4 py-3 text-left">Missing Timeout</th>
                   <th className="px-4 py-3 text-left">Warnings</th>
                   <th className="px-4 py-3 text-left">Actions</th>
@@ -1870,8 +2016,43 @@ const PayrollList = () => {
                       )}
                     </td>
 
-                    <td>
-                      {row.isTripBasedEmployee ? "--" : row.attendanceCount}
+                    <td className="px-4 py-3">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : !row.completeness?.hasSchedule ? (
+                        <span className="text-xs text-fg-subtle">No schedule</span>
+                      ) : (
+                        <span
+                          title={[
+                            row.completeness.missingDates.length
+                              ? `No record: ${formatMissingDates(row.completeness.missingDates)}`
+                              : "Every scheduled day has a record",
+                            row.completeness.holidayDates.length
+                              ? `Holidays (not counted): ${formatMissingDates(row.completeness.holidayDates)}`
+                              : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            row.completeness.missingDates.length
+                              ? "bg-danger/15 text-danger"
+                              : "bg-success/15 text-success"
+                          }`}
+                        >
+                          {row.completeness.recordedDays}/{row.completeness.expectedDays}
+                        </span>
+                      )}
+                      {!row.isTripBasedEmployee &&
+                        row.completeness?.holidayDates.length > 0 && (
+                        <p
+                          className="mt-1 text-[11px] text-fg-subtle"
+                          title={`Holidays (not counted): ${formatMissingDates(row.completeness.holidayDates)}`}
+                        >
+                          +{row.completeness.holidayDates.length} holiday
+                          {row.completeness.holidayDates.length === 1 ? "" : "s"} (
+                          {formatMissingDates(row.completeness.holidayDates)})
+                        </p>
+                      )}
                     </td>
 
                     <td>

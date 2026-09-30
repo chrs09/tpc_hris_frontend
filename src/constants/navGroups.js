@@ -78,6 +78,14 @@ export function getNavGroups(role) {
           roles: ["superadmin", "payroll_admin"],
           moduleKey: "payroll.payroll",
         },
+        {
+          // How each department is paid (cutoff schedule) -- same access
+          // as Payroll.
+          label: "Payroll Cutoffs",
+          path: "/dashboard/payroll-cutoffs",
+          roles: ["superadmin", "payroll_admin"],
+          moduleKey: "payroll.payroll",
+        },
       ],
     },
     {
