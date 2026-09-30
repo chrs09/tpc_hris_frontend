@@ -215,6 +215,14 @@ const AttendanceTable = ({
                     title={
                       holiday
                         ? holiday.holiday_name
+                        : attendance?.adjustments?.some((a) => a.old_value)
+                          ? `Edited by hand -- ${attendance.adjustments
+                              .filter((a) => a.old_value)
+                              .map(
+                                (a) =>
+                                  `${a.field === "check_in_time" ? "time in" : a.field === "check_out_time" ? "time out" : a.field} ${a.old_value} -> ${a.new_value} (${a.changed_by || "?"}${a.reason ? `: ${a.reason}` : ""})`,
+                              )
+                              .join("; ")}`
                         : needsFaceReview
                           ? "Needs Review: awaiting superadmin confirmation in Review View"
                           : isLeaveOrAbsent
@@ -233,6 +241,14 @@ const AttendanceTable = ({
                       onCellClick(emp, dateKey, status, attendance);
                     }}
                   >
+                    {attendance?.adjustments?.some((a) => a.old_value) && (
+                      <span
+                        className="float-right mr-0.5 text-[9px] text-amber-700"
+                        aria-label="Edited by hand"
+                      >
+                        ✎
+                      </span>
+                    )}
                     {status ? (
                       <>
                         {isLeaveOrAbsent ? (

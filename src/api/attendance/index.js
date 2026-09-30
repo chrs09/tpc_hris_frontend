@@ -121,6 +121,32 @@ export const adjustAttendanceTime = async (attendanceId, payload) => {
   return res.data;
 };
 
+// Changing a time that was already recorded needs a reason (it's kept in
+// the attendance change log). Tries without one first -- setting a time
+// for the first time doesn't need it -- and asks only if the server does.
+// `askReason` returns the reason, or null if cancelled.
+export const adjustAttendanceTimeWithReason = async (
+  attendanceId,
+  payload,
+  askReason,
+) => {
+  try {
+    return await adjustAttendanceTime(attendanceId, payload);
+  } catch (error) {
+    const detail = error.response?.data?.detail;
+    if (error.response?.status !== 400 || !String(detail).includes("reason")) {
+      throw error;
+    }
+    const reason = await askReason();
+    if (reason === null || !reason.trim()) {
+      const cancelled = new Error("A reason is needed to change the recorded time.");
+      cancelled.cancelled = true;
+      throw cancelled;
+    }
+    return adjustAttendanceTime(attendanceId, { ...payload, reason: reason.trim() });
+  }
+};
+
 //Attendance Kiosk
 // Kiosk Status
 export const getKioskStatus = async (employeeId) => {

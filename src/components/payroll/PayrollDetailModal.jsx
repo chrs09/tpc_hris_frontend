@@ -6,6 +6,55 @@ import {
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import toast from "react-hot-toast";
 
+const weekdayOf = (date) =>
+  new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "long" });
+
+const GAP_TEXT = {
+  missing: "No attendance record -- not paid or deducted until one is added",
+  holiday: "Holiday",
+};
+
+// A scheduled day with no attendance record (e.g. system downtime), or a
+// holiday with none, in the desktop breakdown table.
+const GapTableRow = ({ gap, date }) => (
+  <tr className={gap === "missing" ? "bg-danger/10" : "bg-surface-hover/60"}>
+    <td className="border border-border px-3 py-2">
+      <div className="flex flex-col gap-1">
+        <span>{date}</span>
+        <span className="text-xs text-fg-subtle">{weekdayOf(date)}</span>
+      </div>
+    </td>
+    <td
+      colSpan={11}
+      className={`border border-border px-3 py-2 text-center text-sm font-semibold ${
+        gap === "missing" ? "text-danger" : "text-fg-subtle"
+      }`}
+    >
+      {gap === "missing" ? "⚠ " : ""}
+      {GAP_TEXT[gap]}
+    </td>
+  </tr>
+);
+
+const GapCard = ({ gap, date }) => (
+  <div
+    className={`rounded-lg border p-3 ${
+      gap === "missing" ? "border-danger/40 bg-danger/10" : "border-border bg-surface-hover/60"
+    }`}
+  >
+    <p className="font-semibold">{date}</p>
+    <p className="text-xs text-fg-subtle">{weekdayOf(date)}</p>
+    <p
+      className={`mt-1 text-sm font-semibold ${
+        gap === "missing" ? "text-danger" : "text-fg-subtle"
+      }`}
+    >
+      {gap === "missing" ? "⚠ " : ""}
+      {GAP_TEXT[gap]}
+    </p>
+  </div>
+);
+
 const PayrollDetailModal = ({
   isOpen,
   onClose,
@@ -270,6 +319,23 @@ const PayrollDetailModal = ({
         hasAttendanceWarning,
       };
     }) || [];
+
+  // Scheduled days with no attendance record at all (and holidays with
+  // none), so they show in the breakdown instead of silently missing --
+  // see getCutoffCompleteness in utils/payroll/cutoffCompleteness.js.
+  const recordedDates = new Set(
+    (payroll.records || []).map((record) => record.attendance_date),
+  );
+  const breakdownRows = [
+    ...recordRows.map((row) => ({ ...row, date: row.record.attendance_date })),
+    ...(payroll.completeness?.missingDates || []).map((date) => ({
+      gap: "missing",
+      date,
+    })),
+    ...(payroll.completeness?.holidayDates || [])
+      .filter((date) => !recordedDates.has(date))
+      .map((date) => ({ gap: "holiday", date })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -633,8 +699,10 @@ const PayrollDetailModal = ({
 
               {/* MOBILE: card list */}
               <div className="space-y-2 md:hidden">
-                {recordRows.map(
-                  ({ record, result, workedHours, regularHours, otHours, hasAttendanceWarning }) => (
+                {breakdownRows.map(
+                  ({ gap, date, record, result, workedHours, regularHours, otHours, hasAttendanceWarning }) => gap ? (
+                    <GapCard key={`gap-${date}`} gap={gap} date={date} />
+                  ) : (
                     <div
                       key={record.id}
                       className={`rounded-lg border border-border p-3 ${
@@ -886,15 +954,19 @@ const PayrollDetailModal = ({
                   </thead>
 
                   <tbody>
-                    {recordRows.map(
+                    {breakdownRows.map(
                       ({
+                        gap,
+                        date,
                         record,
                         result,
                         workedHours,
                         regularHours,
                         otHours,
                         hasAttendanceWarning,
-                      }) => (
+                      }) => gap ? (
+                        <GapTableRow key={`gap-${date}`} gap={gap} date={date} />
+                      ) : (
                         <tr
                           key={record.id}
                           className={hasAttendanceWarning ? "bg-warning/10" : ""}

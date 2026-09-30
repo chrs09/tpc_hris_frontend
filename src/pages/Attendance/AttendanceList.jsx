@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import {
   addMonths,
@@ -20,7 +21,7 @@ import {
   timeInSelfie,
   approveAttendance,
   rejectAttendance,
-  adjustAttendanceTime,
+  adjustAttendanceTimeWithReason,
 } from "../../api/attendance";
 import { getHolidays } from "../../api/holidays";
 
@@ -46,6 +47,15 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers";
 
 const AttendanceList = () => {
+  // Time changes to an already-recorded time need a reason -- it's saved
+  // in the attendance change log (who, when, old -> new, why).
+  const adjustTime = (attendanceId, payload) =>
+    adjustAttendanceTimeWithReason(attendanceId, payload, () =>
+      promptDialog(
+        "Why are you changing the recorded time? This is saved in the attendance change log with the original time.",
+      ),
+    );
+
   const today = format(new Date(), "yyyy-MM-dd");
 
   // Sub-permissions under the "Attendance" module (Module Assignment page)
@@ -495,7 +505,7 @@ const AttendanceList = () => {
         }
 
         if (checkInTime || checkOutTime) {
-          await adjustAttendanceTime(existing.id, {
+          await adjustTime(existing.id, {
             check_in_time: checkInTime,
             check_out_time: checkOutTime,
           });
@@ -519,7 +529,7 @@ const AttendanceList = () => {
         );
 
         if (createdRecord && (checkInTime || checkOutTime)) {
-          await adjustAttendanceTime(createdRecord.id, {
+          await adjustTime(createdRecord.id, {
             check_in_time: checkInTime,
             check_out_time: checkOutTime,
           });
@@ -538,7 +548,9 @@ const AttendanceList = () => {
     } catch (err) {
       setAlert({
         type: "error",
-        message: err.response?.data?.detail || "Operation failed.",
+        message:
+          err.response?.data?.detail ||
+          (err.cancelled ? err.message : "Operation failed."),
       });
     }
   };
@@ -627,7 +639,7 @@ const AttendanceList = () => {
         changes.check_out_time !== undefined;
 
       if (hasTimeChanges) {
-        await adjustAttendanceTime(record.id, {
+        await adjustTime(record.id, {
           check_in_time: checkInDateTime,
 
           check_out_time: checkOutDateTime,
@@ -669,7 +681,8 @@ const AttendanceList = () => {
       console.error("Backend response:", error.response?.data);
 
       toast.error(
-        error.response?.data?.detail || "Failed to update attendance details.",
+        error.response?.data?.detail ||
+          (error.cancelled ? error.message : "Failed to update attendance details."),
       );
 
       throw error;

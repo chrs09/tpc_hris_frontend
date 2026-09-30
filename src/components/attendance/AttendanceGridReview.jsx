@@ -787,10 +787,13 @@ const AttendanceDetail = ({
 
   const hasTimedOut = Boolean(record.check_out_time);
 
+  // Only a side with a selfie has anything to verify -- a time entered by
+  // hand (table/grid view) has no photo, so no Approve/Reject for it.
   const canReviewSide = (side) =>
     isSuperAdmin &&
     !record.is_missing_attendance &&
     !getIsAbsent(record) &&
+    Boolean(getSidePhoto(record, side)) &&
     !["Auto Approved", "Approved", "Rejected"].includes(
       getSideStatus(record, side),
     );
@@ -1059,6 +1062,8 @@ const AttendanceDetail = ({
 
         <DetailRow label="Longitude" value={getLng(record) || "N/A"} />
 
+        <AdjustmentHistory adjustments={record.adjustments} />
+
         {/* Absent / Leave Reason */}
         {isReasonEditable && (
           <div className="mt-3">
@@ -1182,6 +1187,7 @@ const SideReviewSection = ({
         <SideReviewMessage
           reviewStatus={reviewStatus}
           reviewReason={faceReason}
+          hasPhoto={Boolean(photo)}
         />
 
         {hasScore && (
@@ -1227,6 +1233,49 @@ const SideReviewSection = ({
   );
 };
 
+const ADJUSTMENT_FIELD_LABELS = {
+  created: "Entered",
+  check_in_time: "Time in",
+  check_out_time: "Time out",
+  status: "Status",
+  remarks: "Remarks",
+};
+
+// Hand-edits to this attendance (audit trail) -- the first "Time in" /
+// "Time out" line's old value is what was originally recorded.
+const AdjustmentHistory = ({ adjustments }) => {
+  if (!adjustments?.length) return null;
+  return (
+    <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+      <p className="text-sm font-bold text-amber-900">Change history</p>
+      <ul className="mt-1 space-y-1.5">
+        {adjustments.map((adj, index) => (
+          <li key={index} className="text-xs text-gray-800">
+            <span className="font-semibold">
+              {ADJUSTMENT_FIELD_LABELS[adj.field] || adj.field}
+            </span>
+            {adj.field === "created" ? (
+              <> -- {adj.new_value}</>
+            ) : adj.old_value ? (
+              <>
+                : <span className="line-through text-gray-500">{adj.old_value}</span>{" "}
+                &rarr; <span className="font-semibold">{adj.new_value || "cleared"}</span>
+              </>
+            ) : (
+              <> set to {adj.new_value}</>
+            )}
+            <span className="text-gray-500">
+              {" "}
+              · {adj.changed_by || "Unknown"} · {adj.changed_at}
+            </span>
+            {adj.reason && <p className="text-gray-600">Reason: {adj.reason}</p>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
 const SIDE_REVIEW_MESSAGES = {
   AUTO_APPROVED: { text: "✓ Auto Approved", className: "text-green-700" },
   APPROVED: { text: "✓ Manually Approved", className: "text-green-700" },
@@ -1239,11 +1288,11 @@ const SIDE_REVIEW_MESSAGES = {
   FACE_MATCH_FAILED: { text: "Face Match Failed", className: "text-red-700" },
 };
 
-const SideReviewMessage = ({ reviewStatus, reviewReason }) => {
-  const entry = SIDE_REVIEW_MESSAGES[reviewStatus] || {
-    text: "Verification Pending",
-    className: "text-fg-muted",
-  };
+const SideReviewMessage = ({ reviewStatus, reviewReason, hasPhoto = true }) => {
+  const entry = SIDE_REVIEW_MESSAGES[reviewStatus] ||
+    (!hasPhoto
+      ? { text: "Entered manually -- no face check", className: "text-fg-muted" }
+      : { text: "Verification Pending", className: "text-fg-muted" });
 
   const showReason =
     reviewReason &&
