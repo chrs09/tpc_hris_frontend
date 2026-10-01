@@ -14,6 +14,7 @@ import Pagination from "../../components/ui/pagination/Pagination";
 import StoreLocationPicker from "../../components/adminTrips/StoreLocationPicker";
 import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import MapLinks from "../../components/ui/mapLinks/MapLinks";
 
 const initialFormState = {
   name: "",
@@ -85,6 +86,11 @@ export default function StoreManagement() {
       setProfilesLoading(false);
     }
   };
+
+  // Hubs (Plant, Yard...) for "Directions from"; the Plant is the default.
+  const hubs = stores.filter((store) => store.is_hub);
+  const defaultHubId =
+    (hubs.find((hub) => /plant/i.test(hub.name)) || hubs[0])?.id ?? null;
 
   const loadStores = async () => {
     try {
@@ -297,7 +303,16 @@ export default function StoreManagement() {
         <td className="px-6 py-4 text-fg-muted">{store.required_helper}</td>
         <td className="px-6 py-4 text-fg-muted">{store.allowed_radius_meters} m</td>
         <td className="px-6 py-4 text-fg-muted">
-          {store.latitude}, {store.longitude}
+          <div>
+            {store.latitude}, {store.longitude}
+          </div>
+          <MapLinks
+            latitude={store.latitude}
+            longitude={store.longitude}
+            compact
+            origins={hubs}
+            defaultOriginId={defaultHubId}
+          />
         </td>
         <td className="px-6 py-4">
           <button
@@ -378,6 +393,13 @@ export default function StoreManagement() {
             <p className="text-fg-muted">
               {store.latitude}, {store.longitude}
             </p>
+            <MapLinks
+            latitude={store.latitude}
+            longitude={store.longitude}
+            compact
+            origins={hubs}
+            defaultOriginId={defaultHubId}
+          />
           </div>
         </div>
       </div>
@@ -619,6 +641,14 @@ export default function StoreManagement() {
                     ? `${viewingStore.latitude}, ${viewingStore.longitude}`
                     : "-"}
                 </dd>
+                <div className="mt-2">
+                  <MapLinks
+                    latitude={viewingStore.latitude}
+                    longitude={viewingStore.longitude}
+                    origins={hubs}
+                    defaultOriginId={defaultHubId}
+                  />
+                </div>
               </div>
             </dl>
           </div>

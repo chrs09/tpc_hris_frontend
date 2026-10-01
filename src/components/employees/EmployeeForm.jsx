@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import DefaultProfileImage from "./../../assets/logo/default/default-profile.jpg";
+import { getBanks } from "../../api/banks";
 import { civilStatusOptions } from "../../constants/civilStatus";
 import { employeeRoles } from "../../constants/employeeRole";
 import SearchSelect from "../SearchSelect";
@@ -69,6 +71,19 @@ export default function EmployeeForm({
   const departmentOptions = Object.values(employeeRoles).filter(
     (option) => option !== "All",
   );
+  // Bank Type choices come from Settings -> Banks. An employee's current
+  // bank stays selectable even if it was hidden since.
+  const [bankNames, setBankNames] = useState([]);
+  useEffect(() => {
+    getBanks()
+      .then((banks) => setBankNames(banks.map((bank) => bank.name)))
+      .catch(() => setBankNames([]));
+  }, []);
+  const bankOptions =
+    formData.bank_type && !bankNames.includes(formData.bank_type)
+      ? [...bankNames, formData.bank_type]
+      : bankNames;
+
   const scheduleOptions =
     scheduleTemplates?.map((schedule) => ({
       value: schedule.id,
@@ -828,17 +843,7 @@ export default function EmployeeForm({
                 value={formData.bank_type}
                 isEditing={isEditing}
                 onChange={handleChange}
-                options={[
-                  "BDO",
-                  "GoTyme",
-                  "BPI",
-                  "Metrobank",
-                  "UnionBank",
-                  "Gcash",
-                  "Cebuana",
-                  "Maribank",
-                  "Other",
-                ]}
+                options={bankOptions}
               />
 
               <EditableField

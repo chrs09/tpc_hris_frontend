@@ -8,6 +8,7 @@ import {
 } from "../../api/mobileAppVersion";
 import { Button } from "../../components/ui/button/Button";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import BanksSettings from "../../components/settings/BanksSettings";
 
 // The mobile app is currently distributed as a directly-sideloaded APK
 // (not through Google Play), which has no store-driven update
@@ -453,6 +454,10 @@ const SettingsPage = () => {
           </div>
         )}
       </div>
+      </div>
+
+      <div className="xl:max-w-105">
+        <BanksSettings />
       </div>
     </div>
   );
