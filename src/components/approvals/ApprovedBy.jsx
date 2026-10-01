@@ -6,13 +6,21 @@ const formatMoney = (value) =>
 
 export default function ApprovedBy({ log, money = false, className = "" }) {
   const entries = (log || []).filter((entry) =>
-    ["approved", "rejected"].includes(entry.action),
+    ["approved", "rejected", "skipped"].includes(entry.action),
   );
   if (entries.length === 0) return null;
 
   return (
     <div className={`space-y-0.5 ${className}`}>
       {entries.map((entry, index) => {
+        if (entry.action === "skipped") {
+          return (
+            <p key={`${entry.user_id}-${index}`} className="text-xs text-fg-subtle">
+              <span className="font-semibold">⏭ Skipped {entry.name}</span> --{" "}
+              {entry.remarks || "away"} · {entry.at}
+            </p>
+          );
+        }
         const approved = entry.action === "approved";
         const detail = [
           entry.at,

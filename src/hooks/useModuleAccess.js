@@ -48,10 +48,9 @@ export default function useModuleAccess() {
   }, [isSuperAdmin]);
 
   const isVisible = (item) => {
-    // Approval pages for Org Chart heads (never for superadmin, who
-    // already has the regular menu item).
-    if (item.approverKind) return !isSuperAdmin && Boolean(approverOf[item.approverKind]);
     if (role === "superadmin") return true;
+    // Approval tabs: also every Org Chart head who approves that kind.
+    if (item.approverKind && approverOf[item.approverKind]) return true;
     if (item.requiresDepartmentHead) return isDepartmentHead;
     if (!item.moduleKey) return item.roles.includes(role);
     if (hasCustomAccess) return grantedModules.has(item.moduleKey);

@@ -11,7 +11,7 @@ const POLL_INTERVAL_MS = 30000;
 const gridPath = (date) =>
   `/dashboard/attendance?view=grid${date ? `&date=${date}` : ""}`;
 
-const APPROVALS_PATH = "/dashboard/attendance-approvals";
+const APPROVALS_PATH = "/dashboard/approvals?tab=attendance";
 
 /**
  * Bell for time in/out done outside the allowed attendance area and

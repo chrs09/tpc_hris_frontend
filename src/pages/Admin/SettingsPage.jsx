@@ -8,7 +8,7 @@ import {
 } from "../../api/mobileAppVersion";
 import { Button } from "../../components/ui/button/Button";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
-import BanksSettings from "../../components/settings/BanksSettings";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 // The mobile app is currently distributed as a directly-sideloaded APK
 // (not through Google Play), which has no store-driven update
@@ -119,6 +119,8 @@ const SettingsPage = () => {
 
   return (
     <div className="space-y-5">
+      <SectionTabs group="Administrator" />
+
       <div>
         <h1 className="text-2xl font-bold text-fg">Settings</h1>
       </div>
@@ -454,10 +456,6 @@ const SettingsPage = () => {
           </div>
         )}
       </div>
-      </div>
-
-      <div className="xl:max-w-105">
-        <BanksSettings />
       </div>
     </div>
   );

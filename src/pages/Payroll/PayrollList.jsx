@@ -164,7 +164,7 @@ const PayrollList = () => {
 
         const [employeeData, attendanceData, holidayData] = await Promise.all([
           getEmployeeList(),
-          attendanceRecord({ includePhotos: false }),
+          attendanceRecord({ includePhotos: false, scope: "all" }),
           getHolidays(currentYear),
         ]);
 

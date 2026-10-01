@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import { PageAccessProvider } from "../../hooks/usePageAccess";
 import DashboardHome from "./DashboardHome";
@@ -14,11 +14,8 @@ import FuelRequestsPage from "../Admin/FuelRequests";
 import OrgHierarchy from "../Admin/OrgHierarchy";
 import OrgChart from "../Admin/OrgChart";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
-import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
 import ModuleAssignment from "../Admin/ModuleAssignment";
 import RoleAccess from "../Admin/RoleAccess";
-import OvertimeApprovals from "../Overtime/OvertimeApprovals";
-import AttendanceApprovals from "../Attendance/AttendanceApprovals";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripCategoriesPage from "../Admin/TripCategoriesPage";
@@ -40,13 +37,14 @@ import TicketsPage from "../Admin/TicketsPage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
-import LeaveManagement from "../Leave/LeaveManagement";
+import BankMaster from "../Finance/BankMaster";
 import SettingsPage from "../Admin/SettingsPage";
 import {
   isImpersonating,
   getImpersonatorUsername,
   stopImpersonation,
 } from "../../utils/impersonation";
+import ApprovalsPage from "../Approvals/ApprovalsPage";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -113,7 +111,9 @@ const Dashboard = () => {
         <Routes>
           <Route index element={<DashboardHome />} />
           <Route path="attendance" element={<AttendanceList />} />
-          <Route path="leave" element={<LeaveManagement />} />
+          <Route path="approvals" element={<ApprovalsPage />} />
+          {/* Old approval addresses -> the Approvals tabs */}
+          <Route path="leave" element={<Navigate to="/dashboard/approvals?tab=leave" replace />} />
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
@@ -127,14 +127,17 @@ const Dashboard = () => {
           />
           <Route
             path="cash-advance-approvals"
-            element={<CashAdvanceApprovals />}
+            element={<Navigate to="/dashboard/approvals?tab=cash_advance" replace />}
           />
           <Route path="module-assignment" element={<ModuleAssignment />} />
           <Route path="role-access" element={<RoleAccess />} />
-          <Route path="overtime-approvals" element={<OvertimeApprovals />} />
+          <Route
+            path="overtime-approvals"
+            element={<Navigate to="/dashboard/approvals?tab=overtime" replace />}
+          />
           <Route
             path="attendance-approvals"
-            element={<AttendanceApprovals />}
+            element={<Navigate to="/dashboard/approvals?tab=attendance" replace />}
           />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="error-logs" element={<ErrorLogsPage />} />
@@ -165,6 +168,7 @@ const Dashboard = () => {
           {/* FINANCE */}
           <Route path="finance/trips" element={<FinanceTrips />} />
           <Route path="finance/expenses" element={<FinanceExpenses />} />
+          <Route path="finance/banks" element={<BankMaster />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
           {/* Not driver-only despite the component's filename -- any

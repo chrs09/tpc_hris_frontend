@@ -47,6 +47,8 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const username = localStorage.getItem("username");
+  // Greeting: the person's full name (saved at login), else the username.
+  const displayName = localStorage.getItem("full_name") || username;
   const { role, isSuperAdmin, isVisible } = useModuleAccess();
 
   const [reminders, setReminders] = useState([]);
@@ -255,7 +257,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           {!isCollapsed && (
             <div className="mb-8">
               <div className="text-xl font-extrabold capitalize text-fg">
-                Hello! {username} ({role})
+                Hello! {displayName} ({role})
               </div>
               {isSuperAdmin && (
                 <button

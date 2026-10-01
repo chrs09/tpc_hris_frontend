@@ -6,6 +6,7 @@ export const logout = () => {
   localStorage.removeItem("role");
   localStorage.removeItem("user_id");
   localStorage.removeItem("username");
+  localStorage.removeItem("full_name");
   localStorage.removeItem("must_change_password");
 
   window.location.href = "/login"; // force redirect

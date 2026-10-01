@@ -25,7 +25,7 @@ export const MODULE_GROUPS = [
           { key: "attendance_grid_view", label: "Grid View" },
         ],
       },
-      { key: "leave", label: "Leave Requests", path: "/dashboard/leave" },
+      { key: "leave", label: "Leave Requests", path: "/dashboard/approvals?tab=leave" },
       { key: "employees", label: "Employees", path: "/dashboard/employees" },
       { key: "applicants", label: "Applicants", path: "/dashboard/applicants" },
       {
@@ -143,7 +143,12 @@ export const MODULE_GROUPS = [
       {
         key: "cash_advance",
         label: "Cash Advances",
-        path: "/dashboard/cash-advance-approvals",
+        path: "/dashboard/approvals?tab=cash_advance",
+      },
+      {
+        key: "bank_master",
+        label: "Bank Master",
+        path: "/dashboard/finance/banks",
       },
     ],
   },

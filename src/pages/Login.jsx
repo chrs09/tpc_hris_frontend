@@ -43,6 +43,7 @@ export default function Login({ setIsAuthenticated }) {
       localStorage.setItem("role", result.role || "");
       localStorage.setItem("user_id", result.user_id || "");
       localStorage.setItem("username", result.username || "");
+      localStorage.setItem("full_name", result.full_name || "");
       localStorage.setItem("expires_at", result.expires_at || "");
       localStorage.setItem(
         "refresh_expires_at",

@@ -41,6 +41,7 @@ export function PageAccessProvider({ children }) {
       (item) =>
         item.approverKind &&
         pathOf(item.path) === location.pathname &&
+        (!tabOf(item.path) || tabOf(item.path) === currentTab) &&
         approverOf[item.approverKind],
     );
     return {

@@ -92,6 +92,8 @@ const AttendanceList = () => {
   );
 
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
+  // Org chart head: only their team (null = everyone).
+  const [team, setTeam] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]);
   const [activeEmployeeCount, setActiveEmployeeCount] = useState(0);
 
@@ -152,6 +154,11 @@ const AttendanceList = () => {
 
       setAttendanceData(records);
       setActiveEmployeeCount(totalActiveEmployees);
+      setTeam(
+        data?.team_employee_ids
+          ? { ids: new Set(data.team_employee_ids), units: data.team_units || [] }
+          : null,
+      );
 
       console.log("Admin Active Employees:", data?.admin_count || 0);
 
@@ -237,10 +244,17 @@ const AttendanceList = () => {
   // EMPLOYEES
   // ---------------------------------------
 
+  // Everyone, or just an org chart head's team.
+  const teamEmployees = useMemo(
+    () =>
+      team ? employeesFromAPI.filter((emp) => team.ids.has(emp.id)) : employeesFromAPI,
+    [employeesFromAPI, team],
+  );
+
   const employees = useMemo(() => {
     const searchTerm = employeeSearch.trim().toLowerCase();
 
-    return employeesFromAPI
+    return teamEmployees
       .map((emp) => ({
         id: emp.id,
         name: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
@@ -250,7 +264,7 @@ const AttendanceList = () => {
       .filter(
         (emp) => !searchTerm || emp.name.toLowerCase().includes(searchTerm),
       );
-  }, [employeesFromAPI, filter, employeeSearch]);
+  }, [teamEmployees, filter, employeeSearch]);
 
   const {
     page: currentPage,
@@ -298,7 +312,7 @@ const AttendanceList = () => {
     // ADMIN + MOTORPOOL
     // ---------------------------------------
 
-    const activeEmployees = employeesFromAPI.filter((employee) => {
+    const activeEmployees = teamEmployees.filter((employee) => {
       const department = (employee.department || "").trim().toLowerCase();
 
       const isActive = employee.is_active === 1 || employee.is_active === true;
@@ -397,7 +411,7 @@ const AttendanceList = () => {
         is_missing_attendance: true,
       };
     });
-  }, [employeesFromAPI, attendanceData, reviewDate, filter]);
+  }, [teamEmployees, attendanceData, reviewDate, filter]);
 
   // ---------------------------------------
   // HOLIDAY MAP
@@ -772,6 +786,14 @@ const AttendanceList = () => {
   return (
     <div className="space-y-5">
       <SectionTabs group="HRIS" />
+
+      {team && (
+        <div className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm text-fg">
+          Showing only your team on the Org Chart
+          {team.units.length ? ` (${team.units.join(", ")})` : ""} --{" "}
+          {team.ids.size} {team.ids.size === 1 ? "person" : "people"}.
+        </div>
+      )}
 
       {alert && (
         <Alert

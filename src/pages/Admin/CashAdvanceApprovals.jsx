@@ -64,7 +64,7 @@ const ApproverCell = ({ req }) => {
   return <span>{req.approved_by_name || req.requested_by_name || "—"}</span>;
 };
 
-export default function CashAdvanceApprovals() {
+export default function CashAdvanceApprovals({ embedded = false }) {
   const canEditPage = usePageCanEdit();
   const { isSuperAdmin, hasCustomAccess, grantedModules } = useModuleAccess();
   // Full history + balances are Finance's; an Org Chart head only gets
@@ -389,7 +389,7 @@ export default function CashAdvanceApprovals() {
   return (
     <div>
       <div className="space-y-5">
-        <SectionTabs group="Finance" />
+        {!embedded && <SectionTabs group="Finance" />}
 
         <div>
           <h2 className="text-2xl font-bold text-fg">Cash Advances</h2>
@@ -517,13 +517,22 @@ export default function CashAdvanceApprovals() {
                   </p>
 
                   <ApprovalProgress steps={req.approval_steps} className="mt-2" />
+                  {req.can_act === false && (
+                    <p className="mt-2 rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
+                      You&apos;re marked {req.viewer_away || "away"} today, so this was
+                      passed to{" "}
+                      {req.approval_steps?.find((s) => s.state === "current")?.name ||
+                        "the next approver"}
+                      . You can&apos;t approve or reject it today.
+                    </p>
+                  )}
                   <ApprovedBy log={req.approval_log} money className="mt-2" />
 
                   <div className="mt-4 flex flex-wrap gap-3">
                     {canEditPage && (
                       <button
                       onClick={() => handleApprove(req)}
-                      disabled={actioningId === req.id}
+                      disabled={actioningId === req.id || req.can_act === false}
                       className="rounded-xl bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {actioningId === req.id ? "Working..." : "Approve"}
@@ -532,8 +541,8 @@ export default function CashAdvanceApprovals() {
                     {canEditPage && (
                       <button
                       onClick={() => handleReject(req)}
-                      disabled={actioningId === req.id}
-                      className="rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-danger-foreground disabled:opacity-50"
+                      disabled={actioningId === req.id || req.can_act === false}
+                      className="rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-danger-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Reject
                     </button>

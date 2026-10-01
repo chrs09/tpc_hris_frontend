@@ -14,7 +14,7 @@ import useModuleAccess from "../../hooks/useModuleAccess";
 // tuning per-page.
 const POLL_INTERVAL_MS = 20000;
 
-const APPROVALS_PATH = "/dashboard/cash-advance-approvals";
+const APPROVALS_PATH = "/dashboard/approvals?tab=cash_advance";
 
 const peso = (value) =>
   `₱${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
@@ -61,8 +61,12 @@ export default function CashAdvanceAlertsBell() {
       // kept on the current approver) -- a superadmin can review every
       // pending one, but only the ones addressed to them go here.
       const pending = (await getCashAdvanceRequestsForMyApproval()) || [];
+      // current_approver_id = whose turn it really is today (an approver
+      // who's absent / on leave is skipped to the next head up).
       const mine = pending.filter(
-        (r) => r.status === "pending" && r.requested_by_user_id === myUserId,
+        (r) =>
+          r.status === "pending" &&
+          (r.current_approver_id ?? r.requested_by_user_id) === myUserId,
       );
       const firstWaiting = seenWaitingIdsRef.current === null;
       const seenWaiting = seenWaitingIdsRef.current || new Set();
@@ -240,7 +244,10 @@ export default function CashAdvanceAlertsBell() {
                       {steps.length > 1 && stepIndex >= 0 && (
                         <p className="mt-0.5 text-[11px] text-fg-subtle">
                           Approval {stepIndex + 1} of {steps.length}
-                          {stepIndex > 0 && ` · approved by ${steps[stepIndex - 1].name}`}
+                          {stepIndex > 0 &&
+                            (steps[stepIndex - 1].state === "skipped"
+                              ? ` · ${steps[stepIndex - 1].name} is ${steps[stepIndex - 1].note || "away"} today`
+                              : ` · approved by ${steps[stepIndex - 1].name}`)}
                         </p>
                       )}
                     </button>
@@ -296,7 +303,7 @@ export default function CashAdvanceAlertsBell() {
                   onClick={openApprovals}
                   className="w-full rounded-lg px-3 py-2 text-xs font-semibold text-primary hover:bg-surface-hover"
                 >
-                  Open Cash Advance Approvals
+                  Open Approvals
                 </button>
               </div>
             </div>

@@ -10,6 +10,7 @@ import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
 const REASON_LABELS = {
   NEEDS_REVIEW: "Needs review",
@@ -22,6 +23,8 @@ const REASON_LABELS = {
 // check) and whose turn is with me. Approving passes it to the next head
 // up if there is one; the last approval finishes it.
 export default function AttendanceApprovals() {
+  // View-only access (e.g. Grid View with "Can edit: No") hides the buttons.
+  const canEditPage = usePageCanEdit();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actioningKey, setActioningKey] = useState(null);
@@ -149,6 +152,7 @@ export default function AttendanceApprovals() {
                 <ApprovalProgress steps={item.approval_steps} />
                 <ApprovedBy log={item.approval_log} />
 
+                {canEditPage && (
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
@@ -167,6 +171,7 @@ export default function AttendanceApprovals() {
                     Reject
                   </button>
                 </div>
+                )}
               </div>
             </div>
           ))}

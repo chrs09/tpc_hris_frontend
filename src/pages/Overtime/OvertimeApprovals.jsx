@@ -178,6 +178,15 @@ export default function OvertimeApprovals() {
                 )}
 
                 <ApprovalProgress steps={req.approval_steps} className="mt-2" />
+                {req.can_act === false && (
+                  <p className="mt-2 rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
+                    You&apos;re marked {req.viewer_away || "away"} today, so this was
+                    passed to{" "}
+                    {req.approval_steps?.find((s) => s.state === "current")?.name ||
+                      "the next approver"}
+                    . You can&apos;t approve or reject it today.
+                  </p>
+                )}
                 <ApprovedBy log={req.approval_log} className="mt-2" />
 
                 {req.selfie_photo_url && (
@@ -224,7 +233,7 @@ export default function OvertimeApprovals() {
 
                   <button
                     onClick={() => handleApprove(req)}
-                    disabled={actioningId === req.id || !req.can_approve}
+                    disabled={actioningId === req.id || !req.can_approve || req.can_act === false}
                     title={
                       !req.can_approve
                         ? "Employee hasn't clocked out yet"
@@ -236,7 +245,7 @@ export default function OvertimeApprovals() {
                   </button>
                   <button
                     onClick={() => handleReject(req)}
-                    disabled={actioningId === req.id}
+                    disabled={actioningId === req.id || req.can_act === false}
                     className="rounded-xl bg-danger px-4 py-2 text-sm font-semibold text-danger-foreground disabled:opacity-50"
                   >
                     Reject

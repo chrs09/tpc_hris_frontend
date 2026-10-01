@@ -38,12 +38,6 @@ export function getNavGroups(role) {
           moduleKey: "hris.attendance",
         },
         {
-          label: "Leave Requests",
-          path: "/dashboard/leave",
-          roles: ["superadmin", "admin"],
-          moduleKey: "hris.leave",
-        },
-        {
           label: "Employees",
           path: "/dashboard/employees",
           roles: ["superadmin", "admin"],
@@ -98,33 +92,37 @@ export function getNavGroups(role) {
     },
     {
       label: "Approvals",
+      // One page, a tab per kind of approval (pages/Approvals). Each tab is
+      // shown to whoever could use that approval before: the module/role,
+      // or an Org Chart head who approves that kind (approverKind).
       children: [
         {
-          // Org Chart heads with Cash Advance / Attendance ticked (see
-          // approverKind in useModuleAccess.js). Superadmin and Finance
-          // use the Finance -> Cash Advance Approvals item instead.
-          label: "Cash Advance Approvals",
-          path: "/dashboard/cash-advance-approvals",
-          roles: [],
-          approverKind: "cash_advance",
-        },
-        {
-          label: "Attendance Approvals",
-          path: "/dashboard/attendance-approvals",
-          roles: [],
+          label: "Attendance",
+          path: "/dashboard/approvals?tab=attendance",
+          roles: ["superadmin"],
+          moduleKey: "hris.attendance_grid_view",
           approverKind: "attendance",
         },
         {
-          label: "OT Approvals",
-          path: "/dashboard/overtime-approvals",
-          // Only shown to whoever is set as an immediate head for some
-          // department on the Hierarchy page (see requiresDepartmentHead
-          // in useModuleAccess.js) -- a request's specifically-designated
-          // approver can still review it directly from a link/notification
-          // even without this nav item, but the page itself is reserved
-          // for actual department heads.
+          label: "Cash Advance",
+          path: "/dashboard/approvals?tab=cash_advance",
+          roles: ["superadmin"],
+          moduleKey: "finance.cash_advance",
+          approverKind: "cash_advance",
+        },
+        {
+          // Immediate heads (Reporting Hierarchy) and Org Chart heads
+          // with Overtime ticked -- see requiresDepartmentHead.
+          label: "Overtime",
+          path: "/dashboard/approvals?tab=overtime",
           roles: [],
           requiresDepartmentHead: true,
+        },
+        {
+          label: "Leave",
+          path: "/dashboard/approvals?tab=leave",
+          roles: ["superadmin", "admin"],
+          moduleKey: "hris.leave",
         },
       ],
     },
@@ -279,10 +277,11 @@ export function getNavGroups(role) {
           moduleKey: "finance.finance_expenses",
         },
         {
-          label: "Cash Advance Approvals",
-          path: "/dashboard/cash-advance-approvals",
+          // Banks offered on the employee 201 form (Bank Type).
+          label: "Bank Master",
+          path: "/dashboard/finance/banks",
           roles: ["superadmin"],
-          moduleKey: "finance.cash_advance",
+          moduleKey: "finance.bank_master",
         },
       ],
     },

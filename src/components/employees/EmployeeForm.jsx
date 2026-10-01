@@ -71,7 +71,7 @@ export default function EmployeeForm({
   const departmentOptions = Object.values(employeeRoles).filter(
     (option) => option !== "All",
   );
-  // Bank Type choices come from Settings -> Banks. An employee's current
+  // Bank Type choices come from Finance -> Bank Master. An employee's current
   // bank stays selectable even if it was hidden since.
   const [bankNames, setBankNames] = useState([]);
   useEffect(() => {

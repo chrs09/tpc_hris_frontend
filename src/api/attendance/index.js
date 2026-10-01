@@ -15,8 +15,15 @@ export const attendanceRecord = async ({
   // hours/status/trip data) can pass false to skip the profile/time-in/
   // time-out photo lookups and URL fields on the backend entirely.
   includePhotos = true,
+  // "all" = everyone (Payroll); otherwise an org chart head gets only
+  // their team.
+  scope,
 } = {}) => {
   const params = new URLSearchParams();
+
+  if (scope) {
+    params.append("scope", scope);
+  }
 
   params.append("limit", limit);
 
@@ -46,6 +53,9 @@ export const attendanceRecord = async ({
     );
 
     records.active_employee_count = activeEmployeeCount;
+    // Org chart head: the employee ids (and unit names) they're limited to.
+    records.team_employee_ids = res.data.team_employee_ids ?? null;
+    records.team_units = res.data.team_units ?? null;
 
     return records;
   }

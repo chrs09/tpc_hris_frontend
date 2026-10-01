@@ -176,7 +176,7 @@ const IncomingLeaveRequestsCard = ({
         </div>
 
         <Link
-          to="/dashboard/leave"
+          to="/dashboard/approvals?tab=leave"
           className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-hover hover:bg-surface-active transition-colors"
           title="Open Leave Requests page"
         >

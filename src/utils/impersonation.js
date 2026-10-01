@@ -14,6 +14,7 @@ const SESSION_KEYS = [
   "role",
   "user_id",
   "username",
+  "full_name",
   "expires_at",
   "refresh_expires_at",
   "must_change_password",
@@ -39,6 +40,7 @@ export const startImpersonation = (data) => {
   localStorage.setItem("role", data.role || "");
   localStorage.setItem("user_id", data.user_id || "");
   localStorage.setItem("username", data.username || "");
+  localStorage.setItem("full_name", data.full_name || "");
   localStorage.setItem("expires_at", data.expires_at || "");
   localStorage.removeItem("refresh_expires_at");
   localStorage.setItem("must_change_password", "false");

@@ -33,7 +33,10 @@ export default function SectionTabs({ group }) {
       <div className="fixed left-4 right-4 top-16 z-20 flex gap-1 overflow-x-auto border-b border-border bg-background md:static md:left-auto md:right-auto md:top-auto md:z-auto">
         {visibleChildren.map((item) => {
           const pathname = item.path.split("?")[0];
-          const active = location.pathname === pathname;
+          const itemTab = new URLSearchParams(item.path.split("?")[1] || "").get("tab");
+          const active =
+            location.pathname === pathname &&
+            (!itemTab || new URLSearchParams(location.search).get("tab") === itemTab);
 
           return (
             <Link

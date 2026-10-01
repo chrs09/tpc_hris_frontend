@@ -21,7 +21,7 @@ const STATUS_STYLES = {
   cancelled: "bg-surface-active text-fg-muted",
 };
 
-export default function LeaveManagement() {
+export default function LeaveManagement({ embedded = false }) {
   const canEditPage = usePageCanEdit();
   const [leaves, setLeaves] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
@@ -97,7 +97,7 @@ export default function LeaveManagement() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs group="HRIS" />
+      {!embedded && <SectionTabs group="HRIS" />}
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-fg">
