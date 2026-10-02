@@ -128,6 +128,22 @@ const getSideStatus = (record, side) => {
   return "Pending";
 };
 
+// A head approved it and passed it up: the name of the head whose turn
+// the final approval is (null otherwise).
+const getPassedTo = (record, side) => {
+  const steps = record[`${side}_review`]?.approval_steps || [];
+  const current = steps.find((step) => step.state === "current");
+  const approvedBefore = steps.some((step) => step.state === "approved");
+  return current && approvedBefore ? current.name : null;
+};
+
+const alreadyApprovedByMe = (record, side) => {
+  const me = Number(localStorage.getItem("user_id"));
+  return (record[`${side}_review`]?.approval_log || []).some(
+    (entry) => entry.user_id === me && entry.action === "approved",
+  );
+};
+
 // An employee already marked Absent has no selfie to verify, so face
 // review (badges, stats, Approve/Reject) is skipped for them entirely --
 // there's nothing to review.
@@ -155,6 +171,13 @@ const getReviewStatus = (record) => {
     return "Leave";
   }
 
+  if (
+    recordNeedsReview(record) &&
+    (getPassedTo(record, "time_in") || getPassedTo(record, "time_out"))
+  ) {
+    return "For Final Approval";
+  }
+
   if (recordNeedsReview(record)) {
     return "Needs Review";
   }
@@ -172,6 +195,15 @@ const getReviewStatus = (record) => {
 };
 
 const getStatusStyle = (status) => {
+  if (status === "For Final Approval") {
+    return {
+      badge: "bg-blue-600 text-white",
+      border: "border-blue-300",
+      text: "text-blue-700",
+      card: "bg-blue-50",
+    };
+  }
+
   if (status === "Auto Approved" || status === "Approved") {
     return {
       badge: "bg-emerald-600 text-white",
@@ -794,6 +826,8 @@ const AttendanceDetail = ({
     !record.is_missing_attendance &&
     !getIsAbsent(record) &&
     Boolean(getSidePhoto(record, side)) &&
+    // Already approved by me and passed up: the next head decides now.
+    !alreadyApprovedByMe(record, side) &&
     !["Auto Approved", "Approved", "Rejected"].includes(
       getSideStatus(record, side),
     );

@@ -607,7 +607,22 @@ const AttendanceList = () => {
 
   const handleApproveAttendance = async (record, side = "time_in") => {
     try {
-      const response = await approveAttendance(record.id, side);
+      let response;
+      try {
+        response = await approveAttendance(record.id, side);
+      } catch (err) {
+        // A head passing it up to the next head must add remarks.
+        if (!String(err.response?.data?.detail || "").includes("remarks")) throw err;
+        const remarks = await promptDialog(
+          "This goes to your upper head for the final approval. Remarks (required -- what did you check?):",
+        );
+        if (remarks === null) return;
+        if (!remarks.trim()) {
+          toast.error("Add remarks for the next approver.");
+          return;
+        }
+        response = await approveAttendance(record.id, side, remarks.trim());
+      }
 
       await refreshAttendance();
 

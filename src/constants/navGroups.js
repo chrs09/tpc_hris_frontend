@@ -123,6 +123,7 @@ export function getNavGroups(role) {
           path: "/dashboard/approvals?tab=leave",
           roles: ["superadmin", "admin"],
           moduleKey: "hris.leave",
+          approverKind: "leave",
         },
       ],
     },
@@ -134,6 +135,13 @@ export function getNavGroups(role) {
           path: "/dashboard/admin/trip-dashboard",
           roles: ["superadmin", "coordinator_admin", "coordinator"],
           moduleKey: "trip_management.trip_dashboard",
+        },
+        {
+          // Monthly Coca-Cola delivery report, built from the trips.
+          label: "Delivery Summary",
+          path: "/dashboard/admin/delivery-summary",
+          roles: ["superadmin", "coordinator_admin", "coordinator"],
+          moduleKey: "trip_management.delivery_summary",
         },
         {
           label: "Trip Assignment",

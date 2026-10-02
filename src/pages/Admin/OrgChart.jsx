@@ -800,7 +800,7 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
                 Pick a head above first -- with no head, this unit is skipped.
               </p>
             )}
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {APPROVAL_TYPES.map((type) => {
                 const on = approves.includes(type.key);
                 return (
@@ -853,6 +853,7 @@ const APPROVAL_TYPES = [
   { key: "cash_advance", label: "Cash Advance" },
   { key: "attendance", label: "Attendance" },
   { key: "overtime", label: "Overtime" },
+  { key: "leave", label: "Leave" },
 ];
 
 const Field = ({ label, children }) => (

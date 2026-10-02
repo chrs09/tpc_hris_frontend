@@ -2,9 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import {
   getAllLeaveRequests,
+  getLeaveForMyApproval,
   approveLeaveRequest,
   rejectLeaveRequest,
 } from "../../api/leave";
+import ApprovalProgress from "../../components/approvals/ApprovalProgress";
+import ApprovedBy from "../../components/approvals/ApprovedBy";
+import useModuleAccess from "../../hooks/useModuleAccess";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
@@ -23,6 +27,13 @@ const STATUS_STYLES = {
 
 export default function LeaveManagement({ embedded = false }) {
   const canEditPage = usePageCanEdit();
+  // HR / admin (the Leave module) see every request; an Org Chart head
+  // with Leave ticked sees the ones waiting on them.
+  const { isSuperAdmin, role, hasCustomAccess, grantedModules } = useModuleAccess();
+  const hasLeaveModule =
+    isSuperAdmin ||
+    role === "admin" ||
+    (hasCustomAccess && grantedModules.has("hris.leave"));
   const [leaves, setLeaves] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(false);
@@ -50,9 +61,9 @@ export default function LeaveManagement({ embedded = false }) {
   const fetchLeaves = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAllLeaveRequests(
-        statusFilter === "all" ? undefined : statusFilter,
-      );
+      const data = hasLeaveModule
+        ? await getAllLeaveRequests(statusFilter === "all" ? undefined : statusFilter)
+        : await getLeaveForMyApproval();
       setLeaves(data);
     } catch (error) {
       console.error("Failed to fetch leave requests:", error);
@@ -60,7 +71,7 @@ export default function LeaveManagement({ embedded = false }) {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, hasLeaveModule]);
 
   useEffect(() => {
     fetchLeaves();
@@ -69,8 +80,13 @@ export default function LeaveManagement({ embedded = false }) {
   const handleApprove = async (id) => {
     try {
       setActioningId(id);
-      await approveLeaveRequest(id);
-      toast.success("Leave request approved.");
+      const result = await approveLeaveRequest(id);
+      const next = result?.approval_steps?.find((s) => s.state === "current");
+      toast.success(
+        result?.status === "pending" && next
+          ? `Approved -- passed to ${next.name} for the next approval.`
+          : "Leave request approved.",
+      );
       fetchLeaves();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to approve.");
@@ -110,6 +126,7 @@ export default function LeaveManagement({ embedded = false }) {
           placeholder="Search name, type, reason..."
         />
 
+        {hasLeaveModule && (
         <div className="w-40">
           <SearchSelect
             value={
@@ -132,6 +149,7 @@ export default function LeaveManagement({ embedded = false }) {
             placeholder="Select status"
           />
         </div>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-sm">
@@ -195,10 +213,20 @@ export default function LeaveManagement({ embedded = false }) {
                     >
                       {leave.status}
                     </span>
+                    <ApprovalProgress steps={leave.approval_steps} className="mt-2" />
+                    <ApprovedBy log={leave.approval_log} className="mt-1" />
+                    {leave.can_act === false && (
+                      <p className="mt-1 text-[11px] text-fg-muted">
+                        You&apos;re marked {leave.viewer_away || "away"} today -- you
+                        can&apos;t approve or reject it today.
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {leave.status === "pending" ? (
-                      leave.employee_role === "admin" && viewerRole !== "superadmin" ? (
+                      !leave.approval_steps?.length &&
+                      leave.employee_role === "admin" &&
+                      viewerRole !== "superadmin" ? (
                         <span className="text-xs italic text-fg-subtle">
                           Only a superadmin can review this
                         </span>
@@ -207,7 +235,7 @@ export default function LeaveManagement({ embedded = false }) {
                           {canEditPage && (
                             <button
                             onClick={() => handleApprove(leave.id)}
-                            disabled={actioningId === leave.id}
+                            disabled={actioningId === leave.id || leave.can_act === false}
                             className="rounded-lg bg-success px-3 py-1 text-xs font-semibold text-success-foreground disabled:opacity-50"
                           >
                             Approve
@@ -216,7 +244,7 @@ export default function LeaveManagement({ embedded = false }) {
                           {canEditPage && (
                             <button
                             onClick={() => handleReject(leave.id)}
-                            disabled={actioningId === leave.id}
+                            disabled={actioningId === leave.id || leave.can_act === false}
                             className="rounded-lg bg-danger px-3 py-1 text-xs font-semibold text-danger-foreground disabled:opacity-50"
                           >
                             Reject

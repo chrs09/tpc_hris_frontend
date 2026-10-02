@@ -16,6 +16,12 @@ export const cancelLeaveRequest = async (leaveId) => {
   return res.data;
 };
 
+// Org Chart heads with Leave ticked: leave waiting on me.
+export const getLeaveForMyApproval = async () => {
+  const res = await api.get("/leave/for-my-approval");
+  return res.data;
+};
+
 // Admin/HR management
 export const getAllLeaveRequests = async (status) => {
   const params = status ? `?status=${status}` : "";

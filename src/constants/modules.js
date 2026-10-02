@@ -55,6 +55,11 @@ export const MODULE_GROUPS = [
         path: "/dashboard/admin/trip-dashboard",
       },
       {
+        key: "delivery_summary",
+        label: "Delivery Summary",
+        path: "/dashboard/admin/delivery-summary",
+      },
+      {
         key: "trip_assignment",
         label: "Trip Assignment",
         path: "/dashboard/admin/trip-assignment",

@@ -45,6 +45,7 @@ import {
   stopImpersonation,
 } from "../../utils/impersonation";
 import ApprovalsPage from "../Approvals/ApprovalsPage";
+import DeliverySummary from "../Admin/DeliverySummary";
 
 const Dashboard = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -144,6 +145,7 @@ const Dashboard = () => {
           <Route path="tickets" element={<TicketsPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="admin/trip-dashboard" element={<TripDashboard />} />
+          <Route path="admin/delivery-summary" element={<DeliverySummary />} />
           <Route path="admin/trip-assignment" element={<TripAssignment />} />
           <Route path="admin/trip-bypass" element={<TripBypassPage />} />
           <Route

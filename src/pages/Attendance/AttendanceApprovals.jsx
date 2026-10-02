@@ -7,7 +7,7 @@ import {
 } from "../../api/attendance";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
-import { confirmDialog } from "../../components/ui/dialog/dialogService";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
@@ -46,19 +46,34 @@ export default function AttendanceApprovals() {
   }, []);
 
   const act = async (item, approve) => {
-    if (
-      !approve &&
-      !(await confirmDialog(
-        `Reject ${item.employee_name}'s ${item.side_label.toLowerCase()} on ${item.attendance_date}?`,
-      ))
-    ) {
-      return;
+    // A head who isn't the last approver passes it up with remarks (what
+    // they checked) for the next head's final approval.
+    const steps = item.approval_steps || [];
+    const currentIndex = steps.findIndex((s) => s.state === "current");
+    const passesUp = currentIndex >= 0 && currentIndex < steps.length - 1;
+    let remarks = null;
+    if (approve) {
+      remarks = await promptDialog(
+        passesUp
+          ? `Approve ${item.employee_name}'s ${item.side_label.toLowerCase()} and pass it to ${steps[currentIndex + 1].name} for the final approval. Remarks (required -- what did you check?):`
+          : `Approve ${item.employee_name}'s ${item.side_label.toLowerCase()}? Remarks (optional):`,
+      );
+      if (remarks === null) return;
+      if (passesUp && !remarks.trim()) {
+        toast.error("Add remarks for the next approver.");
+        return;
+      }
+    } else {
+      remarks = await promptDialog(
+        `Reject ${item.employee_name}'s ${item.side_label.toLowerCase()} on ${item.attendance_date}? Reason (optional):`,
+      );
+      if (remarks === null) return;
     }
     try {
       setActioningKey(item.key);
       const result = approve
-        ? await approveAttendance(item.attendance_id, item.side)
-        : await rejectAttendance(item.attendance_id, item.side);
+        ? await approveAttendance(item.attendance_id, item.side, remarks.trim())
+        : await rejectAttendance(item.attendance_id, item.side, remarks.trim());
       toast.success(result?.message || (approve ? "Approved." : "Rejected."));
       await load();
     } catch (error) {
