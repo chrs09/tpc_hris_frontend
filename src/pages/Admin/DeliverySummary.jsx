@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 import api from "../../api/services/api";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
@@ -60,6 +61,9 @@ export default function DeliverySummary() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("summary");
   const [search, setSearch] = useState("");
+  // Drivers: one row per driver with a column per truck type, or the
+  // spreadsheet's per-truck blocks.
+  const [driverLayout, setDriverLayout] = useState("by_driver");
 
   useEffect(() => {
     let cancelled = false;
@@ -94,6 +98,42 @@ export default function DeliverySummary() {
         .filter((block) => block.rows.length),
     [data],
   );
+
+  // One row per driver, a column per truck type (+ total).
+  const driverMatrix = useMemo(() => {
+    if (!data) return { trucks: [], rows: [] };
+    const trucks = data.truck_types.filter((t) =>
+      data.by_driver.some((r) => r.truck_type === t && r.trips > 0),
+    );
+    const byId = new Map();
+    data.by_driver.forEach((r) => {
+      const row = byId.get(r.driver_id) || { driver: r.driver, counts: {}, total: 0 };
+      row.counts[r.truck_type] = (row.counts[r.truck_type] || 0) + r.trips;
+      row.total += r.trips;
+      byId.set(r.driver_id, row);
+    });
+    const rows = [...byId.values()].sort(
+      (a, b) => b.total - a.total || a.driver.localeCompare(b.driver),
+    );
+    return { trucks, rows };
+  }, [data]);
+
+  // Totals check: every view should add up to the same number of trips.
+  const totalsCheck = useMemo(() => {
+    if (!data) return null;
+    const sum = (list) => list.reduce((acc, r) => acc + r.trips, 0);
+    const drivers = sum(data.by_driver);
+    const locations = sum(data.by_location);
+    const daily = sum(data.by_day);
+    const records = Object.values(data.records).reduce((acc, rows) => acc + sum(rows), 0);
+    return {
+      drivers,
+      locations,
+      daily,
+      records,
+      ok: [drivers, locations, daily, records].every((n) => n === data.total_trips),
+    };
+  }, [data]);
 
   const [exporting, setExporting] = useState(false);
   const exportExcel = async () => {
@@ -174,6 +214,45 @@ export default function DeliverySummary() {
         </div>
       )}
 
+      {data && !loading && (
+        <div className="space-y-2">
+          {data.no_truck_type?.length > 0 && (
+            <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-fg">
+              <p className="font-semibold text-warning">
+                {data.no_truck_type.reduce((acc, v) => acc + v.trips, 0)} trip(s) used vehicles
+                with no truck type, so they&apos;re under &quot;No truck type&quot;.
+              </p>
+              <p className="mt-1 text-xs text-fg-muted">
+                Set the truck type on:{" "}
+                {data.no_truck_type.map((v) => `${v.vehicle} (${v.trips})`).join(", ")} --{" "}
+                <Link
+                  to="/dashboard/admin/trip-maintenance?tab=units"
+                  className="font-semibold text-primary hover:underline"
+                >
+                  open Fleet &rarr; Vehicle List
+                </Link>
+              </p>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <p className="text-fg-subtle">
+              Trips are counted under the truck used on that trip. A driver who
+              switched trucks appears under each truck they drove.
+            </p>
+            {totalsCheck && (
+              <p
+                className={`font-semibold ${totalsCheck.ok ? "text-success" : "text-warning"}`}
+                title="Every table adds up to the same number of trips"
+              >
+                {totalsCheck.ok ? "✓" : "⚠"} Drivers {totalsCheck.drivers} · Locations{" "}
+                {totalsCheck.locations} · Daily {totalsCheck.daily} · Records{" "}
+                {totalsCheck.records}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {loading || !data ? (
         <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
       ) : tab === "summary" ? (
@@ -181,14 +260,51 @@ export default function DeliverySummary() {
           {/* DRIVERS */}
           <div className="space-y-4">
             <h2 className="text-center text-lg font-bold text-fg">DRIVERS</h2>
-            {driverBlocks.map((block) => (
+            <div className="flex justify-center gap-1 text-xs">
+              {[
+                ["by_driver", "By driver"],
+                ["sheet", "Like the sheet"],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setDriverLayout(key)}
+                  className={`rounded-full border px-3 py-1 font-medium ${
+                    driverLayout === key
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-fg-muted hover:bg-surface-hover"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {driverLayout === "by_driver" ? (
               <SheetTable
-                key={block.truck}
-                head={["Count", `Month of ${monthLabel(month)} · Driver`, "Type of Truck", "Total Trips"]}
-                rows={block.rows.map((r, i) => [i + 1, r.driver, r.truck_type, r.trips])}
-                total={block.rows.reduce((sum, r) => sum + r.trips, 0)}
+                head={[
+                  "Count",
+                  `Month of ${monthLabel(month)} · Driver`,
+                  ...driverMatrix.trucks,
+                  "Total Trips",
+                ]}
+                rows={driverMatrix.rows.map((r, i) => [
+                  i + 1,
+                  r.driver,
+                  ...driverMatrix.trucks.map((t) => r.counts[t] || "–"),
+                  r.total,
+                ])}
+                total={data.total_trips}
               />
-            ))}
+            ) : (
+              driverBlocks.map((block) => (
+                <SheetTable
+                  key={block.truck}
+                  head={["Count", `Month of ${monthLabel(month)} · Driver`, "Type of Truck", "Total Trips"]}
+                  rows={block.rows.map((r, i) => [i + 1, r.driver, r.truck_type, r.trips])}
+                  total={block.rows.reduce((sum, r) => sum + r.trips, 0)}
+                />
+              ))
+            )}
           </div>
 
           {/* LOCATION + lookup */}
@@ -230,7 +346,7 @@ export default function DeliverySummary() {
               </thead>
               <tbody>
                 {visibleRecords.map((r) => (
-                  <tr key={`${r.date}-${r.driver_id}`} className="border-t border-border">
+                  <tr key={`${r.date}-${r.driver_id}-${r.truck_type}`} className="border-t border-border">
                     {RECORD_COLUMNS.map(([title, get]) => (
                       <td
                         key={title}
@@ -239,6 +355,16 @@ export default function DeliverySummary() {
                         }`}
                       >
                         {get(r) === "" ? <span className="text-fg-subtle">--</span> : get(r)}
+                        {title === "Driver" &&
+                          r.other_trucks?.map((other) => (
+                            <span
+                              key={other.truck_type}
+                              title={`${r.driver} also drove ${other.truck_type} this day (${other.trips} trip${other.trips === 1 ? "" : "s"}) -- counted on that truck's tab.`}
+                              className="ml-2 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                            >
+                              &#8644; also {other.truck_type} today ({other.trips})
+                            </span>
+                          ))}
                       </td>
                     ))}
                   </tr>

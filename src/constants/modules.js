@@ -25,7 +25,6 @@ export const MODULE_GROUPS = [
           { key: "attendance_grid_view", label: "Grid View" },
         ],
       },
-      { key: "leave", label: "Leave Requests", path: "/dashboard/approvals?tab=leave" },
       { key: "employees", label: "Employees", path: "/dashboard/employees" },
       { key: "applicants", label: "Applicants", path: "/dashboard/applicants" },
       {
@@ -43,7 +42,21 @@ export const MODULE_GROUPS = [
   {
     key: "payroll",
     label: "Payroll",
-    submodules: [{ key: "payroll", label: "Payroll", path: "/dashboard/payroll" }],
+    submodules: [
+      {
+        key: "payroll",
+        label: "Payroll",
+        path: "/dashboard/payroll",
+        // Payroll steps (PayrollStatusBar.jsx / backend payroll_runs.py).
+        // Only these ticks decide who prepares, approves and locks/pays --
+        // the user's role never does. Superadmin can always.
+        children: [
+          { key: "payroll_prepare", label: "Prepare & Submit (generate, edit figures)" },
+          { key: "payroll_approve", label: "Approve & Return for correction" },
+          { key: "payroll_release", label: "Lock & Mark as Paid" },
+        ],
+      },
+    ],
   },
   {
     key: "trip_management",
@@ -162,7 +175,7 @@ export const MODULE_GROUPS = [
     label: "Administrator",
     submodules: [
       { key: "users", label: "Users", path: "/dashboard/users" },
-      { key: "hierarchy", label: "Hierarchy", path: "/dashboard/hierarchy" },
+      { key: "hierarchy", label: "Org Chart", path: "/dashboard/org-chart" },
       { key: "role_access", label: "Role Access", path: "/dashboard/role-access" },
       {
         key: "cash_advance_settings",

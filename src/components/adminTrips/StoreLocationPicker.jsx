@@ -161,8 +161,8 @@ export default function StoreLocationPicker({
               center={position}
               radius={radius}
               pathOptions={{
-                color: "#f59e0b",
-                fillColor: "#f59e0b",
+                color: "#10b981",
+                fillColor: "#10b981",
                 fillOpacity: 0.15,
                 weight: 2,
               }}

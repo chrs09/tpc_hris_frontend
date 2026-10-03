@@ -20,6 +20,9 @@ const initialFormState = {
   name: "",
   address: "",
   outlet_number: "",
+  // Area the store is in (e.g. Consolacion, Bohol) -- a lane's
+  // destination for Driver Rates.
+  area: "",
   latitude: "",
   longitude: "",
   allowed_radius_meters: 100,
@@ -89,6 +92,8 @@ export default function StoreManagement() {
 
   // Hubs (Plant, Yard...) for "Directions from"; the Plant is the default.
   const hubs = stores.filter((store) => store.is_hub);
+  // Areas already used, suggested when typing one.
+  const storeAreas = [...new Set(stores.map((store) => store.area).filter(Boolean))].sort();
   const defaultHubId =
     (hubs.find((hub) => /plant/i.test(hub.name)) || hubs[0])?.id ?? null;
 
@@ -130,6 +135,7 @@ export default function StoreManagement() {
       name: store.name || "",
       address: store.address || "",
       outlet_number: store.outlet_number || "",
+      area: store.area || "",
       latitude: store.latitude || "",
       longitude: store.longitude || "",
       allowed_radius_meters: store.allowed_radius_meters || 100,
@@ -163,6 +169,7 @@ export default function StoreManagement() {
         name: form.name.trim(),
         address: form.address.trim() || null,
         outlet_number: form.outlet_number.trim() || null,
+        area: form.area.trim(),
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
         allowed_radius_meters: Number(form.allowed_radius_meters),
@@ -243,9 +250,10 @@ export default function StoreManagement() {
   };
 
   const filteredStores = stores.filter((store) => {
-    const matchesSearch = store.name
-      ?.toLowerCase()
-      .includes(searchTerm.trim().toLowerCase());
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch = [store.name, store.area].some((value) =>
+      value?.toLowerCase().includes(term),
+    );
     const matchesProfile =
       profileFilter === "ALL" || store.profile === profileFilter;
     return matchesSearch && matchesProfile;
@@ -294,7 +302,14 @@ export default function StoreManagement() {
             <span className="text-xs text-fg-subtle">No photo</span>
           )}
         </td>
-        <td className="px-6 py-4 text-fg">{store.name}</td>
+        <td className="px-6 py-4 text-fg">
+          {store.name}
+          {store.area && (
+            <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+              {store.area}
+            </span>
+          )}
+        </td>
         <td className="px-6 py-4 text-fg-muted">{store.outlet_number || "-"}</td>
         <td className="px-6 py-4 text-fg-muted max-w-xs truncate">
           {store.address || "-"}
@@ -619,6 +634,10 @@ export default function StoreManagement() {
                 <dd className="text-fg">{viewingStore.outlet_number || "-"}</dd>
               </div>
               <div>
+                <dt className="text-xs text-fg-subtle">Area</dt>
+                <dd className="text-fg">{viewingStore.area || "-"}</dd>
+              </div>
+              <div>
                 <dt className="text-xs text-fg-subtle">Profile</dt>
                 <dd className="text-fg">
                   {viewingStore.profile || "Unassigned"}
@@ -694,6 +713,27 @@ export default function StoreManagement() {
               className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
               placeholder="e.g. OUT-0042"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1 text-fg">
+              Area
+            </label>
+            <input
+              list="store-areas"
+              value={form.area}
+              onChange={(e) => setForm({ ...form, area: e.target.value })}
+              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
+              placeholder="e.g. Consolacion, Bohol"
+            />
+            <datalist id="store-areas">
+              {storeAreas.map((area) => (
+                <option key={area} value={area} />
+              ))}
+            </datalist>
+            <p className="mt-1 text-xs text-fg-subtle">
+              Used for lane rates (e.g. Cebu &rarr; Bohol) in Trip Category &amp; Rates.
+            </p>
           </div>
 
           <div>

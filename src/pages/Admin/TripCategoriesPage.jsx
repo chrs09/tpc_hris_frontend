@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Tags, Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import {
@@ -16,6 +17,7 @@ import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import DriverRatesPanel from "../../components/tripMaintenance/DriverRatesPanel";
 
 const EMPTY_FORM = {
   profile_name: "",
@@ -28,6 +30,9 @@ const EMPTY_FORM = {
 
 export default function TripCategoriesPage() {
   const canEditPage = usePageCanEdit();
+  // Categories (base rates) or Driver Rates (by truck / lane / date).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const view = searchParams.get("view") === "rates" ? "rates" : "categories";
   const [tripRates, setTripRates] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
@@ -158,6 +163,39 @@ export default function TripCategoriesPage() {
           Manage trip categories and driver/helper trip rates.
         </p>
       </div>
+
+      <div className="inline-flex gap-1 rounded-xl bg-surface-hover p-1">
+        {[
+          ["categories", "Categories"],
+          ["rates", "Driver Rates (truck · lane · date)"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() =>
+              setSearchParams(
+                (prev) => {
+                  const next = new URLSearchParams(prev);
+                  if (key === "rates") next.set("view", "rates");
+                  else next.delete("view");
+                  return next;
+                },
+                { replace: true },
+              )
+            }
+            className={`rounded-lg px-4 py-2 text-sm font-medium ${
+              view === key ? "bg-surface text-fg shadow" : "text-fg-muted hover:text-fg"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === "rates" ? (
+        <DriverRatesPanel canEdit={canEditPage} />
+      ) : (
+      <>
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <SearchInput
@@ -402,6 +440,8 @@ export default function TripCategoriesPage() {
           </div>
         </div>
       </MaintenanceModal>
+      </>
+      )}
     </div>
   );
 }

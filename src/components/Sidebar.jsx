@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  ArrowBigLeftDash,
+  ChevronLeft,
+  ChevronRight,
   Menu,
   LayoutDashboard,
   Users,
@@ -10,14 +11,14 @@ import {
   Wallet,
   Landmark,
   Building2,
+  LogOut,
 } from "lucide-react";
 import { logout } from "../utils/auth";
-import { getReminders, createReminder, resolveReminder } from "../api/reminder";
 import { getUserList, impersonateUser } from "../api/users";
 import { startImpersonation } from "../utils/impersonation";
 import { getNavGroups } from "../constants/navGroups";
 import useModuleAccess from "../hooks/useModuleAccess";
-import ThemeToggle from "./ui/ThemeToggle";
+import ThemeCustomizer from "./ui/ThemeCustomizer";
 import HubAlertsBell from "./adminTrips/HubAlertsBell";
 import CashAdvanceAlertsBell from "./adminTrips/CashAdvanceAlertsBell";
 import ManualEntryAlertsBell from "./adminTrips/ManualEntryAlertsBell";
@@ -25,20 +26,20 @@ import GeofenceAlertsBell from "./attendance/GeofenceAlertsBell";
 import FuelRequestAlertsBell from "./adminTrips/FuelRequestAlertsBell";
 import toast from "react-hot-toast";
 
-// Icons are kept here (JSX) rather than in the shared navGroups data
-// file, mapped onto each group by label.
+// Icon components are kept here rather than in the shared navGroups data
+// file, mapped onto each group by label (sized when rendered).
 const GROUP_ICONS = {
-  Dashboard: <LayoutDashboard size={18} />,
-  HRIS: <Users size={18} />,
-  Payroll: <Wallet size={18} />,
-  Approvals: <Users size={18} />,
-  "Trip Management": <Truck size={18} />,
-  Customers: <Users size={18} />,
-  Suppliers: <Building2 size={18} />,
-  "Fleet Management": <Truck size={18} />,
-  "Cash Advance": <Wallet size={18} />,
-  Finance: <Landmark size={18} />,
-  Administrator: <Shield size={18} />,
+  Dashboard: LayoutDashboard,
+  HRIS: Users,
+  Payroll: Wallet,
+  Approvals: Users,
+  "Trip Management": Truck,
+  Customers: Users,
+  Suppliers: Building2,
+  "Fleet Management": Truck,
+  "Cash Advance": Wallet,
+  Finance: Landmark,
+  Administrator: Shield,
 };
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
@@ -50,11 +51,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   // Greeting: the person's full name (saved at login), else the username.
   const displayName = localStorage.getItem("full_name") || username;
   const { role, isSuperAdmin, isVisible } = useModuleAccess();
-
-  const [reminders, setReminders] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // "View As" -- superadmin picks another user to see their live,
   // read-only view (Sidebar, dashboards, data), lives in the greeting
@@ -129,6 +125,11 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   // =========================
   // NAV GROUPS (shared with SectionTabs.jsx -- see src/constants/navGroups.js)
   // =========================
+  // Collapsed: icon only, larger and centred.
+  const linkLayout = isCollapsed ? "justify-center px-0 py-2.5" : "px-3 py-2";
+  const renderIcon = (Icon) =>
+    Icon ? <Icon size={isCollapsed ? 22 : 18} className="shrink-0" /> : null;
+
   const navGroups = useMemo(
     () =>
       getNavGroups(role).map((group) => ({
@@ -137,44 +138,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       })),
     [role],
   );
-
-  // =========================
-  // LOAD REMINDERS
-  // =========================
-  const loadReminders = async () => {
-    try {
-      const data = await getReminders();
-      setReminders(data);
-    } catch (error) {
-      console.error("Failed to load reminders:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (isSuperAdmin) loadReminders();
-  }, [isSuperAdmin]);
-
-  // =========================
-  // REMINDER ACTIONS
-  // =========================
-  const handleCreateReminder = async () => {
-    if (!newMessage.trim()) return;
-
-    try {
-      setLoading(true);
-      await createReminder(newMessage);
-      setNewMessage("");
-      setShowModal(false);
-      await loadReminders();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResolve = async (id) => {
-    await resolveReminder(id);
-    await loadReminders();
-  };
 
   return (
     <>
@@ -187,7 +150,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           <ManualEntryAlertsBell />
           <GeofenceAlertsBell />
           <FuelRequestAlertsBell />
-          <ThemeToggle />
+          <ThemeCustomizer />
           <button
             onClick={() => setIsMobileOpen(true)}
             className="text-fg-muted hover:text-fg"
@@ -209,21 +172,21 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       <aside
         className={`
           fixed top-0 left-0 h-screen bg-surface text-fg border-r border-border
-          flex flex-col p-6 shadow-lg transition-all duration-300 overflow-hidden
-          ${isCollapsed ? "w-20" : "w-64"}
+          flex flex-col shadow-lg transition-all duration-300 overflow-hidden
+          ${isCollapsed ? "w-20 px-3 py-6" : "w-64 p-6"}
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0 z-50
         `}
       >
-        {/* COLLAPSE + THEME TOGGLE + NOTIFICATION BELLS */}
+        {/* THEME + NOTIFICATION BELLS */}
         <div
           className={`hidden md:flex shrink-0 items-center mb-4 ${
-            isCollapsed ? "flex-col gap-3" : "justify-between"
+            isCollapsed ? "flex-col gap-3" : ""
           }`}
         >
           {!isCollapsed && (
             <div className="flex items-center gap-3">
-              <ThemeToggle />
+              <ThemeCustomizer />
               <HubAlertsBell />
               <CashAdvanceAlertsBell />
               <ManualEntryAlertsBell />
@@ -240,15 +203,9 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <FuelRequestAlertsBell />
             </div>
           )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-fg-muted hover:text-fg"
-          >
-            {isCollapsed ? <Menu size={28} /> : <ArrowBigLeftDash size={20} />}
-          </button>
         </div>
 
-        {/* SCROLLABLE MIDDLE (greeting + nav + reminders) -- kept separate
+        {/* SCROLLABLE MIDDLE (greeting + nav) -- kept separate
             from the header/logout so a tall nav (many visible groups) or
             a high browser zoom level scrolls internally instead of
             overflowing/breaking the fixed-height aside. */}
@@ -292,13 +249,14 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                   key={group.label}
                   to={only.path}
                   onClick={() => setIsMobileOpen(false)}
-                  className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${
+                  title={group.label}
+                  className={`flex items-center gap-2 rounded-lg ${linkLayout} transition-colors ${
                     active
                       ? "bg-primary/10 text-primary"
                       : "text-fg hover:bg-surface-hover"
                   }`}
                 >
-                  {group.icon}
+                  {renderIcon(group.icon)}
                   {!isCollapsed && <span>{group.label}</span>}
                 </Link>
               );
@@ -323,13 +281,13 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                     ? `${group.label} / ${activeChild.label}`
                     : group.label
                 }
-                className={`flex min-w-0 items-center gap-2 rounded-lg px-3 py-2 transition-colors ${
+                className={`flex min-w-0 items-center gap-2 rounded-lg ${linkLayout} transition-colors ${
                   isGroupActive
                     ? "bg-primary/10 text-primary"
                     : "text-fg hover:bg-surface-hover"
                 }`}
               >
-                {group.icon}
+                {renderIcon(group.icon)}
                 {!isCollapsed && (
                   <span className="truncate text-sm font-medium">
                     {group.label}
@@ -346,77 +304,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           })}
         </nav>
 
-        {/* REMINDERS */}
-        {isSuperAdmin && !isCollapsed && (
-          <div className="mb-6">
-            <div className="flex justify-between mb-2">
-              <span className="text-sm font-semibold text-fg">
-                Reminders ({reminders.length})
-              </span>
-              <button
-                onClick={() => setShowModal(true)}
-                className="text-xs font-medium bg-primary text-primary-foreground px-2 py-1 rounded-md hover:bg-primary-hover"
-              >
-                + Add
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
-              {reminders.map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-surface-hover p-2 rounded-md text-xs flex justify-between gap-2"
-                >
-                  <span className="text-fg">{r.message}</span>
-                  <span className="text-[10px] text-fg-muted capitalize font-bold whitespace-nowrap">
-                    by {r.created_by_username || "Unknown"}
-                  </span>
-                  <button
-                    onClick={() => handleResolve(r.id)}
-                    className="text-danger hover:text-danger-hover"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-          )}
         </div>
-
-        {/* MODAL */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-surface border border-border rounded-xl p-6 w-80 shadow-xl">
-              <h2 className="text-lg font-semibold mb-4 text-fg">
-                Create Reminder
-              </h2>
-
-              <textarea
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                className="w-full p-2 rounded-lg border border-border bg-background text-fg mb-4 focus:outline-none focus:ring-2 focus:ring-primary/30"
-                rows="3"
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="px-3 py-1.5 rounded-lg text-sm text-fg-muted hover:bg-surface-hover"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateReminder}
-                  disabled={loading}
-                  className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary-hover disabled:opacity-50"
-                >
-                  {loading ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* VIEW AS MODAL */}
         {showViewAsModal && (
@@ -536,11 +424,28 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
         {/* LOGOUT */}
         <button
           onClick={logout}
-          className="bg-danger text-danger-foreground px-4 py-2 rounded-lg hover:bg-danger-hover mt-auto transition-colors"
+          title="Logout"
+          className={`mt-auto flex items-center justify-center rounded-lg bg-danger text-danger-foreground transition-colors hover:bg-danger-hover ${
+            isCollapsed ? "py-2.5" : "px-4 py-2"
+          }`}
         >
-          {isCollapsed ? "⎋" : "Logout"}
+          {isCollapsed ? <LogOut size={20} /> : "Logout"}
         </button>
       </aside>
+
+      {/* COLLAPSE HANDLE (desktop) -- a pull tab on the sidebar's edge,
+          outside the aside so its overflow-hidden doesn't clip it. */}
+      <button
+        type="button"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={`fixed top-1/2 z-50 hidden h-16 w-5 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 border-border bg-surface text-fg-muted shadow-md transition-all duration-300 hover:w-6 hover:bg-surface-hover hover:text-primary md:flex ${
+          isCollapsed ? "left-20" : "left-64"
+        }`}
+      >
+        {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+      </button>
     </>
   );
 };

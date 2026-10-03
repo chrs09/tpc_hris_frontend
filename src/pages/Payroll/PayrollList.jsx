@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TailSpin } from "react-loader-spinner";
 import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
@@ -37,7 +37,13 @@ import {
   getPayrollDeductions,
   getCashAdvanceForCutoff,
 } from "../../api/payroll/payroll_deductions";
-import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import PayrollStatusBar from "../../components/payroll/PayrollStatusBar";
+import { payrollStatusLabel } from "../../utils/payroll/payrollStatus";
+import {
+  getPayrollRun,
+  getPayrollRunStatuses,
+  markPayrollGenerated,
+} from "../../api/payroll/payrollRuns";
 
 /*
  * Government contribution lookup used by Admin payroll.
@@ -104,7 +110,6 @@ const NO_PERIOD = {
 };
 
 const PayrollList = () => {
-  const canEditPage = usePageCanEdit();
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,6 +137,8 @@ const PayrollList = () => {
   // the backend. If you want these saved, they'll need employee/payroll
   // fields + an API endpoint on your end.
   const [adjustments, setAdjustments] = useState({});
+  // Read by updateAdjustment (declared before the payroll status loads).
+  const payrollEditableRef = useRef(true);
 
   // Cash advance owed per employee for the active cutoff (from their
   // approved cash advances), keyed by employee id -- pre-fills the Cash
@@ -142,6 +149,8 @@ const PayrollList = () => {
     `${employeeId}_${period.cutoffStart}_${period.cutoffEnd}`;
 
   const updateAdjustment = (employeeId, period, field, value) => {
+    // Approved / locked / paid payroll is read-only.
+    if (!payrollEditableRef.current) return;
     const key = getAdjustmentKey(employeeId, period);
 
     setAdjustments((prev) => ({
@@ -230,6 +239,54 @@ const PayrollList = () => {
 
   const periods = useMemo(() => periodsFromRule(cutoffRule, 24), [cutoffRule]);
   const activePeriod = periods[selectedPeriod] || periods[0] || NO_PERIOD;
+  const cutoffKey = activePeriod.cutoffStart
+    ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`
+    : "";
+
+  // Payroll status for this department + cutoff (Draft -> ... -> Paid),
+  // and every cutoff's status for the period picker labels.
+  const [payrollRun, setPayrollRun] = useState(null);
+  const [runStatuses, setRunStatuses] = useState({});
+
+  const loadPayrollRun = useCallback(async () => {
+    if (!department || !cutoffKey) {
+      setPayrollRun(null);
+      return;
+    }
+    try {
+      const [run, statuses] = await Promise.all([
+        getPayrollRun(department, cutoffKey),
+        getPayrollRunStatuses(department),
+      ]);
+      setPayrollRun(run);
+      setRunStatuses(statuses || {});
+    } catch (err) {
+      console.error("Failed to load payroll status", err);
+      setPayrollRun(null);
+    }
+  }, [department, cutoffKey]);
+
+  useEffect(() => {
+    loadPayrollRun();
+  }, [loadPayrollRun]);
+
+  // Period picker: each cutoff labelled with its payroll status.
+  const periodOptions = periods.map((period, index) => {
+    const status = runStatuses[`${period.cutoffStart}_${period.cutoffEnd}`];
+    return {
+      index,
+      label:
+        status && status !== "DRAFT"
+          ? `${period.label} · ${payrollStatusLabel(status)}`
+          : period.label,
+    };
+  });
+
+  // Figures can be saved only by someone with Org Chart -> Payroll ->
+  // Prepare & Submit, and only until the payroll is approved.
+  const canPrepare = Boolean(payrollRun?.my_steps?.prepare);
+  const payrollEditable = Boolean(payrollRun?.can_generate);
+  payrollEditableRef.current = payrollEditable;
 
   // Re-hydrates the manual SSS/PhilHealth/Pag-IBIG override inputs from
   // whatever was last saved to `payroll_deductions` for this cutoff +
@@ -507,6 +564,9 @@ const PayrollList = () => {
                 plate_number: trip.plate_number,
 
                 trip_rate_profile: trip.trip_rate_profile,
+
+                // Which rate applied (truck type / lane / effective date).
+                rate_source: trip.rate_source,
 
                 rate,
 
@@ -1245,8 +1305,8 @@ const PayrollList = () => {
   });
 
   const handleGeneratePayslip = async (row) => {
-    // View-only: just open the payslip, nothing is saved.
-    if (row.employee && canEditPage) {
+    // View-only or approved payroll: just open the payslip, nothing is saved.
+    if (row.employee && payrollEditable) {
       setSavingPayslipFor(row.employee.id);
 
       try {
@@ -1279,8 +1339,9 @@ const PayrollList = () => {
   // `payroll_deductions`. Shared by "Generate Payroll" and "Export Excel"
   // so both buttons persist the exact same data the same way.
   const saveAllDeductions = async ({ onErrorSuffix = "" } = {}) => {
-    // View-only: Export Excel still works, nothing is saved.
-    if (!canEditPage) return true;
+    // View-only, or payroll already approved: Export Excel still works,
+    // nothing is saved.
+    if (!payrollEditable) return true;
     const deductionRows = buildDeductionRows();
 
     if (deductionRows.length === 0) return true;
@@ -1324,10 +1385,27 @@ const PayrollList = () => {
 
     setIsGeneratingPayroll(false);
 
-    if (saved) {
+    if (!saved) return;
+
+    try {
+      const sum = (key) =>
+        Math.round(payrollRows.reduce((acc, row) => acc + Number(row[key] || 0), 0) * 100) / 100;
+      const run = await markPayrollGenerated({
+        department,
+        cutoff_period: cutoffKey,
+        employee_count: payrollRows.length,
+        total_gross: sum("grossPay"),
+        total_net: sum("netPay"),
+      });
+      setPayrollRun(run);
+      setRunStatuses((prev) => ({ ...prev, [cutoffKey]: run.status }));
       alertDialog(
-        `Payroll deductions saved for ${payrollRows.length} employee(s). Cash advance deductions were posted to each employee's cash advance balance.`,
+        `Payroll generated for ${payrollRows.length} employee(s). Cash advance deductions were posted to each employee's cash advance balance.
+
+Next: Submit for Review. You can generate again after corrections until it's approved.`,
       );
+    } catch (err) {
+      alertDialog(err?.response?.data?.detail || "Figures were saved, but the payroll status could not be updated.");
     }
   };
 
@@ -1420,15 +1498,8 @@ const PayrollList = () => {
         <div className="flex flex-wrap gap-3">
           <div className="w-56">
             <SearchSelect
-              value={
-                periods
-                  .map((period, index) => ({ index, label: period.label }))
-                  .find((option) => option.index === selectedPeriod) || null
-              }
-              options={periods.map((period, index) => ({
-                index,
-                label: period.label,
-              }))}
+              value={periodOptions.find((option) => option.index === selectedPeriod) || null}
+              options={periodOptions}
               getOptionValue={(option) => option.index}
               onChange={(option) => setSelectedPeriod(Number(option.index))}
               placeholder="Select period"
@@ -1450,13 +1521,22 @@ const PayrollList = () => {
             className="border border-border rounded-lg px-3 h-10 bg-surface text-fg w-full sm:w-auto"
           />
 
-          {canEditPage && (
+          {canPrepare && (
             <button
             className="bg-blue-600 text-white px-4 rounded-lg disabled:opacity-60"
-            disabled={isGeneratingPayroll || !cutoffRule}
+            disabled={isGeneratingPayroll || !cutoffRule || !payrollEditable}
+            title={
+              payrollEditable
+                ? undefined
+                : `Payroll is ${payrollStatusLabel(payrollRun?.status).toLowerCase()} -- return it for correction to generate again`
+            }
             onClick={handleGeneratePayroll}
           >
-            {isGeneratingPayroll ? "Saving..." : "Generate Payroll"}
+            {isGeneratingPayroll
+              ? "Saving..."
+              : payrollRun && payrollRun.status !== "DRAFT"
+                ? "Generate Again"
+                : "Generate Payroll"}
           </button>
           )}
 
@@ -1478,6 +1558,18 @@ const PayrollList = () => {
           </button>
         </div>
       </div>
+
+      {cutoffKey && department && (
+        <PayrollStatusBar
+          run={payrollRun}
+          department={department}
+          cutoffPeriod={cutoffKey}
+          onChange={(run) => {
+            setPayrollRun(run);
+            setRunStatuses((prev) => ({ ...prev, [cutoffKey]: run.status }));
+          }}
+        />
+      )}
 
       <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 sm:p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
@@ -1835,6 +1927,7 @@ const PayrollList = () => {
                         "--"
                       ) : (
                         <input
+                          disabled={!payrollEditable}
                           type="number"
                           className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.others || ""}
@@ -1862,6 +1955,7 @@ const PayrollList = () => {
                       ) : (
                         <div>
                           <input
+                            disabled={!payrollEditable}
                             type="number"
                             className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                             value={row.sssDeduction || ""}
@@ -1896,6 +1990,7 @@ const PayrollList = () => {
                         "--"
                       ) : (
                         <input
+                          disabled={!payrollEditable}
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.philhealthDeduction || ""}
@@ -1917,6 +2012,7 @@ const PayrollList = () => {
                         "--"
                       ) : (
                         <input
+                          disabled={!payrollEditable}
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.pagibigDeduction || ""}
@@ -1938,6 +2034,7 @@ const PayrollList = () => {
                         "--"
                       ) : (
                         <input
+                          disabled={!payrollEditable}
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.withholdingTax || ""}
@@ -1959,6 +2056,7 @@ const PayrollList = () => {
                         "--"
                       ) : (
                         <input
+                          disabled={!payrollEditable}
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.sssLoan || ""}
@@ -1977,6 +2075,7 @@ const PayrollList = () => {
 
                     <td className="px-4 py-3">
                       <input
+                        disabled={!payrollEditable}
                         type="number"
                         min="0"
                         className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
@@ -2007,6 +2106,7 @@ const PayrollList = () => {
                         "--"
                       ) : (
                         <input
+                          disabled={!payrollEditable}
                           type="number"
                           className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.personalDeduction || ""}
@@ -2123,6 +2223,7 @@ const PayrollList = () => {
                         row.otStatus !== "Approved" ? (
                           <div className="flex items-center gap-1">
                             <input
+                              disabled={!payrollEditable}
                               type="number"
                               step="0.01"
                               min="0"
@@ -2135,7 +2236,7 @@ const PayrollList = () => {
                                 )
                               }
                             />
-                            {canEditPage && (
+                            {payrollEditable && (
                               <button
                               className="px-3 py-1 rounded-lg bg-green-600 text-white text-xs"
                               onClick={() => handleApproveOT(row)}
@@ -2147,7 +2248,7 @@ const PayrollList = () => {
                         ) : null}
 
                         {row.otStatus === "Approved" ? (
-                          (canEditPage ? (
+                          (payrollEditable ? (
                             <button
                             className="px-3 py-1 rounded-lg bg-red-600 text-white text-xs"
                             onClick={() => handleReverseOT(row)}
@@ -2176,6 +2277,7 @@ const PayrollList = () => {
         payroll={selectedPayroll}
         activePeriod={activePeriod}
         onClose={() => setSelectedPayroll(null)}
+        readOnly={!payrollEditable}
         onOTApproved={async () => {
           await loadOTApprovals();
         }}

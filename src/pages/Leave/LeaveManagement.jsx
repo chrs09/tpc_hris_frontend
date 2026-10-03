@@ -27,13 +27,10 @@ const STATUS_STYLES = {
 
 export default function LeaveManagement({ embedded = false }) {
   const canEditPage = usePageCanEdit();
-  // HR / admin (the Leave module) see every request; an Org Chart head
-  // with Leave ticked sees the ones waiting on them.
-  const { isSuperAdmin, role, hasCustomAccess, grantedModules } = useModuleAccess();
-  const hasLeaveModule =
-    isSuperAdmin ||
-    role === "admin" ||
-    (hasCustomAccess && grantedModules.has("hris.leave"));
+  // Superadmin sees every request; an Org Chart head with Leave ticked
+  // sees the ones on their chain.
+  const { isSuperAdmin } = useModuleAccess();
+  const hasLeaveModule = isSuperAdmin;
   const [leaves, setLeaves] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [loading, setLoading] = useState(false);

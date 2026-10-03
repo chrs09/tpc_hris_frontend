@@ -92,37 +92,37 @@ export function getNavGroups(role) {
     },
     {
       label: "Approvals",
-      // One page, a tab per kind of approval (pages/Approvals). Each tab is
-      // shown to whoever could use that approval before: the module/role,
-      // or an Org Chart head who approves that kind (approverKind).
+      // One page, a tab per kind of approval (pages/Approvals). A tab shows
+      // ONLY for an Org Chart head whose unit approves that kind
+      // (approverKind) -- and superadmin. Role and the old Reporting
+      // Hierarchy no longer open these tabs (Cash Advance also opens for
+      // Finance -> Cash Advances, its ledger).
       children: [
         {
           label: "Attendance",
           path: "/dashboard/approvals?tab=attendance",
           roles: ["superadmin"],
-          moduleKey: "hris.attendance_grid_view",
           approverKind: "attendance",
         },
         {
           label: "Cash Advance",
           path: "/dashboard/approvals?tab=cash_advance",
           roles: ["superadmin"],
+          // Also Finance's cash advance ledger (balances / transactions).
           moduleKey: "finance.cash_advance",
           approverKind: "cash_advance",
         },
         {
-          // Immediate heads (Reporting Hierarchy) and Org Chart heads
-          // with Overtime ticked -- see requiresDepartmentHead.
           label: "Overtime",
           path: "/dashboard/approvals?tab=overtime",
-          roles: [],
-          requiresDepartmentHead: true,
+          roles: ["superadmin"],
+          approverKind: "overtime",
         },
         {
+          // Only Org Chart heads with Leave ticked (and superadmin).
           label: "Leave",
           path: "/dashboard/approvals?tab=leave",
-          roles: ["superadmin", "admin"],
-          moduleKey: "hris.leave",
+          roles: ["superadmin"],
           approverKind: "leave",
         },
       ],
@@ -303,25 +303,13 @@ export function getNavGroups(role) {
           moduleKey: "administrator.users",
         },
         {
-          label: "Hierarchy",
-          path: "/dashboard/hierarchy",
-          roles: ["superadmin"],
-          moduleKey: "administrator.hierarchy",
-        },
-        {
-          // Same access as Hierarchy (it's a visual view of it). Only a
-          // real superadmin can change a head's module access from here.
+          // The source of truth for who reports to / approves for whom
+          // and what each person can access (replaced Hierarchy and
+          // Module Assignment). Only a real superadmin can change access.
           label: "Org Chart",
           path: "/dashboard/org-chart",
           roles: ["superadmin"],
           moduleKey: "administrator.hierarchy",
-        },
-        {
-          // Not module-grantable -- see modules.js: granting this would
-          // let a non-superadmin grant themselves further access.
-          label: "Module Assignment",
-          path: "/dashboard/module-assignment",
-          roles: ["superadmin"],
         },
         {
           label: "Role Access",

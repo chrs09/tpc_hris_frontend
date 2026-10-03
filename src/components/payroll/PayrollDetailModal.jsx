@@ -62,6 +62,8 @@ const PayrollDetailModal = ({
   payroll,
   activePeriod,
   onOTApproved,
+  // Approved / locked / paid payroll: view only.
+  readOnly = false,
 }) => {
   const [approvedOT, setApprovedOT] = useState({});
   useEffect(() => {
@@ -610,6 +612,9 @@ const PayrollDetailModal = ({
                           Rate Profile
                         </span>
                         <p>{trip.trip_rate_profile}</p>
+                        {trip.rate_source && trip.rate_source !== trip.trip_rate_profile && (
+                          <p className="text-xs text-primary">Rate: {trip.rate_source}</p>
+                        )}
                       </div>
                     </div>
 
@@ -667,6 +672,9 @@ const PayrollDetailModal = ({
 
                         <td className="border border-border px-3 py-2">
                           {trip.trip_rate_profile}
+                          {trip.rate_source && trip.rate_source !== trip.trip_rate_profile && (
+                            <p className="text-xs text-primary">Rate: {trip.rate_source}</p>
+                          )}
                         </td>
 
                         <td className="border border-border px-3 py-2">
@@ -808,6 +816,7 @@ const PayrollDetailModal = ({
                             max={otHours}
                             step="0.25"
                             value={approvedOT[record.id] ?? otHours}
+                            disabled={readOnly}
                             onChange={(e) => {
                               let value = Number(e.target.value);
 
@@ -1049,6 +1058,7 @@ const PayrollDetailModal = ({
                                 max={otHours}
                                 step="0.25"
                                 value={approvedOT[record.id] ?? otHours}
+                            disabled={readOnly}
                                 onChange={(e) => {
                                   let value = Number(e.target.value);
 
@@ -1190,7 +1200,7 @@ const PayrollDetailModal = ({
 
         {/* Footer */}
         <div className="border-t border-border p-4 flex justify-end gap-2">
-          {!isTripBasedEmployee && (
+          {!isTripBasedEmployee && !readOnly && (
             <button
               onClick={handleSaveOTApproval}
               className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"

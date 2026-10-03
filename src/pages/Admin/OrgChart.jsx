@@ -930,11 +930,16 @@ function AccessPanel({ person, onClose, onSaved }) {
       return next;
     });
 
-  const toggle = (key) =>
+  // parentKey: ticking a sub-item (e.g. Payroll -> Approve) also ticks
+  // its page, so the page shows up for them.
+  const toggle = (key, parentKey) =>
     setKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
-      else next.add(key);
+      else {
+        next.add(key);
+        if (parentKey) next.add(parentKey);
+      }
       return next;
     });
 
@@ -1063,7 +1068,12 @@ function AccessPanel({ person, onClose, onSaved }) {
                             label={child.label}
                             checked={keys.has(moduleKey(group.key, child.key))}
                             isDefault={defaults.has(moduleKey(group.key, child.key))}
-                            onChange={() => toggle(moduleKey(group.key, child.key))}
+                            onChange={() =>
+                              toggle(
+                                moduleKey(group.key, child.key),
+                                moduleKey(group.key, sub.key),
+                              )
+                            }
                             canEdit={!readOnly.has(moduleKey(group.key, child.key))}
                             onCanEdit={(v) =>
                               setCanEdit(moduleKey(group.key, child.key), v)

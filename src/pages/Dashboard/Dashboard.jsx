@@ -11,10 +11,8 @@ import TripAssignment from "../Admin/TripAssignment";
 import TripBypassPage from "../Admin/TripBypass";
 import TripManualEntriesPage from "../Admin/TripManualEntries";
 import FuelRequestsPage from "../Admin/FuelRequests";
-import OrgHierarchy from "../Admin/OrgHierarchy";
 import OrgChart from "../Admin/OrgChart";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
-import ModuleAssignment from "../Admin/ModuleAssignment";
 import RoleAccess from "../Admin/RoleAccess";
 import StoreManagement from "../Admin/StoreManagement";
 import TripMaintenance from "../Admin/TripMaintenance";
@@ -120,7 +118,8 @@ const Dashboard = () => {
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
           <Route path="contribution-tables" element={<ContributionTablesPage />} />
           <Route path="users" element={<UsersPage />} />
-          <Route path="hierarchy" element={<OrgHierarchy />} />
+          {/* Retired -- the Org Chart replaced them. */}
+          <Route path="hierarchy" element={<Navigate to="/dashboard/org-chart" replace />} />
           <Route path="org-chart" element={<OrgChart />} />
           <Route
             path="cash-advance-settings"
@@ -130,7 +129,10 @@ const Dashboard = () => {
             path="cash-advance-approvals"
             element={<Navigate to="/dashboard/approvals?tab=cash_advance" replace />}
           />
-          <Route path="module-assignment" element={<ModuleAssignment />} />
+          <Route
+            path="module-assignment"
+            element={<Navigate to="/dashboard/org-chart" replace />}
+          />
           <Route path="role-access" element={<RoleAccess />} />
           <Route
             path="overtime-approvals"
