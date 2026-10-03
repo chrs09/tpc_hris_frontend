@@ -84,7 +84,7 @@ export default function TripManualEntries() {
   const [shipmentInput, setShipmentInput] = useState("");
   const [shipments, setShipments] = useState([]);
   const [storeSearch, setStoreSearch] = useState("");
-  // [{ storeId, arrivedAt, deliveredAt, pod }] in visiting order
+  // [{ storeId, pod }] in visiting order
   const [stops, setStops] = useState([]);
   const [helperIds, setHelperIds] = useState([]);
   const [photos, setPhotos] = useState({});
@@ -153,7 +153,7 @@ export default function TripManualEntries() {
         return prev.filter((s) => s.storeId !== storeId);
       }
       if (prev.length >= MAX_STORES) return prev;
-      return [...prev, { storeId, arrivedAt: "", deliveredAt: "", pod: null }];
+      return [...prev, { storeId, pod: null }];
     });
 
   const moveStop = (index, direction) =>
@@ -221,8 +221,6 @@ export default function TripManualEntries() {
       JSON.stringify(
         stops.map((s) => ({
           store_id: s.storeId,
-          arrived_at: s.arrivedAt || null,
-          delivered_at: s.deliveredAt || null,
         })),
       ),
     );
@@ -470,8 +468,8 @@ export default function TripManualEntries() {
                 <div className="mt-3 space-y-3">
                   <p className="text-xs text-fg-subtle">
                     In the order visited. The first store sets the trip&apos;s
-                    rate. Times are optional -- blank ones are spread evenly
-                    between Checkout and Checkin.
+                    rate. Each store&apos;s arrival and delivery times are set
+                    automatically, spread evenly between Checkout and Checkin.
                   </p>
                   {stops.map((stop, index) => (
                     <div
@@ -506,31 +504,9 @@ export default function TripManualEntries() {
                           ✕
                         </IconButton>
                       </div>
+                      {/* Store times aren't asked for: the backend spreads
+                          them evenly between the trip's start and end. */}
                       <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-3">
-                        <Field label="Arrived (optional)" small>
-                          <input
-                            type="datetime-local"
-                            className={inputStyles}
-                            value={stop.arrivedAt}
-                            onChange={(e) =>
-                              updateStop(stop.storeId, "arrivedAt", e.target.value)
-                            }
-                          />
-                        </Field>
-                        <Field label="Delivered (optional)" small>
-                          <input
-                            type="datetime-local"
-                            className={inputStyles}
-                            value={stop.deliveredAt}
-                            onChange={(e) =>
-                              updateStop(
-                                stop.storeId,
-                                "deliveredAt",
-                                e.target.value,
-                              )
-                            }
-                          />
-                        </Field>
                         <Field label="Delivery proof photo (optional)" small>
                           <PhotoPicker
                             file={stop.pod}
