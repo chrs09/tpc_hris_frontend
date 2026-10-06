@@ -47,10 +47,14 @@ export default function useModuleAccess() {
       .catch(() => setApproverOf({}));
   }, [isSuperAdmin]);
 
+  // approverKind can be one kind or a list of kinds.
+  const approvesAny = (kind) =>
+    [].concat(kind).some((k) => Boolean(approverOf[k]));
+
   const isVisible = (item) => {
     if (role === "superadmin") return true;
     // Approval tabs: also every Org Chart head who approves that kind.
-    if (item.approverKind && approverOf[item.approverKind]) return true;
+    if (item.approverKind && approvesAny(item.approverKind)) return true;
     if (item.requiresDepartmentHead) return isDepartmentHead;
     if (!item.moduleKey) return item.roles.includes(role);
     if (hasCustomAccess) return grantedModules.has(item.moduleKey);
@@ -84,6 +88,7 @@ export default function useModuleAccess() {
     hasCustomAccess,
     isDepartmentHead,
     approverOf,
+    approvesAny,
     isVisible,
   };
 }

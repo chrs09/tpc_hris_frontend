@@ -18,6 +18,9 @@ import {
   getManualEntryOptions,
 } from "../../api/tripManualEntries";
 
+// Start point order: hubs, then suppliers, then customers.
+const kindRank = (s) => (s.is_hub ? 0 : s.is_supplier ? 1 : 2);
+
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
 
@@ -104,7 +107,8 @@ export default function TripManualEntries() {
         const storeList = Array.isArray(storeRes.data)
           ? storeRes.data
           : storeRes.data?.items || [];
-        setHubs(storeList.filter((s) => s.is_hub));
+        // Start point: any location -- hub, supplier or customer.
+        setHubs([...storeList].sort((a, b) => kindRank(a) - kindRank(b) || (a.name || "").localeCompare(b.name || "")));
         setDestinations(storeList.filter((s) => !s.is_hub));
       } catch (error) {
         toast.error(getErrorMessage(error));
@@ -347,13 +351,13 @@ export default function TripManualEntries() {
                     getOptionValue={(v) => v?.id}
                   />
                 </Field>
-                <Field label="Origin hub">
+                <Field label="Start point">
                   <SearchSelect
                     value={hubs.find((h) => h.id === form.originId)}
                     options={hubs}
                     onChange={(h) => setField("originId", h?.id || "")}
-                    placeholder="Select origin hub"
-                    getOptionLabel={(h) => h?.name || ""}
+                    placeholder="Select hub, supplier or customer"
+                    getOptionLabel={(h) => (h ? `${h.name} (${h.is_hub ? "hub" : h.is_supplier ? "supplier" : "customer"})` : "")}
                     getOptionValue={(h) => h?.id}
                   />
                 </Field>

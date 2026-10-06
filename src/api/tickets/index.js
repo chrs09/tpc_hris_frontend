@@ -1,19 +1,58 @@
 import api from "../services/api";
 
-// Superadmin's Kanban-style change-request board.
+// Helpdesk tickets: each has a category, and the category's Org Chart
+// unit handles it unless the creator picks someone
+// (backend: app/api/tickets.py).
 
+// { tickets, sees_all }
 export const getTickets = async () => {
   const res = await api.get("/tickets");
   return res.data;
 };
 
-// Tickets are assigned to IT automatically (never the creator).
-export const createTicket = async ({ title, description, priority }) => {
-  const res = await api.post("/tickets", { title, description, priority });
+export const createTicket = async ({
+  title,
+  description,
+  priority,
+  category_id,
+  assigned_to_user_id,
+}) => {
+  const res = await api.post("/tickets", {
+    title,
+    description,
+    priority,
+    category_id,
+    assigned_to_user_id,
+  });
   return res.data;
 };
 
-// The IT employees a ticket can be (re)assigned to.
+// Hand a ticket to another category/team and/or person, with a note.
+export const forwardTicket = async (ticketId, { category_id, assigned_to_user_id, note }) => {
+  const res = await api.post(`/tickets/${ticketId}/forward`, {
+    category_id,
+    assigned_to_user_id,
+    note,
+  });
+  return res.data;
+};
+
+// { categories, teams, can_manage }
+export const getTicketCategories = async (includeInactive = false) => {
+  const res = await api.get("/tickets/categories", {
+    params: includeInactive ? { include_inactive: true } : {},
+  });
+  return res.data;
+};
+
+export const saveTicketCategory = async (category) => {
+  const res = category.id
+    ? await api.put(`/tickets/categories/${category.id}`, category)
+    : await api.post("/tickets/categories", category);
+  return res.data;
+};
+
+// Anyone active can be assigned a ticket.
 export const getTicketAssignees = async () => {
   const res = await api.get("/tickets/assignees");
   return res.data;
@@ -47,8 +86,12 @@ export const getTicketComments = async (ticketId) => {
   return res.data;
 };
 
-export const addTicketComment = async (ticketId, body) => {
-  const res = await api.post(`/tickets/${ticketId}/comments`, { body });
+// toCustomer: public tickets -- also email the reply to the customer.
+export const addTicketComment = async (ticketId, body, toCustomer = false) => {
+  const res = await api.post(`/tickets/${ticketId}/comments`, {
+    body,
+    to_customer: toCustomer,
+  });
   return res.data;
 };
 

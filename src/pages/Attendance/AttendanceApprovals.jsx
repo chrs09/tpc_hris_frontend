@@ -11,6 +11,7 @@ import { promptDialog } from "../../components/ui/dialog/dialogService";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import WorkReport from "../../components/attendance/WorkReport";
 
 const REASON_LABELS = {
   NEEDS_REVIEW: "Needs review",
@@ -164,6 +165,12 @@ export default function AttendanceApprovals() {
                     {item.address}
                   </p>
                 )}
+                <WorkReport
+                  text={item.work_accomplished}
+                  proofUrl={item.work_proof_url}
+                  missing={item.work_proof_missing}
+                  compact
+                />
                 <ApprovalProgress steps={item.approval_steps} />
                 <ApprovedBy log={item.approval_log} />
 

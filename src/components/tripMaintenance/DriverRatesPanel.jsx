@@ -30,7 +30,9 @@ const EMPTY_FORM = {
   trip_rate_profile_id: null,
   truck_type_id: null,
   origin_store_id: null,
+  // To: an area (every outlet in it) or one exact outlet.
   destination_area: "",
+  destination_store_id: null,
   driver_first_trip_rate: "",
   driver_next_trip_rate: "",
   helper_first_trip_rate: "",
@@ -59,7 +61,13 @@ const formatDate = (iso) =>
 
 export default function DriverRatesPanel({ canEdit }) {
   const [rules, setRules] = useState([]);
-  const [options, setOptions] = useState({ categories: [], truck_types: [], origins: [], areas: [] });
+  const [options, setOptions] = useState({
+    categories: [],
+    truck_types: [],
+    origins: [],
+    destinations: [],
+    areas: [],
+  });
   const [lockedUntil, setLockedUntil] = useState(null);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
@@ -93,6 +101,7 @@ export default function DriverRatesPanel({ canEdit }) {
           rule.truck_type,
           rule.origin_store,
           rule.destination_area,
+          rule.destination_store,
           rule.notes,
         ),
       ),
@@ -112,6 +121,7 @@ export default function DriverRatesPanel({ canEdit }) {
       truck_type_id: rule.truck_type_id,
       origin_store_id: rule.origin_store_id,
       destination_area: rule.destination_area || "",
+      destination_store_id: rule.destination_store_id || null,
       ...Object.fromEntries(RATE_FIELDS.map(([key]) => [key, rule[key] ?? ""])),
       effective_from: rule.effective_from,
       notes: rule.notes || "",
@@ -168,11 +178,35 @@ export default function DriverRatesPanel({ canEdit }) {
   const truckOptions = [ANY, ...(options.truck_types || [])];
   const originOptions = [
     ANY,
-    ...(options.origins || []).map((o) => ({ ...o, name: o.is_hub ? `${o.name} (hub)` : o.name })),
+    ...(options.origins || []).map((o) => ({
+      ...o,
+      name: `${o.name} (${o.is_hub ? "hub" : o.is_supplier ? "supplier" : "customer"})`,
+    })),
   ];
+  // To: any, an area (all its outlets), or one exact outlet.
+  const toOptions = [
+    { key: "any", label: "Any" },
+    ...(options.areas || []).map((area) => ({ key: `area:${area}`, label: `Area: ${area}`, area })),
+    ...(options.destinations || []).map((d) => ({
+      key: `store:${d.id}`,
+      label: `${d.name}${d.area ? ` (${d.area})` : ""}${d.is_supplier ? " · supplier" : ""}`,
+      storeId: d.id,
+    })),
+  ];
+  const toValue = form.destination_store_id
+    ? toOptions.find((o) => o.storeId === form.destination_store_id)
+    : form.destination_area
+      ? toOptions.find((o) => o.area === form.destination_area) || {
+          key: `area:${form.destination_area}`,
+          label: `Area: ${form.destination_area}`,
+          area: form.destination_area,
+        }
+      : toOptions[0];
   const lane = (rule) =>
-    rule.origin_store_id || rule.destination_area
-      ? `${rule.origin_store || "Any"} → ${rule.destination_area || "Any"}`
+    rule.origin_store_id || rule.destination_area || rule.destination_store_id
+      ? `${rule.origin_store || "Any"} → ${
+          rule.destination_store || rule.destination_area || "Any"
+        }`
       : "Any";
 
   return (
@@ -184,7 +218,9 @@ export default function DriverRatesPanel({ canEdit }) {
           the trip date. Blank fields mean <em>any</em>. A rate left blank keeps the category&apos;s
           own rate. E.g. <strong>Core no helpers + Wingvan = ₱1,000</strong>, and{" "}
           <strong>Core no helpers from Oct 14 = ₱602</strong> for every other truck. Lanes use the
-          store&apos;s <em>Area</em> (set it in Stores).
+          store&apos;s <em>Area</em> (set it in Customers), or pick one exact outlet. From and To can be any
+          location: hub, supplier or customer (e.g. supplier &rarr; customer, customer &rarr;
+          supplier, supplier &rarr; supplier).
         </p>
         {lockedUntil && (
           <p className="mt-1 text-xs">
@@ -332,19 +368,20 @@ export default function DriverRatesPanel({ canEdit }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">To (destination area)</label>
-              <input
-                list="rate-areas"
-                value={form.destination_area}
-                onChange={(e) => setForm({ ...form, destination_area: e.target.value })}
-                placeholder="Any (e.g. Bohol)"
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+              <label className="mb-1 block text-sm font-medium">To (area or outlet)</label>
+              <SearchSelect
+                value={toValue}
+                options={toOptions}
+                getOptionLabel={(o) => o?.label || ""}
+                getOptionValue={(o) => o?.key}
+                onChange={(o) =>
+                  setForm({
+                    ...form,
+                    destination_area: o?.area || "",
+                    destination_store_id: o?.storeId || null,
+                  })
+                }
               />
-              <datalist id="rate-areas">
-                {(options.areas || []).map((area) => (
-                  <option key={area} value={area} />
-                ))}
-              </datalist>
             </div>
           </div>
 

@@ -7,7 +7,10 @@ import { Button } from "../../components/ui/button/Button";
 import { Input } from "../../components/ui/input/Input";
 
 import TytanLogo from "../../assets/logo/tytan-logo.jpg";
-import { alertDialog } from "../../components/ui/dialog/dialogService";
+import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
+
+// Work proof size limit (same as the backend).
+const WORK_PROOF_MAX_MB = 50;
 
 export default function AttendanceKiosk() {
   const [employeeId, setEmployeeId] = useState("");
@@ -24,6 +27,12 @@ export default function AttendanceKiosk() {
   const [submitting, setSubmitting] = useState(false);
 
   const [error, setError] = useState("");
+
+  // Work accomplished at time out -- asked when this person's head ticks
+  // "Work accomplished" on the Org Chart (employee.work_report_required).
+  const [workText, setWorkText] = useState("");
+  const [workProof, setWorkProof] = useState(null);
+  const [workProofPreview, setWorkProofPreview] = useState(null);
 
   const loadEmployeeStatus = async () => {
     if (!employeeId.trim()) {
@@ -139,6 +148,24 @@ export default function AttendanceKiosk() {
         return;
       }
 
+      const asksWork =
+        employee.next_action === "time_out" && employee.work_report_required;
+      if (asksWork && !workText.trim()) {
+        setError("Please write what you worked on today.");
+        return;
+      }
+      if (
+        asksWork &&
+        !workProof &&
+        !(await confirmDialog(
+          `No photo or video of the work was added, so this time out will be sent to ${
+            employee.work_report_head || "your head"
+          } for approval. Continue?`,
+        ))
+      ) {
+        return;
+      }
+
       setSubmitting(true);
 
       const formData = new FormData();
@@ -154,6 +181,11 @@ export default function AttendanceKiosk() {
       formData.append("address", locationInfo.address);
 
       formData.append("photo", photoFile);
+
+      if (asksWork) {
+        formData.append("work_accomplished", workText.trim());
+        if (workProof) formData.append("proof", workProof);
+      }
 
       const result = await kioskSelfieAttendance(formData);
 
@@ -176,7 +208,28 @@ export default function AttendanceKiosk() {
 
     setLocationInfo(null);
 
+    setWorkText("");
+    setWorkProof(null);
+    setWorkProofPreview(null);
+
     setError("");
+  };
+
+  const handleWorkProofChange = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/^(image|video)\//.test(file.type)) {
+      setError("Work proof must be a photo or a video.");
+      return;
+    }
+    if (file.size > WORK_PROOF_MAX_MB * 1024 * 1024) {
+      setError(`The video is too large (${WORK_PROOF_MAX_MB} MB max). Record a shorter one.`);
+      return;
+    }
+    setError("");
+    setWorkProof(file);
+    setWorkProofPreview({ url: URL.createObjectURL(file), isVideo: file.type.startsWith("video/") });
   };
 
   return (
@@ -269,6 +322,86 @@ export default function AttendanceKiosk() {
                 </Button>
               ) : (
                 <>
+                  {employee.next_action === "time_out" &&
+                    employee.work_report_required && (
+                      <div className="space-y-3 rounded-xl border p-4">
+                        <div>
+                          <label
+                            htmlFor="kiosk-work-text"
+                            className="block text-sm font-semibold text-slate-900"
+                          >
+                            Work accomplished
+                          </label>
+                          <p className="text-xs text-slate-500">
+                            What did you work on today?
+                            {employee.work_report_head
+                              ? ` ${employee.work_report_head} checks this.`
+                              : ""}
+                          </p>
+                        </div>
+                        <textarea
+                          id="kiosk-work-text"
+                          rows={3}
+                          maxLength={2000}
+                          value={workText}
+                          onChange={(e) => setWorkText(e.target.value)}
+                          placeholder="e.g. Changed oil on CAU 7766, checked brakes on CAU 7772"
+                          className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-900"
+                        />
+                        <div>
+                          <p className="mb-1 text-sm font-semibold text-slate-900">
+                            Photo or video of the work
+                          </p>
+                          {workProofPreview ? (
+                            <div className="space-y-2">
+                              {workProofPreview.isVideo ? (
+                                <video
+                                  src={workProofPreview.url}
+                                  controls
+                                  className="max-h-56 w-full rounded-lg bg-black"
+                                />
+                              ) : (
+                                <img
+                                  src={workProofPreview.url}
+                                  alt="Work proof"
+                                  className="max-h-56 w-full rounded-lg object-cover"
+                                />
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWorkProof(null);
+                                  setWorkProofPreview(null);
+                                }}
+                                className="text-sm font-semibold text-red-600"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <input
+                                id="kiosk-work-proof"
+                                type="file"
+                                accept="image/*,video/*"
+                                onChange={handleWorkProofChange}
+                                className="hidden"
+                              />
+                              <label
+                                htmlFor="kiosk-work-proof"
+                                className="block w-full cursor-pointer rounded-lg border border-dashed border-slate-400 py-3 text-center text-sm font-semibold text-slate-700"
+                              >
+                                Upload photo or video (up to 1 minute)
+                              </label>
+                              <p className="mt-1 text-xs text-amber-700">
+                                Optional. Without it, your time out goes to your head for approval.
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                   {!photoFile ? (
                     <>
                       <input

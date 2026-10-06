@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { attendanceStatus } from "../../constants/attendanceStatus";
 import SearchSelect from "../SearchSelect";
 import ApprovalProgress from "../approvals/ApprovalProgress";
+import WorkReport from "./WorkReport";
 
 const getPhoto = (record) => record.time_in_photo_url || null;
 
@@ -1050,6 +1051,13 @@ const AttendanceDetail = ({
               Not timed out yet.
             </div>
           )}
+        </div>
+        <div className="mt-3">
+          <WorkReport
+            text={record.work_accomplished}
+            proofUrl={record.work_proof_url}
+            missing={record.work_proof_missing}
+          />
         </div>
       </div>
 

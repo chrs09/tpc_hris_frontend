@@ -42,7 +42,7 @@ export function PageAccessProvider({ children }) {
         item.approverKind &&
         pathOf(item.path) === location.pathname &&
         (!tabOf(item.path) || tabOf(item.path) === currentTab) &&
-        approverOf[item.approverKind],
+        [].concat(item.approverKind).some((k) => approverOf[k]),
     );
     return {
       moduleKey: match.moduleKey,

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import {
@@ -23,6 +24,9 @@ const initialFormState = {
   // Area the store is in (e.g. Consolacion, Bohol) -- a lane's
   // destination for Driver Rates.
   area: "",
+  // Also a supplier: listed in Suppliers, can be a trip start point and a
+  // driver rate's "From".
+  is_supplier: false,
   latitude: "",
   longitude: "",
   allowed_radius_meters: 100,
@@ -114,8 +118,30 @@ export default function StoreManagement() {
     loadTripRateProfiles();
   }, []);
 
+  // Suppliers -> "Add map location": open a new location prefilled for
+  // that supplier; saving links the two (it becomes a customer too).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [fromSupplierId, setFromSupplierId] = useState(null);
+  useEffect(() => {
+    const supplierId = searchParams.get("from_supplier");
+    if (!supplierId) return;
+    setEditingStore(null);
+    setFromSupplierId(Number(supplierId));
+    setForm({
+      ...initialFormState,
+      name: searchParams.get("name") || "",
+      address: searchParams.get("address") || "",
+      is_supplier: true,
+    });
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    setShowModal(true);
+    setSearchParams({}, { replace: true });
+  }, [searchParams, setSearchParams]);
+
   const openCreateModal = () => {
     setEditingStore(null);
+    setFromSupplierId(null);
     setForm(initialFormState);
     setPhotoFile(null);
     setPhotoPreview(null);
@@ -136,6 +162,7 @@ export default function StoreManagement() {
       address: store.address || "",
       outlet_number: store.outlet_number || "",
       area: store.area || "",
+      is_supplier: Boolean(store.is_supplier),
       latitude: store.latitude || "",
       longitude: store.longitude || "",
       allowed_radius_meters: store.allowed_radius_meters || 100,
@@ -170,6 +197,8 @@ export default function StoreManagement() {
         address: form.address.trim() || null,
         outlet_number: form.outlet_number.trim() || null,
         area: form.area.trim(),
+        is_supplier: Boolean(form.is_supplier),
+        ...(fromSupplierId && !editingStore ? { supplier_id: fromSupplierId } : {}),
         latitude: Number(form.latitude),
         longitude: Number(form.longitude),
         allowed_radius_meters: Number(form.allowed_radius_meters),
@@ -307,6 +336,11 @@ export default function StoreManagement() {
           {store.area && (
             <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
               {store.area}
+            </span>
+          )}
+          {store.is_supplier && (
+            <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
+              Supplier
             </span>
           )}
         </td>
@@ -735,6 +769,23 @@ export default function StoreManagement() {
               Used for lane rates (e.g. Cebu &rarr; Bohol) in Trip Category &amp; Rates.
             </p>
           </div>
+
+          <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm text-fg">
+            <input
+              type="checkbox"
+              checked={Boolean(form.is_supplier)}
+              onChange={(e) => setForm({ ...form, is_supplier: e.target.checked })}
+              className="mt-0.5 h-4 w-4 accent-primary"
+            />
+            <span>
+              <span className="font-medium">Also a supplier</span>
+              <span className="block text-xs text-fg-subtle">
+                Shows in Suppliers, and trips can start here (pick-ups). Driver rates can
+                use it as &quot;From&quot;.
+                {fromSupplierId && !editingStore ? " Linked to the supplier you came from." : ""}
+              </span>
+            </span>
+          </label>
 
           <div>
             <label className="block text-sm font-medium mb-1 text-fg">

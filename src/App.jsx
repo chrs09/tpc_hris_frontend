@@ -10,6 +10,7 @@ import ChangePassword from "./pages/ChangePassword";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
 import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
+import SupportPage from "./pages/Public/SupportPage";
 // Named LegalNotice (not "PrivacyPolicy") on purpose -- ad blockers'
 // filter lists commonly flag any *.js/*.jsx resource whose name contains
 // "privacy"/"policy" as a tracking-consent script, which blocked Vite's
@@ -68,6 +69,8 @@ const App = () => {
         />
 
         <Route path="/attendance-kiosk" element={<AttendanceKiosk />} />
+        {/* Public customer support (no login). */}
+        <Route path="/support" element={<SupportPage />} />
         <Route path="/privacy-policy" element={<LegalNotice />} />
         <Route path="/mobile-session" element={<MobileSessionBridge />} />
         <Route path="/get-app" element={<AppDownload />} />

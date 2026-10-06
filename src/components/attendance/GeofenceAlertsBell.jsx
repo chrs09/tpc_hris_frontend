@@ -25,7 +25,8 @@ export default function GeofenceAlertsBell() {
   const seesAll = canEditModule("hris.attendance_grid_view");
   // Org Chart heads with Attendance ticked see the ones waiting on them
   // (the backend filters) and review them on Attendance Approvals.
-  const visible = seesAll || Boolean(approverOf.attendance);
+  const visible =
+    seesAll || Boolean(approverOf.attendance) || Boolean(approverOf.work_report);
   const navigate = useNavigate();
 
   const [entries, setEntries] = useState([]);
@@ -117,7 +118,7 @@ export default function GeofenceAlertsBell() {
         ref={buttonRef}
         onClick={() => setOpen((prev) => !prev)}
         className="relative text-fg-muted hover:text-fg"
-        title="Attendance outside the allowed area -- needs review"
+        title="Attendance needing review: outside the allowed area or no work photo/video"
       >
         <MapPinOff size={20} />
         {entries.length > 0 && (

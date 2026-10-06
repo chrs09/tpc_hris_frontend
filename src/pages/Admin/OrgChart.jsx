@@ -854,6 +854,9 @@ const APPROVAL_TYPES = [
   { key: "attendance", label: "Attendance" },
   { key: "overtime", label: "Overtime" },
   { key: "leave", label: "Leave" },
+  // People under this head write their work accomplished (+ photo/video)
+  // at time out; no proof -> this head approves it with remarks.
+  { key: "work_report", label: "Work accomplished" },
 ];
 
 const Field = ({ label, children }) => (

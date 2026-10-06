@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Building2, Plus, Pencil } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, MapPin, Plus, Pencil } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import {
   getSuppliers,
@@ -31,6 +32,35 @@ export default function SuppliersPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewType, setViewType] = useViewType("suppliers_view_type");
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+  // A supplier with a map location is also a customer / delivery point
+  // and a trip start point. "Add map location" opens Customers prefilled.
+  const addLocation = (supplier) => {
+    const params = new URLSearchParams({
+      from_supplier: String(supplier.id),
+      name: supplier.name || "",
+      address: supplier.address || "",
+    });
+    navigate(`/dashboard/admin/stores?${params.toString()}`);
+  };
+  const LocationCell = ({ supplier }) =>
+    supplier.location_name ? (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+        <MapPin size={12} />
+        Also a customer
+      </span>
+    ) : canEditPage ? (
+      <button
+        type="button"
+        onClick={() => addLocation(supplier)}
+        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+      >
+        <MapPin size={12} />
+        Add map location
+      </button>
+    ) : (
+      <span className="text-xs text-fg-subtle">No location</span>
+    );
   const filteredSuppliers = suppliers.filter((supplier) =>
     matchesSearch(
       search,
@@ -103,7 +133,11 @@ export default function SuppliersPage() {
     <div className="space-y-5">
       <div>
         <h1 className="text-3xl font-bold text-fg">Suppliers</h1>
-        <p className="text-fg-muted mt-1">Manage your supplier contacts.</p>
+        <p className="text-fg-muted mt-1">
+          Manage your supplier contacts. A supplier with a map location is also a
+          customer, and trips can start there. Customers marked &quot;Also a
+          supplier&quot; show up here automatically.
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -142,6 +176,7 @@ export default function SuppliersPage() {
                 <th className="px-4 py-3 text-left font-medium">Phone</th>
                 <th className="px-4 py-3 text-left font-medium">Email</th>
                 <th className="px-4 py-3 text-left font-medium">Address</th>
+                <th className="px-4 py-3 text-left font-medium">Location</th>
                 <th className="px-4 py-3 text-left font-medium">Status</th>
                 <th></th>
               </tr>
@@ -164,6 +199,9 @@ export default function SuppliersPage() {
                   </td>
                   <td className="px-4 py-3 text-fg-muted">
                     {supplier.address || "-"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <LocationCell supplier={supplier} />
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -210,6 +248,9 @@ export default function SuppliersPage() {
                 <p>{supplier.phone || "No phone"}</p>
                 <p>{supplier.email || "No email"}</p>
                 <p>{supplier.address || "No address"}</p>
+                <div className="pt-1">
+                  <LocationCell supplier={supplier} />
+                </div>
               </div>
 
               <div className="mt-4 flex justify-between items-center">

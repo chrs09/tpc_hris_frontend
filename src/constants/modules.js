@@ -184,7 +184,9 @@ export const MODULE_GROUPS = [
       },
       { key: "holidays", label: "Holidays", path: "/dashboard/holidays" },
       { key: "error_logs", label: "Error Logs", path: "/dashboard/error-logs" },
-      { key: "tickets", label: "Tickets", path: "/dashboard/tickets" },
+      // Everyone can file tickets; this grants seeing every ticket and
+      // managing ticket categories.
+      { key: "tickets", label: "Tickets (see all, manage categories)", path: "/dashboard/tickets" },
       { key: "settings", label: "Settings", path: "/dashboard/settings" },
     ],
   },

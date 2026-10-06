@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { MessageSquare, Search, X } from "lucide-react";
+import { Forward, Globe, History, MessageSquare, Search, Settings2, X } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -12,6 +12,9 @@ import {
   uploadTicketImage,
   removeTicketImage,
   getTicketAssignees,
+  getTicketCategories,
+  saveTicketCategory,
+  forwardTicket,
   getTicketComments,
   addTicketComment,
   deleteTicketComment,
@@ -48,12 +51,31 @@ export default function TicketsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [users, setUsers] = useState([]);
+  // Categories route tickets to an Org Chart unit (team).
+  const [categories, setCategories] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [canManage, setCanManage] = useState(false);
+  const [seesAll, setSeesAll] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await getTicketCategories(true);
+      setCategories(data.categories || []);
+      setTeams(data.teams || []);
+      setCanManage(Boolean(data.can_manage));
+    } catch {
+      setCategories([]);
+    }
+  }, []);
 
   const loadTickets = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getTickets();
-      setTickets(data);
+      setTickets(data.tickets || []);
+      setSeesAll(Boolean(data.sees_all));
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -63,11 +85,14 @@ export default function TicketsPage() {
 
   useEffect(() => {
     loadTickets();
-    // Only IT employees can be assigned a ticket.
+    loadCategories();
+    // Anyone active can be assigned a ticket.
     getTicketAssignees()
       .then((data) => setUsers(data))
       .catch(() => setUsers([]));
-  }, [loadTickets]);
+  }, [loadTickets, loadCategories]);
+
+  const activeCategories = categories.filter((c) => c.is_active);
 
   const handleDrop = async (columnKey) => {
     if (!draggingTicket || draggingTicket.status === columnKey) {
@@ -94,15 +119,17 @@ export default function TicketsPage() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs group="Administrator" />
+      <SectionTabs group="Tickets" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold text-fg">Tickets</h2>
           <p className="text-sm text-fg-subtle">
-            Log change requests here so they're tracked in one place
-            instead of scattered across chat -- drag a card between
-            columns as work progresses.
+            Each ticket goes to the team for its category (set on the Org
+            Chart). {seesAll
+              ? "You see every ticket."
+              : "You see tickets you filed, tickets assigned to you, and your team's tickets."}{" "}
+            Customers can file tickets at <span className="font-mono">/support</span>.
           </p>
         </div>
 
@@ -110,8 +137,28 @@ export default function TicketsPage() {
         <SearchInput
           value={search}
           onChange={setSearch}
-          placeholder="Search ticket no., title, person..."
+          placeholder="Search ticket no., title, person, store..."
         />
+        <div className="w-48">
+          <SearchSelect
+            value={categoryFilter}
+            options={[{ id: null, name: "All categories" }, ...activeCategories]}
+            onChange={(c) => setCategoryFilter(c?.id ? c : null)}
+            getOptionLabel={(c) => c?.name || ""}
+            getOptionValue={(c) => c?.id ?? "all"}
+            placeholder="All categories"
+          />
+        </div>
+        {canManage && (
+          <button
+            type="button"
+            onClick={() => setShowCategories(true)}
+            className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2.5 text-sm font-medium text-fg hover:bg-surface-hover"
+          >
+            <Settings2 size={15} />
+            Categories
+          </button>
+        )}
         {canEditPage && (
           <button
           type="button"
@@ -131,7 +178,11 @@ export default function TicketsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((column) => {
-            const inColumn = tickets.filter((t) => t.status === column.key);
+            const inColumn = tickets.filter(
+              (t) =>
+                t.status === column.key &&
+                (!categoryFilter || t.category_id === categoryFilter.id),
+            );
             const columnQuery = columnSearch[column.key] || "";
             const columnTickets = inColumn.filter(
               (t) =>
@@ -143,6 +194,8 @@ export default function TicketsPage() {
                   t.priority,
                   t.created_by_username,
                   t.assigned_to_username,
+                  t.category_name,
+                  t.requester?.company,
                 ) &&
                 matchesSearch(
                   search,
@@ -152,6 +205,8 @@ export default function TicketsPage() {
                   t.priority,
                   t.created_by_username,
                   t.assigned_to_username,
+                  t.category_name,
+                  t.requester?.company,
                 ),
             );
 
@@ -242,6 +297,7 @@ export default function TicketsPage() {
       {showCreateModal && (
         <CreateTicketModal
           users={users}
+          categories={activeCategories}
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
             setShowCreateModal(false);
@@ -254,6 +310,8 @@ export default function TicketsPage() {
         <TicketDetailModal
           ticket={selectedTicket}
           users={users}
+          categories={activeCategories}
+          seesAll={seesAll}
           onClose={() => setSelectedTicket(null)}
           onChanged={() => {
             setSelectedTicket(null);
@@ -261,6 +319,15 @@ export default function TicketsPage() {
           }}
           onImageChanged={loadTickets}
           onCommentsChanged={loadTickets}
+        />
+      )}
+
+      {showCategories && (
+        <CategoriesModal
+          categories={categories}
+          teams={teams}
+          onClose={() => setShowCategories(false)}
+          onSaved={loadCategories}
         />
       )}
     </div>
@@ -279,11 +346,24 @@ const TicketCard = ({ ticket, onDragStart, onClick }) => {
       onClick={onClick}
       className="cursor-grab rounded-xl border border-border bg-surface p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing"
     >
-      {ticket.ticket_no && (
-        <p className="mb-0.5 font-mono text-[10px] font-semibold tracking-wide text-fg-subtle">
-          {ticket.ticket_no}
-        </p>
-      )}
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
+        {ticket.ticket_no && (
+          <span className="font-mono text-[10px] font-semibold tracking-wide text-fg-subtle">
+            {ticket.ticket_no}
+          </span>
+        )}
+        {ticket.category_name && (
+          <span className="rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
+            {ticket.category_name}
+          </span>
+        )}
+        {ticket.source === "public" && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+            <Globe size={10} />
+            Customer
+          </span>
+        )}
+      </div>
       <div className="flex items-start justify-between gap-2">
         <h4 className="text-sm font-semibold text-fg">{ticket.title}</h4>
         {ticket.priority && (
@@ -323,6 +403,7 @@ const TicketCard = ({ ticket, onDragStart, onClick }) => {
       <div className="mt-2 flex items-center justify-between text-[11px] text-fg-subtle">
         <span className="flex items-center gap-2">
           By {ticket.created_by_username || "Unknown"}
+          {ticket.requester?.company ? ` · ${ticket.requester.company}` : ""}
           {ticket.comment_count > 0 && (
             <span
               className="flex items-center gap-0.5"
@@ -391,7 +472,9 @@ const TICKET_TIPS = [
   "What does \"done\" look like?",
 ];
 
-const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
+const CreateTicketModal = ({ users = [], categories = [], onClose, onCreated }) => {
+  const [categoryId, setCategoryId] = useState(null);
+  const [assigneeId, setAssigneeId] = useState(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("");
@@ -408,6 +491,10 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
   };
 
   const handleSubmit = async () => {
+    if (!categoryId) {
+      toast.error("Pick a category.");
+      return;
+    }
     if (!title.trim()) {
       toast.error("Title is required.");
       return;
@@ -419,6 +506,8 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
         title: title.trim(),
         description: description.trim() || undefined,
         priority: priority || undefined,
+        category_id: categoryId,
+        assigned_to_user_id: assigneeId || undefined,
       });
 
       if (image) {
@@ -459,6 +548,22 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
         </div>
 
         <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-fg-subtle">
+              Category
+            </label>
+            <SearchSelect
+              value={categories.find((c) => c.id === categoryId) || null}
+              options={categories}
+              onChange={(c) => setCategoryId(c?.id ?? null)}
+              getOptionLabel={(c) =>
+                c ? `${c.name}${c.team_name ? ` → ${c.team_name}` : ""}` : ""
+              }
+              getOptionValue={(c) => c?.id}
+              placeholder="What is this about?"
+            />
+          </div>
+
           <div>
             <label className="mb-1 block text-xs font-medium text-fg-subtle">
               Title
@@ -518,15 +623,19 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
 
             <div>
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
-                Assigned to
+                Assign to (optional)
               </label>
-              <p className="rounded-xl border border-border bg-surface-hover p-3 text-sm text-fg-muted">
-                {users.length
-                  ? `IT -- ${users
-                      .map((u) => u.employee_name || u.username)
-                      .join(", ")}`
-                  : "IT (no IT employee set up yet)"}
-              </p>
+              <SearchSelect
+                value={users.find((u) => u.id === assigneeId) || null}
+                options={users}
+                onChange={(u) => setAssigneeId(u?.id ?? null)}
+                getOptionLabel={(u) => u?.employee_name || u?.username || ""}
+                getOptionValue={(u) => u?.id}
+                placeholder={(() => {
+                  const team = categories.find((c) => c.id === categoryId)?.team_name;
+                  return team ? `Auto: ${team} team` : "Auto: category's team";
+                })()}
+              />
             </div>
           </div>
 
@@ -596,6 +705,8 @@ const CreateTicketModal = ({ users = [], onClose, onCreated }) => {
 const TicketDetailModal = ({
   ticket,
   users = [],
+  categories = [],
+  seesAll = false,
   onCommentsChanged,
   onClose,
   onChanged,
@@ -617,6 +728,11 @@ const TicketDetailModal = ({
   const [assigneeId, setAssigneeId] = useState(
     ticket.assigned_to_user_id ? String(ticket.assigned_to_user_id) : "",
   );
+  const [categoryId, setCategoryId] = useState(ticket.category_id || null);
+  const [showForward, setShowForward] = useState(false);
+  // Delete: the person who filed it, or anyone who sees every ticket.
+  const canDelete =
+    seesAll || String(ticket.created_by_user_id) === localStorage.getItem("user_id");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [imageUrl, setImageUrl] = useState(ticket.image_url || null);
@@ -666,9 +782,8 @@ const TicketDetailModal = ({
         description: description.trim(),
         priority: priority || null,
         status,
-        // 0 explicitly unassigns -- see TicketUpdate's comment on the
-        // backend for why this can't just be `null`/omitted.
         ...(assigneeId ? { assigned_to_user_id: Number(assigneeId) } : {}),
+        ...(categoryId ? { category_id: categoryId } : {}),
       });
       toast.success("Ticket updated.");
       onChanged();
@@ -723,7 +838,24 @@ const TicketDetailModal = ({
           {ticket.created_at
             ? new Date(ticket.created_at).toLocaleDateString()
             : "--"}
+          {ticket.team_name ? ` · Team: ${ticket.team_name}` : ""}
         </p>
+
+        {ticket.requester && (
+          <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+            <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary">
+              <Globe size={13} />
+              From a customer (support form)
+            </p>
+            <p className="text-fg">
+              {ticket.requester.name}
+              {ticket.requester.company ? ` · ${ticket.requester.company}` : ""}
+            </p>
+            <p className="text-xs text-fg-muted">
+              {[ticket.requester.phone, ticket.requester.email].filter(Boolean).join(" · ")}
+            </p>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div>
@@ -823,15 +955,29 @@ const TicketDetailModal = ({
               />
             </div>
 
-            <div className="col-span-2">
+            <div>
               <label className="mb-1 block text-xs font-medium text-fg-subtle">
-                Assigned to (IT)
+                Category
+              </label>
+              <SearchSelect
+                value={categories.find((c) => c.id === categoryId) || null}
+                options={categories}
+                onChange={(c) => c && setCategoryId(c.id)}
+                getOptionLabel={(c) => c?.name || ""}
+                getOptionValue={(c) => c?.id}
+                placeholder="Select category"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-medium text-fg-subtle">
+                Assigned to
               </label>
               <SearchSelect
                 value={users.find((u) => String(u.id) === String(assigneeId))}
                 options={users}
                 onChange={(u) => u && setAssigneeId(u.id)}
-                placeholder="Select IT employee"
+                placeholder="Select person"
                 getOptionLabel={(u) => u?.employee_name || u?.username || ""}
                 getOptionValue={(u) => u?.id}
               />
@@ -839,8 +985,20 @@ const TicketDetailModal = ({
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-2">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex gap-2">
           {canEditPage && (
+            <button
+              type="button"
+              onClick={() => setShowForward(true)}
+              disabled={deleting || saving}
+              className="flex items-center gap-1.5 rounded-xl border border-border px-4 py-2 text-sm font-medium text-fg hover:bg-surface-hover disabled:opacity-50"
+            >
+              <Forward size={15} />
+              Forward
+            </button>
+          )}
+          {canEditPage && canDelete && (
             <button
             type="button"
             onClick={handleDelete}
@@ -850,6 +1008,7 @@ const TicketDetailModal = ({
             {deleting ? "Deleting..." : "Delete"}
           </button>
           )}
+          </div>
 
           <div className="flex gap-2">
             <button
@@ -873,12 +1032,14 @@ const TicketDetailModal = ({
           </div>
         </div>
 
+        <TicketTimeline history={ticket.history} />
+
         <CommentThread thread={thread} />
         </div>
 
         <div className="shrink-0 border-t border-border bg-surface px-6 py-3">
           {canEditPage ? (
-            <CommentComposer thread={thread} />
+            <CommentComposer thread={thread} isPublic={ticket.source === "public"} />
           ) : (
             <p className="text-center text-xs text-fg-subtle">
               View only -- you can read comments but not post.
@@ -886,11 +1047,24 @@ const TicketDetailModal = ({
           )}
         </div>
       </div>
+
+      {showForward && (
+        <ForwardModal
+          ticket={ticket}
+          users={users}
+          categories={categories}
+          onClose={() => setShowForward(false)}
+          onForwarded={() => {
+            setShowForward(false);
+            onChanged();
+          }}
+        />
+      )}
     </div>
   );
 };
 
-// Ticket comments: the creator adds remarks or follow-ups, IT replies.
+// Ticket comments: the creator adds remarks or follow-ups, the handler replies.
 // Saved immediately (separate from the ticket's Save button). Each person
 // can delete only their own comments. The thread scrolls with the ticket
 // details; the composer is pinned at the bottom of the window.
@@ -917,12 +1091,12 @@ const useTicketComments = (ticket, onChanged, onPosted) => {
     };
   }, [ticket.id]);
 
-  const post = async () => {
+  const post = async (toCustomer = false) => {
     const text = body.trim();
     if (!text) return;
     try {
       setPosting(true);
-      const comment = await addTicketComment(ticket.id, text);
+      const comment = await addTicketComment(ticket.id, text, toCustomer);
       setComments((prev) => [...prev, comment]);
       setBody("");
       onChanged?.();
@@ -983,6 +1157,11 @@ const CommentThread = ({ thread }) => {
                       Creator
                     </span>
                   )}
+                  {comment.to_customer && (
+                    <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                      Sent to customer
+                    </span>
+                  )}
                 </span>
                 <span className="flex items-center gap-2 text-[11px] text-fg-subtle">
                   {comment.created_at
@@ -1012,10 +1191,25 @@ const CommentThread = ({ thread }) => {
   );
 };
 
-const CommentComposer = ({ thread }) => {
+const CommentComposer = ({ thread, isPublic = false }) => {
   const { body, setBody, posting, post } = thread;
+  // Public tickets: optionally email this reply to the customer.
+  const [toCustomer, setToCustomer] = useState(false);
+  const send = () => post(isPublic && toCustomer);
 
   return (
+    <div className="space-y-2">
+    {isPublic && (
+      <label className="flex items-center gap-2 text-xs text-fg-muted">
+        <input
+          type="checkbox"
+          checked={toCustomer}
+          onChange={(e) => setToCustomer(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        Send to customer (emailed and shown on their status page)
+      </label>
+    )}
     <div className="flex items-end gap-2">
       <textarea
         rows={2}
@@ -1024,7 +1218,7 @@ const CommentComposer = ({ thread }) => {
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
-            post();
+            send();
           }
         }}
         placeholder="Write a comment... (Ctrl+Enter to post)"
@@ -1032,12 +1226,320 @@ const CommentComposer = ({ thread }) => {
       />
       <button
         type="button"
-        onClick={post}
+        onClick={send}
         disabled={posting || !body.trim()}
         className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
       >
-        {posting ? "Posting..." : "Post"}
+        {posting ? "Posting..." : isPublic && toCustomer ? "Send" : "Post"}
       </button>
+    </div>
+    </div>
+  );
+};
+
+const HISTORY_TEXT = {
+  created: (h) =>
+    `${h.by} filed it${h.category ? ` under ${h.category}` : ""}${
+      h.assigned_to ? `, assigned to ${h.assigned_to}` : ""
+    }`,
+  forwarded: (h) =>
+    `${h.by} forwarded it${h.category ? ` to ${h.category}` : ""}${
+      h.assigned_to ? ` (${h.assigned_to})` : ""
+    }`,
+  assigned: (h) => `${h.by} assigned it to ${h.assigned_to}`,
+  category: (h) => `${h.by} changed the category to ${h.to}`,
+  status: (h) => `${h.by} moved it from ${h.frm} to ${h.to}`,
+};
+
+// Who did what: filed, assigned, forwarded, status changes.
+const TicketTimeline = ({ history = [] }) => {
+  if (!history.length) return null;
+  return (
+    <section className="mt-6 border-t border-border pt-4">
+      <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-fg">
+        <History size={15} />
+        Timeline
+      </h4>
+      <ol className="space-y-2 border-l border-border pl-4">
+        {history.map((h, index) => (
+          <li key={`${h.at}-${index}`} className="text-xs">
+            <p className="text-fg">
+              {(HISTORY_TEXT[h.action] || ((x) => `${x.by}: ${x.action}`))(h)}
+            </p>
+            {h.note && <p className="mt-0.5 italic text-fg-muted">“{h.note}”</p>}
+            <p className="text-[11px] text-fg-subtle">
+              {h.at ? new Date(`${h.at}Z`).toLocaleString() : ""}
+            </p>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+};
+
+// Hand the ticket to another team (category) and/or person, with a note.
+const ForwardModal = ({ ticket, users = [], categories = [], onClose, onForwarded }) => {
+  const [categoryId, setCategoryId] = useState(null);
+  const [assigneeId, setAssigneeId] = useState(null);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const team = categories.find((c) => c.id === categoryId)?.team_name;
+
+  const submit = async () => {
+    if (!categoryId && !assigneeId) {
+      toast.error("Pick a category or a person.");
+      return;
+    }
+    if (!note.trim()) {
+      toast.error("Say why you're forwarding it.");
+      return;
+    }
+    try {
+      setSaving(true);
+      await forwardTicket(ticket.id, {
+        category_id: categoryId || undefined,
+        assigned_to_user_id: assigneeId || undefined,
+        note: note.trim(),
+      });
+      toast.success("Ticket forwarded.");
+      onForwarded();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-xl">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-fg">Forward {ticket.ticket_no}</h3>
+          <button type="button" onClick={onClose} className="text-fg-muted hover:text-fg">
+            ✕
+          </button>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-fg-subtle">
+            To category (team)
+          </label>
+          <SearchSelect
+            value={categories.find((c) => c.id === categoryId) || null}
+            options={categories.filter((c) => c.id !== ticket.category_id)}
+            onChange={(c) => setCategoryId(c?.id ?? null)}
+            getOptionLabel={(c) =>
+              c ? `${c.name}${c.team_name ? ` → ${c.team_name}` : ""}` : ""
+            }
+            getOptionValue={(c) => c?.id}
+            placeholder={`Keep ${ticket.category_name || "category"}`}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-fg-subtle">
+            To person (optional)
+          </label>
+          <SearchSelect
+            value={users.find((u) => u.id === assigneeId) || null}
+            options={users}
+            onChange={(u) => setAssigneeId(u?.id ?? null)}
+            getOptionLabel={(u) => u?.employee_name || u?.username || ""}
+            getOptionValue={(u) => u?.id}
+            placeholder={team ? `Auto: ${team} team` : "Auto: the team picks"}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-fg-subtle">Note</label>
+          <textarea
+            rows={3}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="e.g. This is a system bug -- the app crashes on Checkout."
+            className="w-full resize-none rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={submit}
+            disabled={saving}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+          >
+            {saving ? "Forwarding..." : "Forward"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const EMPTY_CATEGORY = {
+  name: "",
+  description: "",
+  org_unit_id: null,
+  is_public: false,
+  is_active: true,
+  sort_order: 0,
+};
+
+// Ticket categories: what a ticket is about, which Org Chart unit
+// handles it, and whether customers can pick it on /support.
+const CategoriesModal = ({ categories = [], teams = [], onClose, onSaved }) => {
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!editing.name.trim()) {
+      toast.error("Name is required.");
+      return;
+    }
+    try {
+      setSaving(true);
+      await saveTicketCategory({ ...editing, name: editing.name.trim() });
+      toast.success("Category saved.");
+      setEditing(null);
+      onSaved();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-surface shadow-xl">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <div>
+            <h3 className="text-lg font-bold text-fg">Ticket categories</h3>
+            <p className="text-xs text-fg-subtle">
+              Each category goes to an Org Chart unit. Public ones show on the customer
+              support form.
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className="text-fg-muted hover:text-fg">
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-2 overflow-y-auto px-6 py-4">
+          {categories.map((c) => (
+            <div
+              key={c.id}
+              className={`flex items-center justify-between gap-3 rounded-xl border border-border p-3 ${
+                c.is_active ? "" : "opacity-60"
+              }`}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-fg">
+                  {c.name}
+                  {c.is_public && (
+                    <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      Public
+                    </span>
+                  )}
+                  {!c.is_active && (
+                    <span className="ml-2 rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
+                      Hidden
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-fg-muted">
+                  → {c.team_name || "No team (unassigned)"}
+                  {c.description ? ` · ${c.description}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditing({ ...EMPTY_CATEGORY, ...c, description: c.description || "" })}
+                className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-hover"
+              >
+                Edit
+              </button>
+            </div>
+          ))}
+
+          {editing ? (
+            <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/5 p-4">
+              <p className="text-sm font-semibold text-fg">
+                {editing.id ? `Edit ${editing.name || "category"}` : "New category"}
+              </p>
+              <input
+                value={editing.name}
+                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                placeholder="Name, e.g. Trip / Delivery"
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm text-fg"
+              />
+              <input
+                value={editing.description}
+                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                placeholder="Short description (shown to customers if public)"
+                className="w-full rounded-xl border border-border bg-background p-2.5 text-sm text-fg"
+              />
+              <SearchSelect
+                value={teams.find((t) => t.id === editing.org_unit_id) || null}
+                options={teams}
+                onChange={(t) => setEditing({ ...editing, org_unit_id: t?.id ?? null })}
+                getOptionLabel={(t) => t?.name || ""}
+                getOptionValue={(t) => t?.id}
+                placeholder="Handled by (Org Chart unit)"
+              />
+              <div className="flex flex-wrap gap-4 text-sm text-fg">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editing.is_public}
+                    onChange={(e) => setEditing({ ...editing, is_public: e.target.checked })}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Customers can pick it
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={editing.is_active}
+                    onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Active
+                </label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  className="rounded-xl border border-border px-4 py-2 text-sm text-fg-muted hover:bg-surface-hover"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={save}
+                  disabled={saving}
+                  className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+                >
+                  {saving ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing({ ...EMPTY_CATEGORY, sort_order: categories.length })}
+              className="w-full rounded-xl border border-dashed border-border py-3 text-sm font-medium text-fg-muted hover:bg-surface-hover"
+            >
+              + Add category
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

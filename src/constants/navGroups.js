@@ -102,7 +102,8 @@ export function getNavGroups(role) {
           label: "Attendance",
           path: "/dashboard/approvals?tab=attendance",
           roles: ["superadmin"],
-          approverKind: "attendance",
+          // Also heads who check their team's work accomplished.
+          approverKind: ["attendance", "work_report"],
         },
         {
           label: "Cash Advance",
@@ -294,6 +295,28 @@ export function getNavGroups(role) {
       ],
     },
     {
+      // Helpdesk: everyone can file and follow tickets. Seeing every
+      // ticket and managing categories is Administrator -> Tickets.
+      label: "Tickets",
+      children: [
+        {
+          label: "Tickets",
+          path: "/dashboard/tickets",
+          roles: [
+            "superadmin",
+            "admin",
+            "driver",
+            "helper",
+            "employee",
+            "payroll_admin",
+            "coordinator_admin",
+            "coordinator",
+            "office_admin",
+          ],
+        },
+      ],
+    },
+    {
       label: "Administrator",
       children: [
         {
@@ -334,12 +357,6 @@ export function getNavGroups(role) {
           path: "/dashboard/error-logs",
           roles: ["superadmin"],
           moduleKey: "administrator.error_logs",
-        },
-        {
-          label: "Tickets",
-          path: "/dashboard/tickets",
-          roles: ["superadmin"],
-          moduleKey: "administrator.tickets",
         },
         {
           label: "Settings",

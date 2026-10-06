@@ -12,6 +12,7 @@ import {
   Landmark,
   Building2,
   LogOut,
+  LifeBuoy,
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getUserList, impersonateUser } from "../api/users";
@@ -39,6 +40,7 @@ const GROUP_ICONS = {
   "Fleet Management": Truck,
   "Cash Advance": Wallet,
   Finance: Landmark,
+  Tickets: LifeBuoy,
   Administrator: Shield,
 };
 

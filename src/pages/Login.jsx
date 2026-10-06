@@ -179,6 +179,16 @@ export default function Login({ setIsAuthenticated }) {
               Go to Attendance Kiosk
             </Button>
 
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={() => navigate("/support")}
+            >
+              Customer Support
+            </Button>
+
             {/* Public job application form (no login required) -- route
                 is registered in App.jsx at /tytan-application-form. */}
             <Button

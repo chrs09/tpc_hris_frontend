@@ -10,6 +10,9 @@ import {
 } from "../../api/tripManagement";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 
+// Start point order: hubs, then suppliers, then customers.
+const kindRank = (s) => (s.is_hub ? 0 : s.is_supplier ? 1 : 2);
+
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
 
@@ -76,7 +79,8 @@ export default function StartTripForDriverCard({
         const storeList = Array.isArray(storeRes.data)
           ? storeRes.data
           : storeRes.data?.items || [];
-        setHubStores(storeList.filter((store) => store.is_hub));
+        // Start point: any location -- hub, supplier or customer.
+        setHubStores([...storeList].sort((a, b) => kindRank(a) - kindRank(b) || (a.name || "").localeCompare(b.name || "")));
         setDestinationStores(storeList.filter((store) => !store.is_hub));
 
         setVehicleUnits(
@@ -413,7 +417,7 @@ export default function StartTripForDriverCard({
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Origin Hub
+                  Start point
                 </label>
                 <SearchSelect
                   value={hubStores.find(
@@ -421,8 +425,8 @@ export default function StartTripForDriverCard({
                   )}
                   options={hubStores}
                   onChange={(store) => setOriginStoreId(store?.id || "")}
-                  placeholder="Select origin hub"
-                  getOptionLabel={(store) => store?.name || ""}
+                  placeholder="Select hub, supplier or customer"
+                  getOptionLabel={(store) => store ? `${store.name} (${(store.is_hub ? "hub" : store.is_supplier ? "supplier" : "customer")})` : ""}
                   getOptionValue={(store) => store?.id}
                 />
               </div>
