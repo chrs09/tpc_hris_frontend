@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { RotateCw } from "lucide-react";
 import {
   approveAttendance,
   getAttendanceForMyApproval,
   rejectAttendance,
+  rotateAttendancePhoto,
 } from "../../api/attendance";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
@@ -31,6 +33,7 @@ export default function AttendanceApprovals() {
   const [actioningKey, setActioningKey] = useState(null);
   const [search, setSearch] = useState("");
   const [photo, setPhoto] = useState(null);
+  const [rotatingKey, setRotatingKey] = useState(null);
 
   const load = async () => {
     try {
@@ -84,6 +87,28 @@ export default function AttendanceApprovals() {
     }
   };
 
+  // Sideways selfie (old iPhone uploads): turn it 90° clockwise. The
+  // face match is re-run, so the note/score update too.
+  const rotate = async (item) => {
+    try {
+      setRotatingKey(item.key);
+      const result = await rotateAttendancePhoto(item.attendance_id, item.side, 90);
+      const patch = {
+        photo_url: result.photo_url,
+        review_status: result.review_status,
+        review_reason: result.review_reason,
+      };
+      setItems((current) =>
+        current.map((i) => (i.key === item.key ? { ...i, ...patch } : i)),
+      );
+      setPhoto((current) => (current?.key === item.key ? { ...current, ...patch } : current));
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Couldn't rotate the photo.");
+    } finally {
+      setRotatingKey(null);
+    }
+  };
+
   const filtered = items.filter((item) =>
     matchesSearch(
       search,
@@ -126,21 +151,35 @@ export default function AttendanceApprovals() {
               key={item.key}
               className="flex gap-4 rounded-2xl border border-border bg-surface p-4"
             >
-              <button
-                type="button"
-                onClick={() => item.photo_url && setPhoto(item)}
-                className="h-28 w-24 shrink-0 overflow-hidden rounded-xl bg-surface-hover"
-              >
-                {item.photo_url ? (
-                  <img
-                    src={item.photo_url}
-                    alt={`${item.employee_name} ${item.side_label}`}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-xs text-fg-subtle">No photo</span>
+              <div className="relative h-28 w-24 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => item.photo_url && setPhoto(item)}
+                  className="h-full w-full overflow-hidden rounded-xl bg-surface-hover"
+                >
+                  {item.photo_url ? (
+                    <img
+                      src={item.photo_url}
+                      alt={`${item.employee_name} ${item.side_label}`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs text-fg-subtle">No photo</span>
+                  )}
+                </button>
+                {canEditPage && item.photo_url && (
+                  <button
+                    type="button"
+                    title="Rotate photo 90° clockwise"
+                    aria-label="Rotate photo"
+                    disabled={rotatingKey === item.key}
+                    onClick={() => rotate(item)}
+                    className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50"
+                  >
+                    <RotateCw size={14} className={rotatingKey === item.key ? "animate-spin" : ""} />
+                  </button>
                 )}
-              </button>
+              </div>
 
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -205,11 +244,24 @@ export default function AttendanceApprovals() {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           onClick={() => setPhoto(null)}
         >
-          <img
-            src={photo.photo_url}
-            alt={`${photo.employee_name} ${photo.side_label}`}
-            className="max-h-[90vh] max-w-full rounded-xl"
-          />
+          <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={photo.photo_url}
+              alt={`${photo.employee_name} ${photo.side_label}`}
+              className="max-h-[80vh] max-w-full rounded-xl"
+            />
+            {canEditPage && (
+              <button
+                type="button"
+                disabled={rotatingKey === photo.key}
+                onClick={() => rotate(photo)}
+                className="flex items-center gap-2 rounded-lg bg-surface px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-hover disabled:opacity-50"
+              >
+                <RotateCw size={16} className={rotatingKey === photo.key ? "animate-spin" : ""} />
+                Rotate
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

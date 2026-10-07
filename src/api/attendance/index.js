@@ -125,6 +125,17 @@ export const rejectAttendance = async (attendanceId, side = "time_in", remarks) 
   return res.data;
 };
 
+// Turn a sideways selfie upright (90° clockwise per call). Saved as a new
+// photo -- the original is kept -- and the face match is re-run.
+export const rotateAttendancePhoto = async (attendanceId, side = "time_in", degrees = 90) => {
+  const res = await api.post(
+    `/attendance/${attendanceId}/rotate-photo?side=${side}`,
+    { degrees },
+  );
+
+  return res.data;
+};
+
 export const adjustAttendanceTime = async (attendanceId, payload) => {
   const res = await api.patch(
     `/attendance/${attendanceId}/adjust-time`,
