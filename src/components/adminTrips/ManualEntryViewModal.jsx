@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { StopShipments } from "./ShipmentStorePairing";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
 import { getManualEntry } from "../../api/tripManualEntries";
@@ -132,6 +133,7 @@ export default function ManualEntryViewModal({
                       </span>
                       <div className="min-w-0 flex-1 text-sm">
                         <p className="font-semibold">{stop.store_name}</p>
+                        <StopShipments numbers={stop.shipment_numbers} />
                         <p className="text-xs text-fg-subtle">
                           Arrived {stop.arrived_at || "-"} · Delivered{" "}
                           {stop.delivered_at || "-"}

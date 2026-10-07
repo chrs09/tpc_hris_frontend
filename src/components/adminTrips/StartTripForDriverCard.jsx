@@ -9,6 +9,11 @@ import {
   dispatchTrip,
 } from "../../api/tripManagement";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import ShipmentStorePairing from "./ShipmentStorePairing";
+import {
+  cleanShipmentStores,
+  shipmentStoresComplete,
+} from "../../utils/shipmentStores";
 
 // Start point order: hubs, then suppliers, then customers.
 const kindRank = (s) => (s.is_hub ? 0 : s.is_supplier ? 1 : 2);
@@ -59,6 +64,8 @@ export default function StartTripForDriverCard({
   const [shipmentNumbers, setShipmentNumbers] = useState([]);
   const [shipmentNoInput, setShipmentNoInput] = useState("");
   const [selectedDestinationIds, setSelectedDestinationIds] = useState([]);
+  // {"<shipment no>": storeId} -- which store each shipment goes to.
+  const [shipmentStores, setShipmentStores] = useState({});
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -207,6 +214,7 @@ export default function StartTripForDriverCard({
     setShipmentNumbers([]);
     setShipmentNoInput("");
     setSelectedDestinationIds([]);
+    setShipmentStores({});
     setSelectedHelperIds([]);
     setDestinationSearch("");
     setDriverSearch("");
@@ -218,12 +226,13 @@ export default function StartTripForDriverCard({
     originStoreId &&
     vehicleUnitId &&
     shipmentNumbers.length > 0 &&
-    selectedDestinationIds.length > 0;
+    selectedDestinationIds.length > 0 &&
+    shipmentStoresComplete(shipmentNumbers, selectedDestinationIds, shipmentStores);
 
   const handleSubmit = async () => {
     if (!canSubmit) {
       toast.error(
-        "Select a driver, origin hub, vehicle, shipment number, and at least one destination store.",
+        "Select a driver, start point, vehicle, shipment number, at least one destination store, and the store for each shipment.",
       );
       return;
     }
@@ -239,6 +248,12 @@ export default function StartTripForDriverCard({
       formData.append(
         "destination_store_ids",
         JSON.stringify(selectedDestinationIds),
+      );
+      formData.append(
+        "shipment_stores",
+        JSON.stringify(
+          cleanShipmentStores(shipmentNumbers, selectedDestinationIds, shipmentStores),
+        ),
       );
       formData.append("helper_ids", JSON.stringify(selectedHelperIds));
 
@@ -514,6 +529,15 @@ export default function StartTripForDriverCard({
                   )}
                 </div>
               </div>
+
+              <ShipmentStorePairing
+                numbers={shipmentNumbers}
+                stores={selectedDestinationIds
+                  .map((id) => destinationStores.find((s) => s.id === id))
+                  .filter(Boolean)}
+                value={shipmentStores}
+                onChange={setShipmentStores}
+              />
 
               {anyDestinationRequiresHelper && (
               <div>

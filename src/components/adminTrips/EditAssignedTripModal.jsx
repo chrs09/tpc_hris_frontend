@@ -10,6 +10,11 @@ import {
   getAvailableHelpers,
   getAvailableVehicleUnits,
 } from "../../api/tripManagement";
+import ShipmentStorePairing from "./ShipmentStorePairing";
+import {
+  cleanShipmentStores,
+  shipmentStoresComplete,
+} from "../../utils/shipmentStores";
 
 // Start point order: hubs, then suppliers, then customers.
 const kindRank = (s) => (s.is_hub ? 0 : s.is_supplier ? 1 : 2);
@@ -50,6 +55,9 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
   const [shipmentNoInput, setShipmentNoInput] = useState("");
   const [destinationIds, setDestinationIds] = useState(
     trip.destination_store_ids || [],
+  );
+  const [shipmentStores, setShipmentStores] = useState(
+    trip.shipment_stores || {},
   );
   const [helperIds, setHelperIds] = useState(
     (trip.helpers || []).map((h) => h.id),
@@ -197,6 +205,11 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
       originStoreId !== trip.origin_store_id ||
       !sameList(shipmentNumbers, trip.shipment_numbers || []) ||
       !sameList(destinationIds, trip.destination_store_ids || []) ||
+      // One store pairs itself; only a 2+ store pairing can be edited.
+      (destinationIds.length > 1 &&
+        JSON.stringify(
+          cleanShipmentStores(shipmentNumbers, destinationIds, shipmentStores),
+        ) !== JSON.stringify(trip.shipment_stores || {})) ||
       !sameList(
         [...helperIds].sort(),
         (trip.helpers || []).map((h) => h.id).sort(),
@@ -207,6 +220,7 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
       originStoreId,
       shipmentNumbers,
       destinationIds,
+      shipmentStores,
       helperIds,
       trip,
     ],
@@ -218,7 +232,8 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
     vehicleUnitId &&
     originStoreId &&
     shipmentNumbers.length > 0 &&
-    destinationIds.length > 0;
+    destinationIds.length > 0 &&
+    shipmentStoresComplete(shipmentNumbers, destinationIds, shipmentStores);
 
   const handleSubmit = async () => {
     try {
@@ -229,6 +244,11 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
         origin_store_id: originStoreId,
         destination_store_ids: destinationIds,
         shipment_numbers: shipmentNumbers,
+        shipment_stores: cleanShipmentStores(
+          shipmentNumbers,
+          destinationIds,
+          shipmentStores,
+        ),
         helper_ids: helperIds,
         reason: reason.trim() || null,
       });
@@ -432,6 +452,13 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
                   )}
                 </div>
               </div>
+
+              <ShipmentStorePairing
+                numbers={shipmentNumbers}
+                stores={destinationIds.map((id) => ({ id, name: storeName(id) }))}
+                value={shipmentStores}
+                onChange={setShipmentStores}
+              />
 
               {showHelpers && (
                 <div>

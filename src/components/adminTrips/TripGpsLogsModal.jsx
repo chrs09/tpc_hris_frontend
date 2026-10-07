@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { StopShipments } from "./ShipmentStorePairing";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
 import {
@@ -310,6 +311,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                             <p className="text-sm font-medium text-fg">
                               {item.store_name || `Store #${item.store_id}`}
                             </p>
+                            <StopShipments numbers={item.shipment_numbers} />
                             <span
                               className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.badge}`}
                             >
@@ -391,6 +393,7 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
                           <p className="text-sm font-medium text-fg">
                             {stop.store_name}
                           </p>
+                          <StopShipments numbers={stop.shipment_numbers} />
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                               stopPhaseMeta[

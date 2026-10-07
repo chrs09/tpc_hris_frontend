@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { StopShipments } from "../adminTrips/ShipmentStorePairing";
 import {
   MapContainer,
   Marker,
@@ -639,6 +640,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                               <Store size={14} />
                               {stop.store_name}
                             </p>
+                            <StopShipments numbers={stop.shipment_numbers} />
 
                             <div className="mt-1 space-y-1 text-xs text-fg-subtle">
                               <p className="flex items-center gap-2">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { StopShipments } from "../adminTrips/ShipmentStorePairing";
 import {
   MapContainer,
   TileLayer,
@@ -694,6 +695,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                             <h4 className="mt-1 font-bold text-fg">
                               {stop.store_name}
                             </h4>
+                            <StopShipments numbers={stop.shipment_numbers} />
                           </div>
 
                           <span

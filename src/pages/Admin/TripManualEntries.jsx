@@ -5,6 +5,11 @@ import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import ManualEntryViewModal from "../../components/adminTrips/ManualEntryViewModal";
 import SearchSelect from "../../components/SearchSelect";
 import PhotoPicker from "../../components/ui/photoPicker/PhotoPicker";
+import ShipmentStorePairing from "../../components/adminTrips/ShipmentStorePairing";
+import {
+  cleanShipmentStores,
+  shipmentStoresComplete,
+} from "../../utils/shipmentStores";
 import {
   confirmDialog,
   promptDialog,
@@ -89,6 +94,8 @@ export default function TripManualEntries() {
   const [storeSearch, setStoreSearch] = useState("");
   // [{ storeId, pod }] in visiting order
   const [stops, setStops] = useState([]);
+  // {"<shipment no>": storeId} -- which store each shipment goes to.
+  const [shipmentStores, setShipmentStores] = useState({});
   const [helperIds, setHelperIds] = useState([]);
   const [photos, setPhotos] = useState({});
 
@@ -189,13 +196,19 @@ export default function TripManualEntries() {
     form.endTime &&
     form.reason.trim() &&
     shipments.length > 0 &&
-    stops.length > 0;
+    stops.length > 0 &&
+    shipmentStoresComplete(
+      shipments,
+      stops.map((s) => s.storeId),
+      shipmentStores,
+    );
 
   const resetForm = () => {
     setForm(emptyForm);
     setShipments([]);
     setShipmentInput("");
     setStops([]);
+    setShipmentStores({});
     setHelperIds([]);
     setPhotos({});
   };
@@ -219,6 +232,16 @@ export default function TripManualEntries() {
     fd.append("reason", form.reason.trim());
     if (form.odometer) fd.append("odometer_reading", form.odometer);
     fd.append("shipment_numbers", JSON.stringify(shipments));
+    fd.append(
+      "shipment_stores",
+      JSON.stringify(
+        cleanShipmentStores(
+          shipments,
+          stops.map((s) => s.storeId),
+          shipmentStores,
+        ),
+      ),
+    );
     fd.append("helper_ids", JSON.stringify(helperIds));
     fd.append(
       "stops",
@@ -525,6 +548,19 @@ export default function TripManualEntries() {
                   ))}
                 </div>
               )}
+              <div className="mt-3">
+                <ShipmentStorePairing
+                  numbers={shipments}
+                  stores={stops.map((s) => ({
+                    id: s.storeId,
+                    name:
+                      destinations.find((d) => d.id === s.storeId)?.name ||
+                      `Store ${s.storeId}`,
+                  }))}
+                  value={shipmentStores}
+                  onChange={setShipmentStores}
+                />
+              </div>
             </Section>
 
             <Section title={`Helpers (${helperIds.length}/3, optional)`}>

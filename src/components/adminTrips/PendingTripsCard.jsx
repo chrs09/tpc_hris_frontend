@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
+import { StopShipments } from "./ShipmentStorePairing";
 import {
   approveTrip,
   archiveTrip,
@@ -1018,6 +1019,7 @@ const PendingTripsCard = ({
 
                                 {stop.store_name}
                               </p>
+                              <StopShipments numbers={stop.shipment_numbers} />
 
                               <span
                                 className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
