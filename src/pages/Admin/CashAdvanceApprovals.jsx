@@ -26,6 +26,7 @@ import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceReleaseModal";
+import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
 import { matchesSearch } from "../../utils/search";
 
 const STATUS_STYLES = {
@@ -92,6 +93,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   // Approve / Record Release form (amount, receipt photo, reference).
   const [releaseForm, setReleaseForm] = useState(null); // { request, mode }
   const [savingRelease, setSavingRelease] = useState(false);
+  // Receipt photo shown in a modal instead of a new tab.
+  const [viewingReceipt, setViewingReceipt] = useState(null);
 
   // One search box, applied to whichever tab is open.
   const [search, setSearch] = useState("");
@@ -693,13 +696,18 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         </td>
                         <td className="px-6 text-fg-muted">
                           {req.release_receipt_url ? (
-                            <a href={req.release_receipt_url} target="_blank" rel="noreferrer">
+                            <button
+                              type="button"
+                              onClick={() => setViewingReceipt(req)}
+                              title="View receipt"
+                              className="block rounded-lg transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            >
                               <img
                                 src={req.release_receipt_url}
                                 alt="Receipt"
                                 className="h-10 w-10 rounded-lg border border-border object-cover"
                               />
-                            </a>
+                            </button>
                           ) : req.release_reference ? (
                             <span className="text-xs">{req.release_reference}</span>
                           ) : req.status === "approved" && canEditPage ? (
@@ -912,14 +920,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         {request.release_receipt_url && (
                           <>
                             {" · "}
-                            <a
-                              href={request.release_receipt_url}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => setViewingReceipt(request)}
                               className="font-semibold text-primary hover:underline"
                             >
                               View receipt
-                            </a>
+                            </button>
                           </>
                         )}
                       </p>
@@ -1040,6 +1047,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           </div>
         </div>
       )}
+      <ReceiptViewer request={viewingReceipt} onClose={() => setViewingReceipt(null)} />
       {releaseForm && (
         <CashAdvanceReleaseModal
           key={`${releaseForm.mode}-${releaseForm.request.id}`}

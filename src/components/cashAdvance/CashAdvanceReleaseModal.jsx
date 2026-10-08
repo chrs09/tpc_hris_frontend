@@ -124,14 +124,14 @@ export default function CashAdvanceReleaseModal({
                 </label>
               )}
               {mode === "release" && request.release_receipt_url && !preview && (
-                <a
-                  href={request.release_receipt_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-1 inline-block text-xs font-semibold text-primary hover:underline"
-                >
-                  View current receipt
-                </a>
+                <div className="mt-2 flex items-center gap-2 text-xs text-fg-subtle">
+                  <img
+                    src={request.release_receipt_url}
+                    alt="Current receipt"
+                    className="h-12 w-12 rounded-lg border border-border object-cover"
+                  />
+                  Current receipt -- uploading a new one replaces it.
+                </div>
               )}
             </div>
             <div>
