@@ -3,10 +3,10 @@ import { ImagePlus, X } from "lucide-react";
 
 const peso = (n) => `₱${Number(n || 0).toLocaleString()}`;
 
-// Approve a cash advance (amount), and -- on the final approval, when the
-// money goes out -- the receipt photo proving it was sent, with an
-// optional reference (GCash ref, check no.). mode="release" is the same
-// form without the amount, for Record Release later.
+// mode="approve": Pending Approvals -- the amount only.
+// mode="release": the receipt photo proving the money was sent, with an
+// optional reference (GCash ref, check no.) -- All Requests "+ Add
+// receipt" and Outstanding Balances "Record Release".
 export default function CashAdvanceReleaseModal({
   request,
   mode = "approve",
@@ -27,7 +27,7 @@ export default function CashAdvanceReleaseModal({
 
   useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
 
-  const showReceipt = mode === "release" || isFinal;
+  const showReceipt = mode === "release";
 
   const pickFile = (file) => {
     if (!file) return;
@@ -87,8 +87,7 @@ export default function CashAdvanceReleaseModal({
 
         {mode === "approve" && !isFinal && (
           <p className="rounded-xl bg-surface-hover px-3 py-2 text-xs text-fg-muted">
-            This passes it to {nextApprover || "the next approver"} for the final approval -- the
-            receipt is added there, when the money is sent.
+            This passes it to {nextApprover || "the next approver"} for the final approval.
           </p>
         )}
 
@@ -97,7 +96,6 @@ export default function CashAdvanceReleaseModal({
             <div>
               <label className="mb-1 block text-sm font-medium text-fg">
                 Receipt that the cash advance was sent
-                {mode === "approve" && <span className="font-normal text-fg-subtle"> (optional)</span>}
               </label>
               {preview ? (
                 <div className="relative">
@@ -134,11 +132,6 @@ export default function CashAdvanceReleaseModal({
                 >
                   View current receipt
                 </a>
-              )}
-              {mode === "approve" && !receipt && (
-                <p className="mt-1 text-xs text-fg-subtle">
-                  Not sent yet? Approve now and add it later with Record Release.
-                </p>
               )}
             </div>
             <div>
