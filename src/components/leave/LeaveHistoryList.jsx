@@ -57,6 +57,11 @@ export default function LeaveHistoryList({ leaves, onChanged }) {
               <p className="mt-1 text-xs uppercase tracking-wide text-fg-subtle">
                 Unpaid Leave
               </p>
+              {leave.requested_at && (
+                <p className="mt-0.5 text-[11px] text-fg-subtle">
+                  Requested {leave.requested_at}
+                </p>
+              )}
             </div>
             <span
               className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold capitalize ${

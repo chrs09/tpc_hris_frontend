@@ -158,6 +158,7 @@ export default function LeaveManagement({ embedded = false }) {
               <th className="px-4 py-3 font-medium">Position</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Dates</th>
+              <th className="px-4 py-3 font-medium">Requested</th>
               <th className="px-4 py-3 font-medium">Reason</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Actions</th>
@@ -166,7 +167,7 @@ export default function LeaveManagement({ embedded = false }) {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-fg-muted">
+                <td colSpan={9} className="px-4 py-6 text-center text-fg-muted">
                   Loading...
                 </td>
               </tr>
@@ -174,7 +175,7 @@ export default function LeaveManagement({ embedded = false }) {
 
             {!loading && leaves.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-fg-muted">
+                <td colSpan={9} className="px-4 py-6 text-center text-fg-muted">
                   No leave requests found.
                 </td>
               </tr>
@@ -198,6 +199,9 @@ export default function LeaveManagement({ embedded = false }) {
                   <td className="px-4 py-3 text-fg-muted">
                     {leave.start_date}
                     {leave.start_date !== leave.end_date && ` – ${leave.end_date}`}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-fg-muted">
+                    {leave.requested_at || "—"}
                   </td>
                   <td className="px-4 py-3 max-w-xs truncate text-fg-muted" title={leave.reason}>
                     {leave.reason}

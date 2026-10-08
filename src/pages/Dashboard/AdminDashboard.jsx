@@ -204,6 +204,9 @@ const IncomingLeaveRequestsCard = ({
                   {leave.start_date !== leave.end_date &&
                     ` – ${leave.end_date}`}
                 </p>
+                {leave.requested_at ? (
+                  <p className="text-[11px] text-fg-subtle">Requested {leave.requested_at}</p>
+                ) : null}
                 {leave.reason ? (
                   <p className="text-[11px] text-fg-subtle truncate mt-1">
                     {leave.reason}

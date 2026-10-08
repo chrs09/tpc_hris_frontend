@@ -37,8 +37,31 @@ export const rejectCashAdvanceRequest = async (requestId, remarks) => {
 
 // Superadmin: every cash advance request regardless of status -- the
 // Finance module's full-history list.
-export const getAllCashAdvanceRequests = async () => {
-  const res = await api.get("/cash-advance-requests/all");
+// archived=true: only the archived ones ("Show archived").
+export const getAllCashAdvanceRequests = async (archived = false) => {
+  const res = await api.get("/cash-advance-requests/all", {
+    params: archived ? { archived: true } : {},
+  });
+  return res.data;
+};
+
+export const archiveCashAdvanceRequest = async (requestId) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/archive`);
+  return res.data;
+};
+
+export const unarchiveCashAdvanceRequest = async (requestId) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/unarchive`);
+  return res.data;
+};
+
+// Photo proving the approved cash advance was sent (+ optional
+// reference). Marks it released.
+export const uploadCashAdvanceReceipt = async (requestId, file, reference) => {
+  const formData = new FormData();
+  formData.append("receipt", file);
+  if (reference) formData.append("release_reference", reference);
+  const res = await api.post(`/cash-advance-requests/${requestId}/receipt`, formData);
   return res.data;
 };
 

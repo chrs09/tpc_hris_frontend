@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
   approveCashAdvanceRequest,
+  archiveCashAdvanceRequest,
+  unarchiveCashAdvanceRequest,
+  uploadCashAdvanceReceipt,
   createOpeningBalance,
   getAllCashAdvanceRequests,
   getCashAdvanceRequestsForMyApproval,
@@ -22,6 +25,7 @@ import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
+import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceReleaseModal";
 import { matchesSearch } from "../../utils/search";
 
 const STATUS_STYLES = {
@@ -82,6 +86,12 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const [allRequests, setAllRequests] = useState([]);
   const [loadingAll, setLoadingAll] = useState(false);
   const [allLoaded, setAllLoaded] = useState(false);
+  // All Requests: show the archived ones instead.
+  const [showArchived, setShowArchived] = useState(false);
+  const [archivingId, setArchivingId] = useState(null);
+  // Approve / Record Release form (amount, receipt photo, reference).
+  const [releaseForm, setReleaseForm] = useState(null); // { request, mode }
+  const [savingRelease, setSavingRelease] = useState(false);
 
   // One search box, applied to whichever tab is open.
   const [search, setSearch] = useState("");
@@ -145,10 +155,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
   };
 
-  const loadAll = async () => {
+  const loadAll = async (archived = showArchived) => {
     try {
       setLoadingAll(true);
-      const data = await getAllCashAdvanceRequests();
+      const data = await getAllCashAdvanceRequests(archived);
       setAllRequests(data);
       setAllLoaded(true);
     } catch (error) {
@@ -191,6 +201,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   // opened, instead of always fetching it up front.
   useEffect(() => {
     if (tab === "all" && !allLoaded) loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, allLoaded]);
 
   // Same lazy-load pattern for the superadmin-only Balances tab.
@@ -202,49 +213,94 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, isSuperAdmin, balancesLoaded]);
 
-  const handleApprove = async (request) => {
-    const input = await promptDialog(
-      `Approve how much for ${request.employee_name}? (requested ₱${request.amount.toLocaleString()}${
-        request.approved_amount != null && request.approved_amount !== request.amount
-          ? `, ₱${request.approved_amount.toLocaleString()} approved so far`
-          : ""
-      })`,
-      // An earlier head in the Org Chart chain may have lowered it.
-      String(request.approved_amount ?? request.amount),
-    );
-    if (input === null) return;
+  // The final approval is when the money goes out -- that's where the
+  // receipt photo is asked for. A head who passes it up only sets the amount.
+  const nextApproverOf = (request) => {
+    const steps = request.approval_steps || [];
+    const index = steps.findIndex((st) => st.state === "current");
+    return index >= 0 && index < steps.length - 1 ? steps[index + 1].name : null;
+  };
 
-    const approvedAmount = Number(input);
-    if (!approvedAmount || approvedAmount <= 0) {
-      toast.error("Enter a valid amount.");
-      return;
-    }
-    if (approvedAmount > request.amount) {
-      toast.error("Approved amount can't exceed the requested amount.");
-      return;
-    }
+  const handleApprove = (request) => setReleaseForm({ request, mode: "approve" });
 
+  const saveRelease = (requestId, receipt, reference) =>
+    receipt
+      ? uploadCashAdvanceReceipt(requestId, receipt, reference)
+      : setCashAdvanceReleaseInfo(requestId, reference);
+
+  const submitReleaseForm = async ({ approvedAmount, reference, receipt }) => {
+    const { request, mode } = releaseForm;
+    if (mode === "approve") {
+      if (!approvedAmount || approvedAmount <= 0) {
+        toast.error("Enter a valid amount.");
+        return;
+      }
+      if (approvedAmount > request.amount) {
+        toast.error("Approved amount can't exceed the requested amount.");
+        return;
+      }
+    }
     try {
-      setActioningId(request.id);
-      const result = await approveCashAdvanceRequest(
-        request.id,
-        undefined,
-        approvedAmount,
-      );
-      const next = result?.approval_steps?.find((s) => s.state === "current");
-      toast.success(
-        result?.status === "pending" && next
-          ? `Approved -- passed to ${next.name} for the next approval.`
-          : approvedAmount === request.amount
-            ? "Cash advance approved."
-            : `Cash advance approved for ₱${approvedAmount.toLocaleString()} (of ₱${request.amount.toLocaleString()} requested).`,
-      );
-      await loadPending();
+      setSavingRelease(true);
+      if (mode === "approve") {
+        setActioningId(request.id);
+        const result = await approveCashAdvanceRequest(request.id, undefined, approvedAmount);
+        const next = result?.approval_steps?.find((st) => st.state === "current");
+        let receiptSaved = false;
+        if (result?.status === "approved" && (receipt || reference)) {
+          try {
+            await saveRelease(request.id, receipt, reference);
+            receiptSaved = true;
+          } catch (error) {
+            toast.error(
+              `Approved, but the receipt wasn't saved (${
+                error.response?.data?.detail || "error"
+              }). Add it with Record Release.`,
+            );
+          }
+        }
+        toast.success(
+          result?.status === "pending" && next
+            ? `Approved -- passed to ${next.name} for the next approval.`
+            : receiptSaved
+              ? "Cash advance approved and marked as sent."
+              : approvedAmount === request.amount
+                ? "Cash advance approved."
+                : `Cash advance approved for ₱${approvedAmount.toLocaleString()} (of ₱${request.amount.toLocaleString()} requested).`,
+        );
+        await loadPending();
+      } else {
+        setReleasingId(request.id);
+        await saveRelease(request.id, receipt, reference);
+        toast.success("Release recorded.");
+        if (balancesLoaded) await loadBalances();
+      }
+      setReleaseForm(null);
       if (allLoaded) await loadAll();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to approve.");
+      toast.error(error.response?.data?.detail || "Failed to save.");
     } finally {
+      setSavingRelease(false);
       setActioningId(null);
+      setReleasingId(null);
+    }
+  };
+
+  const toggleArchive = async (request) => {
+    try {
+      setArchivingId(request.id);
+      if (request.is_archived) {
+        await unarchiveCashAdvanceRequest(request.id);
+        toast.success("Moved back to All Requests.");
+      } else {
+        await archiveCashAdvanceRequest(request.id);
+        toast.success("Archived.");
+      }
+      setAllRequests((list) => list.filter((r) => r.id !== request.id));
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to update.");
+    } finally {
+      setArchivingId(null);
     }
   };
 
@@ -318,31 +374,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
   };
 
-  const handleSetRelease = async (request) => {
-    const input = await promptDialog(
-      `Payment/release reference for ${request.employee_name} (e.g. GCash ref, check no.):`,
-      request.release_reference || "",
-    );
-    if (input === null) return;
-    if (!input.trim()) {
-      toast.error("Enter a reference.");
-      return;
-    }
-
-    try {
-      setReleasingId(request.id);
-      await setCashAdvanceReleaseInfo(request.id, input.trim());
-      toast.success("Release info recorded.");
-      await loadBalances();
-      if (allLoaded) await loadAll();
-    } catch (error) {
-      toast.error(
-        error.response?.data?.detail || "Failed to record release info.",
-      );
-    } finally {
-      setReleasingId(null);
-    }
-  };
+  const handleSetRelease = (request) => setReleaseForm({ request, mode: "release" });
 
   const handleAddOpeningBalance = async () => {
     if (!openingBalanceUser) {
@@ -559,6 +591,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           ))}
 
         {tab === "all" && (
+          <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-fg-muted">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => {
+                setShowArchived(e.target.checked);
+                loadAll(e.target.checked);
+              }}
+              className="h-4 w-4 accent-primary"
+            />
+            Show archived
+          </label>
+        )}
+
+        {tab === "all" && (
           <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
             {loadingAll ? (
               <div className="p-10 text-center text-sm text-fg-muted">
@@ -566,7 +613,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
               </div>
             ) : allRequests.length === 0 ? (
               <div className="p-10 text-center text-sm text-fg-muted">
-                No cash advance requests have been filed yet.
+                {showArchived
+                  ? "Nothing archived."
+                  : "No cash advance requests have been filed yet."}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -595,6 +644,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       <th className="px-6 py-4 text-left font-medium">
                         Filed
                       </th>
+                      <th className="px-6 text-left font-medium">Receipt</th>
+                      {canEditPage && (
+                        <th className="px-6 text-right font-medium">Action</th>
+                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -638,6 +691,47 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         <td className="px-6 py-4 text-fg-muted">
                           {new Date(req.created_at).toLocaleDateString()}
                         </td>
+                        <td className="px-6 text-fg-muted">
+                          {req.release_receipt_url ? (
+                            <a href={req.release_receipt_url} target="_blank" rel="noreferrer">
+                              <img
+                                src={req.release_receipt_url}
+                                alt="Receipt"
+                                className="h-10 w-10 rounded-lg border border-border object-cover"
+                              />
+                            </a>
+                          ) : req.release_reference ? (
+                            <span className="text-xs">{req.release_reference}</span>
+                          ) : req.status === "approved" && canEditPage ? (
+                            <button
+                              type="button"
+                              onClick={() => handleSetRelease(req)}
+                              className="text-xs font-semibold text-primary hover:underline"
+                            >
+                              + Add receipt
+                            </button>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        {canEditPage && (
+                          <td className="px-6 text-right">
+                            {req.status !== "pending" && (
+                              <button
+                                type="button"
+                                onClick={() => toggleArchive(req)}
+                                disabled={archivingId === req.id}
+                                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+                              >
+                                {archivingId === req.id
+                                  ? "..."
+                                  : req.is_archived
+                                    ? "Unarchive"
+                                    : "Archive"}
+                              </button>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -815,6 +909,19 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         {request.released_at
                           ? ` (${new Date(request.released_at).toLocaleDateString()})`
                           : ""}
+                        {request.release_receipt_url && (
+                          <>
+                            {" · "}
+                            <a
+                              href={request.release_receipt_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-primary hover:underline"
+                            >
+                              View receipt
+                            </a>
+                          </>
+                        )}
                       </p>
                     )}
                   </div>
@@ -932,6 +1039,18 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             )}
           </div>
         </div>
+      )}
+      {releaseForm && (
+        <CashAdvanceReleaseModal
+          key={`${releaseForm.mode}-${releaseForm.request.id}`}
+          request={releaseForm.request}
+          mode={releaseForm.mode}
+          isFinal={!nextApproverOf(releaseForm.request)}
+          nextApprover={nextApproverOf(releaseForm.request)}
+          busy={savingRelease}
+          onClose={() => setReleaseForm(null)}
+          onSubmit={submitReleaseForm}
+        />
       )}
     </div>
   );

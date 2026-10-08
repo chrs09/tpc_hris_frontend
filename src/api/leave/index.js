@@ -16,6 +16,18 @@ export const cancelLeaveRequest = async (leaveId) => {
   return res.data;
 };
 
+// HR Leave bell: every leave filed, until acknowledged (superadmin or an
+// Org Chart HRIS grant -- see app/api/leave.py _require_hr).
+export const getLeaveAlerts = async () => {
+  const res = await api.get("/leave/alerts");
+  return res.data;
+};
+
+export const acknowledgeLeaveAlert = async (notificationId) => {
+  const res = await api.post(`/leave/alerts/${notificationId}/acknowledge`);
+  return res.data;
+};
+
 // Org Chart heads with Leave ticked: leave waiting on me.
 export const getLeaveForMyApproval = async () => {
   const res = await api.get("/leave/for-my-approval");
