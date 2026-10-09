@@ -218,7 +218,7 @@ const DriverCashAdvance = () => {
     }
 
     if (!selectedPurposeId) {
-      toast.error("Select a purpose.");
+      toast.error("Select a loan purpose.");
       return;
     }
 
@@ -228,7 +228,7 @@ const DriverCashAdvance = () => {
     }
 
     if (!reason.trim()) {
-      toast.error("Purpose is required.");
+      toast.error("Loan purpose is required.");
       return;
     }
 
@@ -356,7 +356,7 @@ const DriverCashAdvance = () => {
         )}
 
         <label className="mt-3 mb-1 block text-sm font-semibold text-fg-subtle">
-          Purpose
+          Loan Purpose
         </label>
         {loadingPurposes ? (
           <p className="text-sm text-fg-subtle">Loading...</p>
@@ -372,7 +372,7 @@ const DriverCashAdvance = () => {
             }
             options={purposesWithOther}
             onChange={(option) => setSelectedPurposeId(option?.id ?? null)}
-            placeholder="Select a purpose"
+            placeholder="Select a loan purpose"
             getOptionLabel={(p) => p?.label || ""}
             getOptionValue={(p) => p?.id}
           />
@@ -511,7 +511,10 @@ const DriverCashAdvance = () => {
                     </span>
                   </div>
 
-                  <p className="mt-2 text-sm text-fg">{item.reason}</p>
+                  <p className="mt-2 text-sm text-fg">
+                    <span className="text-fg-subtle">Loan Purpose: </span>
+                    {item.reason}
+                  </p>
 
                   <p className="mt-1.5 text-xs text-fg-subtle">
                     ₱{item.deduction_per_pay_amount.toLocaleString()} per pay

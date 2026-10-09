@@ -546,7 +546,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
 
                   <p className="mt-3 text-sm text-fg-muted">
                     <span className="font-medium text-fg-subtle">
-                      Reason:{" "}
+                      Loan Purpose:{" "}
                     </span>
                     {req.reason}
                   </p>
