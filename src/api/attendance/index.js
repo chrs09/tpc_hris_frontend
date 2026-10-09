@@ -107,11 +107,12 @@ export const timeInSelfie = async (formData) => {
 // independently for both, so approving/rejecting one never touches the
 // other's status.
 // remarks: required by the server when passing it up to the next head.
-export const approveAttendance = async (attendanceId, side = "time_in", remarks) => {
-  const res = await api.post(
-    `/attendance/${attendanceId}/approve?side=${side}`,
-    { remarks: remarks || null },
-  );
+// timeOut: missed time out only -- the approver's corrected "HH:MM".
+export const approveAttendance = async (attendanceId, side = "time_in", remarks, timeOut) => {
+  const res = await api.post(`/attendance/${attendanceId}/approve?side=${side}`, {
+    remarks: remarks || null,
+    ...(timeOut ? { time_out: timeOut } : {}),
+  });
 
   return res.data;
 };
@@ -176,6 +177,28 @@ export const adjustAttendanceTimeWithReason = async (
 export const getKioskStatus = async (employeeId) => {
   const res = await api.get(`/attendance/kiosk/status/${employeeId}`);
 
+  return res.data;
+};
+
+// Forgot to time out: file the earlier day's time out ("HH:MM", PH) +
+// reason before timing in again -- goes to the Org Chart attendance
+// approvers.
+export const fileKioskMissedTimeOut = async (employeeId, attendanceId, timeOut, reason) => {
+  const res = await api.post("/attendance/kiosk/missed-time-out", {
+    employee_id: Number(employeeId),
+    attendance_id: attendanceId,
+    time_out: timeOut,
+    reason,
+  });
+  return res.data;
+};
+
+// A head sets a missed time out themselves (before it's filed).
+export const setMissedTimeOut = async (attendanceId, timeOut, remarks) => {
+  const res = await api.post(`/attendance/${attendanceId}/set-missed-time-out`, {
+    time_out: timeOut,
+    remarks: remarks || null,
+  });
   return res.data;
 };
 

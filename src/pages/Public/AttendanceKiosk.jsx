@@ -1,6 +1,10 @@
 import { useState } from "react";
 
-import { getKioskStatus, kioskSelfieAttendance } from "../../api/attendance";
+import {
+  fileKioskMissedTimeOut,
+  getKioskStatus,
+  kioskSelfieAttendance,
+} from "../../api/attendance";
 
 import { Card, CardContent } from "../../components/ui/card/Card";
 import { Button } from "../../components/ui/button/Button";
@@ -33,6 +37,11 @@ export default function AttendanceKiosk() {
   const [workText, setWorkText] = useState("");
   const [workProof, setWorkProof] = useState(null);
   const [workProofPreview, setWorkProofPreview] = useState(null);
+
+  // Forgot to time out on an earlier day (employee.missed_time_out): the
+  // time they left + why, filed before this time in.
+  const [missedTime, setMissedTime] = useState("");
+  const [missedReason, setMissedReason] = useState("");
 
   const loadEmployeeStatus = async () => {
     if (!employeeId.trim()) {
@@ -148,6 +157,12 @@ export default function AttendanceKiosk() {
         return;
       }
 
+      const missed = employee.next_action === "time_in" ? employee.missed_time_out : null;
+      if (missed && (!missedTime || !missedReason.trim())) {
+        setError(`Enter the time you left on ${missed.date_label} and why you didn't time out.`);
+        return;
+      }
+
       const asksWork =
         employee.next_action === "time_out" && employee.work_report_required;
       if (asksWork && !workText.trim()) {
@@ -167,6 +182,26 @@ export default function AttendanceKiosk() {
       }
 
       setSubmitting(true);
+
+      if (missed) {
+        const filed = await fileKioskMissedTimeOut(
+          employee.employee_id,
+          missed.attendance_id,
+          missedTime,
+          missedReason.trim(),
+        );
+        setMissedTime("");
+        setMissedReason("");
+        if (filed.missed_time_out) {
+          // Another earlier day is open too -- ask for that one next.
+          setEmployee({ ...employee, missed_time_out: filed.missed_time_out });
+          setError("");
+          await alertDialog(
+            `Sent for approval. You also didn't time out on ${filed.missed_time_out.date_label} -- enter that one too.`,
+          );
+          return;
+        }
+      }
 
       const formData = new FormData();
 
@@ -211,6 +246,9 @@ export default function AttendanceKiosk() {
     setWorkText("");
     setWorkProof(null);
     setWorkProofPreview(null);
+
+    setMissedTime("");
+    setMissedReason("");
 
     setError("");
   };
@@ -322,6 +360,47 @@ export default function AttendanceKiosk() {
                 </Button>
               ) : (
                 <>
+                  {employee.next_action === "time_in" && employee.missed_time_out && (
+                    <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900">
+                          You didn&apos;t time out on {employee.missed_time_out.date_label}
+                        </p>
+                        <p className="text-xs text-amber-800">
+                          You timed in at {employee.missed_time_out.time_in}. Enter the time you
+                          left and why -- your head approves it. Then your time in today goes
+                          through.
+                        </p>
+                      </div>
+                      <div>
+                        <label htmlFor="kiosk-missed-time" className="block text-xs font-medium text-slate-700">
+                          Time you left
+                        </label>
+                        <input
+                          id="kiosk-missed-time"
+                          type="time"
+                          value={missedTime}
+                          onChange={(e) => setMissedTime(e.target.value)}
+                          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="kiosk-missed-reason" className="block text-xs font-medium text-slate-700">
+                          Why didn&apos;t you time out?
+                        </label>
+                        <textarea
+                          id="kiosk-missed-reason"
+                          rows={2}
+                          maxLength={1000}
+                          value={missedReason}
+                          onChange={(e) => setMissedReason(e.target.value)}
+                          placeholder="e.g. Phone battery died, forgot"
+                          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {employee.next_action === "time_out" &&
                     employee.work_report_required && (
                       <div className="space-y-3 rounded-xl border p-4">

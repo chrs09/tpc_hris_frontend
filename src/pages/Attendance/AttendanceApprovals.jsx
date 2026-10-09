@@ -6,6 +6,7 @@ import {
   getAttendanceForMyApproval,
   rejectAttendance,
   rotateAttendancePhoto,
+  setMissedTimeOut,
 } from "../../api/attendance";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
@@ -16,6 +17,7 @@ import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import WorkReport from "../../components/attendance/WorkReport";
 
 const REASON_LABELS = {
+  MISSED_TIME_OUT: "Forgot to time out",
   NEEDS_REVIEW: "Needs review",
   FACE_MATCH_FAILED: "Face match failed",
   NO_PROFILE_PHOTO: "No profile photo to compare",
@@ -33,6 +35,11 @@ export default function AttendanceApprovals() {
   const [actioningKey, setActioningKey] = useState(null);
   const [search, setSearch] = useState("");
   const [photo, setPhoto] = useState(null);
+  // Missed time out: the time out the approver saves ("HH:MM"), starting
+  // from what the employee said.
+  const [missedTimes, setMissedTimes] = useState({});
+  const missedTimeOf = (item) =>
+    missedTimes[item.key] ?? item.missed_time_out?.requested_hhmm ?? "";
   const [rotatingKey, setRotatingKey] = useState(null);
 
   const load = async () => {
@@ -50,6 +57,29 @@ export default function AttendanceApprovals() {
   }, []);
 
   const act = async (item, approve) => {
+    const missed = item.missed_time_out;
+    if (missed && approve && !missedTimeOf(item)) {
+      toast.error("Enter the time out first.");
+      return;
+    }
+    // Not filed by the employee yet: the head enters the time out.
+    if (missed && !missed.filed) {
+      const remarks = await promptDialog(
+        `Save ${missedTimeOf(item)} as ${item.employee_name}'s time out on ${item.attendance_date}? Remarks (optional):`,
+      );
+      if (remarks === null) return;
+      try {
+        setActioningKey(item.key);
+        const result = await setMissedTimeOut(item.attendance_id, missedTimeOf(item), remarks.trim());
+        toast.success(result?.message || "Time out saved.");
+        await load();
+      } catch (error) {
+        toast.error(error.response?.data?.detail || "Something went wrong.");
+      } finally {
+        setActioningKey(null);
+      }
+      return;
+    }
     // A head who isn't the last approver passes it up with remarks (what
     // they checked) for the next head's final approval.
     const steps = item.approval_steps || [];
@@ -76,7 +106,12 @@ export default function AttendanceApprovals() {
     try {
       setActioningKey(item.key);
       const result = approve
-        ? await approveAttendance(item.attendance_id, item.side, remarks.trim())
+        ? await approveAttendance(
+            item.attendance_id,
+            item.side,
+            remarks.trim(),
+            missed ? missedTimeOf(item) : undefined,
+          )
         : await rejectAttendance(item.attendance_id, item.side, remarks.trim());
       toast.success(result?.message || (approve ? "Approved." : "Rejected."));
       await load();
@@ -199,6 +234,35 @@ export default function AttendanceApprovals() {
                 <p className="text-xs text-fg-subtle">
                   {item.review_reason || REASON_LABELS[item.review_status]}
                 </p>
+                {item.missed_time_out && (
+                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs text-fg">
+                    <p>
+                      Timed in {item.missed_time_out.time_in || "-"} -- forgot to time out.
+                      {item.missed_time_out.filed
+                        ? ` Says they left at ${item.missed_time_out.requested_time}.`
+                        : " Not filed yet -- you can enter the time out."}
+                    </p>
+                    {item.missed_time_out.reason && (
+                      <p className="mt-0.5 text-fg-muted">Reason: “{item.missed_time_out.reason}”</p>
+                    )}
+                    {canEditPage && (
+                      <label className="mt-1.5 flex items-center gap-2">
+                        <span className="font-medium">Time out</span>
+                        <input
+                          type="time"
+                          value={missedTimeOf(item)}
+                          onChange={(e) =>
+                            setMissedTimes((prev) => ({ ...prev, [item.key]: e.target.value }))
+                          }
+                          className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg"
+                        />
+                        {item.missed_time_out.filed && (
+                          <span className="text-fg-subtle">change it if needed</span>
+                        )}
+                      </label>
+                    )}
+                  </div>
+                )}
                 {item.address && (
                   <p className="truncate text-[11px] text-fg-subtle" title={item.address}>
                     {item.address}
@@ -221,16 +285,20 @@ export default function AttendanceApprovals() {
                     onClick={() => act(item, true)}
                     className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:opacity-50"
                   >
-                    Approve
+                    {item.missed_time_out && !item.missed_time_out.filed
+                      ? "Save Time Out"
+                      : "Approve"}
                   </button>
-                  <button
-                    type="button"
-                    disabled={actioningKey === item.key}
-                    onClick={() => act(item, false)}
-                    className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
-                  >
-                    Reject
-                  </button>
+                  {!(item.missed_time_out && !item.missed_time_out.filed) && (
+                    <button
+                      type="button"
+                      disabled={actioningKey === item.key}
+                      onClick={() => act(item, false)}
+                      className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                  )}
                 </div>
                 )}
               </div>
