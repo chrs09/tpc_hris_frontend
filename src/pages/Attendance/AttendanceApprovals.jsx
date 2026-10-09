@@ -277,7 +277,13 @@ export default function AttendanceApprovals() {
                 <ApprovalProgress steps={item.approval_steps} />
                 <ApprovedBy log={item.approval_log} />
 
-                {canEditPage && (
+                {item.can_act === false && (
+                  <p className="rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-semibold text-success">
+                    ✓ You approved this -- waiting for {item.waiting_on || "the next head"}.
+                  </p>
+                )}
+
+                {canEditPage && item.can_act !== false && (
                 <div className="flex gap-2 pt-1">
                   <button
                     type="button"
