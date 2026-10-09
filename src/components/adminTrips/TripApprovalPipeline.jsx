@@ -80,13 +80,12 @@ const TripApprovalPipeline = ({ refreshKey = 0 }) => {
   }, [load, refreshKey]);
 
   const counts = data.counts || {};
-  const allCount = Object.values(counts).reduce((sum, n) => sum + n, 0);
   const statusOptions = [
-    { value: "", label: `All statuses (${allCount})` },
+    { value: "", label: "All statuses" },
     ...STATUSES.filter(
       // The manual-entry stage only shows up when something is in it.
       (s) => s.value !== "PENDING_MANUAL_APPROVAL" || counts[s.value],
-    ).map((s) => ({ value: s.value, label: `${s.label} (${counts[s.value] || 0})` })),
+    ).map((s) => ({ value: s.value, label: s.label })),
   ];
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
 
