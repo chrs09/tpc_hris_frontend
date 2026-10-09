@@ -1,5 +1,9 @@
 import React, { useState } from "react";
+import toast from "react-hot-toast";
 import TripGpsLogsModal from "./TripGpsLogsModal";
+import { cancelActiveTrip } from "../../api/adminTripManagement/trips";
+import { confirmDialog, promptDialog } from "../ui/dialog/dialogService";
+import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import SearchInput from "../ui/searchInput/SearchInput";
@@ -29,8 +33,47 @@ const StepBadge = ({ step, label }) => (
   </span>
 );
 
-const ActiveTripsMonitor = ({ trips = [] }) => {
+const ActiveTripsMonitor = ({ trips = [], onChanged }) => {
+  const canEditPage = usePageCanEdit();
   const [selectedTripId, setSelectedTripId] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
+
+  // Cancel a trip on the road -- reason required; the superadmins and the
+  // canceller's Org Chart head are notified.
+  const handleCancel = async (trip) => {
+    const reason = await promptDialog(
+      `Cancel ${trip.username}'s trip ${trip.trip_code || ""} (${trip.current_step_label || "in progress"})? The vehicle and helpers are released and the shipment numbers freed. The superadmin and your head are notified. Reason (required):`,
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("A reason is required to cancel a trip.");
+      return;
+    }
+    if (!(await confirmDialog(`Cancel trip ${trip.trip_code || ""} now? This can't be undone.`))) {
+      return;
+    }
+    try {
+      setCancellingId(trip.id);
+      const res = await cancelActiveTrip(trip.id, reason.trim());
+      toast.success(res.data?.message || "Trip cancelled.");
+      if (onChanged) await onChanged();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to cancel the trip.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const renderCancel = (trip) =>
+    canEditPage ? (
+      <button
+        onClick={() => handleCancel(trip)}
+        disabled={cancellingId === trip.id}
+        className="rounded-lg border border-danger/40 px-3 py-1.5 text-xs font-medium text-danger transition hover:bg-danger/10 disabled:opacity-50"
+      >
+        {cancellingId === trip.id ? "Cancelling..." : "Cancel"}
+      </button>
+    ) : null;
   const [search, setSearch] = useState("");
   const filteredTrips = trips.filter((trip) =>
     matchesSearch(
@@ -58,6 +101,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
           <thead className="bg-surface-hover text-fg-muted">
             <tr>
               <th className="px-4 py-3 text-left font-medium">Driver</th>
+              <th className="px-4 py-3 text-left font-medium">Dispatched By</th>
               <th className="px-4 py-3 text-left font-medium">Trip Code</th>
               <th className="px-4 py-3 text-left font-medium">Ticket</th>
               <th className="px-4 py-3 text-left font-medium">Started</th>
@@ -70,7 +114,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="7" className="text-center py-6 text-fg-subtle">
+                <td colSpan="8" className="text-center py-6 text-fg-subtle">
                   No active trips
                 </td>
               </tr>
@@ -91,6 +135,7 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-4">{trip.dispatched_by_name || "-"}</td>
                   <td className="px-4 py-4 uppercase">{trip.trip_code || "-"}</td>
                   <td className="px-4 py-4 capitalize">{trip.ticket_no}</td>
                   <td className="px-4 py-4">
@@ -109,12 +154,15 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
                   </td>
                   <td className="px-4 py-4">{trip.current_stop || "-"}</td>
                   <td className="px-4 py-4 text-right">
-                    <button
-                      onClick={() => setSelectedTripId(trip.id)}
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-hover"
-                    >
-                      View
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => setSelectedTripId(trip.id)}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-hover"
+                      >
+                        View
+                      </button>
+                      {renderCancel(trip)}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -183,6 +231,15 @@ const ActiveTripsMonitor = ({ trips = [] }) => {
               <div className="mt-2 text-sm">
                 <span className="text-fg-muted block">Current Stop</span>
                 {trip.current_stop || "-"}
+              </div>
+
+              <div className="mt-2 text-sm">
+                <span className="text-fg-muted block">Dispatched By</span>
+                {trip.dispatched_by_name || "-"}
+              </div>
+
+              <div className="mt-3 flex justify-end">
+                {renderCancel(trip)}
               </div>
             </div>
           ))

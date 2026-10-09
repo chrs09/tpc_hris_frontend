@@ -121,7 +121,7 @@ const TripDashboard = () => {
           driver last triggered on their phone.
         </p>
 
-        <ActiveTripsMonitor trips={activeTrips} />
+        <ActiveTripsMonitor trips={activeTrips} onChanged={loadTrips} />
       </div>
 
       {/* APPROVAL STATUS */}
@@ -133,7 +133,8 @@ const TripDashboard = () => {
         <p className="mb-4 text-sm text-fg-subtle">
           Finished trips and where they are in approval -- Pending
           Approval (coordinator), Pending Office Approval, Pending Finance
-          Approval, or Approved.
+          Approval, or Approved. Pick Cancelled in the filter for cancelled
+          trips.
         </p>
 
         <TripApprovalPipeline refreshKey={pipelineRefreshKey} />

@@ -18,6 +18,17 @@ export const getAssignedTrips = () => api.get("/admin/trips/assigned");
 export const cancelAssignedTrip = (tripId, reason) =>
   api.post(`/admin/trips/${tripId}/cancel`, { reason });
 
+// Same endpoint for a trip on the road (Active Trips) -- also notifies the
+// superadmins and the canceller's Org Chart head.
+export const cancelActiveTrip = cancelAssignedTrip;
+
+// Trip cancellations bell: active trips cancelled, for superadmins and
+// the canceller's head.
+export const getTripCancelAlerts = async () => (await api.get("/admin/trips/cancel-alerts")).data;
+
+export const acknowledgeTripCancelAlert = async (id) =>
+  (await api.post(`/admin/trips/cancel-alerts/${id}/acknowledge`)).data;
+
 // Correct a dispatched trip the driver hasn't started yet (driver, vehicle,
 // hub, shipment numbers, destinations in order, helpers).
 export const updateAssignedTrip = (tripId, payload) =>

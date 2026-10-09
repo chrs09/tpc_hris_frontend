@@ -12,7 +12,18 @@ const STATUSES = [
   { value: "PENDING_OFFICE_REVIEW", label: "Pending Office Approval", classes: "bg-warning/15 text-warning" },
   { value: "PENDING_FINANCE_REVIEW", label: "Pending Finance Approval", classes: "bg-warning/15 text-warning" },
   { value: "COMPLETED", label: "Approved", classes: "bg-success/15 text-success" },
+  // Not in "All statuses" -- pick it to see cancelled trips.
+  { value: "CANCELLED", label: "Cancelled", classes: "bg-danger/15 text-danger" },
 ];
+
+// Who cancelled it, when and why.
+const CancelNote = ({ trip }) =>
+  trip.cancel_reason ? (
+    <div className="mt-1 max-w-xs text-[11px] text-danger">
+      {trip.cancelled_by || "Someone"} cancelled it {trip.cancelled_while}
+      {trip.cancelled_at ? ` (${trip.cancelled_at})` : ""}: “{trip.cancel_reason}”
+    </div>
+  ) : null;
 
 const StatusBadge = ({ trip }) => {
   const meta = STATUSES.find((s) => s.value === trip.status);
@@ -176,6 +187,7 @@ const TripApprovalPipeline = ({ refreshKey = 0 }) => {
                       {trip.status_since && (
                         <div className="mt-1 text-[11px] text-fg-subtle">since {trip.status_since}</div>
                       )}
+                      <CancelNote trip={trip} />
                     </td>
                   </tr>
                 ))}
@@ -210,6 +222,7 @@ const TripApprovalPipeline = ({ refreshKey = 0 }) => {
                   {trip.start_time}
                   {trip.status_since && ` · status since ${trip.status_since}`}
                 </p>
+                <CancelNote trip={trip} />
               </div>
             ))}
           </div>
