@@ -260,6 +260,9 @@ const AttendanceList = () => {
         id: emp.id,
         name: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
         role: emp.department,
+        // For the overtime worked past schedule (same maths as payroll).
+        schedule: emp.schedule_template,
+        payrollType: emp.payroll_type,
       }))
       .filter((emp) => filter === "All" || emp.role === filter)
       .filter(

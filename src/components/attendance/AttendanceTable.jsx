@@ -2,6 +2,23 @@ import React from "react";
 import { format, getDay, parseISO, isValid } from "date-fns";
 import FiledOvertimeBadge from "../overtime/FiledOvertimeBadge";
 import { filedOvertimeTitle, summarizeFiledOvertime } from "../../utils/filedOvertime";
+import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
+
+// Whole hours worked past the schedule's end (>= 1 h), same as payroll's
+// OT column -- 0 without a schedule, a time out, or for trip-paid staff.
+const workedOvertimeHours = (emp, attendance) => {
+  if (!emp.schedule || !attendance?.check_in_time_raw || !attendance?.check_out_time_raw) {
+    return 0;
+  }
+  const result = calculateAttendanceHours({
+    checkIn: new Date(attendance.check_in_time_raw),
+    checkOut: new Date(attendance.check_out_time_raw),
+    schedule: emp.schedule,
+    attendanceDate: attendance.attendance_date,
+    payrollType: emp.payrollType,
+  });
+  return Number(result?.overtimeHours) || 0;
+};
 
 const formatTime = (value) => {
   if (!value) return "--";
@@ -79,9 +96,9 @@ const AttendanceTable = ({
             })}
             <th
               className="border-border border bg-surface px-3 py-1 text-center text-fg"
-              title="Overtime filed for the days shown (approved by the head / pending)"
+              title="Overtime for the days shown: hours worked past the schedule, and overtime filed (approved by the head / pending)"
             >
-              Filed OT
+              Overtime
             </th>
           </tr>
         </thead>
@@ -408,25 +425,69 @@ const AttendanceTable = ({
                     ) : (
                       ""
                     )}
-                    {overtimeMap[`${emp.id}-${dateKey}`]?.length ? (() => {
-                      const filed = overtimeMap[`${emp.id}-${dateKey}`];
-                      const { approved, pending } = summarizeFiledOvertime(filed);
-                      return (
-                        <div
-                          title={`Overtime filed\n${filedOvertimeTitle(filed)}`}
-                          className={`mx-auto mt-0.5 w-fit rounded-full px-1.5 text-[9px] font-bold leading-4 ${
-                            pending > 0 ? "bg-warning/25 text-warning" : "bg-success/20 text-success"
-                          }`}
-                        >
-                          OT {(approved + pending).toFixed(1)}h{pending > 0 ? " ⏳" : ""}
-                        </div>
-                      );
-                    })() : null}
+                    {(() => {
+                      const filed = overtimeMap[`${emp.id}-${dateKey}`] || [];
+                      const worked = isTripBasedEmployee ? 0 : workedOvertimeHours(emp, attendance);
+                      if (filed.length) {
+                        const { approved, pending } = summarizeFiledOvertime(filed);
+                        return (
+                          <div
+                            title={`Overtime filed${worked ? ` (worked ${worked} h past schedule)` : ""}\n${filedOvertimeTitle(filed)}`}
+                            className={`mx-auto mt-0.5 w-fit rounded-full px-1.5 text-[9px] font-bold leading-4 ${
+                              pending > 0 ? "bg-warning/25 text-warning" : "bg-success/20 text-success"
+                            }`}
+                          >
+                            OT {(approved + pending).toFixed(1)}h{pending > 0 ? " ⏳" : " ✓"}
+                          </div>
+                        );
+                      }
+                      if (worked > 0) {
+                        return (
+                          <div
+                            title={`Worked ${worked} h past the schedule -- no overtime filed for this day yet.`}
+                            className="mx-auto mt-0.5 w-fit rounded-full bg-slate-500/15 px-1.5 text-[9px] font-bold leading-4 text-fg-muted"
+                          >
+                            OT {worked}h · not filed
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </td>
                 );
               })}
               <td className="border-border border px-2 py-1 text-center align-middle">
-                <FiledOvertimeBadge requests={overtimeByEmployee[emp.id] || []} />
+                {(() => {
+                  const isTripPaid =
+                    emp.role?.toLowerCase().includes("driver") ||
+                    emp.role?.toLowerCase().includes("helper");
+                  const worked = isTripPaid
+                    ? 0
+                    : daysInMonth.reduce(
+                        (sum, day) =>
+                          sum +
+                          workedOvertimeHours(
+                            emp,
+                            attendanceMap[`${emp.id}-${format(day, "yyyy-MM-dd")}`],
+                          ),
+                        0,
+                      );
+                  const filed = overtimeByEmployee[emp.id] || [];
+                  if (!worked && !filed.length) return <span className="text-fg-subtle">--</span>;
+                  return (
+                    <div className="flex flex-col items-center gap-0.5 text-[11px]">
+                      {worked > 0 && (
+                        <span
+                          className="whitespace-nowrap text-fg-muted"
+                          title="Hours worked past the schedule (from attendance)"
+                        >
+                          Worked {worked} h
+                        </span>
+                      )}
+                      {filed.length > 0 && <FiledOvertimeBadge requests={filed} />}
+                    </div>
+                  );
+                })()}
               </td>
             </tr>
           ))}
