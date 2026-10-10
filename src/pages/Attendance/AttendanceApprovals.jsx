@@ -15,6 +15,12 @@ import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import WorkReport from "../../components/attendance/WorkReport";
+import {
+  REVIEW_TYPES,
+  TYPE_STYLES,
+  friendlyReason,
+  reviewTypesOf,
+} from "../../utils/attendanceReview";
 
 const REASON_LABELS = {
   MISSED_TIME_OUT: "Forgot to time out",
@@ -34,6 +40,8 @@ export default function AttendanceApprovals() {
   const [loading, setLoading] = useState(true);
   const [actioningKey, setActioningKey] = useState(null);
   const [search, setSearch] = useState("");
+  // Filter chip: "all" or one of REVIEW_TYPES.
+  const [typeFilter, setTypeFilter] = useState("all");
   const [photo, setPhoto] = useState(null);
   // Missed time out: the time out the approver saves ("HH:MM"), starting
   // from what the employee said.
@@ -144,16 +152,25 @@ export default function AttendanceApprovals() {
     }
   };
 
-  const filtered = items.filter((item) =>
-    matchesSearch(
-      search,
-      item.employee_name,
-      item.position,
-      item.side_label,
-      item.attendance_date,
-      item.address,
-      item.review_reason,
-    ),
+  const typeCounts = REVIEW_TYPES.reduce(
+    (counts, t) => ({
+      ...counts,
+      [t.key]: items.filter((item) => reviewTypesOf(item).includes(t.key)).length,
+    }),
+    {},
+  );
+  const filtered = items.filter(
+    (item) =>
+      (typeFilter === "all" || reviewTypesOf(item).includes(typeFilter)) &&
+      matchesSearch(
+        search,
+        item.employee_name,
+        item.position,
+        item.side_label,
+        item.attendance_date,
+        item.address,
+        item.review_reason,
+      ),
   );
 
   return (
@@ -162,8 +179,9 @@ export default function AttendanceApprovals() {
         <div>
           <h1 className="text-xl font-semibold text-fg">Attendance Approvals</h1>
           <p className="mt-1 text-sm text-fg-subtle">
-            Time in/out outside the allowed area or with a face-check problem,
-            waiting on you. Approving passes it to the next head up, if any.
+            Time in / out that needs a look from you: a forgotten time out, no
+            work photo, outside the work area, or a face check. Approving passes
+            it to the next head up, if any.
           </p>
         </div>
         <SearchInput
@@ -173,11 +191,35 @@ export default function AttendanceApprovals() {
         />
       </div>
 
+      {items.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {[{ key: "all", label: "All" }, ...REVIEW_TYPES].map((t) => {
+            const count = t.key === "all" ? items.length : typeCounts[t.key];
+            if (t.key !== "all" && !count) return null;
+            const active = typeFilter === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTypeFilter(t.key)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  active
+                    ? "border-fg bg-fg text-background"
+                    : "border-border bg-surface text-fg-muted hover:bg-surface-hover"
+                }`}
+              >
+                {t.label} <span className={active ? "opacity-80" : "text-fg-subtle"}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {loading ? (
         <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-subtle">
-          {items.length ? "Nothing matches your search." : "Nothing waiting on you."}
+          {items.length ? "Nothing matches this filter or search." : "All caught up -- nothing waiting on you. 🎉"}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -222,18 +264,25 @@ export default function AttendanceApprovals() {
                   <span className="rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
                     {item.side_label}
                   </span>
+                  {reviewTypesOf(item).map((type) => (
+                    <span
+                      key={type}
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[type]}`}
+                    >
+                      {REVIEW_TYPES.find((t) => t.key === type)?.label}
+                    </span>
+                  ))}
                 </div>
                 <p className="text-xs text-fg-muted">
                   {item.attendance_date}
                   {item.time ? ` · ${item.time}` : ""}
                   {item.position ? ` · ${item.position}` : ""}
                 </p>
-                {item.outside_geofence && (
-                  <p className="text-xs font-semibold text-danger">📍 Outside geofence</p>
+                {!item.missed_time_out && (
+                  <p className="text-xs text-fg-muted">
+                    {friendlyReason(item.review_reason) || REASON_LABELS[item.review_status]}
+                  </p>
                 )}
-                <p className="text-xs text-fg-subtle">
-                  {item.review_reason || REASON_LABELS[item.review_status]}
-                </p>
                 {item.missed_time_out && (
                   <div className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs text-fg">
                     <p>
