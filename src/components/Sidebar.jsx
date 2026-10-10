@@ -1,9 +1,12 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
+  CheckCheck,
   ChevronLeft,
   ChevronRight,
-  Menu,
+  Home,
+  LayoutGrid,
+  X,
   LayoutDashboard,
   Users,
   Truck,
@@ -50,6 +53,12 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const location = useLocation();
 
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  // The dashboard's "More" shortcut opens the phone Menu.
+  useEffect(() => {
+    const open = () => setIsMobileOpen(true);
+    window.addEventListener("open-mobile-menu", open);
+    return () => window.removeEventListener("open-mobile-menu", open);
+  }, []);
 
   const username = localStorage.getItem("username");
   // Greeting: the person's full name (saved at login), else the username.
@@ -143,12 +152,62 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
     [role],
   );
 
+  // ---------------------------------------------------------------
+  // PHONE SCREENS (below md): an app-style shell instead of the sidebar --
+  // a top bar with the page title + alerts, a bottom tab bar (same tabs as
+  // the phone app: Home, Approvals, Trips, Tickets, Menu) and a full-screen
+  // Menu with every page this person can open.
+  // ---------------------------------------------------------------
+  const visibleOf = (label) =>
+    navGroups.find((g) => g.label === label)?.children.filter(isVisible) || [];
+  const approvalsItems = visibleOf("Approvals");
+  const tripItems = visibleOf("Trip Management");
+  const ticketItems = visibleOf("Tickets");
+  const bottomTabs = [
+    { key: "home", label: "Home", icon: Home, path: "/dashboard" },
+    approvalsItems.length && {
+      key: "approvals",
+      label: "Approvals",
+      icon: CheckCheck,
+      path: approvalsItems[0].path,
+      match: "/dashboard/approvals",
+    },
+    tripItems.length && {
+      key: "trips",
+      label: "Trips",
+      icon: Truck,
+      path: tripItems[0].path,
+      matchAny: tripItems.map((item) => item.path),
+    },
+    ticketItems.length && {
+      key: "tickets",
+      label: "Tickets",
+      icon: LifeBuoy,
+      path: ticketItems[0].path,
+    },
+  ].filter(Boolean);
+  const tabActive = (tab) =>
+    !isMobileOpen &&
+    (tab.matchAny
+      ? tab.matchAny.some((path) => isRouteActive(path))
+      : isRouteActive(tab.match || tab.path));
+  const currentPageLabel = (() => {
+    for (const group of navGroups) {
+      const hit = group.children.filter(isVisible).find((item) => isRouteActive(item.path));
+      if (hit) return group.label === hit.label ? hit.label : hit.label === "Overview" ? "Home" : hit.label;
+    }
+    return "Tytan HRIS";
+  })();
+
   return (
     <>
-      {/* MOBILE TOP BAR */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-surface text-fg border-b border-border flex items-center justify-between p-4 z-50">
-        <h1 className="font-bold">Tytan HRIS</h1>
-        <div className="flex items-center gap-3">
+      {/* MOBILE TOP BAR (title + alerts) */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 text-fg backdrop-blur">
+        <h1 className="min-w-0 flex-1 truncate text-lg font-bold">
+          {isMobileOpen ? "Menu" : currentPageLabel}
+        </h1>
+        {/* Alerts scroll sideways in their own lane so the title keeps its room. */}
+        <div className="flex max-w-[58%] items-center gap-2.5 overflow-x-auto py-1 [scrollbar-width:none]">
           <HubAlertsBell />
           <CashAdvanceAlertsBell />
           <ManualEntryAlertsBell />
@@ -157,31 +216,121 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           <LeaveAlertsBell />
           <TripCancelAlertsBell />
           <ThemeCustomizer />
-          <button
-            onClick={() => setIsMobileOpen(true)}
-            className="text-fg-muted hover:text-fg"
-          >
-            <Menu size={24} />
-          </button>
         </div>
       </div>
 
-      {/* OVERLAY */}
+      {/* MOBILE BOTTOM TAB BAR */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex border-t border-border bg-surface/95 backdrop-blur"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        {bottomTabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = tabActive(tab);
+          return (
+            <Link
+              key={tab.key}
+              to={tab.path}
+              onClick={() => setIsMobileOpen(false)}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${
+                active ? "text-primary" : "text-fg-muted"
+              }`}
+            >
+              <Icon size={22} />
+              {tab.label}
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          onClick={() => setIsMobileOpen((open) => !open)}
+          className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-semibold ${
+            isMobileOpen ? "text-primary" : "text-fg-muted"
+          }`}
+        >
+          <LayoutGrid size={22} />
+          Menu
+        </button>
+      </nav>
+
+      {/* MOBILE MENU (full screen, above the content, under the bars) */}
       {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
+        <div className="md:hidden fixed inset-x-0 top-14 bottom-0 z-40 overflow-y-auto bg-background px-4 pb-28 pt-4">
+          <div className="mb-4 flex items-start justify-between gap-3 rounded-2xl bg-surface p-4">
+            <div className="min-w-0">
+              <p className="text-xs text-fg-subtle">Signed in as</p>
+              <p className="truncate text-lg font-bold capitalize text-fg">{displayName}</p>
+              <p className="text-xs capitalize text-fg-muted">{role}</p>
+              {isSuperAdmin && (
+                <button
+                  onClick={openViewAsModal}
+                  className="mt-2 text-xs font-semibold text-primary hover:underline"
+                >
+                  View As...
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen(false)}
+              className="rounded-full p-1.5 text-fg-muted hover:bg-surface-hover"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-5">
+            {navGroups.map((group) => {
+              const items = group.children.filter(isVisible);
+              if (!items.length) return null;
+              const GroupIcon = group.icon;
+              return (
+                <div key={group.label}>
+                  <p className="mb-2 flex items-center gap-2 px-1 text-xs font-bold uppercase tracking-wide text-fg-subtle">
+                    {GroupIcon && <GroupIcon size={14} />}
+                    {group.label}
+                  </p>
+                  <div className="overflow-hidden rounded-2xl bg-surface">
+                    {items.map((item, index) => {
+                      const active = isRouteActive(item.path);
+                      return (
+                        <Link
+                          key={item.path + item.label}
+                          to={item.path}
+                          onClick={() => setIsMobileOpen(false)}
+                          className={`flex items-center justify-between px-4 py-3.5 text-[15px] font-medium ${
+                            index > 0 ? "border-t border-border" : ""
+                          } ${active ? "text-primary" : "text-fg"}`}
+                        >
+                          {item.label === "Overview" ? "Home" : item.label}
+                          <ChevronRight size={16} className="text-fg-subtle" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={logout}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-danger py-3.5 font-semibold text-danger-foreground"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
       )}
 
       {/* SIDEBAR */}
       <aside
         className={`
           fixed top-0 left-0 h-screen bg-surface text-fg border-r border-border
-          flex flex-col shadow-lg transition-all duration-300 overflow-hidden
+          hidden md:flex flex-col shadow-lg transition-all duration-300 overflow-hidden
           ${isCollapsed ? "w-20 px-3 py-6" : "w-64 p-6"}
-          ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}
-          md:translate-x-0 z-50
+          z-50
         `}
       >
         {/* THEME + NOTIFICATION BELLS */}
@@ -316,9 +465,21 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
         </div>
 
+        {/* LOGOUT */}
+        <button
+          onClick={logout}
+          title="Logout"
+          className={`mt-auto flex items-center justify-center rounded-lg bg-danger text-danger-foreground transition-colors hover:bg-danger-hover ${
+            isCollapsed ? "py-2.5" : "px-4 py-2"
+          }`}
+        >
+          {isCollapsed ? <LogOut size={20} /> : "Logout"}
+        </button>
+      </aside>
+
         {/* VIEW AS MODAL */}
         {showViewAsModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
             <div className="bg-surface border border-border rounded-xl p-6 w-full max-w-sm shadow-xl">
               {viewAsPendingUser ? (
                 // ================= CONFIRM STEP =================
@@ -431,17 +592,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           </div>
         )}
 
-        {/* LOGOUT */}
-        <button
-          onClick={logout}
-          title="Logout"
-          className={`mt-auto flex items-center justify-center rounded-lg bg-danger text-danger-foreground transition-colors hover:bg-danger-hover ${
-            isCollapsed ? "py-2.5" : "px-4 py-2"
-          }`}
-        >
-          {isCollapsed ? <LogOut size={20} /> : "Logout"}
-        </button>
-      </aside>
 
       {/* COLLAPSE HANDLE (desktop) -- a pull tab on the sidebar's edge,
           outside the aside so its overflow-hidden doesn't clip it. */}

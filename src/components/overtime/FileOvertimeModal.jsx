@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { clock12, overtimeSpan } from "../../utils/overtimeSpan";
 import {
   fileOvertime,
   getOvertimeFilingOptions,
@@ -26,6 +27,8 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
 
   const today = days.find((d) => d.is_today);
   const picked = days.find((d) => d.date === otDate);
+  const span = overtimeSpan(otDate, timeIn, timeOut);
+  const spanTooLong = !!span && span.minutes > 16 * 60;
 
   const pickDate = (value, list = days) => {
     setOtDate(value);
@@ -111,9 +114,31 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
             </label>
           </div>
 
+          <p className="-mt-1 text-[11px] text-fg-subtle">
+            Pick the day the overtime <strong>started</strong> -- even if it ended after midnight.
+          </p>
+
+          {picked?.attendance_time_out && (
+            <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-hover px-3 py-2 text-xs">
+              <span className="text-fg-muted">
+                Your time out that day:{" "}
+                <strong className="text-fg">{clock12(picked.attendance_time_out)}</strong>
+              </span>
+              {timeOut !== picked.attendance_time_out && (
+                <button
+                  type="button"
+                  onClick={() => setTimeOut(picked.attendance_time_out)}
+                  className="font-semibold text-primary hover:underline"
+                >
+                  Use it as the end
+                </button>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             <label className="text-sm font-medium text-fg-muted">
-              Overtime in
+              Overtime starts
               <input
                 type="time"
                 value={timeIn}
@@ -122,7 +147,7 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
               />
             </label>
             <label className="text-sm font-medium text-fg-muted">
-              Overtime out
+              Overtime ends
               <input
                 type="time"
                 value={timeOut}
@@ -131,6 +156,30 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
               />
             </label>
           </div>
+
+          {span && (
+            <div
+              className={`rounded-xl border px-3 py-2.5 text-sm ${
+                spanTooLong ? "border-danger/40 bg-danger/10" : "border-primary/30 bg-primary/10"
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-semibold text-fg">
+                  {span.startLabel} → {span.endLabel}
+                </span>
+                {span.nextDay && (
+                  <span className="rounded-full bg-fg px-2 py-0.5 text-[11px] font-semibold text-background">
+                    🌙 Ends the next day
+                  </span>
+                )}
+              </div>
+              <p className={`mt-1 text-xs font-semibold ${spanTooLong ? "text-danger" : "text-primary"}`}>
+                {spanTooLong
+                  ? `${span.duration} -- more than 16 hours, check the times`
+                  : `Total: ${span.duration}`}
+              </p>
+            </div>
+          )}
 
           <label className="block text-sm font-medium text-fg-muted">
             Reason

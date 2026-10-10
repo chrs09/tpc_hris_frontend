@@ -1,6 +1,7 @@
 // src/pages/dashboard/AdminDashboard.jsx
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -563,6 +564,9 @@ const AdminDashboard = () => {
           </div>
         </div>
       </Card>
+
+      {/* Shortcut tiles to every page this person can open (GCash-style). */}
+      <ModuleShortcuts />
 
       {/* QUICK ACTIONS (admin/coordinator/payroll/office admin -- not
           superadmin, who manages these company-wide instead of filing

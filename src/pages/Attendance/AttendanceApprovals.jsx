@@ -16,9 +16,12 @@ import { matchesSearch } from "../../utils/search";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import WorkReport from "../../components/attendance/WorkReport";
 import {
+  REVIEW_STATES,
   REVIEW_TYPES,
+  STATE_STYLES,
   TYPE_STYLES,
   friendlyReason,
+  reviewStateOf,
   reviewTypesOf,
 } from "../../utils/attendanceReview";
 
@@ -215,6 +218,20 @@ export default function AttendanceApprovals() {
         </div>
       )}
 
+      {items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">
+          <span className="font-medium text-fg-subtle">Status:</span>
+          {REVIEW_STATES.filter((st) => items.some((item) => reviewStateOf(item).key === st.key)).map(
+            (st) => (
+              <span key={st.key} className="inline-flex items-center gap-1.5">
+                <span className={`h-2.5 w-2.5 rounded-full ${STATE_STYLES[st.key].dot}`} />
+                {st.label}
+              </span>
+            ),
+          )}
+        </div>
+      )}
+
       {loading ? (
         <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
       ) : filtered.length === 0 ? (
@@ -226,7 +243,9 @@ export default function AttendanceApprovals() {
           {filtered.map((item) => (
             <div
               key={item.key}
-              className="flex gap-4 rounded-2xl border border-border bg-surface p-4"
+              className={`flex gap-4 rounded-2xl border border-l-4 border-border bg-surface p-4 ${
+                STATE_STYLES[reviewStateOf(item).key].border
+              }`}
             >
               <div className="relative h-28 w-24 shrink-0">
                 <button
@@ -259,6 +278,14 @@ export default function AttendanceApprovals() {
               </div>
 
               <div className="min-w-0 flex-1 space-y-1.5">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                    STATE_STYLES[reviewStateOf(item).key].pill
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATE_STYLES[reviewStateOf(item).key].dot}`} />
+                  {reviewStateOf(item).label}
+                </span>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-fg">{item.employee_name}</p>
                   <span className="rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
@@ -326,11 +353,6 @@ export default function AttendanceApprovals() {
                 <ApprovalProgress steps={item.approval_steps} />
                 <ApprovedBy log={item.approval_log} />
 
-                {item.can_act === false && (
-                  <p className="rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-semibold text-success">
-                    ✓ You approved this -- waiting for {item.waiting_on || "the next head"}.
-                  </p>
-                )}
 
                 {canEditPage && item.can_act !== false && (
                 <div className="flex gap-2 pt-1">

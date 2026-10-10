@@ -92,7 +92,7 @@ const Dashboard = () => {
           transition-all duration-300
           ${isCollapsed ? "md:ml-20" : "md:ml-64"}
           ${impersonating ? "pt-32 md:pt-16" : "pt-20 md:pt-6"}
-          p-4 md:p-6
+          p-4 pb-24 md:p-6
           overflow-x-auto
         `}
       >

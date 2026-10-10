@@ -42,9 +42,39 @@ export const friendlyReason = (reason) => {
     .trim();
 };
 
+// Type tags stay neutral -- color on a card means its STATUS (below).
 export const TYPE_STYLES = {
-  missed: "bg-warning/15 text-warning",
-  work: "bg-primary/15 text-primary",
-  outside: "bg-danger/15 text-danger",
-  face: "bg-surface-active text-fg-muted",
+  missed: "border border-border text-fg-muted",
+  work: "border border-border text-fg-muted",
+  outside: "border border-border text-fg-muted",
+  face: "border border-border text-fg-muted",
+};
+
+// Where the item stands for the person looking at it (color indicator).
+export const reviewStateOf = (item) => {
+  if (item.review_status === "MISSED_TIME_OUT_UNFILED") {
+    return { key: "unfiled", label: "Not filed yet -- you can enter it" };
+  }
+  if (item.can_act === false) {
+    return { key: "approved", label: `You approved -- waiting for ${item.waiting_on || "the next head"}` };
+  }
+  if (item.my_turn === false && item.waiting_on) {
+    return { key: "others", label: `Waiting for ${item.waiting_on}` };
+  }
+  return { key: "yours", label: "Waiting for you" };
+};
+
+export const REVIEW_STATES = [
+  { key: "yours", label: "Waiting for you" },
+  { key: "unfiled", label: "Not filed yet" },
+  { key: "others", label: "Waiting for another head" },
+  { key: "approved", label: "You approved" },
+];
+
+// Card edge + status pill colors per state.
+export const STATE_STYLES = {
+  yours: { border: "border-l-warning", pill: "bg-warning/15 text-warning", dot: "bg-warning" },
+  unfiled: { border: "border-l-danger", pill: "bg-danger/15 text-danger", dot: "bg-danger" },
+  others: { border: "border-l-primary", pill: "bg-primary/15 text-primary", dot: "bg-primary" },
+  approved: { border: "border-l-success", pill: "bg-success/15 text-success", dot: "bg-success" },
 };

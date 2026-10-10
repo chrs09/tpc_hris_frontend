@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getNavGroups } from "../../../constants/navGroups";
 import useModuleAccess from "../../../hooks/useModuleAccess";
@@ -12,6 +13,12 @@ import useModuleAccess from "../../../hooks/useModuleAccess";
 export default function SectionTabs({ group }) {
   const location = useLocation();
   const { role, isVisible } = useModuleAccess();
+  // Each page draws its own tab bar, so it starts scrolled to the left --
+  // bring the selected tab into view (phones scroll this bar sideways).
+  const activeRef = useRef(null);
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [location.pathname, location.search]);
 
   const found = getNavGroups(role).find((g) => g.label === group);
   if (!found) return null;
@@ -30,7 +37,7 @@ export default function SectionTabs({ group }) {
     // the wrapper then just reserves that height (h-16) in normal flow
     // so content below doesn't jump up underneath it.
     <div className="h-20 md:sticky md:top-0 md:z-20 md:mb-6 md:h-auto">
-      <div className="fixed left-4 right-4 top-16 z-20 flex gap-1 overflow-x-auto border-b border-border bg-background md:static md:left-auto md:right-auto md:top-auto md:z-auto">
+      <div className="fixed left-0 right-0 top-14 z-20 flex gap-1 overflow-x-auto border-b border-border bg-background px-2 [scrollbar-width:none] md:static md:left-auto md:right-auto md:top-auto md:z-auto md:px-0">
         {visibleChildren.map((item) => {
           const pathname = item.path.split("?")[0];
           const itemTab = new URLSearchParams(item.path.split("?")[1] || "").get("tab");
@@ -41,8 +48,9 @@ export default function SectionTabs({ group }) {
           return (
             <Link
               key={item.path}
+              ref={active ? activeRef : undefined}
               to={item.path}
-              className={`whitespace-nowrap border-b-2 px-5 py-3 text-base font-medium transition-colors md:px-4 md:py-2 md:text-sm ${
+              className={`shrink-0 whitespace-nowrap border-b-2 px-4 py-3 text-[15px] font-medium transition-colors md:px-4 md:py-2 md:text-sm ${
                 active
                   ? "border-primary text-primary"
                   : "border-transparent text-fg-subtle hover:text-fg"

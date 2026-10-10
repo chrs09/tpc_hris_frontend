@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
 import { format, addMonths, subMonths, parse } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getMyAttendanceHistory } from "../../api/attendance";
@@ -190,6 +191,9 @@ const EmployeeDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Shortcut tiles to every page this person can open (GCash-style). */}
+      <ModuleShortcuts />
 
       {isDesktop ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
