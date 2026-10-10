@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
 import { format, addMonths, subMonths, parse } from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { getMyAttendanceHistory } from "../../api/attendance";
 import { getMyLeaveRequests } from "../../api/leave";
 import { getMyOvertimeRequests } from "../../api/overtimeRequests";
@@ -10,6 +10,7 @@ import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
 import OvertimeHistoryList from "../../components/overtime/OvertimeHistoryList";
 import OvertimeActionButton from "../../components/overtime/OvertimeActionButton";
+import FileOvertimeModal from "../../components/overtime/FileOvertimeModal";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import useIsDesktop from "../../hooks/useIsDesktop";
 
@@ -31,6 +32,7 @@ const EmployeeDashboard = () => {
   const [overtimeRequests, setOvertimeRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [showOvertimeModal, setShowOvertimeModal] = useState(false);
   const isDesktop = useIsDesktop();
 
   const employeeName = localStorage.getItem("username") || "there";
@@ -193,7 +195,22 @@ const EmployeeDashboard = () => {
       </div>
 
       {/* Shortcut tiles to every page this person can open (GCash-style). */}
-      <ModuleShortcuts />
+      <ModuleShortcuts
+        actions={[
+          {
+            key: "file-leave",
+            label: "File Leave",
+            icon: CalendarPlus,
+            onClick: () => setShowLeaveModal(true),
+          },
+          {
+            key: "file-overtime",
+            label: "File Overtime",
+            icon: Clock,
+            onClick: () => setShowOvertimeModal(true),
+          },
+        ]}
+      />
 
       {isDesktop ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -252,6 +269,12 @@ const EmployeeDashboard = () => {
       {showLeaveModal && (
         <LeaveRequestModal
           onClose={() => setShowLeaveModal(false)}
+          onFiled={loadData}
+        />
+      )}
+      {showOvertimeModal && (
+        <FileOvertimeModal
+          onClose={() => setShowOvertimeModal(false)}
           onFiled={loadData}
         />
       )}

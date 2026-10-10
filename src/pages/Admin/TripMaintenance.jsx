@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import {
   Truck,
   Wrench,
@@ -252,10 +253,12 @@ const DocumentFormSection = ({
 
 export default function TripMaintenance() {
   const canEditPage = usePageCanEdit();
-  const [searchParams] = useSearchParams();
-  const initialTab =
-    searchParams.get("tab") === "maintenance" ? "maintenance" : "units";
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // The tab lives in the URL (?tab=) so the Fleet Management tab bar and
+  // the sidebar links switch it -- not just the summary cards below.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlTab = searchParams.get("tab");
+  const activeTab = ["maintenance", "truck-types"].includes(urlTab) ? urlTab : "units";
+  const setActiveTab = (tab) => setSearchParams({ tab }, { replace: true });
 
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
@@ -586,6 +589,8 @@ export default function TripMaintenance() {
 
   return (
     <div className="space-y-5">
+      <SectionTabs group="Fleet Management" />
+
       {/* HEADER */}
       <div>
         <h1 className="text-3xl font-bold text-fg">Fleet Management</h1>

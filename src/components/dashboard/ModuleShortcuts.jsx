@@ -34,6 +34,8 @@ import useModuleAccess from "../../hooks/useModuleAccess";
 // GCash-style shortcut tiles under the dashboard greeting: one rounded icon
 // square per page this person can open (same rules as the sidebar). Phones
 // show up to 7 + "More" (opens the full Menu); larger screens show them all.
+// `actions` ({ key, label, icon, onClick }) are quick actions -- File Leave,
+// File Overtime -- shown first, before the page tiles.
 
 // Most used first; anything not listed follows in sidebar order.
 const PRIORITY = [
@@ -104,7 +106,7 @@ const SHORT = {
 
 const PHONE_LIMIT = 7;
 
-export default function ModuleShortcuts() {
+export default function ModuleShortcuts({ actions = [] }) {
   const { role, isVisible } = useModuleAccess();
 
   const items = getNavGroups(role)
@@ -118,24 +120,40 @@ export default function ModuleShortcuts() {
     const i = PRIORITY.indexOf(key);
     return i === -1 ? PRIORITY.length : i;
   };
-  const tiles = [...items].sort((a, b) => rank(a.key) - rank(b.key));
+  const tiles = [
+    ...actions,
+    ...[...items].sort((a, b) => rank(a.key) - rank(b.key)),
+  ];
   if (!tiles.length) return null;
 
   const openMenu = () => window.dispatchEvent(new Event("open-mobile-menu"));
 
   const Tile = ({ item, hiddenOnPhone }) => {
-    const Icon = ICONS[item.key] || LayoutGrid;
-    return (
-      <Link
-        to={item.path}
-        className={`group flex flex-col items-center gap-1.5 text-center ${hiddenOnPhone ? "hidden md:flex" : ""}`}
-      >
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm transition group-hover:bg-primary/20 group-active:scale-95">
+    const Icon = item.icon || ICONS[item.key] || LayoutGrid;
+    const className = `group flex flex-col items-center gap-1.5 text-center ${hiddenOnPhone ? "hidden md:flex" : ""}`;
+    const body = (
+      <>
+        <span
+          className={`flex h-14 w-14 items-center justify-center rounded-2xl shadow-sm transition group-active:scale-95 ${
+            item.onClick
+              ? "bg-primary text-primary-foreground group-hover:bg-primary-hover"
+              : "bg-primary/10 text-primary group-hover:bg-primary/20"
+          }`}
+        >
           <Icon size={26} strokeWidth={1.8} />
         </span>
         <span className="line-clamp-2 text-[11px] font-medium leading-tight text-fg">
           {SHORT[item.key] || item.label}
         </span>
+      </>
+    );
+    return item.onClick ? (
+      <button type="button" onClick={item.onClick} className={className}>
+        {body}
+      </button>
+    ) : (
+      <Link to={item.path} className={className}>
+        {body}
       </Link>
     );
   };
