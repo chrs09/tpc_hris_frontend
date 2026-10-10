@@ -118,9 +118,21 @@ export function calculateStandardAttendanceHours({
     checkIn.getHours() * 60 + checkIn.getMinutes(),
   );
 
-  const actualOutMinutes = toLocalMinutes(
+  let actualOutMinutes = toLocalMinutes(
     checkOut.getHours() * 60 + checkOut.getMinutes(),
   );
+
+  // Worked past midnight on a day schedule (e.g. 08:27 AM -> 02:14 AM the
+  // next day): measure the time out from the time-in day instead of by
+  // its clock time -- otherwise 02:14 AM reads as "left in the morning"
+  // (2nd half absent, 0 regular hours). Past 24:00 here = next day.
+  const elapsedMinutes = Math.round((checkOut.getTime() - checkIn.getTime()) / 60000);
+  if (
+    scheduleOutMinutes > scheduleInMinutes &&
+    actualInMinutes + elapsedMinutes >= 1440
+  ) {
+    actualOutMinutes = actualInMinutes + elapsedMinutes;
+  }
 
   // ===================================================
   // RENDERED HOURS

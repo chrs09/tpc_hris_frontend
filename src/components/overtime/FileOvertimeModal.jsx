@@ -11,11 +11,13 @@ const getErrorMessage = (error) =>
 const inputStyles =
   "mt-1 w-full rounded-lg border border-border bg-background p-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
-// File an overtime request: request date (today), overtime date (today or
-// yesterday), overtime in/out and reason. Times are pre-filled from the
+// File an overtime request: request date (today), overtime date (any day
+// of the current payroll cutoff up to today -- Motorpool its week, Admin
+// its semi-monthly cutoff), overtime in/out and reason. Times are pre-filled from the
 // schedule and attendance when there's something to go on.
 export default function FileOvertimeModal({ onClose, onFiled }) {
   const [days, setDays] = useState([]);
+  const [cutoff, setCutoff] = useState(null); // { start, label }
   const [otDate, setOtDate] = useState("");
   const [timeIn, setTimeIn] = useState("");
   const [timeOut, setTimeOut] = useState("");
@@ -23,7 +25,7 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
   const [submitting, setSubmitting] = useState(false);
 
   const today = days.find((d) => d.is_today);
-  const yesterday = days.find((d) => !d.is_today);
+  const picked = days.find((d) => d.date === otDate);
 
   const pickDate = (value, list = days) => {
     setOtDate(value);
@@ -37,6 +39,10 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
       .then((data) => {
         const list = data.days || [];
         setDays(list);
+        setCutoff({
+          start: data.cutoff_start || list[list.length - 1]?.date,
+          label: data.cutoff_label,
+        });
         const first = list.find((d) => d.is_today) || list[0];
         if (first) pickDate(first.date, list);
       })
@@ -97,7 +103,7 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
               <input
                 type="date"
                 value={otDate}
-                min={yesterday?.date}
+                min={cutoff?.start}
                 max={today?.date}
                 onChange={(e) => pickDate(e.target.value)}
                 className={inputStyles}
@@ -137,8 +143,16 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
             />
           </label>
 
+          {picked && !picked.can_file && (
+            <p className="text-xs font-medium text-danger">
+              {picked.payroll_approved
+                ? "Payroll already approved overtime for this cutoff."
+                : "No attendance that day -- overtime can't be filed for it."}
+            </p>
+          )}
           <p className="text-[11px] text-fg-subtle">
-            Overtime date can be today or yesterday.
+            Overtime date can be any day of this payroll cutoff
+            {cutoff?.label ? ` (${cutoff.label})` : ""}, up to today.
           </p>
         </div>
 
