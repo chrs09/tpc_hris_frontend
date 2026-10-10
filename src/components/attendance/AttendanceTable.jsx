@@ -1,5 +1,7 @@
 import React from "react";
 import { format, getDay, parseISO, isValid } from "date-fns";
+import FiledOvertimeBadge from "../overtime/FiledOvertimeBadge";
+import { filedOvertimeTitle, summarizeFiledOvertime } from "../../utils/filedOvertime";
 
 const formatTime = (value) => {
   if (!value) return "--";
@@ -30,6 +32,10 @@ const AttendanceTable = ({
   onCellClick,
   onPreviewAttendance,
   today,
+  // Overtime filed: { "<employee id>-<YYYY-MM-DD>": [requests] } and
+  // { "<employee id>": [requests in the shown days] }.
+  overtimeMap = {},
+  overtimeByEmployee = {},
 }) => {
   return (
     <div className="overflow-x-auto border-border border rounded shadow">
@@ -71,6 +77,12 @@ const AttendanceTable = ({
                 </th>
               );
             })}
+            <th
+              className="border-border border bg-surface px-3 py-1 text-center text-fg"
+              title="Overtime filed for the days shown (approved by the head / pending)"
+            >
+              Filed OT
+            </th>
           </tr>
         </thead>
 
@@ -396,9 +408,26 @@ const AttendanceTable = ({
                     ) : (
                       ""
                     )}
+                    {overtimeMap[`${emp.id}-${dateKey}`]?.length ? (() => {
+                      const filed = overtimeMap[`${emp.id}-${dateKey}`];
+                      const { approved, pending } = summarizeFiledOvertime(filed);
+                      return (
+                        <div
+                          title={`Overtime filed\n${filedOvertimeTitle(filed)}`}
+                          className={`mx-auto mt-0.5 w-fit rounded-full px-1.5 text-[9px] font-bold leading-4 ${
+                            pending > 0 ? "bg-warning/25 text-warning" : "bg-success/20 text-success"
+                          }`}
+                        >
+                          OT {(approved + pending).toFixed(1)}h{pending > 0 ? " ⏳" : ""}
+                        </div>
+                      );
+                    })() : null}
                   </td>
                 );
               })}
+              <td className="border-border border px-2 py-1 text-center align-middle">
+                <FiledOvertimeBadge requests={overtimeByEmployee[emp.id] || []} />
+              </td>
             </tr>
           ))}
         </tbody>

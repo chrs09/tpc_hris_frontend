@@ -12,7 +12,8 @@ import {
   getOTApprovals,
   reverseOT,
 } from "../../api/payroll/overtimeApproval";
-import { getApprovedOvertimeRequests } from "../../api/overtimeRequests";
+import { getApprovedOvertimeRequests, getFiledOvertime } from "../../api/overtimeRequests";
+import FiledOvertimeBadge from "../../components/overtime/FiledOvertimeBadge";
 import { calculateAttendanceHours } from "../../utils/payroll/calculateAttendanceHours";
 import { getExpectedHoursForDate } from "../../utils/payroll/attendance/attendanceTimeUtils";
 import { exportPayrollExcel } from "../../utils/payroll/PayrollExcelExport";
@@ -239,6 +240,22 @@ const PayrollList = () => {
 
   const periods = useMemo(() => periodsFromRule(cutoffRule, 24), [cutoffRule]);
   const activePeriod = periods[selectedPeriod] || periods[0] || NO_PERIOD;
+
+  // "Filed OT" column: overtime requests filed in this cutoff.
+  const [filedOvertime, setFiledOvertime] = useState([]);
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    getFiledOvertime(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+      .then(setFiledOvertime)
+      .catch(() => setFiledOvertime([]));
+  }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
+  const filedOvertimeByEmployee = useMemo(() => {
+    const map = {};
+    filedOvertime.forEach((r) => {
+      (map[r.employee_id] = map[r.employee_id] || []).push(r);
+    });
+    return map;
+  }, [filedOvertime]);
   const cutoffKey = activePeriod.cutoffStart
     ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`
     : "";
@@ -1710,6 +1727,13 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                   <th className="px-4 py-3 text-left">OT Status</th>
 
+                  <th
+                    className="px-4 py-3 text-left"
+                    title="Overtime the employee filed for this cutoff (approved by their head / still pending). Hover a value for each request."
+                  >
+                    Filed OT
+                  </th>
+
                   <th className="px-4 py-3 text-left">Semi-Monthly Basic</th>
 
                   <th className="px-4 py-3 text-left">
@@ -1826,6 +1850,10 @@ Next: Submit for Review. You can generate again after corrections until it's app
                     </td>
 
                     <td className="px-4 py-3">{row.otStatus}</td>
+
+                    <td className="px-4 py-3">
+                      <FiledOvertimeBadge requests={filedOvertimeByEmployee[row.employee?.id] || []} />
+                    </td>
 
                     {/* Basic */}
                     <td className="px-4 py-3">

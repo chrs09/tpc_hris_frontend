@@ -24,6 +24,7 @@ import {
   adjustAttendanceTimeWithReason,
 } from "../../api/attendance";
 import { getHolidays } from "../../api/holidays";
+import { getFiledOvertime } from "../../api/overtimeRequests";
 
 import { employeeRoles } from "../../constants/employeeRole";
 import { departmentColors } from "../../constants/departmentColors";
@@ -287,6 +288,31 @@ const AttendanceList = () => {
 
     return allDays.filter((day) => day >= fromDate && day <= toDate);
   }, [currentMonth, fromDate, toDate]);
+
+  // ---------------------------------------
+  // FILED OVERTIME (OT tag per day + Filed OT column)
+  // ---------------------------------------
+
+  const [filedOvertime, setFiledOvertime] = useState([]);
+  const otRangeStart = daysInMonth.length ? format(daysInMonth[0], "yyyy-MM-dd") : null;
+  const otRangeEnd = daysInMonth.length
+    ? format(daysInMonth[daysInMonth.length - 1], "yyyy-MM-dd")
+    : null;
+  useEffect(() => {
+    if (!otRangeStart || !otRangeEnd) return;
+    getFiledOvertime(otRangeStart, otRangeEnd)
+      .then(setFiledOvertime)
+      .catch(() => setFiledOvertime([]));
+  }, [otRangeStart, otRangeEnd]);
+  const { overtimeMap, overtimeByEmployee } = useMemo(() => {
+    const byDay = {};
+    const byEmployee = {};
+    filedOvertime.forEach((r) => {
+      (byDay[`${r.employee_id}-${r.ot_date}`] ||= []).push(r);
+      (byEmployee[r.employee_id] ||= []).push(r);
+    });
+    return { overtimeMap: byDay, overtimeByEmployee: byEmployee };
+  }, [filedOvertime]);
 
   // ---------------------------------------
   // ATTENDANCE MAP
@@ -952,6 +978,8 @@ const AttendanceList = () => {
             isEditableDate={isEditableDate}
             isSuperAdmin={canEditList}
             today={today}
+            overtimeMap={overtimeMap}
+            overtimeByEmployee={overtimeByEmployee}
             onPreviewAttendance={(attendance, type) =>
               setPreviewModal({
                 attendance,

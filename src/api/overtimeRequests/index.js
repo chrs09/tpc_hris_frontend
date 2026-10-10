@@ -19,6 +19,13 @@ export const cancelOvertimeRequest = async (requestId) => {
 
 // Every head-approved request, for Payroll to sum against its own cutoff
 // periods and pre-fill its OT approval step (see PayrollList.jsx).
+// Overtime filed for days in start..end ("YYYY-MM-DD"), pending and
+// approved -- the "Filed OT" indicator (Payroll list, Attendance grid).
+export const getFiledOvertime = async (start, end) => {
+  const res = await api.get("/overtime-requests/filed", { params: { start, end } });
+  return res.data;
+};
+
 export const getApprovedOvertimeRequests = async () => {
   const res = await api.get("/overtime-requests/approved");
   return res.data;
