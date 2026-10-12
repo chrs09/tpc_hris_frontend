@@ -27,3 +27,10 @@ export const transitionPayrollRun = async (payload) => {
   const res = await api.post("/payroll-runs/transition", payload);
   return res.data;
 };
+
+// Every trip each driver / helper did in start..end, any status, with
+// whether payroll pays it yet ("counted").
+export const getTripCheck = async (start, end) => {
+  const res = await api.get("/payroll-runs/trip-check", { params: { start, end } });
+  return res.data;
+};

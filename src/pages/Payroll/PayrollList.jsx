@@ -43,8 +43,10 @@ import { payrollStatusLabel } from "../../utils/payroll/payrollStatus";
 import {
   getPayrollRun,
   getPayrollRunStatuses,
+  getTripCheck,
   markPayrollGenerated,
 } from "../../api/payroll/payrollRuns";
+import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
 
 /*
  * Government contribution lookup used by Admin payroll.
@@ -256,6 +258,16 @@ const PayrollList = () => {
     });
     return map;
   }, [filedOvertime]);
+  // Every trip drivers / helpers did in this cutoff, any status -- the
+  // ones payroll doesn't pay yet are listed on their row and in details.
+  const [tripCheck, setTripCheck] = useState([]);
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    getTripCheck(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+      .then(setTripCheck)
+      .catch(() => setTripCheck([]));
+  }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
+
   const cutoffKey = activePeriod.cutoffStart
     ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`
     : "";
@@ -1002,10 +1014,28 @@ const PayrollList = () => {
         }
 
         if (isTripBasedEmployee) {
+          // Trips in the cutoff that aren't in tripBreakdown -- not
+          // approved yet, or no attendance on that day.
+          const unpaidTrips = tripCheck.filter(
+            (trip) =>
+              trip.employee_id === employee.id && !processedTrips.has(trip.trip_id),
+          );
+          const tripWarnings = [];
+          const unpaidWarning = unpaidTripsWarning(unpaidTrips);
+          if (unpaidWarning) tripWarnings.push(unpaidWarning);
+          const zeroRate = tripBreakdown.filter((trip) => !Number(trip.rate));
+          if (zeroRate.length) {
+            tripWarnings.push(
+              `${zeroRate.length} paid trip${zeroRate.length === 1 ? "" : "s"} with no rate (₱0)`,
+            );
+          }
+
           return {
             employee,
 
             isTripBasedEmployee: true,
+
+            unpaidTrips,
 
             totalTrips,
 
@@ -1017,7 +1047,7 @@ const PayrollList = () => {
 
             records,
 
-            warnings: [],
+            warnings: tripWarnings,
 
             daysWorked: Object.keys(tripsByDate).length,
             absentDays: 0,
@@ -1174,6 +1204,7 @@ const PayrollList = () => {
     searchEmployee,
     adjustments,
     cashAdvanceInfo,
+    tripCheck,
   ]);
 
   // Holidays inside the selected cutoff, oldest first.
@@ -2211,9 +2242,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                     </td>
 
                     <td className="px-4 py-3">
-                      {row.isTripBasedEmployee ? (
-                        <span className="text-fg-subtle text-xs">N/A</span>
-                      ) : row.warnings.length > 0 ? (
+                      {row.warnings.length > 0 ? (
                         <div className="space-y-1">
                           {row.warnings.map((warning, index) => (
                             <div key={index} className="text-xs text-danger">

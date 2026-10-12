@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { notPaidReason, tripStatusLabel } from "../../utils/payroll/tripCheck";
 import {
   approveOT,
   getEmployeeOTHistory,
@@ -709,6 +710,59 @@ const PayrollDetailModal = ({
                   </tfoot>
                 </table>
               </div>
+
+              {payroll.unpaidTrips?.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="font-semibold">
+                    Trips not paid yet ({payroll.unpaidTrips.length})
+                  </h3>
+                  <p className="mb-3 text-xs text-fg-muted">
+                    Done in this cutoff but not in the pay above. A trip is paid once
+                    it&apos;s Completed (approved by Finance) and there&apos;s attendance
+                    that day -- finish these, then generate the payroll again.
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[640px] border border-border text-sm">
+                      <thead className="bg-surface-hover">
+                        <tr>
+                          <th className="border border-border px-3 py-2">Date</th>
+                          <th className="border border-border px-3 py-2">Ticket No</th>
+                          <th className="border border-border px-3 py-2">Plate Number</th>
+                          <th className="border border-border px-3 py-2">Rate Profile</th>
+                          <th className="border border-border px-3 py-2">Status</th>
+                          <th className="border border-border px-3 py-2">Why not paid</th>
+                          <th className="border border-border px-3 py-2">Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {payroll.unpaidTrips.map((trip) => (
+                          <tr key={`${trip.trip_id}-${trip.role}`} className="bg-warning/5">
+                            <td className="border border-border px-3 py-2 whitespace-nowrap">{trip.date}</td>
+                            <td className="border border-border px-3 py-2">{trip.ticket_no || "--"}</td>
+                            <td className="border border-border px-3 py-2">{trip.plate_number || "--"}</td>
+                            <td className="border border-border px-3 py-2">{trip.trip_rate_profile || "--"}</td>
+                            <td className="border border-border px-3 py-2">
+                              <span className="whitespace-nowrap rounded bg-warning/15 px-2 py-1 text-xs font-semibold text-warning">
+                                {tripStatusLabel(trip.status)}
+                              </span>
+                            </td>
+                            <td className="border border-border px-3 py-2 text-xs text-danger">
+                              {notPaidReason(trip)}
+                            </td>
+                            <td className="border border-border px-3 py-2 text-fg-muted">
+                              ₱{Number(trip.first_trip_rate || 0).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mt-1 text-[11px] text-fg-subtle">
+                    Rate shown is the first-trip rate; the final amount depends on the
+                    trip&apos;s order that day once it&apos;s paid.
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div>
