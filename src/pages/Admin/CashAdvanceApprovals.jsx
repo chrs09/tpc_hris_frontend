@@ -635,6 +635,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         Approved CA
                       </th>
                       <th className="px-6 text-left font-medium">
+                        Loan Purpose
+                      </th>
+                      <th className="px-6 text-left font-medium">
                         Deduction / Pay
                       </th>
                       <th className="px-6 text-left font-medium">
@@ -669,6 +672,12 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           {req.approved_amount != null
                             ? `₱${req.approved_amount.toLocaleString()}`
                             : "—"}
+                        </td>
+                        <td
+                          className="max-w-[220px] px-6 text-fg-muted"
+                          title={req.reason || ""}
+                        >
+                          <span className="line-clamp-2">{req.reason || "—"}</span>
                         </td>
                         <td className="px-6 text-fg-muted">
                           ₱{req.deduction_per_pay_amount.toLocaleString()}
@@ -904,6 +913,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           {request.approved_amount.toLocaleString()}
                         </p>
                       )}
+
+                    {request.reason && (
+                      <p className="mt-1 text-xs text-fg-muted">
+                        <span className="font-semibold text-fg">Loan Purpose:</span>{" "}
+                        {request.reason}
+                      </p>
+                    )}
 
                     <p className="mt-1 text-xs text-fg-subtle">
                       ₱{request.deduction_per_pay_amount.toLocaleString()}{" "}
