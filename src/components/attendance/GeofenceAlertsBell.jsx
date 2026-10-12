@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useBellPanel from "../../hooks/useBellPanel";
 import { useNavigate } from "react-router-dom";
 import { MapPinOff } from "lucide-react";
 import toast from "react-hot-toast";
@@ -30,7 +31,7 @@ export default function GeofenceAlertsBell() {
   const navigate = useNavigate();
 
   const [entries, setEntries] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useBellPanel();
   const [dropdownRect, setDropdownRect] = useState(null);
 
   const buttonRef = useRef(null);

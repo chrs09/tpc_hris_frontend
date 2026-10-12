@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useBellPanel from "../../hooks/useBellPanel";
 import { useNavigate } from "react-router-dom";
 import { Fuel } from "lucide-react";
 import toast from "react-hot-toast";
@@ -29,7 +30,7 @@ export default function FuelRequestAlertsBell() {
   const navigate = useNavigate();
 
   const [items, setItems] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useBellPanel();
   const [dropdownRect, setDropdownRect] = useState(null);
 
   const buttonRef = useRef(null);

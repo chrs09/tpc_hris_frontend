@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useBellPanel from "../../hooks/useBellPanel";
 import { useNavigate } from "react-router-dom";
 import { Wallet } from "lucide-react";
 import toast from "react-hot-toast";
@@ -41,7 +42,7 @@ export default function CashAdvanceAlertsBell() {
 
   const [alerts, setAlerts] = useState([]);
   const [waiting, setWaiting] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useBellPanel();
   const [acknowledgingId, setAcknowledgingId] = useState(null);
   const [dropdownRect, setDropdownRect] = useState(null);
 

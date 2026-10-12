@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useBellPanel from "../../hooks/useBellPanel";
 import { CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
 import { acknowledgeLeaveAlert, getLeaveAlerts } from "../../api/leave";
@@ -32,7 +33,7 @@ export default function LeaveAlertsBell() {
   );
 
   const [alerts, setAlerts] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useBellPanel();
   const [acknowledgingId, setAcknowledgingId] = useState(null);
   const [dropdownRect, setDropdownRect] = useState(null);
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useBellPanel from "../../hooks/useBellPanel";
 import { Bell } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -32,7 +33,7 @@ export default function HubAlertsBell() {
   const visible = VISIBLE_ROLES.includes(role);
 
   const [alerts, setAlerts] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useBellPanel();
   const [initialLoading, setInitialLoading] = useState(true);
   const [acknowledgingId, setAcknowledgingId] = useState(null);
   const [dropdownRect, setDropdownRect] = useState(null);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import useBellPanel from "../../hooks/useBellPanel";
 import { Ban } from "lucide-react";
 import toast from "react-hot-toast";
 import {
@@ -21,7 +22,7 @@ export default function TripCancelAlertsBell() {
   const polls = role && role !== "driver";
 
   const [alerts, setAlerts] = useState([]);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useBellPanel();
   const [acknowledgingId, setAcknowledgingId] = useState(null);
   const [dropdownRect, setDropdownRect] = useState(null);
 
