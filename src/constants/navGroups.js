@@ -61,6 +61,12 @@ export function getNavGroups(role) {
           roles: ["superadmin", "admin"],
           moduleKey: "hris.schedule_templates",
         },
+        {
+          label: "Attendance Locations",
+          path: "/dashboard/attendance-locations",
+          roles: ["superadmin"],
+          moduleKey: "hris.attendance_locations",
+        },
       ],
     },
     {

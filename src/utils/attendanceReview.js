@@ -6,6 +6,7 @@ export const REVIEW_TYPES = [
   { key: "missed", label: "Missed time out" },
   { key: "work", label: "No work proof" },
   { key: "outside", label: "Outside area" },
+  { key: "short", label: "Short duty" },
   { key: "face", label: "Face check" },
 ];
 
@@ -19,6 +20,7 @@ export const reviewTypesOf = (item) => {
   if (item.side === "time_out" && item.work_proof_missing) types.push("work");
   if (item.outside_geofence) types.push("outside");
   const reason = String(item.review_reason || "");
+  if (/short duty/i.test(reason)) types.push("short");
   if (
     FACE_STATUSES.includes(item.review_status) ||
     /face similarity|faces detected|no face/i.test(reason)
@@ -47,6 +49,7 @@ export const TYPE_STYLES = {
   missed: "border border-border text-fg-muted",
   work: "border border-border text-fg-muted",
   outside: "border border-border text-fg-muted",
+  short: "border border-border text-fg-muted",
   face: "border border-border text-fg-muted",
 };
 

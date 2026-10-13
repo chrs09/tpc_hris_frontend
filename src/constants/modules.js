@@ -37,6 +37,11 @@ export const MODULE_GROUPS = [
         label: "Work Schedules",
         path: "/dashboard/schedule-templates",
       },
+      {
+        key: "attendance_locations",
+        label: "Attendance Locations",
+        path: "/dashboard/attendance-locations",
+      },
     ],
   },
   {

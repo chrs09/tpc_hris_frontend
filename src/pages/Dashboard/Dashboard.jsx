@@ -26,6 +26,7 @@ import EmployeeListPage from "../Employee/EmployeeListPage";
 import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
+import AttendanceLocationsPage from "../Admin/AttendanceLocationsPage";
 import PayrollList from "../Payroll/PayrollList";
 import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
 import ContributionTablesPage from "../Payroll/ContributionTablesPage";
@@ -160,6 +161,10 @@ const Dashboard = () => {
           <Route
             path="schedule-templates"
             element={<ScheduleTemplatesPage />}
+          />
+          <Route
+            path="attendance-locations"
+            element={<AttendanceLocationsPage />}
           />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
           <Route path="admin/fuel-requests" element={<FuelRequestsPage />} />
