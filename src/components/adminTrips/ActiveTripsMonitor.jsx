@@ -7,6 +7,8 @@ import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import SearchInput from "../ui/searchInput/SearchInput";
+import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
+import { ChevronRight } from "lucide-react";
 import { matchesSearch } from "../../utils/search";
 
 // Badge color per current_step -- mirrors CURRENT_STEP_LABELS in
@@ -33,7 +35,7 @@ const StepBadge = ({ step, label }) => (
   </span>
 );
 
-const ActiveTripsMonitor = ({ trips = [], onChanged }) => {
+const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhoneViewChange }) => {
   const canEditPage = usePageCanEdit();
   const [selectedTripId, setSelectedTripId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
@@ -92,7 +94,10 @@ const ActiveTripsMonitor = ({ trips = [], onChanged }) => {
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {onPhoneViewChange && (
+          <ViewModeSwitch value={phoneView} onChange={onPhoneViewChange} className="md:hidden" />
+        )}
         <SearchInput value={search} onChange={setSearch} placeholder="Search driver, trip, shipment..." />
       </div>
       {/* DESKTOP TABLE */}
@@ -171,8 +176,50 @@ const ActiveTripsMonitor = ({ trips = [], onChanged }) => {
         </table>
       </div>
 
+      {/* MOBILE LIST -- one short row per trip, tap for the details */}
+      {phoneView === "list" && (
+        <div className="md:hidden overflow-hidden rounded-xl border border-border bg-surface">
+          {trips.length === 0 ? (
+            <div className="py-6 text-center text-fg-subtle">No active trips</div>
+          ) : (
+            paginatedItems.map((trip, index) => (
+              <button
+                key={trip.id}
+                type="button"
+                onClick={() => setSelectedTripId(trip.id)}
+                className={`flex w-full items-center gap-2 px-3 py-2.5 text-left ${index > 0 ? "border-t border-border" : ""}`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold capitalize text-fg">
+                    {trip.username}
+                    {trip.started_outside_hub_range && (
+                      <span className="ml-1 text-warning" title="Started outside any hub's GPS range">
+                        ⚠
+                      </span>
+                    )}
+                  </p>
+                  <p className="truncate text-xs text-fg-subtle">
+                    <span className="uppercase">{trip.trip_code || "-"}</span> · {trip.ticket_no || "-"}
+                    {trip.current_stop ? ` · ${trip.current_stop}` : ""}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                  <StepBadge step={trip.current_step} label={trip.current_step_label} />
+                  {trip.total_stops != null && (
+                    <span className="text-[10px] text-fg-subtle">
+                      {trip.completed_stops ?? 0}/{trip.total_stops} stops
+                    </span>
+                  )}
+                </div>
+                <ChevronRight size={16} className="shrink-0 text-fg-subtle" />
+              </button>
+            ))
+          )}
+        </div>
+      )}
+
       {/* MOBILE CARDS */}
-      <div className="md:hidden flex flex-col gap-3">
+      <div className={`md:hidden flex flex-col gap-3 ${phoneView === "list" ? "hidden" : ""}`}>
         {trips.length === 0 ? (
           <div className="text-center text-fg-subtle py-6">No active trips</div>
         ) : (

@@ -7,6 +7,8 @@ import Pagination from "../ui/pagination/Pagination";
 import EditAssignedTripModal from "./EditAssignedTripModal";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../ui/searchInput/SearchInput";
+import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
+import { ChevronRight } from "lucide-react";
 import { matchesSearch } from "../../utils/search";
 
 // Renders a trip's planned route as an ordered stop-by-stop chain
@@ -194,7 +196,7 @@ const AssignedTripViewModal = ({
 
 // Trips the coordinator has dispatched but the driver hasn't checked
 // out (started) yet -- see GET /admin/trips/assigned.
-const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
+const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhoneViewChange }) => {
   const canEditPage = usePageCanEdit();
   const [cancellingId, setCancellingId] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
@@ -245,7 +247,10 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-end gap-2">
+        {onPhoneViewChange && (
+          <ViewModeSwitch value={phoneView} onChange={onPhoneViewChange} className="md:hidden" />
+        )}
         <SearchInput value={search} onChange={setSearch} placeholder="Search driver, trip, shipment, store..." />
       </div>
       {/* DESKTOP TABLE */}
@@ -315,8 +320,46 @@ const AssignedTripsMonitor = ({ trips = [], onChanged }) => {
         </table>
       </div>
 
+      {/* MOBILE LIST -- one short row per trip, tap to view / edit / delete */}
+      {phoneView === "list" && (
+        <div className="md:hidden overflow-hidden rounded-xl border border-border bg-surface">
+          {trips.length === 0 ? (
+            <div className="py-6 text-center text-fg-subtle">No assigned trips</div>
+          ) : (
+            paginatedItems.map((trip, index) => {
+              const destinations = trip.destinations || [];
+              return (
+                <button
+                  key={trip.id}
+                  type="button"
+                  onClick={() => setViewingTrip(trip)}
+                  className={`flex w-full items-center gap-2 px-3 py-2.5 text-left ${index > 0 ? "border-t border-border" : ""}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-fg">
+                      {trip.driver_name || "-"}
+                    </p>
+                    <p className="truncate text-xs text-fg-subtle">
+                      <span className="uppercase">{trip.trip_code || "-"}</span> · {trip.ticket_no || "-"}
+                      {trip.vehicle_unit ? ` · ${trip.vehicle_unit}` : ""}
+                    </p>
+                    {destinations.length > 0 && (
+                      <p className="truncate text-xs text-fg-muted">
+                        → {destinations[0]}
+                        {destinations.length > 1 ? ` +${destinations.length - 1} more` : ""}
+                      </p>
+                    )}
+                  </div>
+                  <ChevronRight size={16} className="shrink-0 text-fg-subtle" />
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+
       {/* MOBILE CARDS */}
-      <div className="md:hidden flex flex-col gap-3">
+      <div className={`md:hidden flex flex-col gap-3 ${phoneView === "list" ? "hidden" : ""}`}>
         {trips.length === 0 ? (
           <div className="text-center text-fg-subtle py-6">
             No assigned trips

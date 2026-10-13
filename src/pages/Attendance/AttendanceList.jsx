@@ -93,6 +93,10 @@ const AttendanceList = () => {
   );
 
   const [employeesFromAPI, setEmployeesFromAPI] = useState([]);
+  // Table View: active employees (default) or the records of inactive
+  // (resigned / deactivated) ones -- loaded the first time it's picked.
+  const [employeeStatus, setEmployeeStatus] = useState("active");
+  const [inactiveEmployees, setInactiveEmployees] = useState(null);
   // Org chart head: only their team (null = everyone).
   const [team, setTeam] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]);
@@ -251,11 +255,31 @@ const AttendanceList = () => {
       team ? employeesFromAPI.filter((emp) => team.ids.has(emp.id)) : employeesFromAPI,
     [employeesFromAPI, team],
   );
+  const teamInactiveEmployees = useMemo(
+    () =>
+      team
+        ? (inactiveEmployees || []).filter((emp) => team.ids.has(emp.id))
+        : inactiveEmployees || [],
+    [inactiveEmployees, team],
+  );
+
+  const switchEmployeeStatus = async (status) => {
+    setEmployeeStatus(status);
+    setCurrentPage(1);
+    if (status === "inactive" && inactiveEmployees === null) {
+      try {
+        setInactiveEmployees(await getEmployeeList(0));
+      } catch (err) {
+        console.error("Failed to load inactive employees:", err);
+        setInactiveEmployees([]);
+      }
+    }
+  };
 
   const employees = useMemo(() => {
     const searchTerm = employeeSearch.trim().toLowerCase();
 
-    return teamEmployees
+    return (employeeStatus === "inactive" ? teamInactiveEmployees : teamEmployees)
       .map((emp) => ({
         id: emp.id,
         name: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
@@ -268,7 +292,7 @@ const AttendanceList = () => {
       .filter(
         (emp) => !searchTerm || emp.name.toLowerCase().includes(searchTerm),
       );
-  }, [teamEmployees, filter, employeeSearch]);
+  }, [teamEmployees, teamInactiveEmployees, employeeStatus, filter, employeeSearch]);
 
   const {
     page: currentPage,
@@ -876,6 +900,31 @@ const AttendanceList = () => {
               placeholder="Select Role"
             />
           </div>
+
+          {viewMode === "table" && (
+            <div className="flex h-10 overflow-hidden rounded-lg border border-border bg-surface text-sm">
+              {[
+                ["active", "Active Employee Records"],
+                ["inactive", "Inactive Employee Records"],
+              ].map(([status, label]) => (
+                <button
+                  key={status}
+                  type="button"
+                  aria-pressed={employeeStatus === status}
+                  onClick={() => switchEmployeeStatus(status)}
+                  className={`whitespace-nowrap px-3 ${
+                    employeeStatus === status
+                      ? status === "inactive"
+                        ? "bg-fg text-background"
+                        : "bg-primary text-primary-foreground"
+                      : "text-fg-muted hover:bg-surface-hover"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {viewMode === "table" && (
             <input

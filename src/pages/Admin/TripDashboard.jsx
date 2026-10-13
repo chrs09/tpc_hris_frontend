@@ -25,6 +25,23 @@ const TripDashboard = () => {
   const [loading, setLoading] = useState(true);
   // Bumped by the background refresh so the approval list reloads too.
   const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
+  // Phones: Assigned / Active trips as cards or a compact list --
+  // remembered on this device.
+  const [phoneView, setPhoneViewState] = useState(() => {
+    try {
+      return localStorage.getItem("trip-dashboard-phone-view") || "cards";
+    } catch {
+      return "cards";
+    }
+  });
+  const setPhoneView = (mode) => {
+    setPhoneViewState(mode);
+    try {
+      localStorage.setItem("trip-dashboard-phone-view", mode);
+    } catch {
+      // private mode -- just not remembered
+    }
+  };
 
   const loadTrips = async () => {
     try {
@@ -107,7 +124,12 @@ const TripDashboard = () => {
           Dispatched to a driver, but not yet checked out (started).
         </p>
 
-        <AssignedTripsMonitor trips={assignedTrips} onChanged={loadTrips} />
+        <AssignedTripsMonitor
+          trips={assignedTrips}
+          onChanged={loadTrips}
+          phoneView={phoneView}
+          onPhoneViewChange={setPhoneView}
+        />
       </div>
 
       {/* ACTIVE */}
@@ -121,7 +143,12 @@ const TripDashboard = () => {
           driver last triggered on their phone.
         </p>
 
-        <ActiveTripsMonitor trips={activeTrips} onChanged={loadTrips} />
+        <ActiveTripsMonitor
+          trips={activeTrips}
+          onChanged={loadTrips}
+          phoneView={phoneView}
+          onPhoneViewChange={setPhoneView}
+        />
       </div>
 
       {/* APPROVAL STATUS */}
