@@ -164,7 +164,11 @@ const TripDashboard = () => {
           trips.
         </p>
 
-        <TripApprovalPipeline refreshKey={pipelineRefreshKey} />
+        <TripApprovalPipeline
+          refreshKey={pipelineRefreshKey}
+          phoneView={phoneView}
+          onPhoneViewChange={setPhoneView}
+        />
       </div>
     </div>
   );

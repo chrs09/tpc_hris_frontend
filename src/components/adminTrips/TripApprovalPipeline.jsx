@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getApprovalPipeline } from "../../api/adminTripManagement/trips";
 import SearchSelect from "../SearchSelect";
 import SearchInput from "../ui/searchInput/SearchInput";
+import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
 import Pagination from "../ui/pagination/Pagination";
 
 const PAGE_SIZE = 15;
@@ -52,7 +53,7 @@ const SourceBadge = ({ manual }) =>
 // Trip Dashboard list: every finished trip and where it is in the
 // approval chain (coordinator -> office -> finance -> approved), with a
 // status filter and search. Filtering and paging run on the server.
-const TripApprovalPipeline = ({ refreshKey = 0 }) => {
+const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneViewChange }) => {
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -119,6 +120,9 @@ const TripApprovalPipeline = ({ refreshKey = 0 }) => {
           onChange={setSearch}
           placeholder="Search trip, shipment, driver, store..."
         />
+        {onPhoneViewChange && (
+          <ViewModeSwitch value={phoneView} onChange={onPhoneViewChange} className="ml-auto md:hidden" />
+        )}
       </div>
 
       {loading ? (
@@ -195,8 +199,44 @@ const TripApprovalPipeline = ({ refreshKey = 0 }) => {
             </table>
           </div>
 
-          {/* MOBILE */}
-          <div className="flex flex-col gap-3 md:hidden">
+          {/* MOBILE LIST -- one short row per trip */}
+          {phoneView === "list" && (
+            <div className="overflow-hidden rounded-xl border border-border bg-surface md:hidden">
+              {data.items.map((trip, index) => (
+                <div
+                  key={trip.id}
+                  className={`flex items-center gap-2 px-3 py-2.5 ${index > 0 ? "border-t border-border" : ""}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-fg">
+                      <span className="uppercase">{trip.trip_code || `#${trip.id}`}</span>
+                      <span className="font-normal text-fg-muted"> · {trip.driver_name || trip.username}</span>
+                    </p>
+                    <p className="truncate text-xs text-fg-subtle">
+                      {trip.ticket_no || "-"}
+                      {trip.stores?.length ? ` · ${trip.stores.join(" → ")}` : ""}
+                    </p>
+                    {(trip.returned || trip.is_manual_entry || trip.cancel_reason) && (
+                      <p className="truncate text-[11px]">
+                        {trip.returned && <span className="font-semibold text-danger">Sent back by Office </span>}
+                        {trip.is_manual_entry && <span className="font-semibold text-warning">Manual Entry </span>}
+                        {trip.cancel_reason && <span className="text-danger">“{trip.cancel_reason}”</span>}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-0.5">
+                    <StatusBadge trip={trip} />
+                    {trip.status_since && (
+                      <span className="text-[10px] text-fg-subtle">since {trip.status_since}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* MOBILE CARDS */}
+          <div className={`flex flex-col gap-3 md:hidden ${phoneView === "list" ? "hidden" : ""}`}>
             {data.items.map((trip) => (
               <div key={trip.id} className="rounded-xl border border-border bg-surface p-4 text-sm text-fg">
                 <div className="flex items-start justify-between gap-2">
