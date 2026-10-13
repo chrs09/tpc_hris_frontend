@@ -877,7 +877,7 @@ const AttendanceList = () => {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          {viewMode === "table" && canEditList && (
+          {viewMode === "table" && canEditList && employeeStatus !== "inactive" && (
             <Button onClick={() => setShowBulkModal(true)}>
               Check Attendance
             </Button>
@@ -900,31 +900,6 @@ const AttendanceList = () => {
               placeholder="Select Role"
             />
           </div>
-
-          {viewMode === "table" && (
-            <div className="flex h-10 overflow-hidden rounded-lg border border-border bg-surface text-sm">
-              {[
-                ["active", "Active Employee Records"],
-                ["inactive", "Inactive Employee Records"],
-              ].map(([status, label]) => (
-                <button
-                  key={status}
-                  type="button"
-                  aria-pressed={employeeStatus === status}
-                  onClick={() => switchEmployeeStatus(status)}
-                  className={`whitespace-nowrap px-3 ${
-                    employeeStatus === status
-                      ? status === "inactive"
-                        ? "bg-fg text-background"
-                        : "bg-primary text-primary-foreground"
-                      : "text-fg-muted hover:bg-surface-hover"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
 
           {viewMode === "table" && (
             <input
@@ -965,6 +940,38 @@ const AttendanceList = () => {
         )}
 
         <div className="ml-auto flex items-center gap-3">
+          {viewMode === "table" && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={employeeStatus === "inactive"}
+              onClick={() =>
+                switchEmployeeStatus(employeeStatus === "inactive" ? "active" : "inactive")
+              }
+              title={
+                employeeStatus === "inactive"
+                  ? "Showing inactive employees -- switch off for active"
+                  : "Showing active employees -- switch on for inactive"
+              }
+              className="flex h-10 items-center gap-2 whitespace-nowrap rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted"
+            >
+              <span
+                className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                  employeeStatus === "inactive" ? "bg-primary" : "bg-surface-active"
+                }`}
+              >
+                <span
+                  className={`absolute h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    employeeStatus === "inactive" ? "translate-x-[18px]" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              <span className={employeeStatus === "inactive" ? "font-semibold text-fg" : ""}>
+                Inactive Employee Records
+              </span>
+            </button>
+          )}
+
           {viewMode === "grid" && (
             <div className="flex items-center gap-2">
               <label className="text-sm text-fg-subtle">Review Date</label>
@@ -1028,7 +1035,8 @@ const AttendanceList = () => {
             statusColors={statusColors}
             getStatusSymbol={getStatusSymbol}
             isEditableDate={isEditableDate}
-            isSuperAdmin={canEditList}
+            // Inactive employees' records are view-only.
+            isSuperAdmin={canEditList && employeeStatus !== "inactive"}
             today={today}
             overtimeMap={overtimeMap}
             overtimeByEmployee={overtimeByEmployee}

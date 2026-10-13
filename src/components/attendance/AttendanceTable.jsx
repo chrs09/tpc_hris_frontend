@@ -388,17 +388,19 @@ const AttendanceTable = ({
                             >
                               OUT: {formatTime(attendance.check_out_time)}
                             </button>
-                            <button
-                              type="button"
-                              className="border-t py-1 px-1 text-blue-600 underline hover:bg-black/10"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                            {editable && (
+                              <button
+                                type="button"
+                                className="border-t py-1 px-1 text-blue-600 underline hover:bg-black/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
 
-                                onCellClick(emp, dateKey, status, attendance);
-                              }}
-                            >
-                              Edit
-                            </button>
+                                  onCellClick(emp, dateKey, status, attendance);
+                                }}
+                              >
+                                Edit
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="flex items-center justify-center">
