@@ -29,6 +29,15 @@ import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceRel
 import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
 import { matchesSearch } from "../../utils/search";
 
+const formatDateNeeded = (value) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
+
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
   approved: "bg-success/15 text-success",
@@ -550,6 +559,12 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                     </span>
                     {req.reason}
                   </p>
+                  {req.date_needed && (
+                    <p className="mt-1 text-sm text-fg-muted">
+                      <span className="font-medium text-fg-subtle">Date Needed: </span>
+                      <span className="font-semibold text-fg">{formatDateNeeded(req.date_needed)}</span>
+                    </p>
+                  )}
 
                   <ApprovalProgress steps={req.approval_steps} className="mt-2" />
                   {req.can_act === false && (
@@ -637,6 +652,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       <th className="px-6 text-left font-medium">
                         Loan Purpose
                       </th>
+                      <th className="px-6 text-left font-medium whitespace-nowrap">
+                        Date Needed
+                      </th>
                       <th className="px-6 text-left font-medium">
                         Deduction / Pay
                       </th>
@@ -678,6 +696,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           title={req.reason || ""}
                         >
                           <span className="line-clamp-2">{req.reason || "—"}</span>
+                        </td>
+                        <td className="px-6 whitespace-nowrap text-fg-muted">
+                          {formatDateNeeded(req.date_needed) || "—"}
                         </td>
                         <td className="px-6 text-fg-muted">
                           ₱{req.deduction_per_pay_amount.toLocaleString()}
@@ -918,6 +939,12 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       <p className="mt-1 text-xs text-fg-muted">
                         <span className="font-semibold text-fg">Loan Purpose:</span>{" "}
                         {request.reason}
+                      </p>
+                    )}
+                    {request.date_needed && (
+                      <p className="mt-1 text-xs text-fg-muted">
+                        <span className="font-semibold text-fg">Date Needed:</span>{" "}
+                        {formatDateNeeded(request.date_needed)}
                       </p>
                     )}
 

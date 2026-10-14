@@ -63,6 +63,8 @@ const DriverCashAdvance = () => {
   const [reason, setReason] = useState("");
   const [selectedPurposeId, setSelectedPurposeId] = useState(null);
   const [otherReason, setOtherReason] = useState("");
+  // When the money is needed.
+  const [dateNeeded, setDateNeeded] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
 
@@ -188,6 +190,7 @@ const DriverCashAdvance = () => {
     !exceedsMaxLoanAmount &&
     !!selectedOptionId &&
     !!reason.trim() &&
+    !!dateNeeded &&
     (!requiresTermsAcceptance || termsAccepted);
 
   const handleSubmit = async (event) => {
@@ -232,6 +235,15 @@ const DriverCashAdvance = () => {
       return;
     }
 
+    if (!dateNeeded) {
+      toast.error("Pick the date you need the cash advance.");
+      return;
+    }
+    if (dateNeeded < todayPH()) {
+      toast.error("Date Needed can't be in the past.");
+      return;
+    }
+
     if (requiresTermsAcceptance && !termsAccepted) {
       toast.error("You must agree to the terms and condition above.");
       return;
@@ -243,8 +255,10 @@ const DriverCashAdvance = () => {
         amount: numericAmount,
         deduction_option_id: selectedOptionId,
         reason: reason.trim(),
+        date_needed: dateNeeded,
         terms_accepted: termsAccepted,
       });
+      setDateNeeded("");
       setAmount("");
       setSelectedOptionId(null);
       setReason("");
@@ -390,6 +404,21 @@ const DriverCashAdvance = () => {
           />
         )}
 
+        <label
+          htmlFor="ca-date-needed"
+          className="mt-4 mb-1 block text-sm font-semibold text-fg-subtle"
+        >
+          Date Needed
+        </label>
+        <input
+          id="ca-date-needed"
+          type="date"
+          value={dateNeeded}
+          min={todayPH()}
+          onChange={(e) => setDateNeeded(e.target.value)}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+
         <label className="mt-4 mb-1 block text-sm font-semibold text-fg-subtle">
           Deduction per Pay Period
         </label>
@@ -515,6 +544,12 @@ const DriverCashAdvance = () => {
                     <span className="text-fg-subtle">Loan Purpose: </span>
                     {item.reason}
                   </p>
+                  {item.date_needed && (
+                    <p className="mt-1 text-sm text-fg">
+                      <span className="text-fg-subtle">Date Needed: </span>
+                      {formatDateNeeded(item.date_needed)}
+                    </p>
+                  )}
 
                   <p className="mt-1.5 text-xs text-fg-subtle">
                     ₱{item.deduction_per_pay_amount.toLocaleString()} per pay
@@ -578,5 +613,18 @@ const DriverCashAdvance = () => {
     </div>
   );
 };
+
+// Today in the Philippines, as YYYY-MM-DD (earliest Date Needed).
+const todayPH = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+const formatDateNeeded = (value) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : null;
 
 export default DriverCashAdvance;
