@@ -58,10 +58,15 @@ const settleRequest = () => {
 // so every existing `catch` block's toast shows this message for free,
 // with no per-page changes needed.
 const READ_ONLY_METHODS = new Set(["get", "head", "options"]);
+// Public pages that don't act as the signed-in user (the attendance kiosk
+// is keyed by the employee ID typed in) -- a browser left in "View As"
+// mustn't block employees from clocking in on it.
+const PUBLIC_WRITE_PATHS = ["/attendance/kiosk/", "/public/"];
 
 api.interceptors.request.use((config) => {
   const method = (config.method || "get").toLowerCase();
-  if (isImpersonating() && !READ_ONLY_METHODS.has(method)) {
+  const isPublic = PUBLIC_WRITE_PATHS.some((path) => (config.url || "").includes(path));
+  if (isImpersonating() && !READ_ONLY_METHODS.has(method) && !isPublic) {
     const blockedError = new Error("Viewing in read-only mode.");
     blockedError.response = {
       status: 403,

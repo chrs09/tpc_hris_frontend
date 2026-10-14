@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import SeparationDetails from "./SeparationDetails";
 import DefaultProfileImage from "./../../assets/logo/default/default-profile.jpg";
 import { getBanks } from "../../api/banks";
 import { civilStatusOptions } from "../../constants/civilStatus";
@@ -417,6 +418,7 @@ export default function EmployeeForm({
                 isEditing={false}
                 onChange={handleChange}
               />
+              {employee?.id && <SeparationDetails employeeId={employee.id} />}
             </Section>
           )}
         </>

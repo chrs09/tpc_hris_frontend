@@ -245,12 +245,14 @@ const getStatusStyle = (status) => {
     };
   }
 
+  // Fixed light gray like the other status cards (their text is fixed
+  // dark) -- a theme color here made the names invisible in dark mode.
   if (status === "No Attendance") {
     return {
       badge: "bg-gray-500 text-white",
-      border: "border-border",
-      text: "text-fg-muted",
-      card: "bg-surface-hover",
+      border: "border-gray-300",
+      text: "text-gray-700",
+      card: "bg-gray-100",
     };
   }
 
@@ -568,7 +570,7 @@ const AttendanceGridReview = ({
                       isSelected ? "ring-2 ring-blue-500" : ""
                     } ${style.card}`}
                   >
-                    <div className="relative h-32 sm:h-36 bg-surface-hover">
+                    <div className="relative h-32 sm:h-36 bg-gray-200">
                       {photo ? (
                         <img
                           src={photo}
@@ -581,7 +583,7 @@ const AttendanceGridReview = ({
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-sm text-fg-subtle">
+                        <div className="w-full h-full flex items-center justify-center text-sm text-gray-500">
                           {record.is_missing_attendance
                             ? "No Attendance"
                             : "No Selfie"}

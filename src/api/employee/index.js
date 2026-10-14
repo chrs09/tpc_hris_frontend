@@ -38,3 +38,25 @@ export const parseCV = async (file) => {
 
   return res.data;
 };
+
+// Separation details of an inactive employee (201 -> Inactive Employee
+// Details): date clearance completed + resignation letter, clearance and
+// waiver & quitclaim scans.
+export const getSeparationDetails = async (employeeId) =>
+  (await api.get(`/employees/${employeeId}/separation`)).data;
+
+export const saveClearanceDate = async (employeeId, date) => {
+  const body = new FormData();
+  body.append("clearance_completed_date", date || "");
+  return (await api.patch(`/employees/${employeeId}/separation`, body)).data;
+};
+
+export const uploadSeparationDocument = async (employeeId, documentType, file) => {
+  const body = new FormData();
+  body.append("document_type", documentType);
+  body.append("file", file);
+  return (await api.post(`/employees/${employeeId}/separation/documents`, body)).data;
+};
+
+export const deleteSeparationDocument = async (employeeId, fileId) =>
+  (await api.delete(`/employees/${employeeId}/separation/documents/${fileId}`)).data;
