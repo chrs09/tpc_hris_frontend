@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import TripUnitTags from "../adminTrips/TripUnitTags";
 import { StopShipments } from "../adminTrips/ShipmentStorePairing";
 import {
   MapContainer,
@@ -392,6 +393,7 @@ export default function FinanceReviewCard({ trips = [], refreshTrips }) {
                   ? "Loading..."
                   : `Trip Review — ${selectedTrip?.shipment_number || "-"}`}
 
+                {!detailLoading && selectedTrip && <TripUnitTags trip={selectedTrip} />}
                 {!detailLoading && selectedTrip && (
                   <StatusBadge status={selectedTrip.status} />
                 )}

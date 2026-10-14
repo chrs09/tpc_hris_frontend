@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import TripUnitTags from "./TripUnitTags";
 import toast from "react-hot-toast";
 import { cancelAssignedTrip } from "../../api/adminTripManagement/trips";
 import { promptDialog } from "../ui/dialog/dialogService";
@@ -290,7 +291,12 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
                   key={trip.id}
                   className="border-t border-border hover:bg-surface-hover"
                 >
-                  <td className="px-4 py-4">{trip.driver_name || "-"}</td>
+                  <td className="px-4 py-4">
+                    {trip.driver_name || "-"}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <TripUnitTags trip={trip} />
+                    </div>
+                  </td>
                   <td className="px-4 py-4 uppercase">
                     {trip.trip_code || "-"}
                   </td>
@@ -338,6 +344,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-fg">
                       {trip.driver_name || "-"}
+                      {trip.is_urgent && <span className="ml-1 text-[10px] font-bold text-danger">URGENT</span>}
                     </p>
                     <p className="truncate text-xs text-fg-subtle">
                       <span className="uppercase">{trip.trip_code || "-"}</span> · {trip.ticket_no || "-"}
@@ -371,6 +378,9 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
               className="bg-surface border border-border text-fg p-4 rounded-xl"
             >
               <p className="font-semibold">{trip.driver_name || "-"}</p>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <TripUnitTags trip={trip} />
+              </div>
 
               <div className="mt-2 text-sm">
                 <span className="text-fg-muted block">Trip Code</span>

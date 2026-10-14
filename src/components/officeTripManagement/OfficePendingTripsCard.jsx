@@ -1,4 +1,5 @@
 import { useState } from "react";
+import TripUnitTags from "../adminTrips/TripUnitTags";
 import { StopShipments } from "../adminTrips/ShipmentStorePairing";
 import {
   MapContainer,
@@ -450,6 +451,9 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
                 <h2 className="text-xl font-bold text-fg">
                   {selectedTrip.ticket_no}
                 </h2>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  <TripUnitTags trip={selectedTrip} />
+                </div>
               </div>
 
               <button

@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
+import UnitDriverModal from "../../components/tripMaintenance/UnitDriverModal";
+import UnitStatusBadge from "../../components/tripMaintenance/UnitStatusBadge";
 import SearchSelect from "../../components/SearchSelect";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -54,6 +56,10 @@ const EMPTY_MAINTENANCE_FORM = {
   next_due_date: "",
   odometer_reading: "",
   cost: "",
+  // In the shop now -- Trip Assignment can't dispatch the unit until it's
+  // marked repaired.
+  in_repair: false,
+  expected_return_date: "",
 };
 
 const EMPTY_VEHICLE_FORM = {
@@ -297,6 +303,7 @@ export default function TripMaintenance() {
   };
 
   const [checklistUnit, setChecklistUnit] = useState(null);
+  const [driverUnit, setDriverUnit] = useState(null);
 
   const [truckTypes, setTruckTypes] = useState([]);
   const [truckTypeForm, setTruckTypeForm] = useState({ name: "", size: "" });
@@ -557,9 +564,26 @@ export default function TripMaintenance() {
         : "",
       odometer_reading: record.odometer_reading || "",
       cost: record.cost || "",
+      in_repair: Boolean(record.in_repair),
+      expected_return_date: record.expected_return_date
+        ? record.expected_return_date.slice(0, 10)
+        : "",
     });
 
     setShowMaintenanceModal(true);
+  };
+
+  const handleMarkRepaired = async (record) => {
+    if (!(await confirmDialog(`Mark ${record.vehicle_unit?.plate_number || "this unit"} as repaired? It can be dispatched again.`))) {
+      return;
+    }
+    try {
+      await updateVehicleMaintenanceRecord(record.id, { in_repair: false });
+      toast.success("Marked repaired -- the unit can be dispatched again.");
+      await Promise.all([loadMaintenanceRecords(), loadVehicleUnits()]);
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Failed to update the record.");
+    }
   };
 
   const handleDeleteRecord = async (record) => {
@@ -743,6 +767,7 @@ export default function TripMaintenance() {
                   <tr>
                     <th className="px-4 py-3 text-left font-medium">Unit Code</th>
                     <th className="px-4 py-3 text-left font-medium">Plate</th>
+                    <th className="px-4 py-3 text-left font-medium">Driver</th>
                     <th className="px-4 py-3 text-left font-medium">Truck Type</th>
                     <th className="px-4 py-3 text-left font-medium">Description</th>
                     <th className="px-4 py-3 text-left font-medium">CR</th>
@@ -754,7 +779,7 @@ export default function TripMaintenance() {
                 <tbody>
                   {unitsPagination.paginatedItems.length === 0 ? (
                     <tr>
-                      <td colSpan="8" className="text-center py-6 text-fg-subtle">
+                      <td colSpan="9" className="text-center py-6 text-fg-subtle">
                         No vehicle units
                       </td>
                     </tr>
@@ -772,6 +797,19 @@ export default function TripMaintenance() {
                             {unit.unit_code}
                           </td>
                           <td className="px-4 py-3">{unit.plate_number}</td>
+                          <td className="px-4 py-3">
+                            {canEditPage ? (
+                              <button
+                                type="button"
+                                onClick={() => setDriverUnit(unit)}
+                                className={`text-left hover:underline ${unit.assigned_driver_name ? "text-fg" : "text-primary"}`}
+                              >
+                                {unit.assigned_driver_name || "+ Assign driver"}
+                              </button>
+                            ) : (
+                              unit.assigned_driver_name || "-"
+                            )}
+                          </td>
                           <td className="px-4 py-3">
                             {unit.truck_type_name
                               ? `${unit.truck_type_name}${
@@ -808,9 +846,7 @@ export default function TripMaintenance() {
                             </div>
                           </td>
                           <td className="px-4 py-3">
-                            <span className="px-3 py-1 rounded-full text-xs bg-success/15 text-success">
-                              Active
-                            </span>
+                            <UnitStatusBadge unit={unit} />
                           </td>
                           <td className="px-4 py-3 text-right">
                             <div className="flex justify-end gap-3">
@@ -872,6 +908,26 @@ export default function TripMaintenance() {
                   </p>
                 )}
 
+                <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+                  <span className="text-fg-subtle">Driver</span>
+                  {canEditPage ? (
+                    <button
+                      type="button"
+                      onClick={() => setDriverUnit(unit)}
+                      className={`font-medium hover:underline ${unit.assigned_driver_name ? "text-fg" : "text-primary"}`}
+                    >
+                      {unit.assigned_driver_name || "+ Assign driver"}
+                    </button>
+                  ) : (
+                    <span className="font-medium">{unit.assigned_driver_name || "-"}</span>
+                  )}
+                </div>
+                {unit.in_repair && (
+                  <p className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
+                    {unit.in_repair.text}
+                  </p>
+                )}
+
                 <div className="mt-4 bg-surface-hover rounded-xl p-3">
                   <p className="text-xs text-fg-subtle mb-1">Description</p>
                   <p className="text-sm">{unit.description || "N/A"}</p>
@@ -894,9 +950,7 @@ export default function TripMaintenance() {
                 </div>
 
                 <div className="mt-4 flex justify-between items-center">
-                  <span className="px-3 py-1 rounded-full text-xs bg-success/15 text-success">
-                    Active
-                  </span>
+                  <UnitStatusBadge unit={unit} />
 
                   <div className="flex items-center gap-3">
                     <button
@@ -984,7 +1038,24 @@ export default function TripMaintenance() {
                           ? `${record.vehicle_unit.unit_code} - ${record.vehicle_unit.plate_number}`
                           : "-"}
                       </td>
-                      <td className="px-4 py-3">{record.maintenance_type}</td>
+                      <td className="px-4 py-3">
+                        {record.maintenance_type}
+                        {record.in_repair && (
+                          <div className="mt-1">
+                            <span className="rounded-full bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger">
+                              🔧 In repair
+                              {record.expected_return_date
+                                ? ` · back ${formatDate(record.expected_return_date)}`
+                                : ""}
+                            </span>
+                          </div>
+                        )}
+                        {!record.in_repair && record.repaired_at && (
+                          <div className="mt-1 text-[11px] text-fg-subtle">
+                            Repaired {formatDate(record.repaired_at)}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         {formatDate(record.service_date)}
                       </td>
@@ -999,6 +1070,15 @@ export default function TripMaintenance() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
+                          {canEditPage && record.in_repair && (
+                            <button
+                              type="button"
+                              onClick={() => handleMarkRepaired(record)}
+                              className="whitespace-nowrap rounded-lg border border-success/40 px-2 py-1 text-xs font-semibold text-success hover:bg-success/10"
+                            >
+                              Mark repaired
+                            </button>
+                          )}
                           {canEditPage && (
                             <button
                             onClick={() => handleEditRecord(record)}
@@ -1406,6 +1486,41 @@ export default function TripMaintenance() {
                 placeholder="1500"
               />
             </div>
+
+            <div className="md:col-span-2 rounded-lg border border-border p-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-fg">
+                <input
+                  type="checkbox"
+                  checked={maintenanceForm.in_repair}
+                  onChange={(e) =>
+                    setMaintenanceForm({
+                      ...maintenanceForm,
+                      in_repair: e.target.checked,
+                    })
+                  }
+                />
+                In repair now -- this unit can&apos;t be dispatched until it&apos;s
+                marked repaired
+              </label>
+              {maintenanceForm.in_repair && (
+                <div className="mt-2">
+                  <label className="block text-xs text-fg-muted mb-1">
+                    Expected back (shown to the coordinators)
+                  </label>
+                  <input
+                    type="date"
+                    value={maintenanceForm.expected_return_date}
+                    onChange={(e) =>
+                      setMaintenanceForm({
+                        ...maintenanceForm,
+                        expected_return_date: e.target.value,
+                      })
+                    }
+                    className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </MaintenanceModal>
@@ -1483,6 +1598,14 @@ export default function TripMaintenance() {
             </div>
           </div>
         </div>
+      )}
+
+      {driverUnit && (
+        <UnitDriverModal
+          unit={driverUnit}
+          onClose={() => setDriverUnit(null)}
+          onSaved={loadVehicleUnits}
+        />
       )}
 
       {checklistUnit && (

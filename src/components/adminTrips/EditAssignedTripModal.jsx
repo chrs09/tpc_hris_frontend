@@ -11,6 +11,9 @@ import {
   getAvailableVehicleUnits,
 } from "../../api/tripManagement";
 import ShipmentStorePairing from "./ShipmentStorePairing";
+import UnitChoice from "./UnitChoice";
+import { unitCheck } from "../../utils/unitReasons";
+import { getVehicleUnits } from "../../api/adminTripManagement/tripMaintenance";
 import {
   cleanShipmentStores,
   shipmentStoresComplete,
@@ -48,6 +51,10 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
 
   const [driverId, setDriverId] = useState(trip.driver_id);
   const [vehicleUnitId, setVehicleUnitId] = useState(trip.vehicle_unit_id);
+  const [allUnits, setAllUnits] = useState([]);
+  const [unitReasonType, setUnitReasonType] = useState(trip.unit_reason_type || "");
+  const [unitReasonNote, setUnitReasonNote] = useState("");
+  const [isUrgent, setIsUrgent] = useState(Boolean(trip.is_urgent));
   const [originStoreId, setOriginStoreId] = useState(trip.origin_store_id);
   const [shipmentNumbers, setShipmentNumbers] = useState(
     trip.shipment_numbers || [],
@@ -68,11 +75,14 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
   useEffect(() => {
     const load = async () => {
       try {
-        const [driverRes, storeRes, vehicleData] = await Promise.all([
+        const [driverRes, storeRes, vehicleData, everyUnit] = await Promise.all([
           getAvailableDrivers(),
           getStores(),
           getAvailableVehicleUnits(),
+          getVehicleUnits().catch(() => []),
         ]);
+        const unitList = Array.isArray(everyUnit) ? everyUnit : everyUnit?.items || [];
+        setAllUnits(unitList);
 
         const driverList = driverRes.data || [];
         // The trip's current driver must stay pickable.
@@ -101,10 +111,12 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
           trip.vehicle_unit_id &&
           !vehicleList.some((v) => v.id === trip.vehicle_unit_id)
         ) {
-          vehicleList.unshift({
-            id: trip.vehicle_unit_id,
-            unit_code: trip.vehicle_unit,
-          });
+          vehicleList.unshift(
+            unitList.find((u) => u.id === trip.vehicle_unit_id) || {
+              id: trip.vehicle_unit_id,
+              unit_code: trip.vehicle_unit,
+            },
+          );
         }
         setVehicleUnits(vehicleList);
       } catch (error) {
@@ -198,8 +210,18 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
   const storeName = (id) =>
     destinationStores.find((s) => s.id === id)?.name || `Store ${id}`;
 
+  // A new driver or unit is checked again (in repair / not their unit).
+  const unitChanged = driverId !== trip.driver_id || vehicleUnitId !== trip.vehicle_unit_id;
+  const selectedUnit = vehicleUnits.find((v) => v.id === vehicleUnitId);
+  const check = unitCheck(allUnits, driverId, selectedUnit);
+  const needsReason = unitChanged && check.needsReason;
+  const unitBlocked = vehicleUnitId !== trip.vehicle_unit_id && Boolean(selectedUnit?.in_repair);
+  const reasonOk =
+    !needsReason || (unitReasonType && (unitReasonType !== "OTHER" || unitReasonNote.trim()));
+
   const hasChanges = useMemo(
     () =>
+      isUrgent !== Boolean(trip.is_urgent) ||
       driverId !== trip.driver_id ||
       vehicleUnitId !== trip.vehicle_unit_id ||
       originStoreId !== trip.origin_store_id ||
@@ -215,6 +237,7 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
         (trip.helpers || []).map((h) => h.id).sort(),
       ),
     [
+      isUrgent,
       driverId,
       vehicleUnitId,
       originStoreId,
@@ -230,6 +253,8 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
     hasChanges &&
     driverId &&
     vehicleUnitId &&
+    !unitBlocked &&
+    reasonOk &&
     originStoreId &&
     shipmentNumbers.length > 0 &&
     destinationIds.length > 0 &&
@@ -251,6 +276,10 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
         ),
         helper_ids: helperIds,
         reason: reason.trim() || null,
+        is_urgent: isUrgent,
+        ...(needsReason
+          ? { unit_reason_type: unitReasonType, unit_reason_note: unitReasonNote.trim() }
+          : {}),
       });
       toast.success("Trip updated.");
       if (onSaved) await onSaved();
@@ -310,16 +339,24 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
                 <label className="mb-1 block text-sm font-medium">
                   Vehicle Unit
                 </label>
-                <SearchSelect
-                  value={vehicleUnits.find((v) => v.id === vehicleUnitId)}
-                  options={vehicleUnits}
-                  onChange={(vehicle) => setVehicleUnitId(vehicle?.id || "")}
-                  placeholder="Select vehicle unit"
-                  getOptionLabel={(vehicle) =>
-                    vehicle?.plate_number || vehicle?.unit_code || ""
-                  }
-                  getOptionValue={(vehicle) => vehicle?.id}
+                <UnitChoice
+                  units={vehicleUnits}
+                  ownUnit={check.ownUnit}
+                  driverSelected={Boolean(driverId)}
+                  value={vehicleUnitId}
+                  onChange={setVehicleUnitId}
+                  needsReason={needsReason}
+                  reasonType={unitReasonType}
+                  onReasonType={setUnitReasonType}
+                  reasonNote={unitReasonNote}
+                  onReasonNote={setUnitReasonNote}
+                  isUrgent={isUrgent}
+                  onUrgent={setIsUrgent}
+                  inputClassName={inputStyles}
                 />
+                {!unitChanged && trip.unit_reason && (
+                  <p className="mt-1 text-xs text-fg-muted">Unit reason: {trip.unit_reason}</p>
+                )}
               </div>
 
               <div>

@@ -9,6 +9,9 @@ import {
   dispatchTrip,
 } from "../../api/tripManagement";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import { getVehicleUnits } from "../../api/adminTripManagement/tripMaintenance";
+import UnitChoice from "./UnitChoice";
+import { unitCheck } from "../../utils/unitReasons";
 import ShipmentStorePairing from "./ShipmentStorePairing";
 import {
   cleanShipmentStores,
@@ -52,6 +55,11 @@ export default function StartTripForDriverCard({
   const [hubStores, setHubStores] = useState([]);
   const [destinationStores, setDestinationStores] = useState([]);
   const [vehicleUnits, setVehicleUnits] = useState([]);
+  // Every unit (incl. ones on a trip) -- to find the driver's own unit.
+  const [allUnits, setAllUnits] = useState([]);
+  const [unitReasonType, setUnitReasonType] = useState("");
+  const [unitReasonNote, setUnitReasonNote] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
   const [helpers, setHelpers] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [destinationSearch, setDestinationSearch] = useState("");
@@ -75,11 +83,13 @@ export default function StartTripForDriverCard({
     const loadOptions = async () => {
       try {
         setLoadingOptions(true);
-        const [driverRes, storeRes, vehicleData] = await Promise.all([
+        const [driverRes, storeRes, vehicleData, everyUnit] = await Promise.all([
           getAvailableDrivers(),
           getStores(),
           getAvailableVehicleUnits(),
+          getVehicleUnits().catch(() => []),
         ]);
+        setAllUnits(Array.isArray(everyUnit) ? everyUnit : everyUnit?.items || []);
 
         setDrivers(driverRes.data || []);
 
@@ -201,11 +211,25 @@ export default function StartTripForDriverCard({
     driverLabel(driver).toLowerCase().includes(driverSearch.toLowerCase()),
   );
 
+  // Picking a driver picks their assigned unit -- unless it's under
+  // repair or out on another trip, then the reason is suggested.
   const selectDriver = (driver) => {
     setDriverId(driver.id);
     setDriverSearch("");
     setDriverDropdownOpen(false);
+    const { ownUnit, suggested } = unitCheck(allUnits, driver.id, null);
+    const ownFree =
+      ownUnit && !ownUnit.in_repair && vehicleUnits.some((v) => v.id === ownUnit.id);
+    setVehicleUnitId(ownFree ? ownUnit.id : "");
+    setUnitReasonType(ownFree ? "" : suggested);
+    setUnitReasonNote("");
   };
+
+  const selectedUnit = vehicleUnits.find((v) => String(v.id) === String(vehicleUnitId));
+  const { ownUnit, needsReason } = unitCheck(allUnits, driverId, selectedUnit);
+  const unitBlocked = Boolean(selectedUnit?.in_repair);
+  const reasonOk =
+    !needsReason || (unitReasonType && (unitReasonType !== "OTHER" || unitReasonNote.trim()));
 
   const resetForm = () => {
     setDriverId("");
@@ -219,17 +243,30 @@ export default function StartTripForDriverCard({
     setDestinationSearch("");
     setDriverSearch("");
     setDriverDropdownOpen(false);
+    setUnitReasonType("");
+    setUnitReasonNote("");
+    setIsUrgent(false);
   };
 
   const canSubmit =
     driverId &&
     originStoreId &&
     vehicleUnitId &&
+    !unitBlocked &&
+    reasonOk &&
     shipmentNumbers.length > 0 &&
     selectedDestinationIds.length > 0 &&
     shipmentStoresComplete(shipmentNumbers, selectedDestinationIds, shipmentStores);
 
   const handleSubmit = async () => {
+    if (unitBlocked) {
+      toast.error(`${selectedUnit.plate_number} is under repair -- pick another unit.`);
+      return;
+    }
+    if (!reasonOk) {
+      toast.error("Give the reason for using this unit.");
+      return;
+    }
     if (!canSubmit) {
       toast.error(
         "Select a driver, start point, vehicle, shipment number, at least one destination store, and the store for each shipment.",
@@ -256,6 +293,11 @@ export default function StartTripForDriverCard({
         ),
       );
       formData.append("helper_ids", JSON.stringify(selectedHelperIds));
+      if (needsReason) {
+        formData.append("unit_reason_type", unitReasonType);
+        formData.append("unit_reason_note", unitReasonNote.trim());
+      }
+      formData.append("is_urgent", isUrgent ? "true" : "false");
 
       await dispatchTrip(formData);
 
@@ -352,17 +394,20 @@ export default function StartTripForDriverCard({
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Vehicle Unit
                 </label>
-                <SearchSelect
-                  value={vehicleUnits.find(
-                    (v) => String(v.id) === String(vehicleUnitId),
-                  )}
-                  options={vehicleUnits}
-                  onChange={(vehicle) => setVehicleUnitId(vehicle?.id || "")}
-                  placeholder="Select vehicle unit"
-                  getOptionLabel={(vehicle) =>
-                    vehicle?.plate_number || vehicle?.unit_code || ""
-                  }
-                  getOptionValue={(vehicle) => vehicle?.id}
+                <UnitChoice
+                  units={vehicleUnits}
+                  ownUnit={ownUnit}
+                  driverSelected={Boolean(driverId)}
+                  value={vehicleUnitId}
+                  onChange={setVehicleUnitId}
+                  needsReason={needsReason}
+                  reasonType={unitReasonType}
+                  onReasonType={setUnitReasonType}
+                  reasonNote={unitReasonNote}
+                  onReasonNote={setUnitReasonNote}
+                  isUrgent={isUrgent}
+                  onUrgent={setIsUrgent}
+                  inputClassName={inputStyles}
                 />
               </div>
 

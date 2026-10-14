@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
+import TripUnitTags from "./TripUnitTags";
 import { StopShipments } from "./ShipmentStorePairing";
 import {
   approveTrip,
@@ -482,6 +483,7 @@ const PendingTripsCard = ({
                   <div className="flex flex-wrap items-center gap-2">
                     {trip.trip_code || "-"}
                     <TripSourceBadge trip={trip} />
+                    <TripUnitTags trip={trip} />
                     {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
                     {trip.return_reason && (
                       <span
@@ -555,6 +557,7 @@ const PendingTripsCard = ({
           >
             <div className="mb-2 flex flex-wrap gap-1.5">
               <TripSourceBadge trip={trip} />
+                    <TripUnitTags trip={trip} />
               {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
               {trip.return_reason && (
                 <span
@@ -651,6 +654,7 @@ const PendingTripsCard = ({
                 <FontAwesomeIcon icon={faRoute} />
                 Trip Review — {selectedTrip.trip_code || selectedTrip.ticket_no}
                 <TripSourceBadge trip={selectedTrip} />
+                <TripUnitTags trip={selectedTrip} />
                 {awaitingManual && <AwaitingSuperadminBadge />}
               </h2>
 

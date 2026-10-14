@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import TripUnitTags from "./TripUnitTags";
 import { getApprovalPipeline } from "../../api/adminTripManagement/trips";
 import SearchSelect from "../SearchSelect";
 import SearchInput from "../ui/searchInput/SearchInput";
@@ -151,8 +152,9 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   <tr key={trip.id} className="border-t border-border hover:bg-surface-hover">
                     <td className="px-4 py-3">
                       <div className="font-medium uppercase">{trip.trip_code || `#${trip.id}`}</div>
-                      <div className="mt-1">
+                      <div className="mt-1 flex flex-wrap gap-1">
                         <SourceBadge manual={trip.is_manual_entry} />
+                        <TripUnitTags trip={trip} />
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -248,6 +250,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   <SourceBadge manual={trip.is_manual_entry} />
+                  <TripUnitTags trip={trip} />
                   {trip.returned && (
                     <span className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger">
                       Sent back by Office

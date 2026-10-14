@@ -358,3 +358,16 @@ export const deleteVehicleMaintenanceRecord = async (id) => {
     throw error;
   }
 };
+
+// DRIVER <-> UNIT (one each way). Drivers come with the unit they have now.
+export const getUnitDrivers = async () =>
+  (await api.get("/trip-maintenance/vehicle-units/drivers")).data;
+
+// driverId null = no assigned driver. Giving a driver this unit takes them
+// off the unit they had (response.moved_from).
+export const setUnitDriver = async (unitId, driverId) =>
+  (
+    await api.put(`/trip-maintenance/vehicle-units/${unitId}/assigned-driver`, {
+      driver_id: driverId || null,
+    })
+  ).data;

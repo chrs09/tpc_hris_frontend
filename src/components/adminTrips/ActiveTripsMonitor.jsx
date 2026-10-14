@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import TripUnitTags from "./TripUnitTags";
 import toast from "react-hot-toast";
 import TripGpsLogsModal from "./TripGpsLogsModal";
 import { cancelActiveTrip } from "../../api/adminTripManagement/trips";
@@ -131,6 +132,9 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
                 >
                   <td className="px-4 py-4 capitalize">
                     {trip.username}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <TripUnitTags trip={trip} />
+                    </div>
                     {trip.started_outside_hub_range && (
                       <span
                         title="Started outside any hub's GPS range"
