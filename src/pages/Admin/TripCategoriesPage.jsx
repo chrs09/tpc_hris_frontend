@@ -17,7 +17,31 @@ import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import {
+  createTripRateRule,
+  deleteTripRateRule,
+} from "../../api/adminTripManagement/tripRateRules";
 import DriverRatesPanel from "../../components/tripMaintenance/DriverRatesPanel";
+
+const RATE_KEYS = [
+  ["driver_first_trip_rate", "Driver 1st"],
+  ["driver_next_trip_rate", "Driver Next"],
+  ["helper_first_trip_rate", "Helper 1st"],
+  ["helper_next_trip_rate", "Helper Next"],
+];
+
+// Today in the Philippines, "YYYY-MM-DD".
+const todayPH = () =>
+  new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+
+const shortDate = (value) =>
+  value
+    ? new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
 
 const EMPTY_FORM = {
   profile_name: "",
@@ -37,6 +61,10 @@ export default function TripCategoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  // Editing rates: they take effect from this date (past trips keep the
+  // old rate). fixBase = correct the base rate instead (every trip).
+  const [effectiveFrom, setEffectiveFrom] = useState(todayPH());
+  const [fixBase, setFixBase] = useState(false);
   const [search, setSearch] = useState("");
   // Archived categories are hidden unless this is on.
   const [showArchived, setShowArchived] = useState(false);
@@ -84,9 +112,32 @@ export default function TripCategoriesPage() {
   };
 
   const handleUpdate = async () => {
+    const current = editingProfile.current_rates || editingProfile;
+    const ratesChanged = RATE_KEYS.some(
+      ([key]) => Number(form[key] || 0) !== Number(current[key] || 0),
+    );
     try {
-      await updateRateProfile(editingProfile.id, form);
-      toast.success("Rate profile updated successfully");
+      if (ratesChanged && !fixBase) {
+        if (!effectiveFrom) {
+          toast.error("Pick the date the new rates take effect.");
+          return;
+        }
+        // Name / helpers now; the rates from the effective date.
+        await updateRateProfile(editingProfile.id, {
+          profile_name: form.profile_name,
+          helper_count: form.helper_count,
+        });
+        await createTripRateRule({
+          trip_rate_profile_id: editingProfile.id,
+          ...Object.fromEntries(RATE_KEYS.map(([key]) => [key, Number(form[key] || 0)])),
+          effective_from: effectiveFrom,
+          notes: "Set from the category card",
+        });
+        toast.success(`New rates take effect ${shortDate(effectiveFrom)}.`);
+      } else {
+        await updateRateProfile(editingProfile.id, form);
+        toast.success("Rate profile updated successfully");
+      }
       await loadRateProfiles();
       setEditingProfile(null);
       setShowModal(false);
@@ -134,16 +185,40 @@ export default function TripCategoriesPage() {
   };
 
   const handleEdit = (profile) => {
+    // Start from what the category pays today (base + dated changes).
+    const current = profile.current_rates || profile;
     setEditingProfile(profile);
     setForm({
       profile_name: profile.profile_name || "",
       helper_count: profile.helper_count || 0,
-      driver_first_trip_rate: profile.driver_first_trip_rate || 0,
-      driver_next_trip_rate: profile.driver_next_trip_rate || 0,
-      helper_first_trip_rate: profile.helper_first_trip_rate || 0,
-      helper_next_trip_rate: profile.helper_next_trip_rate || 0,
+      driver_first_trip_rate: current.driver_first_trip_rate || 0,
+      driver_next_trip_rate: current.driver_next_trip_rate || 0,
+      helper_first_trip_rate: current.helper_first_trip_rate || 0,
+      helper_next_trip_rate: current.helper_next_trip_rate || 0,
     });
+    setEffectiveFrom(todayPH());
+    setFixBase(false);
     setShowModal(true);
+  };
+
+  const handleDeleteChange = async (change) => {
+    if (
+      !(await confirmDialog(
+        `Remove the rate change from ${shortDate(change.effective_from)}? Trips on and after that date go back to the rate before it.`,
+      ))
+    ) {
+      return;
+    }
+    try {
+      await deleteTripRateRule(change.id);
+      toast.success("Rate change removed.");
+      const response = await getRateProfiles();
+      const list = response?.data || response || [];
+      setTripRates(list);
+      setEditingProfile(list.find((p) => p.id === editingProfile.id) || editingProfile);
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Couldn't remove the rate change.");
+    }
   };
 
   const formatCurrency = (value) =>
@@ -265,31 +340,53 @@ export default function TripCategoriesPage() {
               <div className="bg-surface-hover rounded-xl p-3">
                 <p className="text-xs text-fg-subtle">Driver 1st</p>
                 <p className="font-bold">
-                  {formatCurrency(rate.driver_first_trip_rate)}
+                  {formatCurrency((rate.current_rates || rate).driver_first_trip_rate)}
                 </p>
               </div>
 
               <div className="bg-surface-hover rounded-xl p-3">
                 <p className="text-xs text-fg-subtle">Driver Next Trip</p>
                 <p className="font-bold">
-                  {formatCurrency(rate.driver_next_trip_rate)}
+                  {formatCurrency((rate.current_rates || rate).driver_next_trip_rate)}
                 </p>
               </div>
 
               <div className="bg-surface-hover rounded-xl p-3">
                 <p className="text-xs text-fg-subtle">Helper First Trip</p>
                 <p className="font-bold">
-                  {formatCurrency(rate.helper_first_trip_rate)}
+                  {formatCurrency((rate.current_rates || rate).helper_first_trip_rate)}
                 </p>
               </div>
 
               <div className="bg-surface-hover rounded-xl p-3">
                 <p className="text-xs text-fg-subtle">Helper Next Trip</p>
                 <p className="font-bold">
-                  {formatCurrency(rate.helper_next_trip_rate)}
+                  {formatCurrency((rate.current_rates || rate).helper_next_trip_rate)}
                 </p>
               </div>
             </div>
+
+            {rate.current_rates?.since && (
+              <p className="mt-2 text-xs text-fg-subtle">
+                Rates since {shortDate(rate.current_rates.since)}
+              </p>
+            )}
+            {(rate.rate_changes || [])
+              .filter((change) => change.effective_from > todayPH())
+              .reverse()
+              .map((change) => (
+                <p
+                  key={change.id}
+                  className="mt-2 rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning"
+                >
+                  <span className="font-semibold">
+                    From {shortDate(change.effective_from)}:
+                  </span>{" "}
+                  {RATE_KEYS.filter(([key]) => change[key] !== null)
+                    .map(([key, label]) => `${label} ${formatCurrency(change[key])}`)
+                    .join(" · ")}
+                </p>
+              ))}
 
             {canEditPage && (
               <div className="mt-3 flex justify-between">
@@ -438,6 +535,75 @@ export default function TripCategoriesPage() {
               />
             </div>
           </div>
+
+          {editingProfile && (
+            <div className="space-y-3 rounded-xl border border-border p-3">
+              <div>
+                <label
+                  htmlFor="rate-effective-from"
+                  className="block text-sm font-medium mb-1 text-fg"
+                >
+                  New rates take effect from
+                </label>
+                <input
+                  id="rate-effective-from"
+                  type="date"
+                  value={effectiveFrom}
+                  disabled={fixBase}
+                  onChange={(e) => setEffectiveFrom(e.target.value)}
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg disabled:opacity-50"
+                />
+                <p className="mt-1 text-xs text-fg-subtle">
+                  Trips before this date keep the old rates. Only used when you
+                  change a rate above.
+                </p>
+              </div>
+              <label className="flex items-start gap-2 text-xs text-fg-muted">
+                <input
+                  type="checkbox"
+                  checked={fixBase}
+                  onChange={(e) => setFixBase(e.target.checked)}
+                  className="mt-0.5"
+                />
+                Correct the base rates instead (a typo fix: changes every trip,
+                past ones included)
+              </label>
+
+              {(editingProfile.rate_changes || []).length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-fg">Rate changes</p>
+                  <ul className="mt-1 divide-y divide-border text-xs">
+                    {editingProfile.rate_changes.map((change) => (
+                      <li
+                        key={change.id}
+                        className="flex items-center justify-between gap-2 py-1.5"
+                      >
+                        <span className="text-fg-muted">
+                          <span className="font-semibold text-fg">
+                            {shortDate(change.effective_from)}
+                          </span>
+                          {change.effective_from > todayPH() ? " (upcoming)" : ""}:{" "}
+                          {RATE_KEYS.filter(([key]) => change[key] !== null)
+                            .map(([key, label]) => `${label} ${formatCurrency(change[key])}`)
+                            .join(" · ")}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteChange(change)}
+                          className="shrink-0 rounded-md px-2 py-1 text-danger hover:bg-danger/10"
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-[11px] text-fg-subtle">
+                    Base rates: {RATE_KEYS.map(([key, label]) => `${label} ${formatCurrency(editingProfile[key])}`).join(" · ")}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </MaintenanceModal>
       </>
