@@ -368,6 +368,7 @@ export default function EmployeeListPage() {
           setSelectedEmployee(null);
         }}
         onSuccess={handleUpdateSuccess}
+        onDataChanged={refetch}
       />
 
       <AddEmployeeDrawer

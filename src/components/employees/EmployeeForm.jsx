@@ -94,6 +94,9 @@ export default function EmployeeForm({
   const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
 
   const isSuperAdmin = localStorage.getItem("role") === "superadmin";
+  // Department, position, pay and schedule of an existing employee change
+  // only in Work History (with an effective date); a new employee sets them here.
+  const jobEditable = isEditing && !employee?.id;
 
   const handleEducationChange = (index, field, value) => {
     const updated = [...educationRecords];
@@ -282,11 +285,17 @@ export default function EmployeeForm({
               onChange={handleChange}
               error={errors.email}
             />
+            {isEditing && employee?.id && (
+              <p className="md:col-span-2 rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
+                Department, position, pay and work schedule are changed in the{" "}
+                <strong>Work History</strong> tab, with an effective date.
+              </p>
+            )}
             <EditableField
               label="Department"
               field="department"
               value={formData.department}
-              isEditing={isEditing}
+              isEditing={jobEditable}
               onChange={handleChange}
               options={departmentOptions}
               error={errors.department}
@@ -296,7 +305,7 @@ export default function EmployeeForm({
               label="Position"
               field="position"
               value={formData.position}
-              isEditing={isEditing}
+              isEditing={jobEditable}
               onChange={handleChange}
               error={errors.position}
               required
@@ -308,7 +317,7 @@ export default function EmployeeForm({
                   field="monthly_basic"
                   value={formData.monthly_basic}
                   type="number"
-                  isEditing={isEditing}
+                  isEditing={jobEditable}
                   onChange={handleChange}
                 />
                 <EditableField
@@ -316,7 +325,7 @@ export default function EmployeeForm({
                   field="monthly_allow"
                   value={formData.monthly_allow}
                   type="number"
-                  isEditing={isEditing}
+                  isEditing={jobEditable}
                   onChange={handleChange}
                 />
                 <div className="space-y-1">
@@ -343,7 +352,7 @@ export default function EmployeeForm({
                   field="daily_rate"
                   value={formData.daily_rate}
                   type="number"
-                  isEditing={isEditing}
+                  isEditing={jobEditable}
                   onChange={handleChange}
                 />
               )
@@ -353,7 +362,7 @@ export default function EmployeeForm({
               label="Employment Type"
               field="employment_type"
               value={formData.employment_type}
-              isEditing={isEditing}
+              isEditing={jobEditable}
               onChange={handleChange}
               options={[
                 "Regular",
@@ -369,7 +378,7 @@ export default function EmployeeForm({
               label="Payroll Type"
               field="payroll_type"
               value={formData.payroll_type}
-              isEditing={isEditing}
+              isEditing={jobEditable}
               onChange={handleChange}
               options={["Daily", "Weekly", "Monthly"]}
               error={errors.payroll_type}
@@ -379,7 +388,7 @@ export default function EmployeeForm({
               label="Work Schedule"
               field="schedule_template_id"
               value={formData.schedule_template_id}
-              isEditing={isEditing}
+              isEditing={jobEditable}
               onChange={handleChange}
               options={scheduleOptions}
             />

@@ -34,3 +34,10 @@ export const getTripCheck = async (start, end) => {
   const res = await api.get("/payroll-runs/trip-check", { params: { start, end } });
   return res.data;
 };
+
+// Work History splits in start..end: { "<employee id>": [{ from, to,
+// is_last, department, position, payroll_type, daily_rate, ... }] }.
+export const getJobSegments = async (start, end) => {
+  const res = await api.get("/payroll-runs/job-segments", { params: { start, end } });
+  return res.data;
+};

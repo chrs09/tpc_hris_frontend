@@ -43,9 +43,11 @@ import { payrollStatusLabel } from "../../utils/payroll/payrollStatus";
 import {
   getPayrollRun,
   getPayrollRunStatuses,
+  getJobSegments,
   getTripCheck,
   markPayrollGenerated,
 } from "../../api/payroll/payrollRuns";
+import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
 
 /*
@@ -268,6 +270,71 @@ const PayrollList = () => {
       .catch(() => setTripCheck([]));
   }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
 
+  // Work History: an employee whose department / pay changed inside this
+  // cutoff gets one row per part (each in its own department's payroll).
+  const [jobSegments, setJobSegments] = useState({});
+  const [scheduleList, setScheduleList] = useState([]);
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    getJobSegments(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+      .then(setJobSegments)
+      .catch(() => setJobSegments({}));
+  }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
+  useEffect(() => {
+    getScheduleTemplates()
+      .then((data) => setScheduleList(Array.isArray(data) ? data : data?.items || []))
+      .catch(() => setScheduleList([]));
+  }, []);
+
+  // This department's payroll people for the cutoff: everyone in it the
+  // whole time, plus the part of the cutoff of anyone moved in or out.
+  // adjId keys a part's inputs / saved row (employee id @ part's first day).
+  const departmentEntries = useMemo(() => {
+    const entries = [];
+    employees.forEach((emp) => {
+      const spans = jobSegments[String(emp.id)];
+      if (!spans || spans.length === 0) {
+        if (emp.department === department) entries.push(emp);
+        return;
+      }
+      const split = spans.length > 1;
+      spans
+        .filter((span) => span.department === department)
+        .forEach((span) => {
+          const segmentKey = split && span.from !== activePeriod.cutoffStart ? span.from : "";
+          const schedule =
+            span.schedule_template_id === emp.schedule_template?.id
+              ? emp.schedule_template
+              : scheduleList.find((t) => t.id === span.schedule_template_id) ||
+                emp.schedule_template;
+          entries.push({
+            ...emp,
+            department: span.department,
+            position: span.position,
+            employment_type: span.employment_type,
+            payroll_type: span.payroll_type,
+            daily_rate: span.daily_rate,
+            monthly_basic: span.monthly_basic,
+            monthly_allow: span.monthly_allow,
+            schedule_template: schedule,
+            adjId: split ? `${emp.id}@${segmentKey}` : emp.id,
+            _segment: split
+              ? {
+                  from: span.from,
+                  to: span.to,
+                  is_last: span.is_last,
+                  key: segmentKey,
+                  others: spans
+                    .filter((other) => other !== span)
+                    .map((other) => `${other.department} ${other.from.slice(5)}–${other.to.slice(5)}`),
+                }
+              : null,
+          });
+        });
+    });
+    return entries;
+  }, [employees, jobSegments, scheduleList, department, activePeriod?.cutoffStart]);
+
   const cutoffKey = activePeriod.cutoffStart
     ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`
     : "";
@@ -337,7 +404,10 @@ const PayrollList = () => {
           const next = { ...prev };
 
           records.forEach((record) => {
-            const key = getAdjustmentKey(record.employee_id, activePeriod);
+            const key = getAdjustmentKey(
+              record.segment ? `${record.employee_id}@${record.segment}` : record.employee_id,
+              activePeriod,
+            );
 
             next[key] = {
               // Seed from the DB first...
@@ -370,11 +440,8 @@ const PayrollList = () => {
   }, [activePeriod, department, employees]);
 
   const departmentEmployeeIds = useMemo(
-    () =>
-      employees
-        .filter((emp) => emp.department === department)
-        .map((emp) => emp.id),
-    [employees, department],
+    () => [...new Set(departmentEntries.map((emp) => emp.id))],
+    [departmentEntries],
   );
 
   const loadCashAdvanceInfo = useCallback(async () => {
@@ -396,8 +463,7 @@ const PayrollList = () => {
   }, [loadCashAdvanceInfo]);
 
   const payrollRows = useMemo(() => {
-    return employees
-      .filter((emp) => emp.department === department)
+    return departmentEntries
 
       .filter((emp) => {
         const fullName = `${emp.first_name || ""} ${
@@ -412,8 +478,8 @@ const PayrollList = () => {
           .filter(
             (record) =>
               record.employee_id === employee.id &&
-              record.attendance_date >= activePeriod.cutoffStart &&
-              record.attendance_date <= activePeriod.cutoffEnd,
+              record.attendance_date >= (employee._segment?.from || activePeriod.cutoffStart) &&
+              record.attendance_date <= (employee._segment?.to || activePeriod.cutoffEnd),
           )
           .sort(
             (a, b) => new Date(a.attendance_date) - new Date(b.attendance_date),
@@ -876,7 +942,7 @@ const PayrollList = () => {
         const annualBasicForContributions = monthlyBasicForContributions * 12;
 
         // ===== Manual entries (Others) =====
-        const adjKey = getAdjustmentKey(employee.id, activePeriod);
+        const adjKey = getAdjustmentKey(employee.adjId ?? employee.id, activePeriod);
         const adj = adjustments[adjKey] || {};
 
         const others = Number(adj.others || 0);
@@ -954,6 +1020,14 @@ const PayrollList = () => {
               ? computedWithholdingTax
               : 0;
 
+        // Split cutoff: contributions are taken once, in the last part.
+        if (employee._segment && !employee._segment.is_last) {
+          sssDeduction = 0;
+          philhealthDeduction = 0;
+          pagibigDeduction = 0;
+          withholdingTax = 0;
+        }
+
         const sssLoan = Number(adj.sssLoan || 0);
         const personalDeduction = Number(adj.personalDeduction || 0);
 
@@ -964,8 +1038,10 @@ const PayrollList = () => {
           withholdingTax;
 
         const ca = getCashAdvance(
-          cashAdvanceInfo[String(employee.id)],
-          adj,
+          employee._segment && !employee._segment.is_last
+            ? null
+            : cashAdvanceInfo[String(employee.id)],
+          employee._segment && !employee._segment.is_last ? {} : adj,
           isTripBasedEmployee
             ? tripPay
             : grossPay - govtDeductions - sssLoan - personalDeduction,
@@ -984,8 +1060,8 @@ const PayrollList = () => {
         const completeness = getCutoffCompleteness({
           schedule: employee.schedule_template,
           records,
-          cutoffStart: activePeriod.cutoffStart,
-          cutoffEnd: activePeriod.cutoffEnd,
+          cutoffStart: employee._segment?.from || activePeriod.cutoffStart,
+          cutoffEnd: employee._segment?.to || activePeriod.cutoffEnd,
           holidayDates: holidays.map((h) => h.holiday_date),
         });
 
@@ -1018,7 +1094,10 @@ const PayrollList = () => {
           // approved yet, or no attendance on that day.
           const unpaidTrips = tripCheck.filter(
             (trip) =>
-              trip.employee_id === employee.id && !processedTrips.has(trip.trip_id),
+              trip.employee_id === employee.id &&
+              !processedTrips.has(trip.trip_id) &&
+              (!employee._segment ||
+                (trip.date >= employee._segment.from && trip.date <= employee._segment.to)),
           );
           const tripWarnings = [];
           const unpaidWarning = unpaidTripsWarning(unpaidTrips);
@@ -1194,17 +1273,16 @@ const PayrollList = () => {
         };
       });
   }, [
-    employees,
     attendance,
     headApprovedOTRequests,
     holidays,
-    department,
     activePeriod,
     otApprovals,
     searchEmployee,
     adjustments,
     cashAdvanceInfo,
     tripCheck,
+    departmentEntries,
   ]);
 
   // Holidays inside the selected cutoff, oldest first.
@@ -1350,6 +1428,11 @@ const PayrollList = () => {
     absent_deduction: row.isTripBasedEmployee ? 0 : row.absentDeduction || 0,
     cash_advance_deduction: row.cashAdvance || 0,
     net_pay: row.netPay,
+    segment: row.employee._segment?.key || "",
+    // Cash advance is posted once per cutoff, from the last part only.
+    ...(row.employee._segment && !row.employee._segment.is_last
+      ? { cash_advance_deduction: undefined }
+      : {}),
   });
 
   const handleGeneratePayslip = async (row) => {
@@ -1824,9 +1907,18 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
               <tbody>
                 {paginatedPayrollRows.map((row) => (
-                  <tr key={row.employee.id} className="border-t border-border">
+                  <tr key={row.employee.adjId ?? row.employee.id} className="border-t border-border">
                     <td className="sticky left-0 z-10 bg-surface px-4 py-3 min-w-55 border-r border-border">
                       {row.employee.first_name} {row.employee.last_name}
+                      {row.employee._segment && (
+                        <div
+                          className="mt-1 text-[11px] font-medium text-warning"
+                          title={`Also paid: ${row.employee._segment.others.join(", ")}`}
+                        >
+                          {row.employee._segment.from.slice(5)} to {row.employee._segment.to.slice(5)} only
+                          {row.employee._segment.is_last ? "" : " · contributions in the later part"}
+                        </div>
+                      )}
                     </td>
 
                     <td className="px-4 py-3">
@@ -1993,7 +2085,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           placeholder="0"
                           onChange={(e) =>
                             updateAdjustment(
-                              row.employee.id,
+                              row.employee.adjId ?? row.employee.id,
                               activePeriod,
                               "others",
                               e.target.value,
@@ -2021,7 +2113,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                             placeholder="0"
                             onChange={(e) =>
                               updateAdjustment(
-                                row.employee.id,
+                                row.employee.adjId ?? row.employee.id,
                                 activePeriod,
                                 "sssDeduction",
                                 e.target.value,
@@ -2056,7 +2148,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           placeholder="0"
                           onChange={(e) =>
                             updateAdjustment(
-                              row.employee.id,
+                              row.employee.adjId ?? row.employee.id,
                               activePeriod,
                               "philhealthDeduction",
                               e.target.value,
@@ -2078,7 +2170,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           placeholder="0"
                           onChange={(e) =>
                             updateAdjustment(
-                              row.employee.id,
+                              row.employee.adjId ?? row.employee.id,
                               activePeriod,
                               "pagibigDeduction",
                               e.target.value,
@@ -2100,7 +2192,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           placeholder="0"
                           onChange={(e) =>
                             updateAdjustment(
-                              row.employee.id,
+                              row.employee.adjId ?? row.employee.id,
                               activePeriod,
                               "withholdingTax",
                               e.target.value,
@@ -2122,7 +2214,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           placeholder="0"
                           onChange={(e) =>
                             updateAdjustment(
-                              row.employee.id,
+                              row.employee.adjId ?? row.employee.id,
                               activePeriod,
                               "sssLoan",
                               e.target.value,
@@ -2142,7 +2234,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                         placeholder="0"
                         onChange={(e) =>
                           updateAdjustment(
-                            row.employee.id,
+                            row.employee.adjId ?? row.employee.id,
                             activePeriod,
                             "cashAdvance",
                             e.target.value,
@@ -2172,7 +2264,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           placeholder="0"
                           onChange={(e) =>
                             updateAdjustment(
-                              row.employee.id,
+                              row.employee.adjId ?? row.employee.id,
                               activePeriod,
                               "personalDeduction",
                               e.target.value,

@@ -60,3 +60,14 @@ export const uploadSeparationDocument = async (employeeId, documentType, file) =
 
 export const deleteSeparationDocument = async (employeeId, fileId) =>
   (await api.delete(`/employees/${employeeId}/separation/documents/${fileId}`)).data;
+
+// Work History (internal): department / position / pay changes with an
+// effective date. A future date is scheduled and applied on that day.
+export const getJobHistory = async (employeeId) =>
+  (await api.get(`/employees/${employeeId}/job-history`)).data;
+
+export const recordJobChange = async (employeeId, payload) =>
+  (await api.post(`/employees/${employeeId}/job-history`, payload)).data;
+
+export const cancelJobChange = async (employeeId, changeId) =>
+  (await api.delete(`/employees/${employeeId}/job-history/${changeId}`)).data;

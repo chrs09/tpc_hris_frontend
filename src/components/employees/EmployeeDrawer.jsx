@@ -4,6 +4,7 @@ import { mapEmployeeToForm } from "../../utils/mapEmployee";
 import { updateEmployeeDetails } from "../../api/employee";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import EmployeeForm from "./EmployeeForm";
+import WorkHistory from "./WorkHistory";
 import { confirmDialog } from "../ui/dialog/dialogService";
 import SearchSelect from "../SearchSelect";
 
@@ -21,6 +22,7 @@ const tabs = [
   { key: "personal", label: "Personal Details" },
   { key: "government", label: "Government & Legal" },
   { key: "files", label: "Employment Files" },
+  { key: "history", label: "Work History" },
 ];
 
 export default function EmployeeDrawer({
@@ -30,6 +32,8 @@ export default function EmployeeDrawer({
   onSuccess,
   // False = view-only (no Edit button); see useModuleAccess().canEdit.
   canEdit = true,
+  // Refresh the list without closing (Work History changes).
+  onDataChanged,
 }) {
   const [activeTab, setActiveTab] = useState("basic");
   const [isEditing, setIsEditing] = useState(false);
@@ -351,6 +355,14 @@ export default function EmployeeDrawer({
           scheduleTemplates={scheduleTemplates}
           errors={errors}
         />
+        {activeTab === "history" && (
+          <WorkHistory
+            employee={employee}
+            canEdit={canEdit}
+            scheduleTemplates={scheduleTemplates}
+            onChanged={onDataChanged}
+          />
+        )}
       </div>
 
       {showInactiveModal && (
