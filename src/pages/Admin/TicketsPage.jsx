@@ -22,6 +22,8 @@ import {
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import useViewType from "../../hooks/useViewType";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -58,6 +60,8 @@ export default function TicketsPage() {
   const [seesAll, setSeesAll] = useState(false);
   const [showCategories, setShowCategories] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState(null);
+  // Board (cards by status) or one list of every ticket.
+  const [viewType, setViewType] = useViewType("tickets_view");
 
   const loadCategories = useCallback(async () => {
     try {
@@ -139,6 +143,7 @@ export default function TicketsPage() {
           onChange={setSearch}
           placeholder="Search ticket no., title, person, store..."
         />
+        <ViewToggle viewType={viewType} onChange={setViewType} />
         <div className="w-48">
           <SearchSelect
             value={categoryFilter}
@@ -175,6 +180,93 @@ export default function TicketsPage() {
         <div className="rounded-2xl border border-border bg-surface p-10 text-center text-sm text-fg-subtle">
           Loading...
         </div>
+      ) : viewType === "list" ? (
+        (() => {
+          const statusOrder = COLUMNS.map((c) => c.key);
+          const rows = tickets
+            .filter(
+              (t) =>
+                (!categoryFilter || t.category_id === categoryFilter.id) &&
+                matchesSearch(
+                  search,
+                  t.ticket_no,
+                  t.title,
+                  t.description,
+                  t.priority,
+                  t.created_by_username,
+                  t.assigned_to_username,
+                  t.category_name,
+                  t.requester?.company,
+                ),
+            )
+            .sort(
+              (a, b) =>
+                statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status) ||
+                (b.id || 0) - (a.id || 0),
+            );
+          return rows.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-fg-subtle">
+              No tickets match.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+              <table className="w-full min-w-[860px] text-sm">
+                <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Ticket</th>
+                    <th className="px-4 py-3 text-left font-medium">Title</th>
+                    <th className="px-4 py-3 text-left font-medium">Status</th>
+                    <th className="px-4 py-3 text-left font-medium">Priority</th>
+                    <th className="px-4 py-3 text-left font-medium">Category</th>
+                    <th className="px-4 py-3 text-left font-medium">Filed by</th>
+                    <th className="px-4 py-3 text-left font-medium">Assigned to</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((ticket) => (
+                    <tr
+                      key={ticket.id}
+                      onClick={() => setSelectedTicket(ticket)}
+                      className="cursor-pointer border-t border-border hover:bg-surface-hover"
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap font-mono text-xs text-fg-muted">
+                        {ticket.ticket_no}
+                      </td>
+                      <td className="max-w-[320px] px-4 py-3">
+                        <p className="font-semibold text-fg">{ticket.title}</p>
+                        {ticket.description && (
+                          <p className="line-clamp-1 text-xs text-fg-subtle">{ticket.description}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
+                        {COLUMNS.find((c) => c.key === ticket.status)?.label || ticket.status}
+                      </td>
+                      <td className="px-4 py-3">
+                        {ticket.priority && (
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                              PRIORITY_STYLES[ticket.priority] || PRIORITY_STYLES.low
+                            }`}
+                          >
+                            {ticket.priority}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-fg-muted">{ticket.category_name || "--"}</td>
+                      <td className="px-4 py-3 text-fg-muted">
+                        {ticket.created_by_username || "Unknown"}
+                        {ticket.source === "public" && (
+                          <span className="ml-1 text-[10px] font-semibold text-primary">Customer</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-fg-muted">{ticket.assigned_to_username || "--"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((column) => {

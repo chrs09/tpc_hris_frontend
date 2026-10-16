@@ -25,6 +25,8 @@ import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import useViewType from "../../hooks/useViewType";
 import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceReleaseModal";
 import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
 import { matchesSearch } from "../../utils/search";
@@ -87,6 +89,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     isSuperAdmin ||
     (hasCustomAccess && grantedModules.has("finance.cash_advance"));
 
+  // Pending Approvals as cards or a compact list (remembered per browser).
+  const [pendingView, setPendingView] = useViewType("cash_advance_pending_view");
   const [tab, setTab] = useState("pending");
 
   const [pending, setPending] = useState([]);
@@ -480,11 +484,16 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           )}
         </div>
 
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search name, reason, status, amount..."
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search name, reason, status, amount..."
+          />
+          {tab === "pending" && (
+            <ViewToggle viewType={pendingView} onChange={setPendingView} className="ml-auto" />
+          )}
+        </div>
 
         {tab === "pending" &&
           (loadingPending ? (
@@ -496,6 +505,86 @@ export default function CashAdvanceApprovals({ embedded = false }) {
               {pending.length
                 ? "No pending requests match your search."
                 : "No pending cash advance requests for you to review."}
+            </div>
+          ) : pendingView === "list" ? (
+            <div className="space-y-3">
+              <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+                <table className="w-full min-w-[860px] text-sm">
+                  <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">Employee</th>
+                      <th className="px-4 py-3 text-left font-medium">Requested</th>
+                      <th className="px-4 py-3 text-left font-medium">Per pay</th>
+                      <th className="px-4 py-3 text-left font-medium">Loan Purpose</th>
+                      <th className="px-4 py-3 text-left font-medium whitespace-nowrap">Date Needed</th>
+                      <th className="px-4 py-3 text-left font-medium">Waiting on</th>
+                      {canEditPage && <th className="px-4 py-3 text-right font-medium">Action</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingPagination.paginatedItems.map((req) => {
+                      const current = (req.approval_steps || []).find((st) => st.state === "current");
+                      return (
+                        <tr key={req.id} className="border-t border-border hover:bg-surface-hover">
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-fg">{req.employee_name}</p>
+                            <p className="text-xs text-fg-subtle">
+                              Filed {new Date(req.created_at).toLocaleDateString()}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-fg">
+                            ₱{req.amount.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-fg-muted">
+                            ₱{req.deduction_per_pay_amount.toLocaleString()}
+                            {req.estimated_pay_periods ? (
+                              <span className="block text-xs text-fg-subtle">
+                                ~{req.estimated_pay_periods} pays
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="max-w-[220px] px-4 py-3 text-fg-muted" title={req.reason}>
+                            <span className="line-clamp-2">{req.reason}</span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
+                            {formatDateNeeded(req.date_needed) || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-fg-muted">
+                            {req.can_act === false
+                              ? `Passed to ${current?.name || "the next approver"}`
+                              : current?.name || "You"}
+                          </td>
+                          {canEditPage && (
+                            <td className="px-4 py-3">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => handleApprove(req)}
+                                  disabled={actioningId === req.id || req.can_act === false}
+                                  className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {actioningId === req.id ? "Working..." : "Approve"}
+                                </button>
+                                <button
+                                  onClick={() => handleReject(req)}
+                                  disabled={actioningId === req.id || req.can_act === false}
+                                  className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination
+                page={pendingPagination.page}
+                totalPages={pendingPagination.totalPages}
+                onChange={pendingPagination.setPage}
+              />
             </div>
           ) : (
             <div className="space-y-4">

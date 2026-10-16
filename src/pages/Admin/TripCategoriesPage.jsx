@@ -17,6 +17,8 @@ import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import useViewType from "../../hooks/useViewType";
 import {
   createTripRateRule,
   deleteTripRateRule,
@@ -65,6 +67,8 @@ export default function TripCategoriesPage() {
   // old rate). fixBase = correct the base rate instead (every trip).
   const [effectiveFrom, setEffectiveFrom] = useState(todayPH());
   const [fixBase, setFixBase] = useState(false);
+  // Categories as cards or a table (remembered per browser).
+  const [viewType, setViewType] = useViewType("trip_categories_view");
   const [search, setSearch] = useState("");
   // Archived categories are hidden unless this is on.
   const [showArchived, setShowArchived] = useState(false);
@@ -287,6 +291,7 @@ export default function TripCategoriesPage() {
           />
           Show archived ({archivedCount})
         </label>
+        <ViewToggle viewType={viewType} onChange={setViewType} />
         <div className="flex-1" />
         {canEditPage && (
           <button
@@ -303,6 +308,106 @@ export default function TripCategoriesPage() {
         )}
       </div>
 
+      {viewType === "list" ? (
+        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+          <table className="w-full min-w-[820px] text-sm text-fg">
+            <thead className="bg-surface-hover text-fg-muted">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Category</th>
+                {RATE_KEYS.map(([key, label]) => (
+                  <th key={key} className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                    {label}
+                  </th>
+                ))}
+                <th className="px-4 py-3 text-left font-medium">Rate change</th>
+                {canEditPage && <th className="px-4 py-3" />}
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.map((rate) => {
+                const current = rate.current_rates || rate;
+                const upcoming = (rate.rate_changes || [])
+                  .filter((change) => change.effective_from > todayPH())
+                  .reverse()[0];
+                return (
+                  <tr
+                    key={rate.id}
+                    className={`border-t border-border hover:bg-surface-hover ${rate.is_active ? "" : "opacity-60"}`}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">
+                        {rate.profile_name}
+                        {!rate.is_active && (
+                          <span className="ml-2 rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
+                            Archived
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-fg-muted">
+                        {rate.helper_count} helper(s)
+                        {rate.store_count > 0 && ` · ${rate.store_count} store(s)`}
+                      </p>
+                    </td>
+                    {RATE_KEYS.map(([key]) => (
+                      <td key={key} className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {formatCurrency(current[key])}
+                      </td>
+                    ))}
+                    <td className="px-4 py-3 text-xs">
+                      {upcoming ? (
+                        <span className="text-warning">
+                          From {shortDate(upcoming.effective_from)}:{" "}
+                          {RATE_KEYS.filter(([key]) => upcoming[key] !== null)
+                            .map(([key, label]) => `${label} ${formatCurrency(upcoming[key])}`)
+                            .join(" · ")}
+                        </span>
+                      ) : rate.current_rates?.since ? (
+                        <span className="text-fg-subtle">Since {shortDate(rate.current_rates.since)}</span>
+                      ) : (
+                        <span className="text-fg-subtle">--</span>
+                      )}
+                    </td>
+                    {canEditPage && (
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-1">
+                          {rate.is_active ? (
+                            <>
+                              <button
+                                onClick={() => handleEdit(rate)}
+                                title="Edit"
+                                className="rounded-lg p-2 text-primary hover:bg-primary/10"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleArchive(rate)}
+                                disabled={archivingId === rate.id}
+                                title="Archive"
+                                className="rounded-lg p-2 text-fg-muted hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                              >
+                                <Archive size={16} />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleRestore(rate)}
+                              disabled={archivingId === rate.id}
+                              title="Restore"
+                              className="rounded-lg p-2 text-primary hover:bg-primary/10 disabled:opacity-50"
+                            >
+                              <ArchiveRestore size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {paginatedItems.map((rate) => (
           <div
@@ -424,6 +529,7 @@ export default function TripCategoriesPage() {
           </div>
         ))}
       </div>
+      )}
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
 

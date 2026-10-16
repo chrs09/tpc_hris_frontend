@@ -12,6 +12,8 @@ import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import useViewType from "../../hooks/useViewType";
 import { matchesSearch } from "../../utils/search";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import WorkReport from "../../components/attendance/WorkReport";
@@ -46,6 +48,8 @@ export default function AttendanceApprovals() {
   // Filter chip: "all" or one of REVIEW_TYPES.
   const [typeFilter, setTypeFilter] = useState("all");
   const [photo, setPhoto] = useState(null);
+  // Cards or a compact list (remembered per browser).
+  const [viewType, setViewType] = useViewType("attendance_approvals_view");
   // Missed time out: the time out the approver saves ("HH:MM"), starting
   // from what the employee said.
   const [missedTimes, setMissedTimes] = useState({});
@@ -187,11 +191,14 @@ export default function AttendanceApprovals() {
             it to the next head up, if any.
           </p>
         </div>
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search name, date, reason..."
-        />
+        <div className="flex items-center gap-2">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search name, date, reason..."
+          />
+          <ViewToggle viewType={viewType} onChange={setViewType} />
+        </div>
       </div>
 
       {items.length > 0 && (
@@ -237,6 +244,124 @@ export default function AttendanceApprovals() {
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-subtle">
           {items.length ? "Nothing matches this filter or search." : "All caught up -- nothing waiting on you. 🎉"}
+        </div>
+      ) : viewType === "list" ? (
+        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+          <table className="w-full min-w-[860px] text-sm">
+            <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
+              <tr>
+                <th className="px-3 py-3 text-left font-medium">Employee</th>
+                <th className="px-3 py-3 text-left font-medium">When</th>
+                <th className="px-3 py-3 text-left font-medium">Needs a look</th>
+                <th className="px-3 py-3 text-left font-medium">Status</th>
+                {canEditPage && <th className="px-3 py-3 text-right font-medium">Action</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((item) => {
+                const state = reviewStateOf(item);
+                const unfiled = item.missed_time_out && !item.missed_time_out.filed;
+                return (
+                  <tr
+                    key={item.key}
+                    className={`border-t border-l-4 border-border align-top hover:bg-surface-hover ${STATE_STYLES[state.key].border}`}
+                  >
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => item.photo_url && setPhoto(item)}
+                          className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-hover"
+                          aria-label={`View ${item.employee_name}'s photo`}
+                        >
+                          {item.photo_url ? (
+                            <img src={item.photo_url} alt="" className="h-full w-full object-cover" />
+                          ) : null}
+                        </button>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-fg">{item.employee_name}</p>
+                          <p className="text-xs text-fg-subtle">{item.side_label}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-xs text-fg-muted">
+                      {item.attendance_date}
+                      {item.time ? <span className="block">{item.time}</span> : null}
+                    </td>
+                    <td className="max-w-[320px] px-3 py-3">
+                      <div className="flex flex-wrap gap-1">
+                        {reviewTypesOf(item).map((type) => (
+                          <span
+                            key={type}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[type]}`}
+                          >
+                            {REVIEW_TYPES.find((t) => t.key === type)?.label}
+                          </span>
+                        ))}
+                      </div>
+                      {item.missed_time_out ? (
+                        <div className="mt-1 text-xs text-fg-muted">
+                          In {item.missed_time_out.time_in || "-"}
+                          {item.missed_time_out.filed
+                            ? ` · says left ${item.missed_time_out.requested_time}`
+                            : " · not filed yet"}
+                          {canEditPage && item.can_act !== false && (
+                            <input
+                              type="time"
+                              aria-label={`Time out for ${item.employee_name}`}
+                              value={missedTimeOf(item)}
+                              onChange={(e) =>
+                                setMissedTimes((prev) => ({ ...prev, [item.key]: e.target.value }))
+                              }
+                              className="ml-2 rounded-md border border-border bg-surface px-1.5 py-0.5 text-xs text-fg"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <p className="mt-1 line-clamp-2 text-xs text-fg-muted">
+                          {friendlyReason(item.review_reason) || REASON_LABELS[item.review_status]}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATE_STYLES[state.key].pill}`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${STATE_STYLES[state.key].dot}`} />
+                        {state.label}
+                      </span>
+                    </td>
+                    {canEditPage && (
+                      <td className="px-3 py-3">
+                        {item.can_act !== false && (
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              disabled={actioningKey === item.key}
+                              onClick={() => act(item, true)}
+                              className="whitespace-nowrap rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:opacity-50"
+                            >
+                              {unfiled ? "Save Time Out" : "Approve"}
+                            </button>
+                            {!unfiled && (
+                              <button
+                                type="button"
+                                disabled={actioningKey === item.key}
+                                onClick={() => act(item, false)}
+                                className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                              >
+                                Reject
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

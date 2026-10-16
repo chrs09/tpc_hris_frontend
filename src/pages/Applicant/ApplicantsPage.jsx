@@ -16,6 +16,8 @@ import { alertDialog } from "../../components/ui/dialog/dialogService";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
+import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import useViewType from "../../hooks/useViewType";
 
 const COLUMNS = [
   { key: "pending", label: "Pending" },
@@ -1685,6 +1687,8 @@ export default function ApplicantsPage() {
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  // Board (cards by stage) or one list of every applicant.
+  const [viewType, setViewType] = useViewType("applicants_view");
 
   const [previewFile, setPreviewFile] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -2186,6 +2190,7 @@ export default function ApplicantsPage() {
               >
                 Refresh
               </button>
+              <ViewToggle viewType={viewType} onChange={setViewType} className="self-center" />
             </div>
           </div>
 
@@ -2225,6 +2230,84 @@ export default function ApplicantsPage() {
           <div className="rounded-3xl border border-border bg-surface p-10 text-center text-fg-subtle shadow-sm">
             Loading applicants...
           </div>
+        ) : viewType === "list" ? (
+          filteredApplicants.length === 0 ? (
+            <div className="rounded-3xl border border-dashed border-border bg-surface p-10 text-center text-fg-subtle">
+              No applicants match.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-3xl border border-border bg-surface shadow-sm">
+              <table className="w-full min-w-[860px] text-sm">
+                <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-medium">Applicant</th>
+                    <th className="px-4 py-3 text-left font-medium">Position applied</th>
+                    <th className="px-4 py-3 text-left font-medium">Contact</th>
+                    <th className="px-4 py-3 text-left font-medium">Stage</th>
+                    <th className="px-4 py-3 text-left font-medium">Applied</th>
+                    <th className="px-4 py-3 text-right font-medium">CV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...filteredApplicants]
+                    .sort(
+                      (a, b) =>
+                        COLUMNS.findIndex((c) => c.key === a.status) -
+                          COLUMNS.findIndex((c) => c.key === b.status) ||
+                        new Date(b.created_at || 0) - new Date(a.created_at || 0),
+                    )
+                    .map((applicant) => (
+                      <tr
+                        key={applicant.id}
+                        onClick={() => handleViewApplicant(applicant.id)}
+                        className="cursor-pointer border-t border-border hover:bg-surface-hover"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-fg">
+                            {[applicant.first_name, applicant.middle_name, applicant.last_name, applicant.suffix]
+                              .filter(Boolean)
+                              .join(" ")}
+                          </p>
+                          {applicant.email && (
+                            <p className="text-xs text-fg-subtle">{applicant.email}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-fg-muted">{applicant.position_applied || "--"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
+                          {applicant.contact_number || "--"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="whitespace-nowrap rounded-full bg-surface-active px-2.5 py-0.5 text-xs font-semibold text-fg-muted">
+                            {COLUMNS.find((c) => c.key === applicant.status)?.label || applicant.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-fg-muted">
+                          {applicant.created_at
+                            ? new Date(applicant.created_at).toLocaleDateString()
+                            : "--"}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {applicant.cv_url ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePreviewCV(applicant.cv_url);
+                              }}
+                              className="text-xs font-semibold text-primary hover:underline"
+                            >
+                              View CV
+                            </button>
+                          ) : (
+                            <span className="text-xs text-fg-subtle">--</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )
         ) : (
           <div className="space-y-6">
             <div>
