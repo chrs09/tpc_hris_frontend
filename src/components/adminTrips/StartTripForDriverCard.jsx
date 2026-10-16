@@ -98,7 +98,8 @@ export default function StartTripForDriverCard({
           : storeRes.data?.items || [];
         // Start point: any location -- hub, supplier or customer.
         setHubStores([...storeList].sort((a, b) => kindRank(a) - kindRank(b) || (a.name || "").localeCompare(b.name || "")));
-        setDestinationStores(storeList.filter((store) => !store.is_hub));
+        // Any location can be a destination -- hubs too (e.g. a trip to the Plant).
+        setDestinationStores(storeList);
 
         setVehicleUnits(
           Array.isArray(vehicleData) ? vehicleData : vehicleData.items || [],

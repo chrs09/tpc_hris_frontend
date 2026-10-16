@@ -189,7 +189,7 @@ export default function DriverRatesPanel({ canEdit }) {
     ...(options.areas || []).map((area) => ({ key: `area:${area}`, label: `Area: ${area}`, area })),
     ...(options.destinations || []).map((d) => ({
       key: `store:${d.id}`,
-      label: `${d.name}${d.area ? ` (${d.area})` : ""}${d.is_supplier ? " · supplier" : ""}`,
+      label: `${d.name}${d.area ? ` (${d.area})` : ""}${d.is_hub ? " · hub" : d.is_supplier ? " · supplier" : ""}`,
       storeId: d.id,
     })),
   ];

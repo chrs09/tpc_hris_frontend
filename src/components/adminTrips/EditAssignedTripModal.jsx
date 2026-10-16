@@ -100,7 +100,8 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
           : storeRes.data?.items || [];
         // Start point: any location -- hub, supplier or customer.
         setHubStores([...storeList].sort((a, b) => kindRank(a) - kindRank(b) || (a.name || "").localeCompare(b.name || "")));
-        setDestinationStores(storeList.filter((s) => !s.is_hub));
+        // Any location can be a destination -- hubs too.
+        setDestinationStores(storeList);
 
         const vehicleList = Array.isArray(vehicleData)
           ? [...vehicleData]

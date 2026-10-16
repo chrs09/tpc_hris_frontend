@@ -116,7 +116,8 @@ export default function TripManualEntries() {
           : storeRes.data?.items || [];
         // Start point: any location -- hub, supplier or customer.
         setHubs([...storeList].sort((a, b) => kindRank(a) - kindRank(b) || (a.name || "").localeCompare(b.name || "")));
-        setDestinations(storeList.filter((s) => !s.is_hub));
+        // Any location can be a destination -- hubs too.
+        setDestinations(storeList);
       } catch (error) {
         toast.error(getErrorMessage(error));
       } finally {
