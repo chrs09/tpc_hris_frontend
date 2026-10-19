@@ -836,7 +836,11 @@ const AdminDashboard = () => {
             {myAttendanceLoading ? (
               <p className="text-sm text-fg-muted">Loading...</p>
             ) : (
-              <AttendanceHistoryList records={myAttendance} />
+              <AttendanceHistoryList
+                records={myAttendance}
+                start={myCutoffs[myCutoffIndex]?.start}
+                end={myCutoffs[myCutoffIndex]?.end}
+              />
             )}
           </DashboardCard>
 

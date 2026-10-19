@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
-import { format, addMonths, subMonths, parse } from "date-fns";
+import { format, addMonths, subMonths, parse, endOfMonth } from "date-fns";
 import { CalendarPlus, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { getMyAttendanceHistory } from "../../api/attendance";
 import { getMyLeaveRequests } from "../../api/leave";
@@ -131,7 +131,11 @@ const EmployeeDashboard = () => {
   const attendanceContent = attendanceLoading ? (
     <p className="text-sm text-fg-muted">Loading...</p>
   ) : (
-    <AttendanceHistoryList records={attendance} />
+    <AttendanceHistoryList
+      records={attendance}
+      start={`${selectedMonth}-01`}
+      end={format(endOfMonth(selectedMonthDate), "yyyy-MM-dd")}
+    />
   );
 
   const leaveContent = loading ? (
