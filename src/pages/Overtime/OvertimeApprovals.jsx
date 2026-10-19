@@ -10,6 +10,7 @@ import Pagination from "../../components/ui/pagination/Pagination";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
+import OvertimeApprovalHistory from "../../components/overtime/OvertimeApprovalHistory";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 import useViewType from "../../hooks/useViewType";
 
@@ -30,6 +31,8 @@ export default function OvertimeApprovals() {
   const [previewPhoto, setPreviewPhoto] = useState(null);
   // Cards or a compact list (remembered per browser).
   const [viewType, setViewType] = useViewType("overtime_approvals_view");
+  // Waiting for me / what I already approved or rejected.
+  const [tab, setTab] = useState("pending");
   const { page, setPage, totalPages, paginatedItems } = usePagination(
     requests,
     10,
@@ -99,7 +102,7 @@ export default function OvertimeApprovals() {
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-2xl font-bold text-fg">Overtime Approvals</h2>
@@ -108,10 +111,32 @@ export default function OvertimeApprovals() {
               employee's immediate head.
             </p>
           </div>
-          <ViewToggle viewType={viewType} onChange={setViewType} />
+          {tab === "pending" && <ViewToggle viewType={viewType} onChange={setViewType} />}
         </div>
 
-        {loading ? (
+        <div className="flex gap-1 border-b border-border">
+          {[
+            ["pending", `Waiting for you${requests.length ? ` (${requests.length})` : ""}`],
+            ["history", "History"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+                tab === key
+                  ? "border-primary text-fg"
+                  : "border-transparent text-fg-subtle hover:text-fg"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "history" ? (
+          <OvertimeApprovalHistory />
+        ) : loading ? (
           <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-sm text-fg-muted">
             Loading...
           </div>

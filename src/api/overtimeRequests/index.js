@@ -81,3 +81,9 @@ export const finishOvertime = async (requestId, { timeOut, note }) => {
   const res = await api.post(`/overtime-requests/${requestId}/finish`, formData);
   return res.data;
 };
+
+// Overtime I approved or rejected, by OT date (Approvals -> Overtime -> History).
+export const getOvertimeReviewedByMe = async (start, end) => {
+  const res = await api.get("/overtime-requests/reviewed-by-me", { params: { start, end } });
+  return res.data;
+};
