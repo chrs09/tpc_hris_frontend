@@ -193,6 +193,7 @@ export const MODULE_GROUPS = [
       // managing ticket categories.
       { key: "tickets", label: "Tickets (see all, manage categories)", path: "/dashboard/tickets" },
       { key: "settings", label: "Settings", path: "/dashboard/settings" },
+      { key: "photo_verification", label: "Verify Photo", path: "/dashboard/verify-photo" },
     ],
   },
 ];

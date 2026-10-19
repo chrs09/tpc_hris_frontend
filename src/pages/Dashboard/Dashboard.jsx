@@ -38,6 +38,7 @@ import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
 import BankMaster from "../Finance/BankMaster";
 import SettingsPage from "../Admin/SettingsPage";
+import VerifyPhotoPage from "../Admin/VerifyPhotoPage";
 import {
   isImpersonating,
   getImpersonatorUsername,
@@ -186,6 +187,7 @@ const Dashboard = () => {
               request, so this lives at a role-neutral path. */}
           <Route path="cash-advance" element={<DriverCashAdvance />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="verify-photo" element={<VerifyPhotoPage />} />
         </Routes>
         </PageAccessProvider>
       </div>

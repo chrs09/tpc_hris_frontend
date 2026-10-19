@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import SeparationDetails from "./SeparationDetails";
+import FileHistoryModal from "./FileHistoryModal";
 import DefaultProfileImage from "./../../assets/logo/default/default-profile.jpg";
 import { getBanks } from "../../api/banks";
 import { civilStatusOptions } from "../../constants/civilStatus";
@@ -977,7 +978,7 @@ export default function EmployeeForm({
           />
 
           <FilePreview
-            label="Driver's License"
+            label={isDriver ? "Driver's License (Front)" : "Driver's License"}
             field="license"
             documentType="LICENSE"
             employee={employee}
@@ -986,6 +987,32 @@ export default function EmployeeForm({
             onFileChange={handleFileChange}
             setPreviewImage={setPreviewImage}
           />
+
+          {isDriver && (
+            <FilePreview
+              label="Driver's License (Back)"
+              field="license_back"
+              documentType="LICENSE_BACK"
+              employee={employee}
+              formData={formData}
+              isEditing={isEditing}
+              onFileChange={handleFileChange}
+              setPreviewImage={setPreviewImage}
+            />
+          )}
+
+          {isDriver && (
+            <FilePreview
+              label="Police Clearance"
+              field="police_clearance"
+              documentType="POLICE_CLEARANCE"
+              employee={employee}
+              formData={formData}
+              isEditing={isEditing}
+              onFileChange={handleFileChange}
+              setPreviewImage={setPreviewImage}
+            />
+          )}
 
           <FilePreview
             label="Health Card"
@@ -1271,6 +1298,7 @@ function FilePreview({
   onFileChange,
   setPreviewImage,
 }) {
+  const [showHistory, setShowHistory] = useState(false);
   const fileFromDB = employee?.files?.find(
     (f) => f.document_type === documentType,
   )?.file_url;
@@ -1309,7 +1337,14 @@ function FilePreview({
 
       <div
         className="relative w-24 h-24 border border-border rounded-lg flex items-center justify-center overflow-hidden cursor-pointer group bg-surface-hover"
-        onClick={() => fileUrl && setPreviewImage(fileUrl)}
+        title={employee?.id && !isBlob ? "View upload history" : undefined}
+        onClick={() => {
+          // A new file picked (not saved yet): preview it. Otherwise
+          // open the upload history of this document.
+          if (isEditing && isBlob) setPreviewImage(fileUrl);
+          else if (employee?.id) setShowHistory(true);
+          else if (fileUrl) setPreviewImage(fileUrl);
+        }}
       >
         {fileUrl ? (
           isImage ? (
@@ -1346,6 +1381,16 @@ function FilePreview({
             onChange={(e) => onFileChange(field, e.target.files[0])}
           />
         </label>
+      )}
+
+      {showHistory && (
+        <FileHistoryModal
+          employeeId={employee.id}
+          documentType={documentType}
+          label={label}
+          onClose={() => setShowHistory(false)}
+          onPreview={setPreviewImage}
+        />
       )}
     </div>
   );

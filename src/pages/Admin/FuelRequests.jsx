@@ -157,6 +157,7 @@ export default function FuelRequests() {
             <tr>
               <th className="px-4 py-3 text-left font-medium">Driver</th>
               <th className="px-4 py-3 text-left font-medium">Plate No.</th>
+              <th className="px-4 py-3 text-left font-medium">Odometer</th>
               <th className="px-4 py-3 text-left font-medium">City</th>
               <th className="px-4 py-3 text-left font-medium">Requested</th>
               <th className="px-4 py-3 text-left font-medium">Fuel Code</th>
@@ -168,13 +169,13 @@ export default function FuelRequests() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan="8" className="py-8 text-center text-fg-subtle">
+                <td colSpan="9" className="py-8 text-center text-fg-subtle">
                   Loading...
                 </td>
               </tr>
             ) : paginatedItems.length === 0 ? (
               <tr>
-                <td colSpan="8" className="py-8 text-center text-fg-subtle">
+                <td colSpan="9" className="py-8 text-center text-fg-subtle">
                   No fuel requests here.
                 </td>
               </tr>
@@ -188,6 +189,11 @@ export default function FuelRequests() {
                     {req.driver_name || "-"}
                   </td>
                   <td className="px-4 py-3">{req.plate_number}</td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {req.odometer_reading != null
+                      ? `${Number(req.odometer_reading).toLocaleString()} km`
+                      : "-"}
+                  </td>
                   <td className="px-4 py-3 text-fg-muted">{req.city}</td>
                   <td className="px-4 py-3 text-fg-muted">{req.created_at}</td>
                   <td className="px-4 py-3">{req.fuel_code || "-"}</td>
@@ -356,6 +362,14 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
               />
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <Info label="Plate number" value={req.plate_number} />
+                <Info
+                  label="Odometer"
+                  value={
+                    req.odometer_reading != null
+                      ? `${Number(req.odometer_reading).toLocaleString()} km`
+                      : "-"
+                  }
+                />
                 <Info label="City" value={req.city} />
                 <Info label="Driver" value={req.driver_name} />
                 <Info label="Requested" value={req.created_at} />

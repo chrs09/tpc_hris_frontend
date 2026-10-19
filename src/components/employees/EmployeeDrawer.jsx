@@ -149,6 +149,8 @@ export default function EmployeeDrawer({
         account_number_upload_file: "ACCOUNT_NUMBER",
         accountability_file: "ACCOUNTABILITY",
         license_file: "LICENSE",
+        license_back_file: "LICENSE_BACK",
+        police_clearance_file: "POLICE_CLEARANCE",
         healthcard_file: "HEALTHCARD",
         xray_file: "XRAY",
         sss_upload_file: "SSS",

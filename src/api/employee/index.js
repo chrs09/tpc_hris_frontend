@@ -71,3 +71,11 @@ export const recordJobChange = async (employeeId, payload) =>
 
 export const cancelJobChange = async (employeeId, changeId) =>
   (await api.delete(`/employees/${employeeId}/job-history/${changeId}`)).data;
+
+// Upload history of one Employment Files document type (newest first)
+export const getEmployeeFileHistory = async (employeeId, documentType) => {
+  const res = await api.get(`/employees/${employeeId}/files/history`, {
+    params: { document_type: documentType },
+  });
+  return res.data;
+};

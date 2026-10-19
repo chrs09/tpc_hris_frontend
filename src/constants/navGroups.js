@@ -370,6 +370,12 @@ export function getNavGroups(role) {
           roles: ["superadmin"],
           moduleKey: "administrator.settings",
         },
+        {
+          label: "Verify Photo",
+          path: "/dashboard/verify-photo",
+          roles: ["superadmin", "admin", "coordinator_admin"],
+          moduleKey: "administrator.photo_verification",
+        },
       ],
     },
   ];

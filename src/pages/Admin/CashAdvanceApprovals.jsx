@@ -26,6 +26,8 @@ import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
+import ColumnPicker from "../../components/ui/columnPicker/ColumnPicker";
+import useColumnPrefs from "../../hooks/useColumnPrefs";
 import useViewType from "../../hooks/useViewType";
 import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceReleaseModal";
 import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
@@ -434,6 +436,130 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
   };
 
+  // All Requests columns -- the Columns button picks which show
+  // (remembered per browser). default: false = hidden until ticked.
+  const shortDate = (value) => (value ? new Date(value).toLocaleDateString() : "—");
+  const ALL_COLUMNS = [
+    { key: "employee", label: "Employee", locked: true, tdClass: "py-4 font-medium text-fg", render: (req) => req.employee_name },
+    { key: "requested", label: "Requested", render: (req) => `₱${req.amount.toLocaleString()}` },
+    {
+      key: "approved_ca",
+      label: "Approved CA",
+      render: (req) => (req.approved_amount != null ? `₱${req.approved_amount.toLocaleString()}` : "—"),
+    },
+    {
+      key: "loan_purpose",
+      label: "Loan Purpose",
+      tdClass: "max-w-[220px]",
+      render: (req) => (
+        <span className="line-clamp-2" title={req.reason || ""}>
+          {req.reason || "—"}
+        </span>
+      ),
+    },
+    { key: "date_needed", label: "Date Needed", tdClass: "whitespace-nowrap", render: (req) => formatDateNeeded(req.date_needed) || "—" },
+    { key: "deduction", label: "Deduction / Pay", render: (req) => `₱${req.deduction_per_pay_amount.toLocaleString()}` },
+    {
+      key: "pay_periods",
+      label: "Est. Pay Periods",
+      default: false,
+      render: (req) => req.estimated_pay_periods ?? "—",
+    },
+    {
+      key: "remaining",
+      label: "Remaining",
+      render: (req) => (req.status === "approved" ? `₱${req.remaining_balance.toLocaleString()}` : "—"),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (req) => (
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+            STATUS_STYLES[req.status] || "bg-surface-active text-fg-subtle"
+          }`}
+        >
+          {req.status}
+        </span>
+      ),
+    },
+    { key: "approver", label: "Approver", render: (req) => <ApproverCell req={req} /> },
+    { key: "filed", label: "Filed", tdClass: "py-4", render: (req) => shortDate(req.created_at) },
+    {
+      key: "date_approved",
+      label: "Date Approved",
+      default: false,
+      tdClass: "whitespace-nowrap",
+      render: (req) => (req.status === "approved" ? shortDate(req.approved_at) : "—"),
+    },
+    {
+      key: "date_rejected",
+      label: "Date Rejected",
+      default: false,
+      tdClass: "whitespace-nowrap",
+      render: (req) => (req.status === "rejected" ? shortDate(req.approved_at) : "—"),
+    },
+    {
+      key: "decided_by",
+      label: "Approved / Rejected By",
+      default: false,
+      render: (req) => (["approved", "rejected"].includes(req.status) ? req.approved_by_name || "—" : "—"),
+    },
+    {
+      key: "remarks",
+      label: "Remarks",
+      default: false,
+      tdClass: "max-w-[220px]",
+      render: (req) => <span className="line-clamp-2">{req.remarks || "—"}</span>,
+    },
+    {
+      key: "released",
+      label: "Date Released",
+      default: false,
+      tdClass: "whitespace-nowrap",
+      render: (req) => shortDate(req.released_at),
+    },
+    {
+      key: "terms",
+      label: "Terms Accepted",
+      default: false,
+      render: (req) => (req.terms_accepted ? "Yes" : "No"),
+    },
+    {
+      key: "receipt",
+      label: "Receipt",
+      render: (req) =>
+        req.release_receipt_url ? (
+          <button
+            type="button"
+            onClick={() => setViewingReceipt(req)}
+            title="View receipt"
+            className="block rounded-lg transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/40"
+          >
+            <img
+              src={req.release_receipt_url}
+              alt="Receipt"
+              className="h-10 w-10 rounded-lg border border-border object-cover"
+            />
+          </button>
+        ) : req.release_reference ? (
+          <span className="text-xs">{req.release_reference}</span>
+        ) : req.status === "approved" && canEditPage ? (
+          <button
+            type="button"
+            onClick={() => handleSetRelease(req)}
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            + Add receipt
+          </button>
+        ) : (
+          "—"
+        ),
+    },
+  ];
+  const allColumnPrefs = useColumnPrefs("cash_advance_all_columns", ALL_COLUMNS);
+  const shownColumns = ALL_COLUMNS.filter((c) => allColumnPrefs.visible.has(c.key));
+
   return (
     <div>
       <div className="space-y-5">
@@ -698,6 +824,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           ))}
 
         {tab === "all" && (
+          <div className="flex flex-wrap items-center justify-between gap-3">
           <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-fg-muted">
             <input
               type="checkbox"
@@ -710,6 +837,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             />
             Show archived
           </label>
+          <ColumnPicker
+            columns={ALL_COLUMNS}
+            visible={allColumnPrefs.visible}
+            onToggle={allColumnPrefs.toggle}
+            onReset={allColumnPrefs.reset}
+          />
+          </div>
         )}
 
         {tab === "all" && (
@@ -729,35 +863,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                 <table className="w-full text-sm">
                   <thead className="bg-surface-hover text-fg-muted">
                     <tr className="text-xs uppercase tracking-wide">
-                      <th className="px-6 py-4 text-left font-medium">
-                        Employee
-                      </th>
-                      <th className="px-6 text-left font-medium">
-                        Requested
-                      </th>
-                      <th className="px-6 text-left font-medium">
-                        Approved CA
-                      </th>
-                      <th className="px-6 text-left font-medium">
-                        Loan Purpose
-                      </th>
-                      <th className="px-6 text-left font-medium whitespace-nowrap">
-                        Date Needed
-                      </th>
-                      <th className="px-6 text-left font-medium">
-                        Deduction / Pay
-                      </th>
-                      <th className="px-6 text-left font-medium">
-                        Remaining
-                      </th>
-                      <th className="px-6 text-left font-medium">Status</th>
-                      <th className="px-6 text-left font-medium">
-                        Approver
-                      </th>
-                      <th className="px-6 py-4 text-left font-medium">
-                        Filed
-                      </th>
-                      <th className="px-6 text-left font-medium">Receipt</th>
+                      {shownColumns.map((col) => (
+                        <th key={col.key} className="px-6 py-4 text-left font-medium">
+                          {col.label}
+                        </th>
+                      ))}
                       {canEditPage && (
                         <th className="px-6 text-right font-medium">Action</th>
                       )}
@@ -769,78 +879,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         key={req.id}
                         className="border-t border-border transition hover:bg-surface-hover"
                       >
-                        <td className="px-6 py-4 font-medium text-fg">
-                          {req.employee_name}
-                        </td>
-                        <td className="px-6 text-fg-muted">
-                          ₱{req.amount.toLocaleString()}
-                        </td>
-                        <td className="px-6 text-fg-muted">
-                          {req.approved_amount != null
-                            ? `₱${req.approved_amount.toLocaleString()}`
-                            : "—"}
-                        </td>
-                        <td
-                          className="max-w-[220px] px-6 text-fg-muted"
-                          title={req.reason || ""}
-                        >
-                          <span className="line-clamp-2">{req.reason || "—"}</span>
-                        </td>
-                        <td className="px-6 whitespace-nowrap text-fg-muted">
-                          {formatDateNeeded(req.date_needed) || "—"}
-                        </td>
-                        <td className="px-6 text-fg-muted">
-                          ₱{req.deduction_per_pay_amount.toLocaleString()}
-                        </td>
-                        <td className="px-6 text-fg-muted">
-                          {req.status === "approved"
-                            ? `₱${req.remaining_balance.toLocaleString()}`
-                            : "—"}
-                        </td>
-                        <td className="px-6">
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-                              STATUS_STYLES[req.status] ||
-                              "bg-surface-active text-fg-subtle"
-                            }`}
-                          >
-                            {req.status}
-                          </span>
-                        </td>
-                        <td className="px-6 text-fg-muted">
-                          <ApproverCell req={req} />
-                        </td>
-                        <td className="px-6 py-4 text-fg-muted">
-                          {new Date(req.created_at).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 text-fg-muted">
-                          {req.release_receipt_url ? (
-                            <button
-                              type="button"
-                              onClick={() => setViewingReceipt(req)}
-                              title="View receipt"
-                              className="block rounded-lg transition hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary/40"
-                            >
-                              <img
-                                src={req.release_receipt_url}
-                                alt="Receipt"
-                                className="h-10 w-10 rounded-lg border border-border object-cover"
-                              />
-                            </button>
-                          ) : req.release_reference ? (
-                            <span className="text-xs">{req.release_reference}</span>
-                          ) : req.status === "approved" && canEditPage ? (
-                            <button
-                              type="button"
-                              onClick={() => handleSetRelease(req)}
-                              className="text-xs font-semibold text-primary hover:underline"
-                            >
-                              + Add receipt
-                            </button>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
+                        {shownColumns.map((col) => (
+                          <td key={col.key} className={`px-6 text-fg-muted ${col.tdClass || ""}`}>
+                            {col.render(req)}
+                          </td>
+                        ))}
                         {canEditPage && (
                           <td className="px-6 text-right">
                             {req.status !== "pending" && (
