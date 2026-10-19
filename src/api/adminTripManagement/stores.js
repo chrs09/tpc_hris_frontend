@@ -22,3 +22,11 @@ export const removeStorePhoto = (id) => api.delete(`/admin/stores/${id}/photo`);
 
 export const getTripRateProfilesAdmin = () =>
   api.get("/admin/stores/trip-rate-profiles");
+
+// Coordinate changes, recent unloading GPS and the measured spot.
+export const getStoreLocationHistory = (id) =>
+  api.get(`/admin/stores/${id}/location-history`);
+
+// Move the store to the spot measured from unloading photos.
+export const applySuggestedStoreLocation = (id) =>
+  api.post(`/admin/stores/${id}/use-suggested-location`);

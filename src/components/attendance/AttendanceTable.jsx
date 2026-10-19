@@ -63,9 +63,13 @@ const AttendanceTable = ({
               Employee
             </th>
 
-            {daysInMonth.map((day) => {
+            {daysInMonth.map((day, dayIndex) => {
               const dateKey = format(day, "yyyy-MM-dd");
               const isToday = dateKey === today;
+              // A range across months: name the month on its first column.
+              const showMonth =
+                daysInMonth[0]?.getMonth() !== daysInMonth[daysInMonth.length - 1]?.getMonth() &&
+                (dayIndex === 0 || day.getDate() === 1);
               const isSunday = getDay(day) === 0;
               const holiday = holidayMap[dateKey];
 
@@ -85,6 +89,11 @@ const AttendanceTable = ({
                   title={holiday ? holiday.holiday_name : undefined}
                   className={`border-border border px-2 py-1 text-center ${headerBg}`}
                 >
+                  {showMonth && (
+                    <div className="text-[10px] font-semibold uppercase leading-none opacity-70">
+                      {format(day, "MMM")}
+                    </div>
+                  )}
                   {format(day, "dd")}
                   {holiday && (
                     <div className="text-[9px] leading-tight text-danger font-normal whitespace-normal wrap-break-word mt-0.5">

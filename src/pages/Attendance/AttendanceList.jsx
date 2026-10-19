@@ -43,9 +43,6 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import { Button } from "../../components/ui/button/Button";
 import useModuleAccess from "../../hooks/useModuleAccess";
-import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers";
 
 const AttendanceList = () => {
   // Time changes to an already-recorded time need a reason -- it's saved
@@ -111,7 +108,10 @@ const AttendanceList = () => {
   const [previewModal, setPreviewModal] = useState(null);
   const [alert, setAlert] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
+  // Table View range ("YYYY-MM-DD"); [null, null] = the month shown.
+  // Can span months (e.g. a payroll cutoff Sep 26 -> Oct 10).
   const [dateRange, setDateRange] = useState([null, null]);
+  const [draftRange, setDraftRange] = useState(["", ""]);
 
   // Lets NeedsReviewCard's "Review" link (dashboard) deep-link straight
   // into Grid Review View on a specific past date, e.g.
@@ -136,8 +136,8 @@ const AttendanceList = () => {
         : requestedViewMode;
   const [reviewDate, setReviewDate] = useState(dateParam || today);
 
-  const fromDate = dateRange[0] ? dateRange[0].toDate() : null;
-  const toDate = dateRange[1] ? dateRange[1].toDate() : null;
+  const fromDate = dateRange[0] ? new Date(`${dateRange[0]}T00:00:00`) : null;
+  const toDate = dateRange[1] ? new Date(`${dateRange[1]}T00:00:00`) : null;
 
   const [holidays, setHolidays] = useState([]);
 
@@ -306,15 +306,16 @@ const AttendanceList = () => {
   // ---------------------------------------
 
   const daysInMonth = useMemo(() => {
-    const allDays = eachDayOfInterval({
+    // A picked range shows exactly those days, across months.
+    if (fromDate && toDate) {
+      return eachDayOfInterval({ start: fromDate, end: toDate });
+    }
+    return eachDayOfInterval({
       start: startOfMonth(currentMonth),
       end: endOfMonth(currentMonth),
     });
-
-    if (!fromDate || !toDate) return allDays;
-
-    return allDays.filter((day) => day >= fromDate && day <= toDate);
-  }, [currentMonth, fromDate, toDate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMonth, dateRange[0], dateRange[1]]);
 
   // ---------------------------------------
   // FILED OVERTIME (OT tag per day + Filed OT column)
@@ -504,9 +505,51 @@ const AttendanceList = () => {
   // MONTH NAVIGATION
   // ---------------------------------------
 
-  const handlePrevMonth = () => setCurrentMonth((prev) => subMonths(prev, 1));
+  // Prev / Next leave a picked range and step from its first month.
+  const handlePrevMonth = () => {
+    const base = fromDate || currentMonth;
+    setDateRange([null, null]);
+    setCurrentMonth(subMonths(fromDate ? startOfMonth(base) : base, fromDate ? 0 : 1));
+  };
 
-  const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
+  const handleNextMonth = () => {
+    const base = fromDate || currentMonth;
+    setDateRange([null, null]);
+    setCurrentMonth(addMonths(fromDate ? startOfMonth(base) : base, 1));
+  };
+
+  const openDateModal = () => {
+    setDraftRange([dateRange[0] || "", dateRange[1] || ""]);
+    setShowDateModal(true);
+  };
+
+  const applyDateRange = () => {
+    const [from, to] = draftRange;
+    if (!from || !to) {
+      toast.error("Pick both dates.");
+      return;
+    }
+    if (from > to) {
+      toast.error("The From date must be on or before the To date.");
+      return;
+    }
+    const days =
+      (new Date(`${to}T00:00:00`) - new Date(`${from}T00:00:00`)) / 86400000 + 1;
+    if (days > 62) {
+      toast.error("Pick 62 days or fewer.");
+      return;
+    }
+    setDateRange([from, to]);
+    setShowDateModal(false);
+  };
+
+  const clearDateRange = () => {
+    setDateRange([null, null]);
+    setShowDateModal(false);
+  };
+
+  const rangeLabel = (iso) =>
+    format(new Date(`${iso}T00:00:00`), "MMM d, yyyy");
 
   // ---------------------------------------
   // SELFIE TIME IN
@@ -917,11 +960,9 @@ const AttendanceList = () => {
 
         {viewMode === "table" && (
           <>
-            <Button className="h-10" onClick={() => setShowDateModal(true)}>
+            <Button className="h-10" onClick={openDateModal}>
               {dateRange[0] && dateRange[1]
-                ? `${dateRange[0].format("YYYY-MM-DD")} → ${dateRange[1].format(
-                    "YYYY-MM-DD",
-                  )}`
+                ? `${rangeLabel(dateRange[0])} → ${rangeLabel(dateRange[1])}`
                 : "Pick Date"}
             </Button>
 
@@ -930,7 +971,9 @@ const AttendanceList = () => {
             </Button>
 
             <span className="font-semibold">
-              {format(currentMonth, "MMMM yyyy")}
+              {dateRange[0] && dateRange[1]
+                ? `${daysInMonth.length} days`
+                : format(currentMonth, "MMMM yyyy")}
             </span>
 
             <Button size="sm" onClick={handleNextMonth}>
@@ -1109,39 +1152,56 @@ const AttendanceList = () => {
       />
 
       {showDateModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface p-6 rounded-xl shadow-xl w-full max-w-sm">
-            <h2 className="text-lg font-semibold mb-4">Select Date Range</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 text-fg shadow-xl">
+            <h2 className="text-lg font-semibold">Select Date Range</h2>
+            <p className="mt-1 text-xs text-fg-subtle">
+              Up to 62 days; it can cross months (e.g. a payroll cutoff).
+            </p>
 
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              <div className="flex flex-col gap-3">
-                <DatePicker
-                  label="From"
-                  value={dateRange[0]}
-                  onChange={(newValue) =>
-                    setDateRange([newValue, dateRange[1]])
-                  }
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="text-sm font-medium text-fg-muted">
+                From
+                <input
+                  id="attendance-range-from"
+                  type="date"
+                  value={draftRange[0]}
+                  max={draftRange[1] || undefined}
+                  onChange={(e) => setDraftRange([e.target.value, draftRange[1]])}
+                  className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
+              </label>
+              <label className="text-sm font-medium text-fg-muted">
+                To
+                <input
+                  id="attendance-range-to"
+                  type="date"
+                  value={draftRange[1]}
+                  min={draftRange[0] || undefined}
+                  onChange={(e) => setDraftRange([draftRange[0], e.target.value])}
+                  className="mt-1 h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </label>
+            </div>
 
-                <DatePicker
-                  label="To"
-                  value={dateRange[1]}
-                  onChange={(newValue) =>
-                    setDateRange([dateRange[0], newValue])
-                  }
-                />
+            <div className="mt-5 flex items-center justify-between gap-2">
+              {dateRange[0] ? (
+                <button
+                  type="button"
+                  onClick={clearDateRange}
+                  className="text-sm font-medium text-fg-muted hover:text-fg hover:underline"
+                >
+                  Clear range
+                </button>
+              ) : (
+                <span />
+              )}
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => setShowDateModal(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={applyDateRange}>Apply</Button>
               </div>
-            </LocalizationProvider>
-
-            <div className="flex justify-end gap-2 mt-5">
-              <Button
-                variant="secondary"
-                onClick={() => setShowDateModal(false)}
-              >
-                Cancel
-              </Button>
-
-              <Button onClick={() => setShowDateModal(false)}>Apply</Button>
             </div>
           </div>
         </div>

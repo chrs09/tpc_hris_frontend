@@ -15,7 +15,7 @@ import {
   rejectLeaveRequest,
 } from "../../api/leave";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
-import { getMyAttendanceHistory } from "../../api/attendance";
+import { getMyAttendanceForRange, getMyCutoffs } from "../../api/attendance";
 import { getMyOvertimeRequests } from "../../api/overtimeRequests";
 import { getHolidays } from "../../api/holidays";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
@@ -289,6 +289,9 @@ const AdminDashboard = () => {
 
   const [myAttendance, setMyAttendance] = useState([]);
   const [myAttendanceLoading, setMyAttendanceLoading] = useState(true);
+  // My Attendance Records by payroll cutoff (current first).
+  const [myCutoffs, setMyCutoffs] = useState([]);
+  const [myCutoffIndex, setMyCutoffIndex] = useState(0);
 
   const [myOvertimeRequests, setMyOvertimeRequests] = useState([]);
   const [myOvertimeLoading, setMyOvertimeLoading] = useState(true);
@@ -311,10 +314,19 @@ const AdminDashboard = () => {
     }
   }, []);
 
-  const loadMyAttendance = useCallback(async () => {
+  const loadMyAttendance = useCallback(async (cutoff) => {
     try {
       setMyAttendanceLoading(true);
-      const data = await getMyAttendanceHistory(format(new Date(), "yyyy-MM"));
+      // The cutoff picked, else the current one, else this month.
+      let period = cutoff;
+      if (!period) {
+        const cutoffs = await getMyCutoffs(12).catch(() => []);
+        setMyCutoffs(cutoffs);
+        period = cutoffs[0];
+      }
+      const start = period?.start || format(new Date(), "yyyy-MM-01");
+      const end = period?.end || format(new Date(), "yyyy-MM-dd");
+      const data = await getMyAttendanceForRange(start, end);
       setMyAttendance(data);
     } catch (error) {
       console.error("Failed to load attendance history:", error);
@@ -322,6 +334,11 @@ const AdminDashboard = () => {
       setMyAttendanceLoading(false);
     }
   }, []);
+
+  const pickMyCutoff = (index) => {
+    setMyCutoffIndex(index);
+    loadMyAttendance(myCutoffs[index]);
+  };
 
   const loadMyOvertime = useCallback(async () => {
     try {
@@ -786,7 +803,36 @@ const AdminDashboard = () => {
           who manages these company-wide instead of filing their own) */}
       {canFileLeave && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-          <DashboardCard title="My Attendance Records">
+          <DashboardCard
+            title="My Attendance Records"
+            action={
+              myCutoffs.length > 0 && (
+                <select
+                  id="my-attendance-cutoff"
+                  aria-label="Payroll cutoff"
+                  value={myCutoffIndex}
+                  onChange={(e) => pickMyCutoff(Number(e.target.value))}
+                  className="h-9 rounded-lg border border-border bg-surface px-2 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  {myCutoffs.map((cutoff, index) => (
+                    <option key={cutoff.start} value={index}>
+                      {cutoff.label}
+                      {cutoff.is_current ? " (current)" : ""}
+                    </option>
+                  ))}
+                </select>
+              )
+            }
+          >
+            {!myAttendanceLoading && myAttendance.length > 0 && (
+              <p className="mb-2 text-xs text-fg-subtle">
+                {["Present", "Absent", "On Leave"]
+                  .map((status) => [status, myAttendance.filter((r) => r.status === status).length])
+                  .filter(([, n]) => n > 0)
+                  .map(([status, n]) => `${n} ${status}`)
+                  .join(" · ")}
+              </p>
+            )}
             {myAttendanceLoading ? (
               <p className="text-sm text-fg-muted">Loading...</p>
             ) : (

@@ -81,6 +81,18 @@ export const getMyAttendanceHistory = async (month) => {
   return res.data;
 };
 
+// One payroll cutoff of my attendance ("YYYY-MM-DD" .. "YYYY-MM-DD").
+export const getMyAttendanceForRange = async (start, end) => {
+  const res = await api.get("/attendance/my-history", { params: { start, end, limit: 70 } });
+  return res.data;
+};
+
+// My department's payroll cutoffs, current first ({ start, end, label, is_current }).
+export const getMyCutoffs = async (count = 12) => {
+  const res = await api.get("/attendance/my-cutoffs", { params: { count } });
+  return res.data;
+};
+
 // Bulk attendance check
 export const bulkAttendanceCheck = async (records) => {
   const res = await api.post("/attendance/bulk-mixed/", records);

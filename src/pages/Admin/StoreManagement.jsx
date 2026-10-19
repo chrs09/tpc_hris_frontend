@@ -16,6 +16,7 @@ import StoreLocationPicker from "../../components/adminTrips/StoreLocationPicker
 import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import MapLinks from "../../components/ui/mapLinks/MapLinks";
+import StoreLocationHistoryModal from "../../components/adminTrips/StoreLocationHistoryModal";
 
 const initialFormState = {
   name: "",
@@ -68,6 +69,8 @@ export default function StoreManagement() {
   const [editingStore, setEditingStore] = useState(null);
   // Store opened read-only via View (Edit is offered inside it).
   const [viewingStore, setViewingStore] = useState(null);
+  // Location history (unloading GPS / coordinate changes) for this store.
+  const [locationStore, setLocationStore] = useState(null);
   const [form, setForm] = useState(initialFormState);
   const [searchTerm, setSearchTerm] = useState("");
   const [profileFilter, setProfileFilter] = useState("ALL");
@@ -362,6 +365,13 @@ export default function StoreManagement() {
             origins={hubs}
             defaultOriginId={defaultHubId}
           />
+          <button
+            type="button"
+            onClick={() => setLocationStore(store)}
+            className="mt-1 text-xs font-medium text-fg-subtle hover:text-primary hover:underline"
+          >
+            Location history
+          </button>
         </td>
         <td className="px-6 py-4">
           <button
@@ -449,6 +459,13 @@ export default function StoreManagement() {
             origins={hubs}
             defaultOriginId={defaultHubId}
           />
+            <button
+              type="button"
+              onClick={() => setLocationStore(store)}
+              className="mt-1 text-xs font-medium text-fg-subtle hover:text-primary hover:underline"
+            >
+              Location history
+            </button>
           </div>
         </div>
       </div>
@@ -457,6 +474,14 @@ export default function StoreManagement() {
 
   return (
     <div className="space-y-5">
+      {locationStore && (
+        <StoreLocationHistoryModal
+          store={locationStore}
+          canEdit={canEditPage}
+          onClose={() => setLocationStore(null)}
+          onChanged={loadStores}
+        />
+      )}
       <div>
         <h1 className="text-3xl font-bold text-fg">Customer Management</h1>
         <p className="text-fg-muted mt-1">
