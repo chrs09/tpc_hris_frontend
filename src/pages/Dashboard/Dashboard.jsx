@@ -39,6 +39,9 @@ import FinanceExpenses from "../Finance/FinanceExpenses";
 import BankMaster from "../Finance/BankMaster";
 import SettingsPage from "../Admin/SettingsPage";
 import VerifyPhotoPage from "../Admin/VerifyPhotoPage";
+import PosRegister from "../POS/PosRegister";
+import PosSales from "../POS/PosSales";
+import PosProducts from "../POS/PosProducts";
 import {
   isImpersonating,
   getImpersonatorUsername,
@@ -188,6 +191,11 @@ const Dashboard = () => {
           <Route path="cash-advance" element={<DriverCashAdvance />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="verify-photo" element={<VerifyPhotoPage />} />
+          {/* POS (UI only, no backend yet) */}
+          <Route path="pos" element={<PosRegister />} />
+          <Route path="pos/register" element={<PosRegister />} />
+          <Route path="pos/sales" element={<PosSales />} />
+          <Route path="pos/products" element={<PosProducts />} />
         </Routes>
         </PageAccessProvider>
       </div>

@@ -132,6 +132,14 @@ export function getNavGroups(role) {
           roles: ["superadmin"],
           approverKind: "leave",
         },
+        {
+          // Org Chart heads with Fuel Request ticked (and superadmin)
+          // approve before the coordinator issues the fuel code.
+          label: "Fuel Request",
+          path: "/dashboard/approvals?tab=fuel_request",
+          roles: ["superadmin"],
+          approverKind: "fuel_request",
+        },
       ],
     },
     {
@@ -297,6 +305,29 @@ export function getNavGroups(role) {
           path: "/dashboard/finance/banks",
           roles: ["superadmin"],
           moduleKey: "finance.bank_master",
+        },
+      ],
+    },
+    {
+      // Point of Sale -- UI only for now (sample data in localStorage,
+      // see src/pages/POS/posData.js). Role-based until the backend and
+      // its module key exist.
+      label: "POS",
+      children: [
+        {
+          label: "Register",
+          path: "/dashboard/pos/register",
+          roles: ["superadmin", "admin"],
+        },
+        {
+          label: "Sales",
+          path: "/dashboard/pos/sales",
+          roles: ["superadmin", "admin"],
+        },
+        {
+          label: "Products",
+          path: "/dashboard/pos/products",
+          roles: ["superadmin", "admin"],
         },
       ],
     },

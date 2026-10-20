@@ -16,6 +16,7 @@ import {
   Building2,
   LogOut,
   LifeBuoy,
+  ShoppingCart,
 } from "lucide-react";
 import { logout } from "../utils/auth";
 import { getUserList, impersonateUser } from "../api/users";
@@ -45,6 +46,7 @@ const GROUP_ICONS = {
   "Fleet Management": Truck,
   "Cash Advance": Wallet,
   Finance: Landmark,
+  POS: ShoppingCart,
   Tickets: LifeBuoy,
   Administrator: Shield,
 };

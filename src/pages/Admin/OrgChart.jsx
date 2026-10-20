@@ -857,6 +857,9 @@ const APPROVAL_TYPES = [
   // People under this head write their work accomplished (+ photo/video)
   // at time out; no proof -> this head approves it with remarks.
   { key: "work_report", label: "Work accomplished" },
+  // Drivers' fuel requests: approved here before the coordinator issues
+  // the fuel code.
+  { key: "fuel_request", label: "Fuel Request" },
 ];
 
 const Field = ({ label, children }) => (

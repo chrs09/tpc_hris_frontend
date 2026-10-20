@@ -47,3 +47,20 @@ export const returnFuelReceipt = async (id, reason) => {
   const res = await api.post(`/fuel-requests/${id}/return`, { reason });
   return res.data;
 };
+
+// Org Chart heads with "Fuel Request" ticked approve before the fuel code
+// (superadmin sees every request still waiting).
+export const getFuelForMyApproval = async () => {
+  const res = await api.get("/fuel-requests/for-my-approval");
+  return res.data;
+};
+
+export const approveFuelRequest = async (id, remarks) => {
+  const res = await api.post(`/fuel-requests/${id}/approve`, { remarks });
+  return res.data;
+};
+
+export const rejectFuelRequest = async (id, reason) => {
+  const res = await api.post(`/fuel-requests/${id}/reject`, { reason });
+  return res.data;
+};

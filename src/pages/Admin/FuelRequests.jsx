@@ -3,6 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { X } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import ApprovalProgress from "../../components/approvals/ApprovalProgress";
+import ApprovedBy from "../../components/approvals/ApprovedBy";
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -25,6 +27,8 @@ const inputStyles =
   "w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 const FUEL_STATUS = {
+  // Pending but still with the Org Chart heads (no fuel code yet).
+  awaiting: ["Awaiting Approval", "bg-surface-active text-fg-muted"],
   pending: ["Waiting for Fuel Code", "bg-warning/15 text-warning"],
   issued: ["Fuel Code Issued", "bg-primary/15 text-primary"],
   returned: ["Receipt Sent Back", "bg-danger/15 text-danger"],
@@ -36,11 +40,15 @@ const FUEL_STATUS = {
 
 const FILTERS = [
   { key: "needs_action", label: "Needs Action" },
+  { key: "awaiting_approval", label: "Awaiting Approval" },
   { key: "open", label: "In Progress" },
   { key: "completed", label: "Completed" },
   { key: "declined", label: "Declined" },
   { key: "", label: "All" },
 ];
+
+const statusKey = (req) =>
+  req.status === "pending" && req.awaiting_approval ? "awaiting" : req.status;
 
 const StatusPill = ({ status }) => {
   const [label, classes] = FUEL_STATUS[status] || [
@@ -201,19 +209,19 @@ export default function FuelRequests() {
                     {req.liters != null ? `${req.liters} L` : "-"}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusPill status={req.status} />
+                    <StatusPill status={statusKey(req)} />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       type="button"
                       onClick={() => setOpenId(req.id)}
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                        ["pending", "receipt_submitted"].includes(req.status)
+                        ["pending", "receipt_submitted"].includes(statusKey(req))
                           ? "bg-primary text-primary-foreground hover:bg-primary-hover"
                           : "border border-border text-fg hover:bg-surface-hover"
                       }`}
                     >
-                      {req.status === "pending"
+                      {statusKey(req) === "pending"
                         ? "Issue Code"
                         : req.status === "receipt_submitted"
                           ? "Check Receipt"
@@ -336,7 +344,7 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            {req && <StatusPill status={req.status} />}
+            {req && <StatusPill status={statusKey(req)} />}
             <button
               type="button"
               onClick={onClose}
@@ -376,7 +384,18 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
               </dl>
             </div>
 
-            {req.status === "pending" ? (
+            {req.status === "pending" && req.awaiting_approval ? (
+              <section className="space-y-2 rounded-xl border border-border p-4">
+                <h3 className="text-sm font-semibold">Waiting for Org Chart approval</h3>
+                <p className="text-sm text-fg-muted">
+                  The heads above this driver approve it first (Approvals &rarr;
+                  Fuel Request). You can issue the fuel code once the last one
+                  approves.
+                </p>
+                <ApprovalProgress steps={req.approval_steps} />
+                <ApprovedBy log={req.approval_log} />
+              </section>
+            ) : req.status === "pending" ? (
               <section className="space-y-3 rounded-xl border border-border p-4">
                 <h3 className="text-sm font-semibold">Issue fuel code</h3>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
