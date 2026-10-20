@@ -77,7 +77,12 @@ export function mapApiDataToForm(data) {
     ...onboarding,
 
     first_name: onboarding.first_name || data.applicant?.first_name || "",
+    middle_name: onboarding.middle_name || data.applicant?.middle_name || "",
     last_name: onboarding.last_name || data.applicant?.last_name || "",
+    suffix: onboarding.suffix || data.applicant?.suffix || "",
+    bank_type: onboarding.bank_type || "",
+    account_name: onboarding.account_name || "",
+    account_number: onboarding.account_number || "",
     email: onboarding.email || data.applicant?.email || "",
     contact_number:
       onboarding.contact_number || data.applicant?.contact_number || "",

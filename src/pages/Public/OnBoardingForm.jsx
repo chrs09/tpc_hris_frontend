@@ -11,6 +11,7 @@ import Field from "../../components/onboarding/Field";
 import SectionCard from "../../components/onboarding/SectionCard";
 import DynamicListSection from "../../components/onboarding/DynamicListSection";
 import ProgressSteps from "../../components/onboarding/ProgressSteps";
+import OnboardingDocuments from "../../components/onboarding/OnboardingDocuments";
 
 import {
   backendFieldLabelMap,
@@ -142,6 +143,10 @@ export default function OnBoardingForm() {
   const [errors, setErrors] = useState({});
 
   const [questions, setQuestions] = useState([]);
+  // Documents step + bank choices (from the onboarding GET).
+  const [files, setFiles] = useState([]);
+  const [documentTypes, setDocumentTypes] = useState([]);
+  const [banks, setBanks] = useState([]);
   const [questionResponses, setQuestionResponses] = useState({});
   const [questionErrors, setQuestionErrors] = useState({});
 
@@ -158,6 +163,9 @@ export default function OnBoardingForm() {
       setApplicant(data.applicant || null);
       setForm(mapApiDataToForm(data));
       setQuestions(data.questions || []);
+      setFiles(data.files || []);
+      setDocumentTypes(data.document_types || []);
+      setBanks(data.banks || []);
       setQuestionResponses(
         buildQuestionResponseMap(data.question_responses || []),
       );
@@ -751,11 +759,26 @@ export default function OnBoardingForm() {
               onChange={handleChange}
             />
             <Field
+              label="Middle Name"
+              name="middle_name"
+              value={form.middle_name}
+              error={errors.middle_name}
+              onChange={handleChange}
+            />
+            <Field
               label="Last Name"
               name="last_name"
               value={form.last_name}
               error={errors.last_name}
               required
+              onChange={handleChange}
+            />
+            <Field
+              label="Suffix"
+              name="suffix"
+              value={form.suffix}
+              placeholder="e.g. Jr., Sr., III"
+              error={errors.suffix}
               onChange={handleChange}
             />
             <Field
@@ -1057,6 +1080,49 @@ export default function OnBoardingForm() {
         );
 
       case 10:
+        return (
+          <SectionCard title="Bank Details">
+            <Field
+              label="Bank"
+              name="bank_type"
+              value={form.bank_type}
+              options={banks}
+              error={errors.bank_type}
+              onChange={handleChange}
+            />
+            <Field
+              label="Account Name"
+              name="account_name"
+              value={form.account_name}
+              error={errors.account_name}
+              onChange={handleChange}
+            />
+            <Field
+              label="Account Number"
+              name="account_number"
+              value={form.account_number}
+              error={errors.account_number}
+              onChange={handleChange}
+            />
+          </SectionCard>
+        );
+
+      case 11:
+        return (
+          <OnboardingDocuments
+            token={token}
+            documentTypes={documentTypes}
+            files={files}
+            isDriver={/driver/i.test(
+              `${form.position || ""} ${form.department || ""} ${
+                applicant?.position_applied || ""
+              }`,
+            )}
+            onFilesChange={setFiles}
+          />
+        );
+
+      case 12:
         return renderQuestionsStep();
 
       default:

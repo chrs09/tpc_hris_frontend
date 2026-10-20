@@ -1283,8 +1283,16 @@ function OnboardingReviewModal({
                   value={renderValue(onboarding.first_name)}
                 />
                 <InfoCard
+                  label="Middle Name"
+                  value={renderValue(onboarding.middle_name)}
+                />
+                <InfoCard
                   label="Last Name"
                   value={renderValue(onboarding.last_name)}
+                />
+                <InfoCard
+                  label="Suffix"
+                  value={renderValue(onboarding.suffix)}
                 />
                 <InfoCard label="Email" value={renderValue(onboarding.email)} />
                 <InfoCard
@@ -1618,6 +1626,62 @@ function OnboardingReviewModal({
                   value={renderValue(onboarding.salary_type)}
                 />
               </div>
+            </div>
+
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-fg">Bank Details</h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <InfoCard label="Bank" value={renderValue(onboarding.bank_type)} />
+                <InfoCard
+                  label="Account Name"
+                  value={renderValue(onboarding.account_name)}
+                />
+                <InfoCard
+                  label="Account Number"
+                  value={renderValue(onboarding.account_number)}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+              <h3 className="mb-1 text-lg font-bold text-fg">Documents</h3>
+              <p className="mb-4 text-xs text-fg-subtle">
+                Copied to the employee's Employment Files on conversion.
+              </p>
+
+              {(data?.files || []).length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                  {data.files.map((f) => (
+                    <a
+                      key={f.document_type}
+                      href={getFileUrl(f.file_url)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex flex-col items-center gap-2 rounded-2xl border border-border p-3 text-center transition hover:bg-surface-hover"
+                    >
+                      {/\.(png|jpe?g|webp|gif)$/i.test(f.file_url) ? (
+                        <img
+                          src={getFileUrl(f.file_url)}
+                          alt={f.label}
+                          className="h-20 w-20 rounded-lg border border-border object-cover"
+                        />
+                      ) : (
+                        <span className="flex h-20 w-20 items-center justify-center rounded-lg border border-border text-xs font-semibold text-danger">
+                          PDF
+                        </span>
+                      )}
+                      <span className="text-xs font-medium text-fg-muted">
+                        {f.label}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-border bg-surface-hover p-4 text-sm text-fg-subtle">
+                  No documents uploaded.
+                </div>
+              )}
             </div>
 
             <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">

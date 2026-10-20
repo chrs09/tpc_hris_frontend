@@ -163,7 +163,7 @@ export function validateStepData(step, form, questions, questionResponses) {
     // }
   }
 
-  if (step === 10) {
+  if (step === 12) {
     questions.forEach((q) => {
       const value = questionResponses[q.question_key];
 

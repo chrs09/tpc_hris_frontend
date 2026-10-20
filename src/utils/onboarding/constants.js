@@ -26,7 +26,9 @@ export const emptyReference = {
 
 export const initialForm = {
   first_name: "",
+  middle_name: "",
   last_name: "",
+  suffix: "",
   email: "",
   department: "",
   position: "",
@@ -65,6 +67,10 @@ export const initialForm = {
   philhealth: "",
   pagibig: "",
   tin: "",
+
+  bank_type: "",
+  account_name: "",
+  account_number: "",
 };
 
 export const stepConfig = [
@@ -77,16 +83,27 @@ export const stepConfig = [
   { id: 7, title: "Salary" },
   { id: 8, title: "References" },
   { id: 9, title: "Government Information" },
-  { id: 10, title: "Additional Questions" },
+  { id: 10, title: "Bank Details" },
+  { id: 11, title: "Documents" },
+  { id: 12, title: "Additional Questions" },
 ];
 
 export const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
-export const civilStatusOptions = ["Single", "Married", "Widowed", "Separated"];
+// Same choices as Employee 201 (src/constants/civilStatus.js).
+export const civilStatusOptions = [
+  "Single",
+  "Married",
+  "Widowed",
+  "Separated",
+  "Divorced",
+];
 export const salaryTypeOptions = ["Monthly", "Semi-monthly", "Weekly", "Daily"];
 
 export const backendFieldLabelMap = {
   first_name: "First name",
+  middle_name: "Middle name",
   last_name: "Last name",
+  suffix: "Suffix",
   email: "Email",
   department: "Department",
   position: "Position",
@@ -115,6 +132,9 @@ export const backendFieldLabelMap = {
   philhealth: "PhilHealth number",
   pagibig: "Pag-IBIG number",
   tin: "TIN number",
+  bank_type: "Bank",
+  account_name: "Account name",
+  account_number: "Account number",
 
   // ??
   "employment_history.company_name": "Employment company name",
