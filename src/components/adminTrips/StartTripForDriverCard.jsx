@@ -71,6 +71,9 @@ export default function StartTripForDriverCard({
   const [vehicleUnitId, setVehicleUnitId] = useState("");
   const [shipmentNumbers, setShipmentNumbers] = useState([]);
   const [shipmentNoInput, setShipmentNoInput] = useState("");
+  // Special trip: no shipment numbers -- the server gives it an
+  // "ST-########" trip code instead.
+  const [isSpecial, setIsSpecial] = useState(false);
   const [selectedDestinationIds, setSelectedDestinationIds] = useState([]);
   // {"<shipment no>": storeId} -- which store each shipment goes to.
   const [shipmentStores, setShipmentStores] = useState({});
@@ -238,6 +241,7 @@ export default function StartTripForDriverCard({
     setVehicleUnitId("");
     setShipmentNumbers([]);
     setShipmentNoInput("");
+    setIsSpecial(false);
     setSelectedDestinationIds([]);
     setShipmentStores({});
     setSelectedHelperIds([]);
@@ -255,9 +259,10 @@ export default function StartTripForDriverCard({
     vehicleUnitId &&
     !unitBlocked &&
     reasonOk &&
-    shipmentNumbers.length > 0 &&
     selectedDestinationIds.length > 0 &&
-    shipmentStoresComplete(shipmentNumbers, selectedDestinationIds, shipmentStores);
+    (isSpecial ||
+      (shipmentNumbers.length > 0 &&
+        shipmentStoresComplete(shipmentNumbers, selectedDestinationIds, shipmentStores)));
 
   const handleSubmit = async () => {
     if (unitBlocked) {
@@ -282,7 +287,8 @@ export default function StartTripForDriverCard({
       formData.append("driver_id", driverId);
       formData.append("vehicle_unit_id", vehicleUnitId);
       formData.append("origin_store_id", originStoreId);
-      formData.append("shipment_no", JSON.stringify(shipmentNumbers));
+      formData.append("shipment_no", JSON.stringify(isSpecial ? [] : shipmentNumbers));
+      formData.append("is_special", isSpecial ? "true" : "false");
       formData.append(
         "destination_store_ids",
         JSON.stringify(selectedDestinationIds),
@@ -290,7 +296,9 @@ export default function StartTripForDriverCard({
       formData.append(
         "shipment_stores",
         JSON.stringify(
-          cleanShipmentStores(shipmentNumbers, selectedDestinationIds, shipmentStores),
+          isSpecial
+            ? {}
+            : cleanShipmentStores(shipmentNumbers, selectedDestinationIds, shipmentStores),
         ),
       );
       formData.append("helper_ids", JSON.stringify(selectedHelperIds));
@@ -300,9 +308,14 @@ export default function StartTripForDriverCard({
       }
       formData.append("is_urgent", isUrgent ? "true" : "false");
 
-      await dispatchTrip(formData);
+      const created = await dispatchTrip(formData);
 
-      toast.success("Trip dispatched to driver.");
+      const code = created?.trip_code || created?.data?.trip_code;
+      toast.success(
+        isSpecial && code
+          ? `Special trip ${code} dispatched to driver.`
+          : "Trip dispatched to driver.",
+      );
       resetForm();
       if (!alwaysExpanded) setExpanded(false);
       onStarted?.();
@@ -413,13 +426,33 @@ export default function StartTripForDriverCard({
               </div>
 
               <div>
+                <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">
+                  <input
+                    type="checkbox"
+                    checked={isSpecial}
+                    onChange={(e) => {
+                      setIsSpecial(e.target.checked);
+                      if (e.target.checked) {
+                        setShipmentNumbers([]);
+                        setShipmentNoInput("");
+                        setShipmentStores({});
+                      }
+                    }}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Special Trip
+                  <span className="text-xs font-normal text-fg-subtle">(no shipment number)</span>
+                </label>
+
+                <fieldset disabled={isSpecial} className={isSpecial ? "opacity-50" : ""}>
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Shipment Number(s) ({shipmentNumbers.length}/
                   {MAX_SHIPMENT_NUMBERS})
                 </label>
                 <p className="mb-2 text-xs text-fg-subtle">
-                  A single trip can carry multiple shipments -- add each
-                  one separately.
+                  {isSpecial
+                    ? "Not needed for a special trip -- it gets an ST-######## trip code automatically."
+                    : "A single trip can carry multiple shipments -- add each one separately."}
                 </p>
 
                 {shipmentNumbers.length > 0 && (
@@ -474,6 +507,7 @@ export default function StartTripForDriverCard({
                     Add
                   </button>
                 </div>
+                </fieldset>
               </div>
 
               <div>
@@ -576,6 +610,7 @@ export default function StartTripForDriverCard({
                 </div>
               </div>
 
+              {!isSpecial && (
               <ShipmentStorePairing
                 numbers={shipmentNumbers}
                 stores={selectedDestinationIds
@@ -584,6 +619,7 @@ export default function StartTripForDriverCard({
                 value={shipmentStores}
                 onChange={setShipmentStores}
               />
+              )}
 
               {anyDestinationRequiresHelper && (
               <div>

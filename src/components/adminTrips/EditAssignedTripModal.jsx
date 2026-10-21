@@ -60,6 +60,8 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
     trip.shipment_numbers || [],
   );
   const [shipmentNoInput, setShipmentNoInput] = useState("");
+  // Special trip: its ST- code stands in for shipment numbers (locked).
+  const isSpecial = (trip.trip_code || "").startsWith("ST-");
   const [destinationIds, setDestinationIds] = useState(
     trip.destination_store_ids || [],
   );
@@ -229,7 +231,8 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
       !sameList(shipmentNumbers, trip.shipment_numbers || []) ||
       !sameList(destinationIds, trip.destination_store_ids || []) ||
       // One store pairs itself; only a 2+ store pairing can be edited.
-      (destinationIds.length > 1 &&
+      (!isSpecial &&
+        destinationIds.length > 1 &&
         JSON.stringify(
           cleanShipmentStores(shipmentNumbers, destinationIds, shipmentStores),
         ) !== JSON.stringify(trip.shipment_stores || {})) ||
@@ -247,6 +250,7 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
       shipmentStores,
       helperIds,
       trip,
+      isSpecial,
     ],
   );
 
@@ -259,7 +263,7 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
     originStoreId &&
     shipmentNumbers.length > 0 &&
     destinationIds.length > 0 &&
-    shipmentStoresComplete(shipmentNumbers, destinationIds, shipmentStores);
+    (isSpecial || shipmentStoresComplete(shipmentNumbers, destinationIds, shipmentStores));
 
   const handleSubmit = async () => {
     try {
@@ -360,6 +364,17 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
                 )}
               </div>
 
+              {isSpecial ? (
+                <div>
+                  <label className="mb-1 block text-sm font-medium">Special Trip</label>
+                  <p className="rounded-xl border border-border bg-surface-hover px-3 py-2 text-sm">
+                    <span className="font-semibold">{trip.trip_code}</span>
+                    <span className="ml-2 text-xs text-fg-subtle">
+                      No shipment number -- this code is used instead.
+                    </span>
+                  </p>
+                </div>
+              ) : (
               <div>
                 <label className="mb-1 block text-sm font-medium">
                   Shipment Number(s) ({shipmentNumbers.length}/
@@ -415,6 +430,7 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
                   </div>
                 )}
               </div>
+              )}
 
               <div>
                 <label className="mb-1 block text-sm font-medium">
@@ -491,12 +507,14 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
                 </div>
               </div>
 
-              <ShipmentStorePairing
-                numbers={shipmentNumbers}
-                stores={destinationIds.map((id) => ({ id, name: storeName(id) }))}
-                value={shipmentStores}
-                onChange={setShipmentStores}
-              />
+              {!isSpecial && (
+                <ShipmentStorePairing
+                  numbers={shipmentNumbers}
+                  stores={destinationIds.map((id) => ({ id, name: storeName(id) }))}
+                  value={shipmentStores}
+                  onChange={setShipmentStores}
+                />
+              )}
 
               {showHelpers && (
                 <div>
