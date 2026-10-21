@@ -9,7 +9,6 @@ import {
   updateOrigin,
 } from "../../api/adminTripManagement/origins";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
-import { getRateProfiles } from "../../api/adminTripManagement/tripMaintenance";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 
@@ -18,8 +17,6 @@ const initialFormState = {
   latitude: "",
   longitude: "",
   allowed_radius_meters: 150,
-  // Trip category when this hub is a delivery destination ("" = none).
-  trip_rate_profile_id: "",
 };
 
 // Origins (hubs/yards a driver dispatches from, and returns to for
@@ -36,7 +33,6 @@ export default function OriginsPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingOrigin, setEditingOrigin] = useState(null);
   const [form, setForm] = useState(initialFormState);
-  const [categories, setCategories] = useState([]);
   const filteredOrigins = origins.filter((origin) =>
     matchesSearch(search, origin.name, origin.address),
   );
@@ -56,9 +52,6 @@ export default function OriginsPage() {
 
   useEffect(() => {
     loadOrigins();
-    getRateProfiles()
-      .then((list) => setCategories((list || []).filter((c) => c.is_active)))
-      .catch(() => setCategories([]));
   }, []);
 
   const openCreateModal = () => {
@@ -74,7 +67,6 @@ export default function OriginsPage() {
       latitude: origin.latitude ?? "",
       longitude: origin.longitude ?? "",
       allowed_radius_meters: origin.allowed_radius_meters || 150,
-      trip_rate_profile_id: origin.trip_rate_profile_id || "",
     });
     setShowModal(true);
   };
@@ -85,8 +77,8 @@ export default function OriginsPage() {
       latitude: Number(form.latitude),
       longitude: Number(form.longitude),
       allowed_radius_meters: Number(form.allowed_radius_meters),
-      // 0 clears it on an edit.
-      trip_rate_profile_id: form.trip_rate_profile_id ? Number(form.trip_rate_profile_id) : 0,
+      // Origins are start points only; delivery pay comes from Trip
+      // Categories (stores / lane rates), so no "as destination" here.
     };
 
     if (!payload.name) {
@@ -200,9 +192,6 @@ export default function OriginsPage() {
                   Radius
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
-                  As destination
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-fg-subtle">
                   Actions
                 </th>
               </tr>
@@ -210,13 +199,13 @@ export default function OriginsPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-fg-subtle">
+                  <td colSpan={4} className="px-6 py-8 text-center text-fg-subtle">
                     Loading origins...
                   </td>
                 </tr>
               ) : filteredOrigins.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-fg-subtle">
+                  <td colSpan={4} className="px-6 py-8 text-center text-fg-subtle">
                     No origins yet.
                   </td>
                 </tr>
@@ -232,11 +221,6 @@ export default function OriginsPage() {
                     </td>
                     <td className="px-6 py-4 text-fg-muted">
                       {origin.allowed_radius_meters} m
-                    </td>
-                    <td className="px-6 py-4 text-fg-muted">
-                      {origin.trip_rate_profile_name || (
-                        <span className="text-xs text-fg-subtle">Not set (can't be a destination)</span>
-                      )}
                     </td>
                     <td className="px-6 py-4">
                       {canEditPage && (
@@ -333,34 +317,6 @@ export default function OriginsPage() {
             <p className="mt-1 text-xs text-fg-subtle">
               How close a driver's GPS must be to count as "at this hub" --
               used for Checkin.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="origin-trip-category"
-              className="block text-sm font-medium mb-1 text-fg"
-            >
-              Trip category when it&apos;s a destination
-            </label>
-            <select
-              id="origin-trip-category"
-              value={form.trip_rate_profile_id}
-              onChange={(e) => setForm({ ...form, trip_rate_profile_id: e.target.value })}
-              className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg"
-            >
-              <option value="">Not a destination</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.profile_name}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-fg-subtle">
-              Lets trips deliver TO this hub (e.g. a wingvan trip from
-              Consolacion to the Plant) and sets the rate category they pay.
-              A lane rate on Trip Category &amp; Rates → Driver Rates can
-              still override it.
             </p>
           </div>
 

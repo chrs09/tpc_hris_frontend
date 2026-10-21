@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Tags, Plus, Pencil, Archive, ArchiveRestore } from "lucide-react";
+import { Tags, Plus, Pencil, Archive, ArchiveRestore, Download } from "lucide-react";
+import { exportTripCategories } from "../../utils/trips/tripRatesExcel";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import {
   getRateProfiles,
@@ -293,6 +294,19 @@ export default function TripCategoriesPage() {
         </label>
         <ViewToggle viewType={viewType} onChange={setViewType} />
         <div className="flex-1" />
+        <button
+          type="button"
+          disabled={!filteredRates.length}
+          onClick={() =>
+            exportTripCategories(filteredRates).catch(() =>
+              toast.error("Export failed."),
+            )
+          }
+          className="flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-fg hover:bg-surface-hover disabled:opacity-50"
+        >
+          <Download size={18} />
+          Export
+        </button>
         {canEditPage && (
           <button
           onClick={() => {

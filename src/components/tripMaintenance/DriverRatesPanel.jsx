@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { Download, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { exportDriverRates } from "../../utils/trips/tripRatesExcel";
 import { toast } from "react-hot-toast";
 import MaintenanceModal from "./MaintenanceModal";
 import SearchSelect from "../SearchSelect";
@@ -233,6 +234,18 @@ export default function DriverRatesPanel({ canEdit }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SearchInput value={search} onChange={setSearch} placeholder="Search rates..." />
+        <div className="flex-1" />
+        <button
+          type="button"
+          disabled={!filtered.length}
+          onClick={() =>
+            exportDriverRates(filtered).catch(() => toast.error("Export failed."))
+          }
+          className="flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-fg hover:bg-surface-hover disabled:opacity-50"
+        >
+          <Download size={18} />
+          Export
+        </button>
         {canEdit && (
           <button
             type="button"
