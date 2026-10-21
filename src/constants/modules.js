@@ -145,7 +145,8 @@ export const MODULE_GROUPS = [
       {
         key: "fuel_requests",
         label: "Fuel Requests",
-        path: "/dashboard/admin/fuel-requests",
+        // Lives in Approvals -> Fuel Request now (same access key).
+        path: "/dashboard/approvals?tab=fuel_request",
       },
     ],
   },

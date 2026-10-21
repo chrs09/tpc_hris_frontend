@@ -7,7 +7,7 @@ import AttendanceApprovals from "../Attendance/AttendanceApprovals";
 import CashAdvanceApprovals from "../Admin/CashAdvanceApprovals";
 import LeaveManagement from "../Leave/LeaveManagement";
 import OvertimeApprovals from "../Overtime/OvertimeApprovals";
-import FuelRequestApprovals from "../Admin/FuelRequestApprovals";
+import FuelRequestsTab from "../Admin/FuelRequestsTab";
 
 // Approvals -- every kind of approval in one place, one tab each
 // (Attendance, Cash Advance, Overtime, Leave, Fuel Request). Which tabs show is the same
@@ -18,7 +18,7 @@ const TABS = {
   cash_advance: CashAdvanceApprovals,
   overtime: OvertimeApprovals,
   leave: LeaveManagement,
-  fuel_request: FuelRequestApprovals,
+  fuel_request: FuelRequestsTab,
 };
 
 const tabOf = (path) => new URLSearchParams(path.split("?")[1] || "").get("tab");

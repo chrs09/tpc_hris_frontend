@@ -12,7 +12,7 @@ const VISIBLE_ROLES = ["superadmin", "coordinator_admin"];
 
 const POLL_INTERVAL_MS = 20000;
 
-const PAGE_PATH = "/dashboard/admin/fuel-requests";
+const PAGE_PATH = "/dashboard/approvals?tab=fuel_request";
 
 // A request can need action twice (new request, then its receipt), so
 // "seen" is tracked per request + status.
@@ -113,7 +113,7 @@ export default function FuelRequestAlertsBell() {
 
   const openItem = (id) => {
     setOpen(false);
-    navigate(id ? `${PAGE_PATH}?view=${id}` : PAGE_PATH);
+    navigate(id ? `${PAGE_PATH}&view=${id}` : PAGE_PATH);
   };
 
   return (

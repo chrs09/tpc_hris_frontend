@@ -84,7 +84,7 @@ const StatusPill = ({ status }) => {
 // Coordinator admin's side of driver fuel requests: issue a fuel code +
 // liters for a new request, then confirm (or send back) the receipt the
 // driver uploads after fueling.
-export default function FuelRequests() {
+export default function FuelRequests({ embedded = false }) {
   const [filter, setFilter] = useState("needs_action");
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +110,10 @@ export default function FuelRequests() {
     const fromLink = Number(searchParams.get("view"));
     if (fromLink) {
       setOpenId(fromLink);
-      setSearchParams({}, { replace: true });
+      // Drop only ?view (keep Approvals' ?tab).
+      const next = new URLSearchParams(searchParams);
+      next.delete("view");
+      setSearchParams(next, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
@@ -137,7 +140,7 @@ export default function FuelRequests() {
 
   return (
     <div className="space-y-5">
-      <SectionTabs group="Fleet Management" />
+      {!embedded && <SectionTabs group="Fleet Management" />}
 
       <div>
         <h1 className="text-lg font-semibold text-fg sm:text-xl">

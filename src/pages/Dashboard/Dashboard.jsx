@@ -10,7 +10,7 @@ import TripDashboard from "../Admin/TripDashboard";
 import TripAssignment from "../Admin/TripAssignment";
 import TripBypassPage from "../Admin/TripBypass";
 import TripManualEntriesPage from "../Admin/TripManualEntries";
-import FuelRequestsPage from "../Admin/FuelRequests";
+import FuelRequestsRedirect from "../Admin/FuelRequestsRedirect";
 import OrgChart from "../Admin/OrgChart";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
 import RoleAccess from "../Admin/RoleAccess";
@@ -171,7 +171,8 @@ const Dashboard = () => {
             element={<AttendanceLocationsPage />}
           />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
-          <Route path="admin/fuel-requests" element={<FuelRequestsPage />} />
+          {/* Moved to Approvals -> Fuel Request */}
+          <Route path="admin/fuel-requests" element={<FuelRequestsRedirect />} />
           <Route path="admin/trip-categories" element={<TripCategoriesPage />} />
           <Route path="admin/origins" element={<OriginsPage />} />
           <Route path="admin/suppliers" element={<SuppliersPage />} />

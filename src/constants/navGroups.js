@@ -133,11 +133,14 @@ export function getNavGroups(role) {
           approverKind: "leave",
         },
         {
-          // Org Chart heads with Fuel Request ticked (and superadmin)
-          // approve before the coordinator issues the fuel code.
+          // Org Chart heads with Fuel Request ticked approve here; the
+          // Trip Manager (coordinator admin / Fleet Management -> Fuel
+          // Requests grant) issues codes and checks receipts in the same
+          // tab (moved from Fleet Management).
           label: "Fuel Request",
           path: "/dashboard/approvals?tab=fuel_request",
-          roles: ["superadmin"],
+          roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "fleet_management.fuel_requests",
           approverKind: "fuel_request",
         },
       ],
@@ -252,12 +255,6 @@ export function getNavGroups(role) {
           path: "/dashboard/admin/trip-maintenance?tab=maintenance",
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "fleet_management.vehicle_maintenance",
-        },
-        {
-          label: "Fuel Requests",
-          path: "/dashboard/admin/fuel-requests",
-          roles: ["superadmin", "coordinator_admin"],
-          moduleKey: "fleet_management.fuel_requests",
         },
       ],
     },
