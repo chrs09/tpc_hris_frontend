@@ -10,7 +10,10 @@ import {
   eachDayOfInterval,
   startOfMonth,
   endOfMonth,
+  addDays,
+  parseISO,
 } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { getEmployeeList } from "../../api/employee";
 import {
@@ -1019,12 +1022,41 @@ const AttendanceList = () => {
             <div className="flex items-center gap-2">
               <label className="text-sm text-fg-subtle">Review Date</label>
 
-              <input
-                type="date"
-                value={reviewDate}
-                onChange={(e) => setReviewDate(e.target.value)}
-                className="h-10 rounded-lg border border-border px-3 text-sm bg-surface text-fg"
-              />
+              {/* Previous / next day around the picker; no going past today. */}
+              <div className="flex h-10 items-stretch overflow-hidden rounded-lg border border-border bg-surface">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReviewDate(format(addDays(parseISO(reviewDate), -1), "yyyy-MM-dd"))
+                  }
+                  className="flex w-10 items-center justify-center text-fg-muted transition hover:bg-surface-hover hover:text-fg"
+                  aria-label="Previous day"
+                  title="Previous day"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+
+                <input
+                  type="date"
+                  value={reviewDate}
+                  max={today}
+                  onChange={(e) => e.target.value && setReviewDate(e.target.value)}
+                  className="border-x border-border bg-surface px-3 text-sm text-fg outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReviewDate(format(addDays(parseISO(reviewDate), 1), "yyyy-MM-dd"))
+                  }
+                  disabled={reviewDate >= today}
+                  className="flex w-10 items-center justify-center text-fg-muted transition hover:bg-surface-hover hover:text-fg disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-fg-muted"
+                  aria-label="Next day"
+                  title={reviewDate >= today ? "Already on today" : "Next day"}
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
           )}
 
