@@ -6,7 +6,8 @@ import api from "../services/api";
 // coordinator admin confirms it or sends it back. See
 // app/api/fuel_requests.py.
 
-// status: a single status, "open", "needs_action", or omitted for all.
+// status: a single status, "open", "needs_action", "awaiting_approval",
+// "unused" (expired or cancelled codes), or omitted for all.
 export const getFuelRequests = async (status) => {
   const res = await api.get("/fuel-requests", {
     params: status ? { status } : {},
@@ -25,10 +26,13 @@ export const getFuelRequest = async (id) => {
   return res.data;
 };
 
-export const issueFuelCode = async (id, fuelCode, liters) => {
+// codeExpiresAt: "YYYY-MM-DDTHH:MM" (Philippine time). Unused past it, the
+// request becomes Expired and the driver can request a new code.
+export const issueFuelCode = async (id, fuelCode, liters, codeExpiresAt) => {
   const res = await api.post(`/fuel-requests/${id}/issue`, {
     fuel_code: fuelCode,
     liters,
+    code_expires_at: codeExpiresAt || null,
   });
   return res.data;
 };

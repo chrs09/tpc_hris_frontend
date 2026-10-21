@@ -36,6 +36,22 @@ const FUEL_STATUS = {
   completed: ["Completed", "bg-success/15 text-success"],
   declined: ["Declined", "bg-danger/15 text-danger"],
   cancelled: ["Cancelled", "bg-surface-active text-fg-muted"],
+  // Code never used: past its expiry, or the driver cancelled it.
+  expired: ["Code Expired", "bg-surface-active text-fg-muted"],
+  code_cancelled: ["Code Cancelled", "bg-surface-active text-fg-muted"],
+};
+
+// Default expiry for a new code: end of today.
+const endOfToday = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T23:59`;
+};
+
+const nowLocal = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
 };
 
 const FILTERS = [
@@ -44,6 +60,7 @@ const FILTERS = [
   { key: "open", label: "In Progress" },
   { key: "completed", label: "Completed" },
   { key: "declined", label: "Declined" },
+  { key: "unused", label: "Expired / Cancelled" },
   { key: "", label: "All" },
 ];
 
@@ -253,6 +270,7 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
   const [req, setReq] = useState(null);
   const [fuelCode, setFuelCode] = useState("");
   const [liters, setLiters] = useState("");
+  const [codeExpiresAt, setCodeExpiresAt] = useState(endOfToday);
   const [busy, setBusy] = useState(false);
   const [zoomUrl, setZoomUrl] = useState(null);
 
@@ -298,8 +316,16 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
       toast.error("Enter the liters.");
       return;
     }
+    if (!codeExpiresAt) {
+      toast.error("Set when the code expires.");
+      return;
+    }
+    if (new Date(codeExpiresAt) <= new Date()) {
+      toast.error("The expiry must be later than now.");
+      return;
+    }
     run(
-      () => issueFuelCode(req.id, fuelCode.trim(), value),
+      () => issueFuelCode(req.id, fuelCode.trim(), value, codeExpiresAt),
       "Fuel code sent to the driver.",
     );
   };
@@ -434,6 +460,22 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                       placeholder="e.g. 45"
                     />
                   </div>
+                  <div className="sm:col-span-3">
+                    <label className="mb-1 block text-xs font-medium text-fg-subtle">
+                      Code expires
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={codeExpiresAt}
+                      min={nowLocal()}
+                      onChange={(e) => setCodeExpiresAt(e.target.value)}
+                      className={inputStyles}
+                    />
+                    <p className="mt-1 text-xs text-fg-subtle">
+                      If the driver hasn&apos;t used it by then, it expires and they
+                      can request a new code.
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   {canEditPage && (
@@ -449,7 +491,7 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                   {canEditPage && (
                     <button
                     type="button"
-                    disabled={busy || !fuelCode.trim() || !liters}
+                    disabled={busy || !fuelCode.trim() || !liters || !codeExpiresAt}
                     onClick={handleIssue}
                     className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
                   >
@@ -471,6 +513,10 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                     value={
                       req.issued_by ? `${req.issued_by} · ${req.issued_at}` : null
                     }
+                  />
+                  <Info
+                    label={req.status === "expired" ? "Expired" : "Code expires"}
+                    value={req.code_expires_at}
                   />
                 </section>
               )
@@ -533,6 +579,21 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
                   {req.status === "declined" ? "Declined: " : "Sent back: "}
                 </span>
                 {req.note}
+              </p>
+            )}
+
+            {req.status === "code_cancelled" && (
+              <p className="rounded-xl border border-border px-4 py-3 text-sm">
+                <span className="font-semibold">Code cancelled by the driver: </span>
+                {req.cancel_reason || "-"}
+                {req.code_cancelled_at && (
+                  <span className="block text-xs text-fg-subtle">{req.code_cancelled_at}</span>
+                )}
+              </p>
+            )}
+            {req.status === "expired" && (
+              <p className="rounded-xl border border-border px-4 py-3 text-sm text-fg-muted">
+                The code expired before the driver used it. They can request a new one.
               </p>
             )}
 
