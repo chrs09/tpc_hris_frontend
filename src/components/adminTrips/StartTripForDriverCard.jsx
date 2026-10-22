@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import SearchSelect from "../SearchSelect";
 import { getAvailableDrivers } from "../../api/adminTripManagement/trips";
 import { getStores } from "../../api/adminTripManagement/stores";
+import { getDefaultHub } from "../../api/adminTripManagement/origins";
 import {
   getAvailableHelpers,
   getAvailableVehicleUnits,
@@ -68,6 +69,8 @@ export default function StartTripForDriverCard({
 
   const [driverId, setDriverId] = useState("");
   const [originStoreId, setOriginStoreId] = useState("");
+  // Default hub (Hubs page): preselected as the start point.
+  const [defaultHubId, setDefaultHubId] = useState("");
   const [vehicleUnitId, setVehicleUnitId] = useState("");
   const [shipmentNumbers, setShipmentNumbers] = useState([]);
   const [shipmentNoInput, setShipmentNoInput] = useState("");
@@ -86,12 +89,17 @@ export default function StartTripForDriverCard({
     const loadOptions = async () => {
       try {
         setLoadingOptions(true);
-        const [driverRes, storeRes, vehicleData, everyUnit] = await Promise.all([
+        const [driverRes, storeRes, vehicleData, everyUnit, defaultHub] = await Promise.all([
           getAvailableDrivers(),
           getStores(),
           getAvailableVehicleUnits(),
           getVehicleUnits().catch(() => []),
+          getDefaultHub().catch(() => null),
         ]);
+        if (defaultHub?.id) {
+          setDefaultHubId(defaultHub.id);
+          setOriginStoreId((current) => current || defaultHub.id);
+        }
         setAllUnits(Array.isArray(everyUnit) ? everyUnit : everyUnit?.items || []);
 
         setDrivers(driverRes.data || []);
@@ -237,7 +245,7 @@ export default function StartTripForDriverCard({
 
   const resetForm = () => {
     setDriverId("");
-    setOriginStoreId("");
+    setOriginStoreId(defaultHubId);
     setVehicleUnitId("");
     setShipmentNumbers([]);
     setShipmentNoInput("");

@@ -66,6 +66,8 @@ export default function StoreLocationPicker({
   onChange,
   radiusMeters,
   readOnly = false,
+  // [lat, lng] to open on when there's no location yet (the default hub).
+  defaultCenter = null,
 }) {
   const hasPosition =
     latitude !== "" &&
@@ -146,8 +148,8 @@ export default function StoreLocationPicker({
 
       <div className="relative h-56 overflow-hidden rounded-xl border border-border">
         <MapContainer
-          center={position || DEFAULT_CENTER}
-          zoom={position ? 16 : 12}
+          center={position || defaultCenter || DEFAULT_CENTER}
+          zoom={position ? 16 : defaultCenter ? 14 : 12}
           style={{ height: "100%", width: "100%" }}
         >
           <TileLayer

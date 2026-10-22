@@ -189,7 +189,7 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.trip_categories",
         },
         {
-          label: "Origins",
+          label: "Hubs",
           path: "/dashboard/admin/origins",
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "trip_management.origins",

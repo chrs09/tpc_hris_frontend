@@ -13,6 +13,7 @@ import {
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import StoreLocationPicker from "../../components/adminTrips/StoreLocationPicker";
+import { getDefaultHub } from "../../api/adminTripManagement/origins";
 import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import MapLinks from "../../components/ui/mapLinks/MapLinks";
@@ -72,6 +73,17 @@ export default function StoreManagement() {
   // Location history (unloading GPS / coordinate changes) for this store.
   const [locationStore, setLocationStore] = useState(null);
   const [form, setForm] = useState(initialFormState);
+  // New stores' map opens on the default hub (Hubs page).
+  const [defaultHubCenter, setDefaultHubCenter] = useState(null);
+  useEffect(() => {
+    getDefaultHub()
+      .then((hub) => {
+        if (hub && hub.latitude != null && hub.longitude != null) {
+          setDefaultHubCenter([Number(hub.latitude), Number(hub.longitude)]);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [profileFilter, setProfileFilter] = useState("ALL");
   const [tripRateProfiles, setTripRateProfiles] = useState([]);
@@ -855,6 +867,7 @@ export default function StoreManagement() {
               latitude={form.latitude}
               longitude={form.longitude}
               radiusMeters={form.allowed_radius_meters}
+              defaultCenter={defaultHubCenter}
               onChange={({ lat, lng, address }) =>
                 setForm((prev) => ({
                   ...prev,

@@ -99,7 +99,7 @@ export const MODULE_GROUPS = [
       },
       {
         key: "origins",
-        label: "Origins",
+        label: "Hubs",
         path: "/dashboard/admin/origins",
       },
       {
