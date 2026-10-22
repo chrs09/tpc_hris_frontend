@@ -180,3 +180,14 @@ export const cancelCashAdvanceRequest = async (requestId) => {
   const res = await api.post(`/cash-advance-requests/${requestId}/cancel`);
   return res.data;
 };
+
+// Last approver: ask the exception approver to allow more than the policy
+// for this request (amount above the limit / longer repayment).
+export const requestCashAdvanceException = async (requestId, { amount, payPeriods, reason }) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/request-exception`, {
+    amount,
+    pay_periods: payPeriods,
+    reason,
+  });
+  return res.data;
+};

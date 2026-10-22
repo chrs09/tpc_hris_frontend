@@ -95,3 +95,16 @@ export const getPurposes = async () => {
   const res = await api.get("/cash-advance-settings/purposes");
   return res.data;
 };
+
+// Who approves cash advance exceptions ({ user_id, name }; null = superadmin).
+export const getExceptionApprover = async () => {
+  const res = await api.get("/cash-advance-settings/exception-approver");
+  return res.data;
+};
+
+export const setExceptionApprover = async (userId) => {
+  const res = await api.put("/cash-advance-settings/exception-approver", {
+    user_id: userId || null,
+  });
+  return res.data;
+};

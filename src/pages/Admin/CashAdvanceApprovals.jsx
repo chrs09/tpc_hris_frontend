@@ -19,10 +19,12 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SearchSelect from "../../components/SearchSelect";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
-import { promptDialog } from "../../components/ui/dialog/dialogService";
+import { confirmDialog, promptDialog } from "../../components/ui/dialog/dialogService";
 import useModuleAccess from "../../hooks/useModuleAccess";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
+import CashAdvanceExceptionModal from "../../components/cashAdvance/CashAdvanceExceptionModal";
+import CashAdvanceExceptionSummary from "../../components/cashAdvance/CashAdvanceExceptionSummary";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
@@ -239,7 +241,35 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     return index >= 0 && index < steps.length - 1 ? steps[index + 1].name : null;
   };
 
-  const handleApprove = (request) => setReleaseForm({ request, mode: "approve" });
+  // Last approver -> "Request Exception" (above the policy limit).
+  const [exceptionFor, setExceptionFor] = useState(null);
+
+  const approveException = async (request) => {
+    const ok = await confirmDialog(
+      `Allow this exception? ${request.employee_name} gets ₱${Number(
+        request.exception_amount,
+      ).toLocaleString()} repaid over ${request.exception_pay_periods} pays (₱${Number(
+        request.exception_deduction_per_pay,
+      ).toLocaleString()} each).`,
+    );
+    if (!ok) return;
+    try {
+      setActioningId(request.id);
+      await approveCashAdvanceRequest(request.id);
+      toast.success("Exception approved -- the cash advance is approved.");
+      await loadPending();
+      if (allLoaded) await loadAll();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to approve.");
+    } finally {
+      setActioningId(null);
+    }
+  };
+
+  const handleApprove = (request) =>
+    request.awaiting_exception
+      ? approveException(request)
+      : setReleaseForm({ request, mode: "approve" });
 
   const saveRelease = (requestId, receipt, reference) =>
     receipt
@@ -323,14 +353,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   };
 
   const handleReject = async (request) => {
+    const exception = request.awaiting_exception;
     const remarks = await promptDialog(
-      "Reason for rejecting this cash advance request (optional):",
+      exception
+        ? `Reason for not allowing this exception (optional). It goes back to ${
+            request.exception_requested_by_name || "the last approver"
+          }, who can still approve within the policy:`
+        : "Reason for rejecting this cash advance request (optional):",
     );
     if (remarks === null) return;
     try {
       setActioningId(request.id);
       await rejectCashAdvanceRequest(request.id, remarks || undefined);
-      toast.success("Cash advance rejected.");
+      toast.success(
+        exception ? "Exception not allowed -- sent back to the last approver." : "Cash advance rejected.",
+      );
       await loadPending();
       if (allLoaded) await loadAll();
     } catch (error) {
@@ -660,6 +697,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           </td>
                           <td className="px-4 py-3 font-semibold text-fg">
                             ₱{req.amount.toLocaleString()}
+                            {req.awaiting_exception && (
+                              <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                                Exception ₱{Number(req.exception_amount).toLocaleString()}
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-fg-muted">
                             ₱{req.deduction_per_pay_amount.toLocaleString()}
@@ -671,6 +713,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           </td>
                           <td className="max-w-[220px] px-4 py-3 text-fg-muted" title={req.reason}>
                             <span className="line-clamp-2">{req.reason}</span>
+                            <CashAdvanceExceptionSummary request={req} compact />
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-fg-muted">
                             {formatDateNeeded(req.date_needed) || "—"}
@@ -688,8 +731,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                                   disabled={actioningId === req.id || req.can_act === false}
                                   className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                  {actioningId === req.id ? "Working..." : "Approve"}
+                                  {actioningId === req.id
+                                    ? "Working..."
+                                    : req.awaiting_exception
+                                      ? "Allow Exception"
+                                      : "Approve"}
                                 </button>
+                                {req.can_request_exception && (
+                                  <button
+                                    onClick={() => setExceptionFor(req)}
+                                    disabled={actioningId === req.id || req.can_act === false}
+                                    className="rounded-lg border border-warning/50 px-3 py-1.5 text-xs font-semibold text-warning hover:bg-warning/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    Exception
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleReject(req)}
                                   disabled={actioningId === req.id || req.can_act === false}
@@ -729,7 +785,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       </p>
                     </div>
                     <span className="rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning">
-                      Pending Approval
+                      {req.awaiting_exception ? "Exception -- Your Approval" : "Pending Approval"}
                     </span>
                   </div>
 
@@ -781,6 +837,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                     </p>
                   )}
 
+                  <CashAdvanceExceptionSummary request={req} />
                   <ApprovalProgress steps={req.approval_steps} className="mt-2" />
                   {req.can_act === false && (
                     <p className="mt-2 rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
@@ -800,8 +857,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       disabled={actioningId === req.id || req.can_act === false}
                       className="rounded-xl bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {actioningId === req.id ? "Working..." : "Approve"}
+                      {actioningId === req.id
+                        ? "Working..."
+                        : req.awaiting_exception
+                          ? "Allow Exception"
+                          : "Approve"}
                     </button>
+                    )}
+                    {canEditPage && req.can_request_exception && (
+                      <button
+                        onClick={() => setExceptionFor(req)}
+                        disabled={actioningId === req.id || req.can_act === false}
+                        className="rounded-xl border border-warning/50 px-4 py-2 text-sm font-semibold text-warning hover:bg-warning/10 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Request Exception
+                      </button>
                     )}
                     {canEditPage && (
                       <button
@@ -1223,6 +1293,18 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         </div>
       )}
       <ReceiptViewer request={viewingReceipt} onClose={() => setViewingReceipt(null)} />
+      {exceptionFor && (
+        <CashAdvanceExceptionModal
+          request={exceptionFor}
+          onClose={() => setExceptionFor(null)}
+          onDone={async () => {
+            setExceptionFor(null);
+            await loadPending();
+            if (allLoaded) await loadAll();
+          }}
+        />
+      )}
+
       {releaseForm && (
         <CashAdvanceReleaseModal
           key={`${releaseForm.mode}-${releaseForm.request.id}`}

@@ -13,6 +13,7 @@ import {
   updatePurpose,
 } from "../../api/cashAdvanceSettings";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import ExceptionApproverCard from "../../components/cashAdvance/ExceptionApproverCard";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import useModuleAccess from "../../hooks/useModuleAccess";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
@@ -536,6 +537,8 @@ const CashAdvanceSettingsPage = () => {
             )}
           </div>
         </div>
+
+        <ExceptionApproverCard canEdit={canEditPage} />
 
         {/* TERMS & CONDITIONS */}
         <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
