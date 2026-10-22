@@ -55,6 +55,13 @@ const EMPTY_FORM = {
   helper_next_trip_rate: "",
 };
 
+const EMPTY_NEW_RATES = {
+  driver_first_trip_rate: "",
+  driver_next_trip_rate: "",
+  helper_first_trip_rate: "",
+  helper_next_trip_rate: "",
+};
+
 export default function TripCategoriesPage() {
   const canEditPage = usePageCanEdit();
   // Categories (base rates) or Driver Rates (by truck / lane / date).
@@ -64,9 +71,12 @@ export default function TripCategoriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingProfile, setEditingProfile] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  // Editing rates: they take effect from this date (past trips keep the
-  // old rate). fixBase = correct the base rate instead (every trip).
-  const [effectiveFrom, setEffectiveFrom] = useState(todayPH());
+  // Editing: current rates are read-only; new rates go in their own
+  // fields with the date they take effect (trips before keep the old
+  // rate). Blank new field = keep that rate. fixBase = correct the base
+  // rates instead (a typo fix: every trip, past ones included).
+  const [newRates, setNewRates] = useState(EMPTY_NEW_RATES);
+  const [effectiveFrom, setEffectiveFrom] = useState("");
   const [fixBase, setFixBase] = useState(false);
   // Categories as cards or a table (remembered per browser).
   const [viewType, setViewType] = useViewType("trip_categories_view");
@@ -102,6 +112,13 @@ export default function TripCategoriesPage() {
     loadData();
   }, []);
 
+  const formatCurrency = (value) =>
+    new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 0,
+    }).format(value);
+
   const handleCreate = async () => {
     try {
       await createRateProfile(form);
@@ -117,31 +134,42 @@ export default function TripCategoriesPage() {
   };
 
   const handleUpdate = async () => {
-    const current = editingProfile.current_rates || editingProfile;
-    const ratesChanged = RATE_KEYS.some(
-      ([key]) => Number(form[key] || 0) !== Number(current[key] || 0),
-    );
+    const filled = RATE_KEYS.filter(([key]) => String(newRates[key] ?? "").trim() !== "");
+    if (filled.length && !effectiveFrom) {
+      toast.error("Pick the date the new rates take effect.");
+      return;
+    }
+    if (filled.some(([key]) => Number(newRates[key]) < 0)) {
+      toast.error("Rates can't be negative.");
+      return;
+    }
     try {
-      if (ratesChanged && !fixBase) {
-        if (!effectiveFrom) {
-          toast.error("Pick the date the new rates take effect.");
-          return;
-        }
-        // Name / helpers now; the rates from the effective date.
-        await updateRateProfile(editingProfile.id, {
-          profile_name: form.profile_name,
-          helper_count: form.helper_count,
-        });
+      // Name / helpers (and the base rates only when correcting a typo).
+      await updateRateProfile(
+        editingProfile.id,
+        fixBase
+          ? form
+          : { profile_name: form.profile_name, helper_count: form.helper_count },
+      );
+      if (filled.length) {
         await createTripRateRule({
           trip_rate_profile_id: editingProfile.id,
-          ...Object.fromEntries(RATE_KEYS.map(([key]) => [key, Number(form[key] || 0)])),
+          ...Object.fromEntries(
+            RATE_KEYS.map(([key]) => [
+              key,
+              String(newRates[key] ?? "").trim() === "" ? null : Number(newRates[key]),
+            ]),
+          ),
           effective_from: effectiveFrom,
           notes: "Set from the category card",
         });
-        toast.success(`New rates take effect ${shortDate(effectiveFrom)}.`);
+        toast.success(
+          `New rates take effect ${shortDate(effectiveFrom)}: ${filled
+            .map(([key, label]) => `${label} ${formatCurrency(Number(newRates[key]))}`)
+            .join(" · ")}.`,
+        );
       } else {
-        await updateRateProfile(editingProfile.id, form);
-        toast.success("Rate profile updated successfully");
+        toast.success("Category updated.");
       }
       await loadRateProfiles();
       setEditingProfile(null);
@@ -190,18 +218,19 @@ export default function TripCategoriesPage() {
   };
 
   const handleEdit = (profile) => {
-    // Start from what the category pays today (base + dated changes).
-    const current = profile.current_rates || profile;
+    // form = the base rates (only edited for a typo fix); what it pays
+    // today is shown read-only, new rates go in newRates + a date.
     setEditingProfile(profile);
     setForm({
       profile_name: profile.profile_name || "",
       helper_count: profile.helper_count || 0,
-      driver_first_trip_rate: current.driver_first_trip_rate || 0,
-      driver_next_trip_rate: current.driver_next_trip_rate || 0,
-      helper_first_trip_rate: current.helper_first_trip_rate || 0,
-      helper_next_trip_rate: current.helper_next_trip_rate || 0,
+      driver_first_trip_rate: profile.driver_first_trip_rate || 0,
+      driver_next_trip_rate: profile.driver_next_trip_rate || 0,
+      helper_first_trip_rate: profile.helper_first_trip_rate || 0,
+      helper_next_trip_rate: profile.helper_next_trip_rate || 0,
     });
-    setEffectiveFrom(todayPH());
+    setNewRates(EMPTY_NEW_RATES);
+    setEffectiveFrom("");
     setFixBase(false);
     setShowModal(true);
   };
@@ -225,13 +254,6 @@ export default function TripCategoriesPage() {
       toast.error(error?.response?.data?.detail || "Couldn't remove the rate change.");
     }
   };
-
-  const formatCurrency = (value) =>
-    new Intl.NumberFormat("en-PH", {
-      style: "currency",
-      currency: "PHP",
-      minimumFractionDigits: 0,
-    }).format(value);
 
   return (
     <div className="space-y-5">
@@ -594,90 +616,247 @@ export default function TripCategoriesPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-fg">
-                Driver 1st Trip
-              </label>
-              <input
-                type="number"
-                value={form.driver_first_trip_rate}
-                onChange={(e) =>
-                  setForm({ ...form, driver_first_trip_rate: e.target.value })
-                }
-                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="565"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 text-fg">
-                Driver Next Trip
-              </label>
-              <input
-                type="number"
-                value={form.driver_next_trip_rate}
-                onChange={(e) =>
-                  setForm({ ...form, driver_next_trip_rate: e.target.value })
-                }
-                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="300"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 text-fg">
-                Helper 1st Trip
-              </label>
-              <input
-                type="number"
-                value={form.helper_first_trip_rate}
-                onChange={(e) =>
-                  setForm({ ...form, helper_first_trip_rate: e.target.value })
-                }
-                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="217"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1 text-fg">
-                Helper Next Trip
-              </label>
-              <input
-                type="number"
-                value={form.helper_next_trip_rate}
-                onChange={(e) =>
-                  setForm({ ...form, helper_next_trip_rate: e.target.value })
-                }
-                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                placeholder="100"
-              />
-            </div>
-          </div>
-
-          {editingProfile && (
-            <div className="space-y-3 rounded-xl border border-border p-3">
+          {(!editingProfile || fixBase) && (
+            <>
+              {fixBase && (
+                <p className="rounded-lg bg-warning/10 px-3 py-2 text-xs text-warning">
+                  Correcting the BASE rates -- this changes every trip, past ones included.
+                </p>
+              )}
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label
-                  htmlFor="rate-effective-from"
-                  className="block text-sm font-medium mb-1 text-fg"
-                >
-                  New rates take effect from
+                <label className="block text-sm font-medium mb-1 text-fg">
+                  Driver 1st Trip
                 </label>
                 <input
-                  id="rate-effective-from"
-                  type="date"
-                  value={effectiveFrom}
-                  disabled={fixBase}
-                  onChange={(e) => setEffectiveFrom(e.target.value)}
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg disabled:opacity-50"
+                  type="number"
+                  value={form.driver_first_trip_rate}
+                  onChange={(e) =>
+                    setForm({ ...form, driver_first_trip_rate: e.target.value })
+                  }
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="565"
                 />
-                <p className="mt-1 text-xs text-fg-subtle">
-                  Trips before this date keep the old rates. Only used when you
-                  change a rate above.
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-fg">
+                  Driver Next Trip
+                </label>
+                <input
+                  type="number"
+                  value={form.driver_next_trip_rate}
+                  onChange={(e) =>
+                    setForm({ ...form, driver_next_trip_rate: e.target.value })
+                  }
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-fg">
+                  Helper 1st Trip
+                </label>
+                <input
+                  type="number"
+                  value={form.helper_first_trip_rate}
+                  onChange={(e) =>
+                    setForm({ ...form, helper_first_trip_rate: e.target.value })
+                  }
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="217"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-fg">
+                  Helper Next Trip
+                </label>
+                <input
+                  type="number"
+                  value={form.helper_next_trip_rate}
+                  onChange={(e) =>
+                    setForm({ ...form, helper_next_trip_rate: e.target.value })
+                  }
+                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="100"
+                />
+              </div>
+            </div>
+            </>
+          )}
+
+          {editingProfile && (
+            <>
+              {/* Current rates -- read-only */}
+              <div>
+                <p className="mb-2 text-sm font-medium text-fg">
+                  Current rates{" "}
+                  <span className="font-normal text-fg-subtle">
+                    (in effect today
+                    {editingProfile.current_rates?.since
+                      ? `, since ${shortDate(editingProfile.current_rates.since)}`
+                      : ""}
+                    )
+                  </span>
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {RATE_KEYS.map(([key, label]) => (
+                    <div key={key} className="rounded-lg bg-surface-hover px-3 py-2">
+                      <p className="text-[11px] text-fg-subtle">{label}</p>
+                      <p className="text-sm font-semibold text-fg">
+                        {formatCurrency(
+                          Number((editingProfile.current_rates || editingProfile)[key] || 0),
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* New rates + effective date */}
+              {!fixBase && (
+                <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <div>
+                    <p className="text-sm font-semibold text-fg">New rates</p>
+                    <p className="text-xs text-fg-subtle">
+                      Fill only the rates that change; blank keeps the current rate.
+                      Trips before the effective date keep the old rates.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {RATE_KEYS.map(([key, label]) => (
+                      <label key={key} className="block">
+                        <span className="mb-1 block text-xs font-medium text-fg-muted">
+                          New {label}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={newRates[key]}
+                          onChange={(e) => setNewRates({ ...newRates, [key]: e.target.value })}
+                          placeholder={String(
+                            (editingProfile.current_rates || editingProfile)[key] ?? "",
+                          )}
+                          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
+                      Effective date{" "}
+                      {RATE_KEYS.some(([key]) => String(newRates[key]).trim() !== "") && (
+                        <span className="text-danger">*</span>
+                      )}
+                    </span>
+                    <input
+                      id="rate-effective-from"
+                      type="date"
+                      value={effectiveFrom}
+                      onChange={(e) => setEffectiveFrom(e.target.value)}
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+                    />
+                  </label>
+                  {effectiveFrom &&
+                    RATE_KEYS.some(([key]) => String(newRates[key]).trim() !== "") && (
+                      <p className="text-xs text-fg-muted">
+                        From <strong>{shortDate(effectiveFrom)}</strong>:{" "}
+                        {RATE_KEYS.filter(([key]) => String(newRates[key]).trim() !== "")
+                          .map(([key, label]) => `${label} ${formatCurrency(Number(newRates[key]))}`)
+                          .join(" · ")}
+                      </p>
+                    )}
+                </div>
+              )}
+
+              {/* Rate history */}
+              <div>
+                <p className="mb-1 text-sm font-medium text-fg">Rate history</p>
+                {(() => {
+                  const today = todayPH();
+                  const changes = [...(editingProfile.rate_changes || [])].sort((a, b) =>
+                    a.effective_from.localeCompare(b.effective_from),
+                  );
+                  const inEffect = [...changes]
+                    .reverse()
+                    .find((change) => change.effective_from <= today);
+                  const rows = [
+                    { id: "base", effective_from: null, base: true, ...editingProfile },
+                    ...changes,
+                  ];
+                  return (
+                    <div className="overflow-x-auto rounded-lg border border-border">
+                      <table className="w-full text-xs">
+                        <thead className="bg-surface-hover text-fg-muted">
+                          <tr>
+                            <th className="px-2 py-1.5 text-left font-medium">Effective</th>
+                            {RATE_KEYS.map(([key, label]) => (
+                              <th key={key} className="px-2 py-1.5 text-right font-medium">
+                                {label}
+                              </th>
+                            ))}
+                            <th className="px-2 py-1.5" />
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row) => {
+                            const current = row.base ? !inEffect : inEffect?.id === row.id;
+                            const upcoming = !row.base && row.effective_from > today;
+                            return (
+                              <tr
+                                key={row.id}
+                                className={`border-t border-border ${current ? "bg-primary/5" : ""}`}
+                              >
+                                <td className="px-2 py-1.5 whitespace-nowrap">
+                                  <span className="font-semibold text-fg">
+                                    {row.base ? "Base" : shortDate(row.effective_from)}
+                                  </span>
+                                  {current && (
+                                    <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                                      Current
+                                    </span>
+                                  )}
+                                  {upcoming && (
+                                    <span className="ml-1 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                                      Upcoming
+                                    </span>
+                                  )}
+                                </td>
+                                {RATE_KEYS.map(([key]) => (
+                                  <td key={key} className="px-2 py-1.5 text-right tabular-nums">
+                                    {row[key] === null || row[key] === undefined ? (
+                                      <span className="text-fg-subtle">same</span>
+                                    ) : (
+                                      formatCurrency(Number(row[key]))
+                                    )}
+                                  </td>
+                                ))}
+                                <td className="px-2 py-1.5 text-right">
+                                  {!row.base && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteChange(row)}
+                                      className="rounded-md px-1.5 py-0.5 text-danger hover:bg-danger/10"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
+                <p className="mt-1 text-[11px] text-fg-subtle">
+                  &quot;same&quot; = unchanged from the row above.
                 </p>
               </div>
+
               <label className="flex items-start gap-2 text-xs text-fg-muted">
                 <input
                   type="checkbox"
@@ -688,41 +867,7 @@ export default function TripCategoriesPage() {
                 Correct the base rates instead (a typo fix: changes every trip,
                 past ones included)
               </label>
-
-              {(editingProfile.rate_changes || []).length > 0 && (
-                <div>
-                  <p className="text-sm font-medium text-fg">Rate changes</p>
-                  <ul className="mt-1 divide-y divide-border text-xs">
-                    {editingProfile.rate_changes.map((change) => (
-                      <li
-                        key={change.id}
-                        className="flex items-center justify-between gap-2 py-1.5"
-                      >
-                        <span className="text-fg-muted">
-                          <span className="font-semibold text-fg">
-                            {shortDate(change.effective_from)}
-                          </span>
-                          {change.effective_from > todayPH() ? " (upcoming)" : ""}:{" "}
-                          {RATE_KEYS.filter(([key]) => change[key] !== null)
-                            .map(([key, label]) => `${label} ${formatCurrency(change[key])}`)
-                            .join(" · ")}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteChange(change)}
-                          className="shrink-0 rounded-md px-2 py-1 text-danger hover:bg-danger/10"
-                        >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-1 text-[11px] text-fg-subtle">
-                    Base rates: {RATE_KEYS.map(([key, label]) => `${label} ${formatCurrency(editingProfile[key])}`).join(" · ")}
-                  </p>
-                </div>
-              )}
-            </div>
+            </>
           )}
         </div>
       </MaintenanceModal>
