@@ -14,6 +14,11 @@ import { getVehicleUnits } from "../../api/adminTripManagement/tripMaintenance";
 import UnitChoice from "./UnitChoice";
 import { unitCheck } from "../../utils/unitReasons";
 import ShipmentStorePairing from "./ShipmentStorePairing";
+import RouteRidePicker from "./RouteRidePicker";
+import {
+  assignRouteRide,
+  getRouteRideHosts,
+} from "../../api/adminTripManagement/routeRides";
 import {
   cleanShipmentStores,
   shipmentStoresComplete,
@@ -65,6 +70,44 @@ export default function StartTripForDriverCard({
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [destinationSearch, setDestinationSearch] = useState("");
   const [driverSearch, setDriverSearch] = useState("");
+  // Is Route Ride: the driver rides along on another driver's trip in
+  // progress (shipments / stores / truck come from that trip).
+  const [isRouteRide, setIsRouteRide] = useState(false);
+  const [hosts, setHosts] = useState([]);
+  const [loadingHosts, setLoadingHosts] = useState(false);
+  const [hostTripId, setHostTripId] = useState(null);
+
+  const loadHosts = () => {
+    setLoadingHosts(true);
+    return getRouteRideHosts()
+      .then(setHosts)
+      .catch((error) => toast.error(getErrorMessage(error)))
+      .finally(() => setLoadingHosts(false));
+  };
+
+  const handleRouteRide = async () => {
+    if (!driverId || !hostTripId) {
+      toast.error("Select the driver and the driver they will ride with.");
+      return;
+    }
+    try {
+      setSubmitting(true);
+      await assignRouteRide({ riderUserId: driverId, tripId: hostTripId });
+      const host = hosts.find((h) => h.trip_id === hostTripId);
+      toast.success(
+        `Route ride assigned -- riding with ${host?.driver_name || "the driver"} on ${
+          host?.trip_code || "their trip"
+        }.`,
+      );
+      resetForm();
+      if (!alwaysExpanded) setExpanded(false);
+      onStarted?.();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
   const [driverDropdownOpen, setDriverDropdownOpen] = useState(false);
 
   const [driverId, setDriverId] = useState("");
@@ -250,6 +293,8 @@ export default function StartTripForDriverCard({
     setShipmentNumbers([]);
     setShipmentNoInput("");
     setIsSpecial(false);
+    setIsRouteRide(false);
+    setHostTripId(null);
     setSelectedDestinationIds([]);
     setShipmentStores({});
     setSelectedHelperIds([]);
@@ -361,9 +406,26 @@ export default function StartTripForDriverCard({
             <p className="text-sm text-fg-muted">Loading options...</p>
           ) : (
             <>
+              <label className="flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">
+                <input
+                  type="checkbox"
+                  checked={isRouteRide}
+                  onChange={(e) => {
+                    setIsRouteRide(e.target.checked);
+                    setHostTripId(null);
+                    if (e.target.checked) loadHosts();
+                  }}
+                  className="h-4 w-4 accent-primary"
+                />
+                Is Route Ride
+                <span className="text-xs font-normal text-fg-subtle">
+                  (ride along with another driver&apos;s trip)
+                </span>
+              </label>
+
               <div className="relative">
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  Driver
+                  {isRouteRide ? "Driver (route rider)" : "Driver"}
                 </label>
                 <input
                   type="text"
@@ -412,6 +474,16 @@ export default function StartTripForDriverCard({
                 )}
               </div>
 
+              {isRouteRide ? (
+                <RouteRidePicker
+                  hosts={hosts}
+                  loading={loadingHosts}
+                  riderId={driverId}
+                  value={hostTripId}
+                  onChange={setHostTripId}
+                />
+              ) : (
+              <>
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Vehicle Unit
@@ -675,13 +747,24 @@ export default function StartTripForDriverCard({
               </div>
               )}
 
+              </>
+              )}
+
               {canEditPage && (
                 <button
-                onClick={handleSubmit}
-                disabled={submitting || !canSubmit}
+                onClick={isRouteRide ? handleRouteRide : handleSubmit}
+                disabled={
+                  submitting || (isRouteRide ? !driverId || !hostTripId : !canSubmit)
+                }
                 className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
-                {submitting ? "Dispatching..." : "Dispatch Trip"}
+                {submitting
+                  ? isRouteRide
+                    ? "Assigning..."
+                    : "Dispatching..."
+                  : isRouteRide
+                    ? "Assign Route Ride"
+                    : "Dispatch Trip"}
               </button>
               )}
             </>

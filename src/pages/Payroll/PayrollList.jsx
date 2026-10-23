@@ -634,7 +634,15 @@ const PayrollList = () => {
 
               let rate = 0;
 
-              if (employee.department?.toLowerCase().includes("driver")) {
+              // Route ride (rode along, or Route Ride Manual): paid like a
+              // driver trip of that category (Driver 1st / Next with their
+              // other trips that day) -- or the typed amount per ride.
+              if (trip.role === "route_rider" && trip.route_ride_amount != null) {
+                rate = Number(trip.route_ride_amount);
+              } else if (
+                trip.role === "route_rider" ||
+                employee.department?.toLowerCase().includes("driver")
+              ) {
                 rate = isFirstTrip
                   ? Number(trip.driver_first_trip_rate || 0)
                   : Number(trip.driver_next_trip_rate || 0);

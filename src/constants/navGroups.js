@@ -217,6 +217,15 @@ export function getNavGroups(role) {
           path: "/dashboard/admin/trip-manual-entries",
           roles: ["superadmin", "coordinator_admin"],
         },
+        {
+          // Route rides (assigned in Trip Assignment) + Route Ride Manual
+          // for rides done before route rides existed. Same access as
+          // Trip Assignment.
+          label: "Route Rides",
+          path: "/dashboard/admin/route-rides",
+          roles: ["superadmin", "coordinator_admin", "coordinator"],
+          moduleKey: "trip_management.trip_assignment",
+        },
       ],
     },
     {

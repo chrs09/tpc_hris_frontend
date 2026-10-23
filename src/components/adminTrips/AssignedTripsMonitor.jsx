@@ -121,6 +121,9 @@ const AssignedTripViewModal = ({
       <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
         <div className="grid grid-cols-2 gap-4">
           <Detail label="Driver">{trip.driver_name}</Detail>
+          {trip.route_rider_names?.length > 0 && (
+            <Detail label="Route Rider">{trip.route_rider_names.join(", ")}</Detail>
+          )}
           <Detail label="Vehicle">{trip.vehicle_unit}</Detail>
           <Detail label="Trip Category">{trip.trip_profile}</Detail>
           <Detail label="Origin">{trip.origin_store}</Detail>
