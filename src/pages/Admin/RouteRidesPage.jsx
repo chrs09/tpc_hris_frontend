@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Plus, Trash2, X } from "lucide-react";
+import { Pencil, Plus, Trash2, X } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
@@ -11,6 +11,7 @@ import { getAssignableUsers } from "../../api/users";
 import { getRateProfiles } from "../../api/adminTripManagement/tripMaintenance";
 import {
   addManualRouteRide,
+  editRouteRide,
   getRouteRides,
   removeRouteRide,
 } from "../../api/adminTripManagement/routeRides";
@@ -93,7 +94,60 @@ export default function RouteRidesPage() {
 
   const driverLabel = (u) => (u ? u.employee_name || u.username : "");
 
+  // Edit: manual rides -- everything; assigned -- fixed amount + notes.
+  const openEdit = (ride) =>
+    setForm({
+      id: ride.id,
+      source: ride.source,
+      ride,
+      rider:
+        drivers.find((d) => d.id === ride.rider_user_id) || {
+          id: ride.rider_user_id,
+          username: ride.rider_name,
+          employee_name: ride.rider_name,
+        },
+      ride_date: ride.ride_date || todayPH(),
+      quantity: String(ride.quantity || 1),
+      category: categories.find((c) => c.id === ride.trip_rate_profile_id) || null,
+      amount: ride.amount != null ? String(ride.amount) : "",
+      notes: ride.notes || "",
+    });
+
+  const saveEdit = async () => {
+    const assigned = form.source !== "manual";
+    const quantity = Number(form.quantity);
+    if (!assigned) {
+      if (!form.rider) return toast.error("Select the driver.");
+      if (!form.ride_date) return toast.error("Pick the date.");
+      if (!Number.isInteger(quantity) || quantity < 1) return toast.error("Enter how many route rides.");
+      if (!form.category && form.amount === "") return toast.error("Pick the trip category or type the amount.");
+    }
+    try {
+      setSaving(true);
+      await editRouteRide(form.id, {
+        ...(assigned
+          ? {}
+          : {
+              rider_user_id: form.rider.id,
+              ride_date: form.ride_date,
+              quantity,
+              trip_rate_profile_id: form.category?.id || null,
+            }),
+        amount: form.amount === "" ? null : Number(form.amount),
+        notes: form.notes.trim() || null,
+      });
+      toast.success("Route ride updated.");
+      setForm(null);
+      await load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to save.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const save = async () => {
+    if (form.id) return saveEdit();
     const quantity = Number(form.quantity);
     if (!form.rider) return toast.error("Select the driver.");
     if (!form.ride_date) return toast.error("Pick the date.");
@@ -255,14 +309,26 @@ export default function RouteRidesPage() {
                   <td className="max-w-[200px] px-4 py-3 text-xs text-fg-muted">{r.notes || ""}</td>
                   {canEditPage && (
                     <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => remove(r)}
-                        className="rounded-lg p-1.5 text-danger hover:bg-danger/10"
-                        aria-label="Remove"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(r)}
+                          className="rounded-lg p-1.5 text-fg-muted hover:bg-surface-hover hover:text-fg"
+                          aria-label="Edit"
+                          title="Edit"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(r)}
+                          className="rounded-lg p-1.5 text-danger hover:bg-danger/10"
+                          aria-label="Remove"
+                          title="Remove"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -276,16 +342,33 @@ export default function RouteRidesPage() {
         <div className="fixed inset-0 z-90 flex items-center justify-center bg-black/60 p-4" onClick={() => setForm(null)}>
           <div className="w-full max-w-md rounded-2xl border border-border bg-surface shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
-              <h3 className="text-base font-semibold text-fg">Add Manual Route Ride</h3>
+              <h3 className="text-base font-semibold text-fg">
+                {form.id ? "Edit Route Ride" : "Add Manual Route Ride"}
+              </h3>
               <button type="button" onClick={() => setForm(null)} className="rounded-lg p-1.5 text-fg-muted hover:bg-surface-hover" aria-label="Close">
                 <X size={18} />
               </button>
             </div>
             <div className="space-y-3 px-5 py-4">
+              {form.id && form.source !== "manual" ? (
+                <div className="rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
+                  <p className="font-semibold text-fg">
+                    {form.ride.rider_name} · rode with {form.ride.trip?.driver_name} ·{" "}
+                    {form.ride.trip?.trip_code}
+                  </p>
+                  <p className="mt-0.5">
+                    Assigned in Trip Assignment -- the driver, date and trip come from that trip
+                    (remove and assign again to change them). You can set a fixed amount or notes.
+                  </p>
+                </div>
+              ) : (
               <p className="rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
                 For route rides done before route rides were in the system. They&apos;re added to
                 payroll on that date (the driver needs attendance that day).
               </p>
+              )}
+              {!(form.id && form.source !== "manual") && (
+              <>
               <label className="block text-xs font-medium text-fg-muted">
                 Driver (route rider) *
                 <div className="mt-1">
@@ -328,8 +411,12 @@ export default function RouteRidesPage() {
                   />
                 </div>
               </label>
+              </>
+              )}
               <label className="block text-xs font-medium text-fg-muted">
-                Or a fixed amount per route ride (₱)
+                {form.id && form.source !== "manual"
+                  ? "Fixed amount for this ride (₱)"
+                  : "Or a fixed amount per route ride (₱)"}
                 <input type="number" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="Leave blank to use the category rate" className={`${input} mt-1`} />
               </label>
               <label className="block text-xs font-medium text-fg-muted">
@@ -342,7 +429,7 @@ export default function RouteRidesPage() {
                 Cancel
               </button>
               <button type="button" disabled={saving} onClick={save} className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50">
-                {saving ? "Saving..." : "Add Route Ride"}
+                {saving ? "Saving..." : form.id ? "Save Changes" : "Add Route Ride"}
               </button>
             </div>
           </div>

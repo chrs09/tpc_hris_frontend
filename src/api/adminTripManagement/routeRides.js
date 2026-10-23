@@ -26,3 +26,8 @@ export const getRouteRides = async (params = {}) =>
 
 export const removeRouteRide = async (id) =>
   (await api.delete(`/admin/route-rides/${id}`)).data;
+
+// Edit: manual -> driver / date / how many / category / amount / notes;
+// assigned -> amount / notes only.
+export const editRouteRide = async (id, payload) =>
+  (await api.patch(`/admin/route-rides/${id}`, payload)).data;

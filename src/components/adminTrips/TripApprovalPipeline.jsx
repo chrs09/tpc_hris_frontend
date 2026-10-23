@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import TripUnitTags from "./TripUnitTags";
 import { getApprovalPipeline } from "../../api/adminTripManagement/trips";
+import { getRouteRides } from "../../api/adminTripManagement/routeRides";
+import { matchesSearch } from "../../utils/search";
 import SearchSelect from "../SearchSelect";
 import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
@@ -16,7 +18,36 @@ const STATUSES = [
   { value: "COMPLETED", label: "Approved", classes: "bg-success/15 text-success" },
   // Not in "All statuses" -- pick it to see cancelled trips.
   { value: "CANCELLED", label: "Cancelled", classes: "bg-danger/15 text-danger" },
+  // Route Ride Manual entries (no trip, so no approval chain) -- their own
+  // filter; assigned route rides show on the trip they rode on.
+  { value: "ROUTE_RIDE_MANUAL", label: "Route Ride (Manual)", classes: "bg-primary/15 text-primary" },
 ];
+
+const MANUAL_ROUTE_RIDES = "ROUTE_RIDE_MANUAL";
+
+// A manual route ride shaped like a pipeline row.
+const manualRideRow = (ride) => ({
+  id: `rr-${ride.id}`,
+  trip_code: "Route Ride",
+  is_route_ride_manual: true,
+  driver_name: ride.rider_name,
+  ticket_no: `${ride.quantity} ride${ride.quantity !== 1 ? "s" : ""}`,
+  stores: [],
+  trip_category: ride.trip_category,
+  start_time: ride.ride_date,
+  status: MANUAL_ROUTE_RIDES,
+  status_label: "Route Ride (Manual)",
+  status_since: ride.created_at ? ride.created_at.slice(0, 10) : null,
+  notes: ride.notes,
+});
+
+// "Route Rider: name" on a trip someone rode along on.
+const RouteRiderTag = ({ trip }) =>
+  trip.route_rider_names?.length ? (
+    <span className="mt-1 inline-flex whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+      Route Rider: {trip.route_rider_names.join(", ")}
+    </span>
+  ) : null;
 
 // Who cancelled it, when and why.
 const CancelNote = ({ trip }) =>
@@ -40,8 +71,12 @@ const StatusBadge = ({ trip }) => {
   );
 };
 
-const SourceBadge = ({ manual }) =>
-  manual ? (
+const SourceBadge = ({ manual, routeRide = false }) =>
+  routeRide ? (
+    <span className="inline-flex whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
+      Route Ride (Manual)
+    </span>
+  ) : manual ? (
     <span className="inline-flex whitespace-nowrap rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
       Manual Entry
     </span>
@@ -73,6 +108,20 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
 
   const load = useCallback(async () => {
     try {
+      if (status === MANUAL_ROUTE_RIDES) {
+        // Manual route rides: listed and paged here (no approval chain).
+        const rides = (await getRouteRides()).filter(
+          (ride) =>
+            ride.source === "manual" &&
+            matchesSearch(debouncedSearch, ride.rider_name, ride.trip_category, ride.notes),
+        );
+        setData((prev) => ({
+          items: rides.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(manualRideRow),
+          total: rides.length,
+          counts: prev.counts,
+        }));
+        return;
+      }
       const res = await getApprovalPipeline({
         status,
         search: debouncedSearch,
@@ -153,14 +202,18 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                     <td className="px-4 py-3">
                       <div className="font-medium uppercase">{trip.trip_code || `#${trip.id}`}</div>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        <SourceBadge manual={trip.is_manual_entry} />
+                        <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} />
                         <TripUnitTags trip={trip} />
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>{trip.driver_name || "-"}</div>
-                      {trip.driver_name !== trip.username && (
+                      {trip.username && trip.driver_name !== trip.username && (
                         <div className="text-xs text-fg-subtle">{trip.username}</div>
+                      )}
+                      <RouteRiderTag trip={trip} />
+                      {trip.is_route_ride_manual && trip.trip_category && (
+                        <div className="text-xs text-fg-subtle">{trip.trip_category}</div>
                       )}
                     </td>
                     <td className="px-4 py-3 uppercase">{trip.ticket_no || "-"}</td>
@@ -218,6 +271,11 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                       {trip.ticket_no || "-"}
                       {trip.stores?.length ? ` · ${trip.stores.join(" → ")}` : ""}
                     </p>
+                    {trip.route_rider_names?.length > 0 && (
+                      <p className="truncate text-[11px] font-semibold text-primary">
+                        Route Rider: {trip.route_rider_names.join(", ")}
+                      </p>
+                    )}
                     {(trip.returned || trip.is_manual_entry || trip.cancel_reason) && (
                       <p className="truncate text-[11px]">
                         {trip.returned && <span className="font-semibold text-danger">Sent back by Office </span>}
@@ -249,7 +307,8 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   <StatusBadge trip={trip} />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <SourceBadge manual={trip.is_manual_entry} />
+                  <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} />
+                  <RouteRiderTag trip={trip} />
                   <TripUnitTags trip={trip} />
                   {trip.returned && (
                     <span className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger">
