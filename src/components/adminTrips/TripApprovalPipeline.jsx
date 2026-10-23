@@ -95,6 +95,9 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ items: [], total: 0, counts: {} });
+  // All statuses: manual route rides matching the search, shown on top of
+  // page 1 (they have no approval chain, so they aren't server-paged).
+  const [manualRides, setManualRides] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Search a moment after typing stops, starting again from page 1.
@@ -109,6 +112,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
   const load = useCallback(async () => {
     try {
       if (status === MANUAL_ROUTE_RIDES) {
+        setManualRides([]);
         // Manual route rides: listed and paged here (no approval chain).
         const rides = (await getRouteRides()).filter(
           (ride) =>
@@ -122,13 +126,25 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
         }));
         return;
       }
-      const res = await getApprovalPipeline({
-        status,
-        search: debouncedSearch,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      });
+      const [res, rides] = await Promise.all([
+        getApprovalPipeline({
+          status,
+          search: debouncedSearch,
+          limit: PAGE_SIZE,
+          offset: (page - 1) * PAGE_SIZE,
+        }),
+        status ? Promise.resolve([]) : getRouteRides().catch(() => []),
+      ]);
       setData(res.data);
+      setManualRides(
+        rides
+          .filter(
+            (ride) =>
+              ride.source === "manual" &&
+              matchesSearch(debouncedSearch, ride.rider_name, ride.trip_category, ride.notes),
+          )
+          .map(manualRideRow),
+      );
     } catch (err) {
       console.error(err);
     } finally {
@@ -150,6 +166,8 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
     ).map((s) => ({ value: s.value, label: s.label })),
   ];
   const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+  const rows =
+    !status && page === 1 ? [...manualRides, ...data.items] : data.items;
 
   return (
     <div>
@@ -177,7 +195,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
 
       {loading ? (
         <p className="py-8 text-center text-sm text-fg-subtle">Loading...</p>
-      ) : data.items.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-subtle">
           {debouncedSearch || status ? "No trips match your filters." : "No trips in approval yet."}
         </div>
@@ -197,7 +215,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                 </tr>
               </thead>
               <tbody>
-                {data.items.map((trip) => (
+                {rows.map((trip) => (
                   <tr key={trip.id} className="border-t border-border hover:bg-surface-hover">
                     <td className="px-4 py-3">
                       <div className="font-medium uppercase">{trip.trip_code || `#${trip.id}`}</div>
@@ -257,7 +275,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           {/* MOBILE LIST -- one short row per trip */}
           {phoneView === "list" && (
             <div className="overflow-hidden rounded-xl border border-border bg-surface md:hidden">
-              {data.items.map((trip, index) => (
+              {rows.map((trip, index) => (
                 <div
                   key={trip.id}
                   className={`flex items-center gap-2 px-3 py-2.5 ${index > 0 ? "border-t border-border" : ""}`}
@@ -297,7 +315,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
 
           {/* MOBILE CARDS */}
           <div className={`flex flex-col gap-3 md:hidden ${phoneView === "list" ? "hidden" : ""}`}>
-            {data.items.map((trip) => (
+            {rows.map((trip) => (
               <div key={trip.id} className="rounded-xl border border-border bg-surface p-4 text-sm text-fg">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -330,7 +348,13 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           </div>
 
           <p className="mt-3 text-xs text-fg-subtle">
-            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, data.total)} of {data.total}
+            {data.total > 0
+              ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, data.total)} of ${data.total} ${
+                  status === MANUAL_ROUTE_RIDES ? "route ride entries" : "trips"
+                }`
+              : "No trips"}
+            {!status && manualRides.length > 0 &&
+              ` · ${manualRides.length} manual route ride${manualRides.length !== 1 ? "s" : ""} (on page 1)`}
           </p>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </>
