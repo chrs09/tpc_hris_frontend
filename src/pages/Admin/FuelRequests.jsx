@@ -284,7 +284,9 @@ export default function FuelRequests({ embedded = false }) {
   );
 }
 
-function FuelRequestModal({ requestId, onClose, onChanged }) {
+// Also opened from Approvals -> Fuel Request -> For My Approval: the head
+// approves here, then issues the fuel code in the same window.
+export function FuelRequestModal({ requestId, onClose, onChanged }) {
   const canEditPage = usePageCanEdit();
   const [req, setReq] = useState(null);
   const [fuelCode, setFuelCode] = useState("");

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
-  approveFuelRequest,
   getFuelForMyApproval,
   rejectFuelRequest,
 } from "../../api/fuelRequests";
@@ -11,6 +10,7 @@ import { promptDialog } from "../../components/ui/dialog/dialogService";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import { matchesSearch } from "../../utils/search";
+import { FuelRequestModal } from "./FuelRequests";
 
 // Approvals -> Fuel Request: Org Chart heads with "Fuel Request" ticked
 // approve a driver's request before the coordinator issues the fuel code
@@ -22,6 +22,8 @@ export default function FuelRequestApprovals() {
   const [actioningId, setActioningId] = useState(null);
   const [search, setSearch] = useState("");
   const [zoomUrl, setZoomUrl] = useState(null);
+  // Approve opens the request: approve, then issue the fuel code there.
+  const [openId, setOpenId] = useState(null);
 
   const load = useCallback(() => {
     return getFuelForMyApproval()
@@ -35,24 +37,6 @@ export default function FuelRequestApprovals() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const handleApprove = async (id) => {
-    try {
-      setActioningId(id);
-      const result = await approveFuelRequest(id);
-      const next = result?.approval_steps?.find((s) => s.state === "current");
-      toast.success(
-        result?.awaiting_approval && next
-          ? `Approved -- passed to ${next.name} for the next approval.`
-          : "Approved -- the coordinator can now issue the fuel code.",
-      );
-      load();
-    } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to approve.");
-    } finally {
-      setActioningId(null);
-    }
-  };
 
   const handleReject = async (id) => {
     const reason = await promptDialog("Reason for rejecting this fuel request:");
@@ -162,11 +146,11 @@ export default function FuelRequestApprovals() {
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => handleApprove(req.id)}
+                          onClick={() => setOpenId(req.id)}
                           disabled={actioningId === req.id || req.can_act === false}
                           className="rounded-lg bg-success px-3 py-1 text-xs font-semibold text-success-foreground disabled:opacity-50"
                         >
-                          Approve
+                          Approve &amp; Issue
                         </button>
                         <button
                           type="button"
@@ -185,6 +169,14 @@ export default function FuelRequestApprovals() {
           </tbody>
         </table>
       </div>
+
+      {openId && (
+        <FuelRequestModal
+          requestId={openId}
+          onClose={() => setOpenId(null)}
+          onChanged={load}
+        />
+      )}
 
       {zoomUrl && (
         <div
