@@ -9,8 +9,10 @@ import { promptDialog } from "../../components/ui/dialog/dialogService";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import {
+  approveFuelRequest,
   completeFuelRequest,
   declineFuelRequest,
+  rejectFuelRequest,
   getFuelRequest,
   getFuelRequests,
   issueFuelCode,
@@ -29,6 +31,8 @@ const inputStyles =
 const FUEL_STATUS = {
   // Pending but still with the Org Chart heads (no fuel code yet).
   awaiting: ["Awaiting Approval", "bg-surface-active text-fg-muted"],
+  // Waiting on the person looking at it (their Org Chart approval).
+  mine: ["Your Approval", "bg-warning/15 text-warning"],
   pending: ["Waiting for Fuel Code", "bg-warning/15 text-warning"],
   issued: ["Fuel Code Issued", "bg-primary/15 text-primary"],
   returned: ["Receipt Sent Back", "bg-danger/15 text-danger"],
@@ -64,7 +68,17 @@ const FILTERS = [
   { key: "", label: "All" },
 ];
 
+// The Org Chart approval is with the viewer now (or they're superadmin,
+// who can approve at any step) -- they can approve right here, then issue
+// the code in the same window.
+const isMyTurn = (req) =>
+  req.status === "pending" &&
+  req.awaiting_approval &&
+  (localStorage.getItem("role") === "superadmin" ||
+    Number(req.current_approver_id) === Number(localStorage.getItem("user_id")));
+
 const statusKey = (req) =>
+  isMyTurn(req) ? "mine" :
   req.status === "pending" && req.awaiting_approval ? "awaiting" : req.status;
 
 const StatusPill = ({ status }) => {
@@ -236,12 +250,14 @@ export default function FuelRequests({ embedded = false }) {
                       type="button"
                       onClick={() => setOpenId(req.id)}
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                        ["pending", "receipt_submitted"].includes(statusKey(req))
+                        ["pending", "receipt_submitted", "mine"].includes(statusKey(req))
                           ? "bg-primary text-primary-foreground hover:bg-primary-hover"
                           : "border border-border text-fg hover:bg-surface-hover"
                       }`}
                     >
-                      {statusKey(req) === "pending"
+                      {statusKey(req) === "mine"
+                        ? "Approve"
+                        : statusKey(req) === "pending"
                         ? "Issue Code"
                         : req.status === "receipt_submitted"
                           ? "Check Receipt"
@@ -333,6 +349,25 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
     );
   };
 
+  // Org Chart approval from this window (the approver whose turn it is).
+  const handleApprove = () =>
+    run(
+      () => approveFuelRequest(req.id),
+      "Approved.",
+    );
+
+  const handleReject = async () => {
+    const reason = await promptDialog(
+      "Reject this fuel request? The driver will see your reason. Reason (required):",
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("A reason is required.");
+      return;
+    }
+    run(() => rejectFuelRequest(req.id, reason.trim()), "Fuel request rejected.");
+  };
+
   const handleDecline = async () => {
     const reason = await promptDialog(
       "Decline this fuel request? The driver will see your reason. Reason (required):",
@@ -415,14 +450,36 @@ function FuelRequestModal({ requestId, onClose, onChanged }) {
 
             {req.status === "pending" && req.awaiting_approval ? (
               <section className="space-y-2 rounded-xl border border-border p-4">
-                <h3 className="text-sm font-semibold">Waiting for Org Chart approval</h3>
+                <h3 className="text-sm font-semibold">
+                  {isMyTurn(req) ? "Waiting for your approval" : "Waiting for Org Chart approval"}
+                </h3>
                 <p className="text-sm text-fg-muted">
-                  The heads above this driver approve it first (Approvals &rarr;
-                  Fuel Request). You can issue the fuel code once the last one
-                  approves.
+                  {isMyTurn(req)
+                    ? "Approve it to pass it on -- if you're the last approver, the fuel code form opens right here."
+                    : "The heads above this driver approve it first (Approvals → Fuel Request). You can issue the fuel code once the last one approves."}
                 </p>
                 <ApprovalProgress steps={req.approval_steps} />
                 <ApprovedBy log={req.approval_log} />
+                {isMyTurn(req) && canEditPage && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={handleReject}
+                      className="rounded-xl border border-danger/30 px-4 py-2.5 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={handleApprove}
+                      className="flex-1 rounded-xl bg-success py-2.5 text-sm font-semibold text-success-foreground disabled:opacity-50"
+                    >
+                      {busy ? "Saving..." : "Approve"}
+                    </button>
+                  </div>
+                )}
               </section>
             ) : req.status === "pending" ? (
               <section className="space-y-3 rounded-xl border border-border p-4">

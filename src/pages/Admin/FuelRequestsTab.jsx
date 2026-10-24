@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getFuelForMyApproval } from "../../api/fuelRequests";
 import useModuleAccess from "../../hooks/useModuleAccess";
 import FuelRequestApprovals from "./FuelRequestApprovals";
 import FuelRequests from "./FuelRequests";
@@ -19,8 +20,17 @@ export default function FuelRequestsTab() {
   const canManage = isVisible(MANAGE_ITEM);
   const canApprove = isSuperAdmin || approvesAny("fuel_request");
   const [picked, setPicked] = useState(null);
+  // How many are waiting on this person's approval -- opens on "For My
+  // Approval" when there are any, so they aren't missed.
+  const [mineCount, setMineCount] = useState(0);
+  useEffect(() => {
+    if (!canApprove) return;
+    getFuelForMyApproval()
+      .then((list) => setMineCount((list || []).filter((r) => r.can_act !== false).length))
+      .catch(() => setMineCount(0));
+  }, [canApprove]);
 
-  const view = picked || (canManage ? "all" : "approval");
+  const view = picked || (canManage && !mineCount ? "all" : "approval");
   const showSwitch = canManage && canApprove;
 
   return (
@@ -42,6 +52,11 @@ export default function FuelRequestsTab() {
               }`}
             >
               {option.label}
+              {option.key === "approval" && mineCount > 0 && (
+                <span className="ml-1.5 rounded-full bg-warning/20 px-1.5 text-[11px] font-bold text-warning">
+                  {mineCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
