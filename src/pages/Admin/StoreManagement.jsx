@@ -75,9 +75,11 @@ export default function StoreManagement() {
   const [form, setForm] = useState(initialFormState);
   // New stores' map opens on the default hub (Hubs page).
   const [defaultHubCenter, setDefaultHubCenter] = useState(null);
+  const [configuredHubId, setConfiguredHubId] = useState(null);
   useEffect(() => {
     getDefaultHub()
       .then((hub) => {
+        if (hub?.id) setConfiguredHubId(hub.id);
         if (hub && hub.latitude != null && hub.longitude != null) {
           setDefaultHubCenter([Number(hub.latitude), Number(hub.longitude)]);
         }
@@ -109,12 +111,15 @@ export default function StoreManagement() {
     }
   };
 
-  // Hubs (Plant, Yard...) for "Directions from"; the Plant is the default.
+  // Hubs (Plant, Yard...) for "Directions from"; starts from the default
+  // hub set on the Hubs page (else a Plant, else the first hub).
   const hubs = stores.filter((store) => store.is_hub);
   // Areas already used, suggested when typing one.
   const storeAreas = [...new Set(stores.map((store) => store.area).filter(Boolean))].sort();
   const defaultHubId =
-    (hubs.find((hub) => /plant/i.test(hub.name)) || hubs[0])?.id ?? null;
+    (hubs.find((hub) => hub.id === configuredHubId) ||
+      hubs.find((hub) => /plant/i.test(hub.name)) ||
+      hubs[0])?.id ?? null;
 
   const loadStores = async () => {
     try {

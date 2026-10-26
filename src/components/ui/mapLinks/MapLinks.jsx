@@ -36,11 +36,13 @@ export default function MapLinks({
   defaultOriginId = null,
 }) {
   const usableOrigins = origins.filter((o) => hasCoords(o.latitude, o.longitude));
-  const [originId, setOriginId] = useState(
-    defaultOriginId && usableOrigins.some((o) => o.id === defaultOriginId)
+  // null = follow defaultOriginId (it can arrive after the first render).
+  const [pickedId, setOriginId] = useState(null);
+  const originId =
+    pickedId ??
+    (defaultOriginId && usableOrigins.some((o) => o.id === defaultOriginId)
       ? defaultOriginId
-      : MY_LOCATION,
-  );
+      : MY_LOCATION);
 
   if (!hasCoords(latitude, longitude)) return null;
 
