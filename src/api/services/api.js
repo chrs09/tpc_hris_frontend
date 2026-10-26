@@ -89,7 +89,12 @@ api.interceptors.response.use(
   (error) => {
     settleRequest();
 
-    if (error.response?.status === 401) {
+    // A 401 from login / password reset is a wrong password or a bad link
+    // (shown on that page), not an expired session.
+    const isAuthAttempt = /\/auth\/(login|forgot-password|reset-password)/.test(
+      error.config?.url || "",
+    );
+    if (error.response?.status === 401 && !isAuthAttempt) {
       window.dispatchEvent(new Event("session-expired"));
     }
 
