@@ -30,6 +30,7 @@ import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
 import AttendanceLocationsPage from "../Admin/AttendanceLocationsPage";
 import PayrollList from "../Payroll/PayrollList";
 import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
+import IncentivePoliciesPage from "../Payroll/IncentivePoliciesPage";
 import ContributionTablesPage from "../Payroll/ContributionTablesPage";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
@@ -122,6 +123,7 @@ const Dashboard = () => {
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
+          <Route path="incentive-policies" element={<IncentivePoliciesPage />} />
           <Route path="contribution-tables" element={<ContributionTablesPage />} />
           <Route path="users" element={<UsersPage />} />
           {/* Retired -- the Org Chart replaced them. */}

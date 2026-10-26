@@ -94,6 +94,13 @@ export function getNavGroups(role) {
           roles: ["superadmin", "payroll_admin"],
           moduleKey: "payroll.payroll",
         },
+        {
+          // Incentive programs (sample UI -- no backend yet).
+          label: "Incentive Policies",
+          path: "/dashboard/incentive-policies",
+          roles: ["superadmin", "payroll_admin"],
+          moduleKey: "payroll.payroll",
+        },
       ],
     },
     {
