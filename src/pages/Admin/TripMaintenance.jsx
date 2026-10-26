@@ -14,7 +14,10 @@ import {
   LayoutGrid,
   List,
   Tag,
+  Check,
+  X,
 } from "lucide-react";
+import { getPageTitles, savePageTitles } from "../../api/pageTitles";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
 import UnitDriverModal from "../../components/tripMaintenance/UnitDriverModal";
@@ -257,8 +260,113 @@ const DocumentFormSection = ({
   );
 };
 
+// The card titles the superadmin can rename (saved for everyone).
+const DEFAULT_CARD_TITLES = {
+  units: "Vehicle List",
+  maintenance: "Vehicle Maintenance",
+  truck_types: "Vehicle Types",
+};
+
+// A summary card: click to open its tab; the superadmin gets a pencil to
+// rename the title.
+function SummaryCard({ active, onClick, icon, title, subtitle, canRename, onRename }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+  const [saving, setSaving] = useState(false);
+
+  const cardClass = `rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md ${
+    active
+      ? "border-primary bg-primary text-primary-foreground"
+      : "border-border bg-surface text-fg"
+  }`;
+
+  const save = async () => {
+    try {
+      setSaving(true);
+      await onRename(draft.trim());
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div className={cardClass}>
+        <div className="flex items-center gap-2">
+          {icon}
+          <input
+            autoFocus
+            value={draft}
+            maxLength={40}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") save();
+              if (e.key === "Escape") setEditing(false);
+            }}
+            placeholder="Blank = default title"
+            className="min-w-0 flex-1 rounded-lg border border-border bg-background px-2 py-1 text-sm text-fg"
+          />
+          <button type="button" onClick={save} disabled={saving} title="Save" className="shrink-0 hover:opacity-70">
+            <Check size={16} />
+          </button>
+          <button type="button" onClick={() => setEditing(false)} title="Cancel" className="shrink-0 hover:opacity-70">
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <button onClick={onClick} className={`${cardClass} w-full h-full`}>
+        <div className="flex items-center gap-2 sm:gap-3">
+          {icon}
+          <div className="min-w-0">
+            <h2 className="font-semibold text-sm sm:text-base pr-5">{title}</h2>
+            <p className="text-xs sm:text-sm opacity-70">{subtitle}</p>
+          </div>
+        </div>
+      </button>
+      {canRename && (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft(title);
+            setEditing(true);
+          }}
+          title="Rename"
+          className={`absolute right-2 top-2 rounded-md p-1 opacity-60 hover:opacity-100 ${
+            active ? "text-primary-foreground" : "text-fg-muted"
+          }`}
+        >
+          <Pencil size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function TripMaintenance() {
   const canEditPage = usePageCanEdit();
+  // Vehicle types are added / edited / deleted by the superadmin only.
+  const canEditVehicleTypes = localStorage.getItem("role") === "superadmin";
+  const [cardTitles, setCardTitles] = useState({});
+  useEffect(() => {
+    getPageTitles("fleet_management").then(setCardTitles).catch(() => {});
+  }, []);
+  const cardTitle = (key) => cardTitles[key] || DEFAULT_CARD_TITLES[key];
+  const renameCard = async (key, value) => {
+    try {
+      const saved = await savePageTitles("fleet_management", { [key]: value });
+      setCardTitles(saved);
+      toast.success(value ? "Title updated." : "Title reset to default.");
+    } catch (error) {
+      toast.error(error?.response?.data?.detail || "Failed to update the title.");
+      throw error;
+    }
+  };
   // The tab lives in the URL (?tab=) so the Fleet Management tab bar and
   // the sidebar links switch it -- not just the summary cards below.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -457,35 +565,35 @@ export default function TripMaintenance() {
 
   const handleCreateTruckType = async () => {
     if (!truckTypeForm.name.trim()) {
-      toast.error("Truck type name is required.");
+      toast.error("Vehicle type name is required.");
       return;
     }
     try {
       await createTruckType(truckTypeForm);
-      toast.success("Truck type added");
+      toast.success("Vehicle type added");
       await loadTruckTypes();
       setTruckTypeForm({ name: "", size: "" });
     } catch (error) {
       toast.error(
-        error?.response?.data?.detail || "Failed to add truck type.",
+        error?.response?.data?.detail || "Failed to add vehicle type.",
       );
     }
   };
 
   const handleUpdateTruckType = async () => {
     if (!truckTypeForm.name.trim()) {
-      toast.error("Truck type name is required.");
+      toast.error("Vehicle type name is required.");
       return;
     }
     try {
       await updateTruckType(editingTruckType.id, truckTypeForm);
-      toast.success("Truck type updated");
+      toast.success("Vehicle type updated");
       await loadTruckTypes();
       setEditingTruckType(null);
       setTruckTypeForm({ name: "", size: "" });
     } catch (error) {
       toast.error(
-        error?.response?.data?.detail || "Failed to update truck type.",
+        error?.response?.data?.detail || "Failed to update vehicle type.",
       );
     }
   };
@@ -504,15 +612,15 @@ export default function TripMaintenance() {
   };
 
   const handleDeleteTruckType = async (truckType) => {
-    if (!(await confirmDialog(`Delete truck type "${truckType.name}"?`))) return;
+    if (!(await confirmDialog(`Delete vehicle type "${truckType.name}"?`))) return;
 
     try {
       await deleteTruckType(truckType.id);
-      toast.success("Truck type deleted");
+      toast.success("Vehicle type deleted");
       await loadTruckTypes();
     } catch (error) {
       toast.error(
-        error?.response?.data?.detail || "Failed to delete truck type.",
+        error?.response?.data?.detail || "Failed to delete vehicle type.",
       );
     }
   };
@@ -626,74 +734,33 @@ export default function TripMaintenance() {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <button
+        <SummaryCard
+          active={activeTab === "units"}
           onClick={() => setActiveTab("units")}
-          className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
-          ${
-            activeTab === "units"
-              ? "border-primary bg-primary text-primary-foreground"
-              : "border-border bg-surface text-fg"
-          }`}
-        >
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Truck size={22} className="shrink-0" />
-            <div>
-              <h2 className="font-semibold text-sm sm:text-base">
-                Vehicle List
-              </h2>
-
-              <p className="text-xs sm:text-sm opacity-70">
-                {vehicleUnits.length} Active Units
-              </p>
-            </div>
-          </div>
-        </button>
-
-        <button
+          icon={<Truck size={22} className="shrink-0" />}
+          title={cardTitle("units")}
+          subtitle={`${vehicleUnits.length} Active Units`}
+          canRename={canEditVehicleTypes}
+          onRename={(value) => renameCard("units", value)}
+        />
+        <SummaryCard
+          active={activeTab === "maintenance"}
           onClick={() => setActiveTab("maintenance")}
-          className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
-            ${
-              activeTab === "maintenance"
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-surface text-fg"
-            }`}
-        >
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Wrench size={22} className="shrink-0" />
-            <div>
-              <h2 className="font-semibold text-sm sm:text-base">
-                Vehicle Maintenance
-              </h2>
-
-              <p className="text-xs sm:text-sm opacity-70">
-                {maintenanceRecords.length} Records
-              </p>
-            </div>
-          </div>
-        </button>
-
-        <button
+          icon={<Wrench size={22} className="shrink-0" />}
+          title={cardTitle("maintenance")}
+          subtitle={`${maintenanceRecords.length} Records`}
+          canRename={canEditVehicleTypes}
+          onRename={(value) => renameCard("maintenance", value)}
+        />
+        <SummaryCard
+          active={activeTab === "truck-types"}
           onClick={() => setActiveTab("truck-types")}
-          className={`rounded-xl p-2.5 sm:p-4 text-left border transition-all duration-200 hover:shadow-md
-            ${
-              activeTab === "truck-types"
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-surface text-fg"
-            }`}
-        >
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Tag size={22} className="shrink-0" />
-            <div>
-              <h2 className="font-semibold text-sm sm:text-base">
-                Truck Types
-              </h2>
-
-              <p className="text-xs sm:text-sm opacity-70">
-                {truckTypes.length} Types
-              </p>
-            </div>
-          </div>
-        </button>
+          icon={<Tag size={22} className="shrink-0" />}
+          title={cardTitle("truck_types")}
+          subtitle={`${truckTypes.length} Types`}
+          canRename={canEditVehicleTypes}
+          onRename={(value) => renameCard("truck_types", value)}
+        />
       </div>
 
       {/* VEHICLE LIST */}
@@ -768,7 +835,7 @@ export default function TripMaintenance() {
                     <th className="px-4 py-3 text-left font-medium">Unit Code</th>
                     <th className="px-4 py-3 text-left font-medium">Plate</th>
                     <th className="px-4 py-3 text-left font-medium">Driver</th>
-                    <th className="px-4 py-3 text-left font-medium">Truck Type</th>
+                    <th className="px-4 py-3 text-left font-medium">Vehicle Type</th>
                     <th className="px-4 py-3 text-left font-medium">Description</th>
                     <th className="px-4 py-3 text-left font-medium">CR</th>
                     <th className="px-4 py-3 text-left font-medium">OR</th>
@@ -1115,9 +1182,10 @@ export default function TripMaintenance() {
       {/* TRUCK TYPES */}
       {activeTab === "truck-types" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {canEditVehicleTypes ? (
           <div className="lg:col-span-1 bg-surface border border-border rounded-xl p-4 h-fit">
             <h3 className="font-semibold text-fg mb-3">
-              {editingTruckType ? "Edit Truck Type" : "Add Truck Type"}
+              {editingTruckType ? "Edit Vehicle Type" : "Add Vehicle Type"}
             </h3>
 
             <div className="space-y-3">
@@ -1156,7 +1224,7 @@ export default function TripMaintenance() {
               </div>
 
               <div className="flex gap-2 pt-1">
-                {canEditPage && (
+                {canEditVehicleTypes && (
                   <button
                   onClick={
                     editingTruckType
@@ -1181,12 +1249,17 @@ export default function TripMaintenance() {
               </div>
             </div>
           </div>
+          ) : (
+            <div className="lg:col-span-1 h-fit rounded-xl border border-border bg-surface p-4 text-sm text-fg-muted">
+              Vehicle types are managed by the superadmin.
+            </div>
+          )}
 
           <div className="lg:col-span-2 space-y-3">
           <SearchInput
             value={truckTypeSearch}
             onChange={setTruckTypeSearch}
-            placeholder="Search truck types..."
+            placeholder="Search vehicle types..."
           />
           <div className="bg-surface border border-border rounded-xl overflow-hidden">
             <table className="w-full text-sm text-fg">
@@ -1201,7 +1274,7 @@ export default function TripMaintenance() {
                 {filteredTruckTypes.length === 0 ? (
                   <tr>
                     <td colSpan="3" className="text-center py-6 text-fg-subtle">
-                      No truck types yet
+                      No vehicle types yet
                     </td>
                   </tr>
                 ) : (
@@ -1216,7 +1289,7 @@ export default function TripMaintenance() {
                       <td className="px-4 py-3">{truckType.size || "-"}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          {canEditPage && (
+                          {canEditVehicleTypes && (
                             <button
                             onClick={() => handleEditTruckType(truckType)}
                             className="text-primary hover:text-primary-hover"
@@ -1224,7 +1297,7 @@ export default function TripMaintenance() {
                             <Pencil size={16} />
                           </button>
                           )}
-                          {canEditPage && (
+                          {canEditVehicleTypes && (
                             <button
                             onClick={() => handleDeleteTruckType(truckType)}
                             className="text-danger hover:text-danger-hover"
@@ -1301,7 +1374,7 @@ export default function TripMaintenance() {
 
           <div>
             <label className="block text-sm font-medium mb-1 text-fg">
-              Truck Type
+              Vehicle Type
             </label>
             <SearchSelect
               value={
@@ -1324,7 +1397,7 @@ export default function TripMaintenance() {
                     }`
                   : ""
               }
-              placeholder="Select truck type (optional)"
+              placeholder="Select vehicle type (optional)"
             />
           </div>
 

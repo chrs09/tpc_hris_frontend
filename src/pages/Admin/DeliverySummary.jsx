@@ -220,10 +220,10 @@ export default function DeliverySummary() {
             <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-fg">
               <p className="font-semibold text-warning">
                 {data.no_truck_type.reduce((acc, v) => acc + v.trips, 0)} trip(s) used vehicles
-                with no truck type, so they&apos;re under &quot;No truck type&quot;.
+                with no vehicle type, so they&apos;re under &quot;No vehicle type&quot;.
               </p>
               <p className="mt-1 text-xs text-fg-muted">
-                Set the truck type on:{" "}
+                Set the vehicle type on:{" "}
                 {data.no_truck_type.map((v) => `${v.vehicle} (${v.trips})`).join(", ")} --{" "}
                 <Link
                   to="/dashboard/admin/trip-maintenance?tab=units"

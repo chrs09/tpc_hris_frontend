@@ -363,7 +363,7 @@ export default function DriverRatesPanel({ canEdit }) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Truck type</label>
+              <label className="mb-1 block text-sm font-medium">Vehicle type</label>
               <SearchSelect
                 value={pick(truckOptions, form.truck_type_id)}
                 options={truckOptions}
