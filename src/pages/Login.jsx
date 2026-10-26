@@ -14,6 +14,8 @@ export default function Login({ setIsAuthenticated }) {
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  // Popup for a failed login: { title, message } or null.
+  const [loginError, setLoginError] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
@@ -66,10 +68,22 @@ export default function Login({ setIsAuthenticated }) {
     } catch (error) {
       if (error.response?.status === 401) {
         setErrorMessage("Invalid username or password");
+        setLoginError({
+          title: "Incorrect Login",
+          message: "The username or password you entered is incorrect. Please try again.",
+        });
       } else if (error.response?.status === 403) {
         setErrorMessage("Your account is inactive.");
+        setLoginError({
+          title: "Account Inactive",
+          message: "Your account is inactive. Please contact HR or your administrator.",
+        });
       } else {
         setErrorMessage("Server error. Please try again.");
+        setLoginError({
+          title: "Server Error",
+          message: "We couldn't reach the server. Please try again in a moment.",
+        });
       }
     } finally {
       setLoading(false);
@@ -221,6 +235,18 @@ export default function Login({ setIsAuthenticated }) {
           </p>
         </CardContent>
       </Card>
+
+      {loginError && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-surface border border-border w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-fadeIn">
+            <h2 className="text-2xl font-bold text-fg mb-4">{loginError.title}</h2>
+            <p className="text-fg-muted mb-6">{loginError.message}</p>
+            <Button className="w-full" autoFocus onClick={() => setLoginError(null)}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
