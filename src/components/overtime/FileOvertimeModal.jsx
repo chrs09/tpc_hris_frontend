@@ -14,8 +14,8 @@ const inputStyles =
 
 // File an overtime request: request date (today), overtime date (any day
 // of the current payroll cutoff up to today -- Motorpool its week, Admin
-// its semi-monthly cutoff), overtime in/out and reason. Times are pre-filled from the
-// schedule and attendance when there's something to go on.
+// its semi-monthly cutoff), overtime in/out and reason. Start / end are left
+// blank for the employee to pick.
 export default function FileOvertimeModal({ onClose, onFiled }) {
   const [days, setDays] = useState([]);
   const [cutoff, setCutoff] = useState(null); // { start, label }
@@ -30,11 +30,11 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
   const span = overtimeSpan(otDate, timeIn, timeOut);
   const spanTooLong = !!span && span.minutes > 16 * 60;
 
-  const pickDate = (value, list = days) => {
+  const pickDate = (value) => {
     setOtDate(value);
-    const day = list.find((d) => d.date === value);
-    setTimeIn(day?.suggested_time_in || "");
-    setTimeOut(day?.suggested_time_out || "");
+    // Left blank -- the employee picks the actual overtime start / end.
+    setTimeIn("");
+    setTimeOut("");
   };
 
   useEffect(() => {
@@ -47,11 +47,10 @@ export default function FileOvertimeModal({ onClose, onFiled }) {
           label: data.cutoff_label,
         });
         const first = list.find((d) => d.is_today) || list[0];
-        if (first) pickDate(first.date, list);
+        if (first) pickDate(first.date);
       })
       .catch((error) => toast.error(getErrorMessage(error)));
     // Load once when opened.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSubmit = async (event) => {
