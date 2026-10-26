@@ -2075,7 +2075,13 @@ export default function ApplicantsPage() {
       const account = result?.account;
       alertDialog(
         account
-          ? `Applicant converted to employee successfully.\n\nLogin credentials:\nUsername: ${account.username}\nTemporary password: ${account.temporary_password}\n\nMake sure to share these with the new hire -- the password won't be shown again.`
+          ? `Applicant converted to employee successfully.\n\nLogin credentials:\nUsername: ${account.username}\nTemporary password: ${account.temporary_password}\n\n${
+              result.login_email_sent
+                ? `These were emailed to ${result.login_email}.`
+                : result.login_email
+                  ? `Couldn't email ${result.login_email} -- share these with the new hire directly.`
+                  : "No email on file -- share these with the new hire directly."
+            } The password won't be shown again.`
           : "Applicant converted to employee successfully.",
       );
     } catch (error) {

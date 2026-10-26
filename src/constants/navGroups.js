@@ -210,12 +210,13 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.trip_bypass_actions",
         },
         {
-          // Superadmin + coordinator_admin (no moduleKey, so it can't be
-          // granted to anyone else via Module Assignment). Only superadmin
-          // approves coordinator_admin entries.
+          // Superadmin + coordinator_admin by default; can also be granted
+          // on the Org Chart (Trip Management -> Trip Manual Entries). Only
+          // superadmin approves entries.
           label: "Trip Manual Entries",
           path: "/dashboard/admin/trip-manual-entries",
           roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "trip_management.trip_manual_entries",
         },
         {
           // Route rides (assigned in Trip Assignment) + Route Ride Manual

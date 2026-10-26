@@ -142,6 +142,7 @@ export default function Login({ setIsAuthenticated }) {
             <div className="flex justify-end">
               <button
                 type="button"
+                onClick={() => navigate("/forgot-password")}
                 className="text-sm text-primary hover:underline"
               >
                 Forgot password?

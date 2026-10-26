@@ -7,6 +7,7 @@ import SessionExpiredModal from "./components/ui/SessionExpiredModal";
 import GlobalLoadingBar from "./components/ui/GlobalLoadingBar";
 import DialogHost from "./components/ui/dialog/DialogHost";
 import ChangePassword from "./pages/ChangePassword";
+import { ForgotPasswordPage, ResetPasswordPage } from "./pages/Public/PasswordPages";
 import ApplicationForm from "./pages/Public/ApplicationForm";
 import OnBoardingForm from "./pages/Public/OnBoardingForm";
 import AttendanceKiosk from "./pages/Public/AttendanceKiosk";
@@ -74,6 +75,9 @@ const App = () => {
         <Route path="/privacy-policy" element={<LegalNotice />} />
         <Route path="/mobile-session" element={<MobileSessionBridge />} />
         <Route path="/get-app" element={<AppDownload />} />
+        {/* Forgot password: request the emailed link, then set a new one. */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         <Route
           path="/login"

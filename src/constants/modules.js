@@ -112,6 +112,12 @@ export const MODULE_GROUPS = [
         label: "Trip Bypass",
         path: "/dashboard/admin/trip-bypass",
       },
+      {
+        // Enter trips by hand; approving them stays superadmin-only.
+        key: "trip_manual_entries",
+        label: "Trip Manual Entries",
+        path: "/dashboard/admin/trip-manual-entries",
+      },
     ],
   },
   {
