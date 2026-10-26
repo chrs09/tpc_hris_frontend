@@ -46,7 +46,8 @@ const emptyForm = {
   reason: "",
 };
 
-// Superadmin and coordinator_admin: records a whole trip that really
+// Superadmin, coordinator_admin, or anyone granted Trip Manual Entries on
+// the Org Chart: records a whole trip that really
 // happened but never went through the driver's phone (e.g. the server
 // was down that day). The trip is created already finished -- every
 // store delivered, no GPS or geofence checks -- and goes into the normal
@@ -54,8 +55,12 @@ const emptyForm = {
 // superadmin to accept or reject it -- done from Trip Approvals, or from
 // the View window the alert bell opens here (?view=<trip id>).
 export default function TripManualEntries() {
-  const { isSuperAdmin, role } = useModuleAccess();
-  const canEnter = isSuperAdmin || role === "coordinator_admin";
+  const { isSuperAdmin, canEdit } = useModuleAccess();
+  // Superadmin, coordinator admin, or anyone granted Trip Management ->
+  // Trip Manual Entries (Can edit: Yes) on the Org Chart. Only superadmin
+  // approves; everyone else's entry waits for that.
+  const canEnter =
+    isSuperAdmin || canEdit("trip_management.trip_manual_entries", ["coordinator_admin"]);
   const [decidingId, setDecidingId] = useState(null);
   // Entry open in the View window. ?view=<trip id> (from the alert bell)
   // opens it straight away.
@@ -316,8 +321,8 @@ export default function TripManualEntries() {
       <div className="space-y-5">
         <SectionTabs group="Trip Management" />
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-fg-subtle">
-          Trip Manual Entries is available to superadmins and coordinator
-          admins only.
+          You don&apos;t have access to enter trips. Ask a superadmin to give you
+          Trip Management &rarr; Trip Manual Entries (Can edit: Yes) on the Org Chart.
         </div>
       </div>
     );
