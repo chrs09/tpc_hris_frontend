@@ -1,0 +1,72 @@
+/* react-datepicker in the app's theme (light / dark via the CSS tokens). */
+.react-datepicker-popper {
+  z-index: 40;
+}
+
+.tytan-datepicker.react-datepicker {
+  font-family: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  color: var(--fg);
+  box-shadow: 0 10px 25px rgb(0 0 0 / 0.25);
+  overflow: hidden;
+}
+
+.tytan-datepicker .react-datepicker__header {
+  background: var(--surface-hover);
+  border-bottom: 1px solid var(--border);
+}
+
+.tytan-datepicker .react-datepicker__current-month,
+.tytan-datepicker .react-datepicker__day-name,
+.tytan-datepicker .react-datepicker__day {
+  color: var(--fg);
+}
+
+.tytan-datepicker .react-datepicker__day-name {
+  color: var(--fg-subtle);
+}
+
+.tytan-datepicker .react-datepicker__day {
+  border-radius: 0.5rem;
+}
+
+.tytan-datepicker .react-datepicker__day:not(.react-datepicker__day--disabled):hover {
+  background: var(--surface-active);
+}
+
+.tytan-datepicker .react-datepicker__day--outside-month {
+  color: var(--fg-subtle);
+}
+
+.tytan-datepicker .react-datepicker__day--disabled {
+  color: var(--fg-subtle);
+  opacity: 0.4;
+}
+
+.tytan-datepicker .react-datepicker__day--in-range,
+.tytan-datepicker .react-datepicker__day--in-selecting-range {
+  background: color-mix(in srgb, var(--primary) 20%, transparent);
+  color: var(--fg);
+}
+
+.tytan-datepicker .react-datepicker__day--selected,
+.tytan-datepicker .react-datepicker__day--range-start,
+.tytan-datepicker .react-datepicker__day--range-end,
+.tytan-datepicker .react-datepicker__day--keyboard-selected {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.tytan-datepicker .react-datepicker__day--today {
+  font-weight: 700;
+}
+
+.tytan-datepicker .react-datepicker__navigation-icon::before {
+  border-color: var(--fg-muted);
+}
+
+.react-datepicker-popper .react-datepicker__triangle {
+  display: none;
+}

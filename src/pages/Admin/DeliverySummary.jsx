@@ -6,13 +6,19 @@ import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 import { exportDeliverySummaryExcel } from "../../utils/trips/deliverySummaryExcel";
+import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
+import { toISODate } from "../../utils/isoDate";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
 
-const thisMonth = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+// Default range: the 1st of this month to today.
+const defaultRange = () => {
+  const today = new Date();
+  return {
+    from: toISODate(new Date(today.getFullYear(), today.getMonth(), 1)),
+    to: toISODate(today),
+  };
 };
 
 const longDate = (iso) =>
@@ -22,11 +28,46 @@ const longDate = (iso) =>
     year: "numeric",
   });
 
-const monthLabel = (month) =>
-  new Date(`${month}-01T00:00:00`).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+const asDate = (iso) => new Date(`${iso}T00:00:00`);
+const fmt = (iso, opts) => asDate(iso).toLocaleDateString("en-US", opts);
+
+// A whole calendar month reads "October 2026"; any other range
+// "Oct 1 – Oct 27, 2026".
+const isWholeMonth = ({ from, to }) => {
+  const a = asDate(from);
+  const b = asDate(to);
+  return (
+    a.getDate() === 1 &&
+    a.getMonth() === b.getMonth() &&
+    a.getFullYear() === b.getFullYear() &&
+    new Date(b.getFullYear(), b.getMonth(), b.getDate() + 1).getDate() === 1
+  );
+};
+
+const rangeLabel = (range) => {
+  if (isWholeMonth(range)) return fmt(range.from, { month: "long", year: "numeric" });
+  if (range.from === range.to) return fmt(range.from, { month: "short", day: "numeric", year: "numeric" });
+  const sameYear = range.from.slice(0, 4) === range.to.slice(0, 4);
+  return `${fmt(range.from, { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) })} – ${fmt(
+    range.to,
+    { month: "short", day: "numeric", year: "numeric" },
+  )}`;
+};
+
+// Table headings: "Month of October 2026", else the range itself.
+const rangeTitle = (range) =>
+  isWholeMonth(range) ? `Month of ${rangeLabel(range)}` : rangeLabel(range);
+
+// Short form for Excel sheet names: "Oct 2026" / "Oct 1-27" / "Oct 25-Nov 3".
+const rangeShort = (range) => {
+  if (isWholeMonth(range)) return fmt(range.from, { month: "short", year: "numeric" });
+  const a = asDate(range.from);
+  const b = asDate(range.to);
+  const m = (d) => d.toLocaleDateString("en-US", { month: "short" });
+  return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+    ? `${m(a)} ${a.getDate()}-${b.getDate()}`
+    : `${m(a)} ${a.getDate()}-${m(b)} ${b.getDate()}`;
+};
 
 const STATUS_STYLES = {
   Yes: "text-success",
@@ -56,7 +97,7 @@ const RECORD_COLUMNS = [
 // daily, and a driver / plate / date lookup) and a records tab per truck
 // type. Every driver, location and day is listed, 0s included.
 export default function DeliverySummary() {
-  const [month, setMonth] = useState(thisMonth());
+  const [range, setRange] = useState(defaultRange);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("summary");
@@ -68,7 +109,9 @@ export default function DeliverySummary() {
   useEffect(() => {
     let cancelled = false;
     api
-      .get("/admin/delivery-summary", { params: { month } })
+      .get("/admin/delivery-summary", {
+        params: { date_from: range.from, date_to: range.to },
+      })
       .then((res) => {
         if (cancelled) return;
         setData(res.data);
@@ -79,12 +122,13 @@ export default function DeliverySummary() {
     return () => {
       cancelled = true;
     };
-  }, [month]);
+  }, [range]);
 
-  const changeMonth = (value) => {
-    if (!value) return;
+  const changeRange = (next) => {
+    if (!next.from || !next.to) return;
+    if (next.from === range.from && next.to === range.to) return;
     setLoading(true);
-    setMonth(value);
+    setRange(next);
   };
 
   // Driver rows grouped per truck type, like the 6W DS / 10W VAN blocks.
@@ -142,7 +186,9 @@ export default function DeliverySummary() {
       setExporting(true);
       await exportDeliverySummaryExcel({
         data,
-        monthLabel: monthLabel(month),
+        monthLabel: rangeLabel(range),
+        periodTitle: rangeTitle(range),
+        shortLabel: rangeShort(range),
         driverBlocks,
         recordColumns: RECORD_COLUMNS,
         longDate,
@@ -167,16 +213,16 @@ export default function DeliverySummary() {
         <div>
           <h1 className="text-xl font-semibold text-fg">Delivery Summary</h1>
           <p className="mt-1 text-sm text-fg-subtle">
-            Coca-Cola delivery summary for the month, built from the trips
+            Coca-Cola delivery summary for the dates picked, built from the trips
             (cancelled trips aren&apos;t counted).
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="month"
-            value={month}
-            onChange={(e) => changeMonth(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-fg"
+          <DateRangeFilter
+            from={range.from}
+            to={range.to}
+            onChange={changeRange}
+            maxDays={93}
           />
           <button
             type="button"
@@ -193,7 +239,7 @@ export default function DeliverySummary() {
         <div className="flex gap-1 overflow-x-auto border-b border-border">
           {[
             ["summary", "Total Trips Summary"],
-            ...data.truck_types.map((t) => [t, `${t} Records ${monthLabel(month)}`]),
+            ...data.truck_types.map((t) => [t, `${t} Records ${rangeLabel(range)}`]),
           ].map(([key, label]) => (
             <button
               key={key}
@@ -283,7 +329,7 @@ export default function DeliverySummary() {
               <SheetTable
                 head={[
                   "Count",
-                  `Month of ${monthLabel(month)} · Driver`,
+                  `${rangeTitle(range)} · Driver`,
                   ...driverMatrix.trucks,
                   "Total Trips",
                 ]}
@@ -299,7 +345,7 @@ export default function DeliverySummary() {
               driverBlocks.map((block) => (
                 <SheetTable
                   key={block.truck}
-                  head={["Count", `Month of ${monthLabel(month)} · Driver`, "Type of Truck", "Total Trips"]}
+                  head={["Count", `${rangeTitle(range)} · Driver`, "Type of Truck", "Total Trips"]}
                   rows={block.rows.map((r, i) => [i + 1, r.driver, r.truck_type, r.trips])}
                   total={block.rows.reduce((sum, r) => sum + r.trips, 0)}
                 />
@@ -311,7 +357,7 @@ export default function DeliverySummary() {
           <div className="space-y-4">
             <h2 className="text-center text-lg font-bold text-fg">LOCATION</h2>
             <SheetTable
-              head={[`Month of ${monthLabel(month)} · Location`, "Type of Truck", "Total Trips"]}
+              head={[`${rangeTitle(range)} · Location`, "Type of Truck", "Total Trips"]}
               rows={data.by_location.map((r) => [r.location, r.truck_type, r.trips])}
               total={data.total_trips}
             />
@@ -322,7 +368,7 @@ export default function DeliverySummary() {
           <div className="space-y-4">
             <h2 className="text-center text-lg font-bold text-fg">DAILY</h2>
             <SheetTable
-              head={[`Month of ${monthLabel(month)} · By Date`, "Location", "Total Trips"]}
+              head={[`${rangeTitle(range)} · By Date`, "Location", "Total Trips"]}
               rows={data.by_day.map((r) => [longDate(r.date), r.location, r.trips])}
               total={data.total_trips}
             />
@@ -372,7 +418,7 @@ export default function DeliverySummary() {
                 {visibleRecords.length === 0 && (
                   <tr>
                     <td colSpan={RECORD_COLUMNS.length} className="px-3 py-8 text-center text-fg-subtle">
-                      {records.length ? "No records match." : `No ${tab} trips in ${monthLabel(month)} yet.`}
+                      {records.length ? "No records match." : `No ${tab} trips in ${rangeLabel(range)} yet.`}
                     </td>
                   </tr>
                 )}
@@ -513,7 +559,7 @@ function TripLookup({ data }) {
             <td className="py-1 pr-2 font-medium">Date of Transaction:</td>
             <td className="py-1">
               <select value={date} onChange={(e) => setDate(e.target.value)} className={field}>
-                <option value="">Whole month</option>
+                <option value="">All dates</option>
                 {data.by_day.map((d) => (
                   <option key={d.date} value={d.date}>
                     {longDate(d.date)}

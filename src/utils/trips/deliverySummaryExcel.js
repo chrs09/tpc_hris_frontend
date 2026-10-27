@@ -71,13 +71,17 @@ const title = (ws, row, fromCol, toCol, text) => {
 export async function exportDeliverySummaryExcel({
   data,
   monthLabel,
+  // Heading for a date range ("Oct 1 – Oct 27, 2026"); default "Month of ...".
+  periodTitle,
+  // Short label for sheet names (31-character cap), e.g. "Oct 1-27".
+  shortLabel,
   driverBlocks,
   recordColumns,
   longDate,
 }) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "Tytan Prime HRIS";
-  const monthTitle = `Month of ${monthLabel}`;
+  const monthTitle = periodTitle || `Month of ${monthLabel}`;
 
   // ---------------- Total Trips Summary
   const ws = wb.addWorksheet("Total Trips Summary", {
@@ -120,7 +124,7 @@ export async function exportDeliverySummaryExcel({
   data.truck_types.forEach((truck) => {
     // Excel caps sheet names at 31 characters: fall back to the short
     // month ("Sep 2026"), then trim.
-    const shortMonth = monthLabel.replace(/^(\w{3})\w*/, "$1");
+    const shortMonth = shortLabel || monthLabel.replace(/^(\w{3})\w*/, "$1");
     const full = `${truck} Records ${monthLabel}`;
     const name = (full.length <= 31 ? full : `${truck} Records ${shortMonth}`).slice(0, 31);
     const sheet = wb.addWorksheet(name, {
