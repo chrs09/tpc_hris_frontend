@@ -84,7 +84,7 @@ export function getNavGroups(role) {
           label: "Payroll Cutoffs",
           path: "/dashboard/payroll-cutoffs",
           roles: ["superadmin", "payroll_admin"],
-          moduleKey: "payroll.payroll",
+          moduleKey: "payroll.payroll_cutoffs",
         },
         {
           // Read-only: every SSS pay range with its deduction, plus the
@@ -92,7 +92,7 @@ export function getNavGroups(role) {
           label: "Contribution Tables",
           path: "/dashboard/contribution-tables",
           roles: ["superadmin", "payroll_admin"],
-          moduleKey: "payroll.payroll",
+          moduleKey: "payroll.contribution_tables",
         },
         {
           // Incentive programs (sample UI -- no backend yet).
@@ -227,12 +227,11 @@ export function getNavGroups(role) {
         },
         {
           // Route rides (assigned in Trip Assignment) + Route Ride Manual
-          // for rides done before route rides existed. Same access as
-          // Trip Assignment.
+          // for rides done before route rides existed. Its own tick.
           label: "Route Rides",
           path: "/dashboard/admin/route-rides",
           roles: ["superadmin", "coordinator_admin", "coordinator"],
-          moduleKey: "trip_management.trip_assignment",
+          moduleKey: "trip_management.route_rides",
         },
       ],
     },

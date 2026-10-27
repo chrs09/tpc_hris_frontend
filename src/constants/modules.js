@@ -62,6 +62,16 @@ export const MODULE_GROUPS = [
         ],
       },
       {
+        key: "payroll_cutoffs",
+        label: "Payroll Cutoffs",
+        path: "/dashboard/payroll-cutoffs",
+      },
+      {
+        key: "contribution_tables",
+        label: "Contribution Tables",
+        path: "/dashboard/contribution-tables",
+      },
+      {
         key: "incentive_policies",
         label: "Incentive Policies",
         path: "/dashboard/incentive-policies",
@@ -86,6 +96,11 @@ export const MODULE_GROUPS = [
         key: "trip_assignment",
         label: "Trip Assignment",
         path: "/dashboard/admin/trip-assignment",
+      },
+      {
+        key: "route_rides",
+        label: "Route Rides",
+        path: "/dashboard/admin/route-rides",
       },
       {
         key: "trips",
