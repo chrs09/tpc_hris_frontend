@@ -61,6 +61,11 @@ export const MODULE_GROUPS = [
           { key: "payroll_release", label: "Lock & Mark as Paid" },
         ],
       },
+      {
+        key: "incentive_policies",
+        label: "Incentive Policies",
+        path: "/dashboard/incentive-policies",
+      },
     ],
   },
   {

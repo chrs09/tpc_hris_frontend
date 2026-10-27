@@ -99,7 +99,7 @@ export function getNavGroups(role) {
           label: "Incentive Policies",
           path: "/dashboard/incentive-policies",
           roles: ["superadmin", "payroll_admin"],
-          moduleKey: "payroll.payroll",
+          moduleKey: "payroll.incentive_policies",
         },
       ],
     },
