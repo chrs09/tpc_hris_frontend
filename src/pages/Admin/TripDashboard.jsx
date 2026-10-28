@@ -105,12 +105,16 @@ const TripDashboard = () => {
       <SectionTabs group="Trip Management" />
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <SummaryCard label="Assigned Trips" value={summary.assigned_trips} />
         <SummaryCard label="Active Trips" value={summary.active_trips} />
         <SummaryCard
           label="Completed Today"
           value={summary.completed_today}
+        />
+        <SummaryCard
+          label="2nd+ Trips Today"
+          value={summary.succeeding_trips_today}
         />
       </div>
 
