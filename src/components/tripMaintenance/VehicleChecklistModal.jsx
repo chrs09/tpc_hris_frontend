@@ -19,13 +19,15 @@ const buildEmptyState = () =>
     CHECKLIST_SCHEMA.map((section) => [section.key, emptySectionState(section)]),
   );
 
-// A section's children are considered "filled" once every item has a
-// truthy value (checked, or a non-empty string).
-const sectionIsComplete = (section, sectionState) =>
-  section.items.every((item) => {
-    const value = sectionState?.items?.[item.key];
-    return section.type === "checklist" ? value === true : Boolean(value?.trim?.());
-  });
+// How many of a section's items are done (checked, or a non-empty
+// string). Documents come in a few at a time, so a ticked section can
+// be saved part-way -- the header shows how far along it is.
+const itemIsDone = (section, value) =>
+  section.type === "checklist" ? value === true : Boolean(value?.trim?.());
+const sectionProgress = (section, sectionState) => ({
+  done: section.items.filter((item) => itemIsDone(section, sectionState?.items?.[item.key])).length,
+  total: section.items.length,
+});
 
 export default function VehicleChecklistModal({ vehicleUnit, onClose }) {
   const [state, setState] = useState(buildEmptyState);
@@ -80,16 +82,6 @@ export default function VehicleChecklistModal({ vehicleUnit, onClose }) {
   };
 
   const handleSave = async () => {
-    for (const section of CHECKLIST_SCHEMA) {
-      const sectionState = state[section.key];
-      if (sectionState.checked && !sectionIsComplete(section, sectionState)) {
-        toast.error(
-          `"${section.title}" is checked but not all of its items are filled in yet.`,
-        );
-        return;
-      }
-    }
-
     setSaving(true);
     try {
       await saveVehicleChecklist(vehicleUnit.id, state);
@@ -126,6 +118,8 @@ export default function VehicleChecklistModal({ vehicleUnit, onClose }) {
           ) : (
             CHECKLIST_SCHEMA.map((section) => {
               const sectionState = state[section.key];
+              const progress = sectionProgress(section, sectionState);
+              const complete = progress.done === progress.total;
               return (
                 <div
                   key={section.key}
@@ -146,6 +140,17 @@ export default function VehicleChecklistModal({ vehicleUnit, onClose }) {
                     <span className="text-sm font-bold text-fg">
                       {section.title}
                     </span>
+                    {sectionState.checked && (
+                      <span
+                        className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          complete
+                            ? "bg-primary/15 text-primary"
+                            : "bg-warning/15 text-warning"
+                        }`}
+                      >
+                        {complete ? "Complete" : `${progress.done}/${progress.total}`}
+                      </span>
+                    )}
                   </label>
 
                   {sectionState.checked && (
