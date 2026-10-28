@@ -9,6 +9,7 @@ import {
   getAllCashAdvanceRequests,
   getCashAdvanceRequestsForMyApproval,
   getCashAdvanceTransactions,
+  getCashAdvanceDeductionHistory,
   getOutstandingBalances,
   recordCashAdvanceDeduction,
   rejectCashAdvanceRequest,
@@ -34,6 +35,8 @@ import useViewType from "../../hooks/useViewType";
 import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceReleaseModal";
 import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
 import { matchesSearch } from "../../utils/search";
+import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
+import { toISODate } from "../../utils/isoDate";
 
 const formatDateNeeded = (value) =>
   value
@@ -131,6 +134,34 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const pendingPagination = usePagination(filteredPending, 10);
   const allPagination = usePagination(filteredAll, 15);
 
+  // Deduction History tab: every deduction across all cash advances.
+  // Defaults to the start of last month through today.
+  const [deductionRange, setDeductionRange] = useState(() => {
+    const now = new Date();
+    return {
+      from: toISODate(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      to: toISODate(now),
+    };
+  });
+  const [deductionSource, setDeductionSource] = useState("");
+  const [deductions, setDeductions] = useState([]);
+  const [loadingDeductions, setLoadingDeductions] = useState(false);
+  const filteredDeductions = deductions.filter((d) =>
+    matchesSearch(
+      search,
+      d.employee_name,
+      d.note,
+      d.cutoff_period,
+      d.department,
+      d.payroll_status,
+      d.recorded_by_name,
+      d.request_reason,
+      d.amount,
+    ),
+  );
+  const deductionsPagination = usePagination(filteredDeductions, 20);
+  const deductionsTotal = filteredDeductions.reduce((sum, d) => sum + d.amount, 0);
+
   // Superadmin-only: outstanding balances + recording pre-existing
   // ("opening") balances carried over from before this system was
   // used -- moved here from Cash Advance Settings so it lives
@@ -223,6 +254,24 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     if (tab === "all" && !allLoaded) loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, allLoaded]);
+
+  // Deduction History: reload whenever its tab is open and a filter changes.
+  useEffect(() => {
+    if (tab !== "deductions" || !hasFinanceAccess) return;
+    let cancelled = false;
+    setLoadingDeductions(true);
+    getCashAdvanceDeductionHistory({
+      dateFrom: deductionRange.from,
+      dateTo: deductionRange.to,
+      source: deductionSource,
+    })
+      .then((data) => !cancelled && setDeductions(data))
+      .catch(() => !cancelled && toast.error("Failed to load deduction history."))
+      .finally(() => !cancelled && setLoadingDeductions(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, hasFinanceAccess, deductionRange, deductionSource]);
 
   // Same lazy-load pattern for the superadmin-only Balances tab.
   useEffect(() => {
@@ -645,6 +694,18 @@ export default function CashAdvanceApprovals({ embedded = false }) {
               Outstanding Balances
             </button>
           )}
+          {hasFinanceAccess && (
+            <button
+              onClick={() => setTab("deductions")}
+              className={`px-4 py-2 text-sm font-medium ${
+                tab === "deductions"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-fg-subtle hover:text-fg"
+              }`}
+            >
+              Deduction History
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -983,6 +1044,128 @@ export default function CashAdvanceApprovals({ embedded = false }) {
               totalPages={allPagination.totalPages}
               onChange={allPagination.setPage}
             />
+          </div>
+        )}
+
+        {tab === "deductions" && hasFinanceAccess && (
+          <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-fg">Deduction History</h3>
+                <p className="mt-1 text-sm text-fg-subtle">
+                  Every cash advance deduction — from payroll (with its cutoff
+                  and that payroll&apos;s status) or recorded by hand — and the
+                  balance left after it.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <DateRangeFilter
+                  from={deductionRange.from}
+                  to={deductionRange.to}
+                  onChange={setDeductionRange}
+                />
+                <select
+                  value={deductionSource}
+                  onChange={(e) => setDeductionSource(e.target.value)}
+                  className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="">All sources</option>
+                  <option value="payroll">Payroll</option>
+                  <option value="manual">Recorded by hand</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
+              <div className="rounded-2xl border border-border bg-surface-hover p-3">
+                <p className="text-xs text-fg-subtle">Deductions</p>
+                <p className="text-lg font-bold text-fg">{filteredDeductions.length}</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-surface-hover p-3">
+                <p className="text-xs text-fg-subtle">Total deducted</p>
+                <p className="text-lg font-bold text-fg">
+                  ₱{deductionsTotal.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+
+            {loadingDeductions ? (
+              <p className="mt-4 text-sm text-fg-subtle">Loading...</p>
+            ) : filteredDeductions.length === 0 ? (
+              <p className="mt-4 text-sm text-fg-subtle">No deductions in this range.</p>
+            ) : (
+              <>
+                <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-surface-hover text-xs text-fg-subtle">
+                      <tr>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3">Employee</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Source</th>
+                        <th className="px-4 py-3">Balance After</th>
+                        <th className="px-4 py-3">Cash Advance</th>
+                        <th className="px-4 py-3">Recorded By</th>
+                        <th className="px-4 py-3">Note</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deductionsPagination.paginatedItems.map((d) => (
+                        <tr key={d.id} className="border-t border-border">
+                          <td className="whitespace-nowrap px-4 py-3">
+                            {d.recorded_at ? new Date(d.recorded_at).toLocaleString() : "—"}
+                          </td>
+                          <td className="px-4 py-3 font-medium text-fg">{d.employee_name || "—"}</td>
+                          <td className="whitespace-nowrap px-4 py-3 font-semibold text-fg">
+                            ₱{d.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                          </td>
+                          <td className="px-4 py-3">
+                            {d.source === "payroll" ? (
+                              <div>
+                                <span className="font-medium text-fg">Payroll</span>
+                                <p className="text-xs text-fg-subtle">
+                                  {d.cutoff_period?.replace("_", " to ")}
+                                  {d.department ? ` · ${d.department}` : ""}
+                                </p>
+                                {d.payroll_status && (
+                                  <span
+                                    className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                      ["LOCKED", "PAID"].includes(d.payroll_status)
+                                        ? "bg-primary/15 text-primary"
+                                        : "bg-warning/15 text-warning"
+                                    }`}
+                                  >
+                                    {d.payroll_status.replace("_", " ")}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-fg-muted">Recorded by hand</span>
+                            )}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-3">
+                            {d.balance_after > 0
+                              ? `₱${d.balance_after.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                              : <span className="font-semibold text-primary">Fully paid</span>}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-fg-subtle">
+                            ₱{d.request_amount.toLocaleString()}
+                            {d.request_reason ? ` · ${d.request_reason}` : ""}
+                          </td>
+                          <td className="px-4 py-3 text-xs">{d.recorded_by_name || "—"}</td>
+                          <td className="px-4 py-3 text-xs text-fg-subtle">{d.note || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <Pagination
+                  page={deductionsPagination.page}
+                  totalPages={deductionsPagination.totalPages}
+                  onChange={deductionsPagination.setPage}
+                />
+              </>
+            )}
           </div>
         )}
 

@@ -99,6 +99,21 @@ export const recordCashAdvanceDeduction = async (
   return res.data;
 };
 
+// Finance: every deduction across all cash advances, newest first --
+// payroll (with cutoff + that payroll's status) and recorded by hand,
+// each with the advance's balance after it. dateFrom / dateTo
+// "YYYY-MM-DD"; source "payroll" | "manual" | "" (both).
+export const getCashAdvanceDeductionHistory = async ({ dateFrom, dateTo, source } = {}) => {
+  const res = await api.get("/cash-advance-requests/deductions", {
+    params: {
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+      source: source || undefined,
+    },
+  });
+  return res.data;
+};
+
 // Superadmin: the full ledger of deductions recorded against one
 // request, newest first.
 export const getCashAdvanceTransactions = async (requestId) => {
