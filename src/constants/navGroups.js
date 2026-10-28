@@ -403,6 +403,12 @@ export function getNavGroups(role) {
           moduleKey: "administrator.holidays",
         },
         {
+          // Superadmin only, no module key -- can't be granted to others.
+          label: "Companies",
+          path: "/dashboard/companies",
+          roles: ["superadmin"],
+        },
+        {
           label: "Error Logs",
           path: "/dashboard/error-logs",
           roles: ["superadmin"],

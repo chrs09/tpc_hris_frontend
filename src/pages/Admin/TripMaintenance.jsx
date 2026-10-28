@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { getPageTitles, savePageTitles } from "../../api/pageTitles";
+import { getCompanies } from "../../api/companies";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
 import ChecklistDocuments from "../../components/tripMaintenance/ChecklistDocuments";
@@ -72,6 +73,7 @@ const EMPTY_VEHICLE_FORM = {
   plate_number: "",
   description: "",
   truck_type_id: "",
+  company_id: "",
   cr_number: "",
   cr_document: null,
   or_number: "",
@@ -493,6 +495,7 @@ export default function TripMaintenance() {
       unit.description,
       unit.or_number,
       unit.cr_number,
+      unit.company_name,
     ),
   );
   const filteredRecords = maintenanceRecords.filter((record) =>
@@ -528,6 +531,15 @@ export default function TripMaintenance() {
       console.error("Failed to load maintenance records", error);
     }
   };
+
+  // Companies (Administrator -> Companies) -- superadmin only.
+  const [companies, setCompanies] = useState([]);
+  useEffect(() => {
+    if (!canEditVehicleTypes) return;
+    getCompanies()
+      .then(setCompanies)
+      .catch(() => setCompanies([]));
+  }, [canEditVehicleTypes]);
 
   const loadTruckTypes = async () => {
     try {
@@ -594,6 +606,7 @@ export default function TripMaintenance() {
       plate_number: unit.plate_number || "",
       description: unit.description || "",
       truck_type_id: unit.truck_type_id || "",
+      company_id: unit.company_id || "",
       cr_number: unit.cr_number || "",
       cr_document: null,
       or_number: unit.or_number || "",
@@ -928,6 +941,9 @@ export default function TripMaintenance() {
                                     : ""
                                 }`
                               : "-"}
+                            {unit.company_name && (
+                              <p className="text-xs text-fg-subtle">{unit.company_name}</p>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             {unit.description || "N/A"}
@@ -1011,10 +1027,15 @@ export default function TripMaintenance() {
                   <Truck size={20} />
                 </div>
 
-                {unit.truck_type_name && (
+                {(unit.truck_type_name || unit.company_name) && (
                   <p className="mt-1 text-xs text-fg-subtle">
-                    {unit.truck_type_name}
-                    {unit.truck_type_size ? ` · ${unit.truck_type_size}` : ""}
+                    {[
+                      unit.truck_type_name &&
+                        `${unit.truck_type_name}${unit.truck_type_size ? ` · ${unit.truck_type_size}` : ""}`,
+                      unit.company_name,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 )}
 
@@ -1443,6 +1464,35 @@ export default function TripMaintenance() {
               placeholder="Select vehicle type (optional)"
             />
           </div>
+
+          {canEditVehicleTypes && (
+            <div>
+              <label className="block text-sm font-medium mb-1 text-fg">
+                Company
+              </label>
+              <SearchSelect
+                value={
+                  companies.find(
+                    (company) => String(company.id) === String(vehicleForm.company_id),
+                  ) || null
+                }
+                options={companies.filter(
+                  (company) =>
+                    company.is_active || String(company.id) === String(vehicleForm.company_id),
+                )}
+                onChange={(company) =>
+                  setVehicleForm({ ...vehicleForm, company_id: company?.id ?? "" })
+                }
+                getOptionLabel={(company) =>
+                  company ? `${company.name}${company.code ? ` (${company.code})` : ""}` : ""
+                }
+                placeholder="Which company owns it (optional)"
+              />
+              <p className="mt-1 text-xs text-fg-subtle">
+                Superadmin only. Manage the list in Administrator → Companies.
+              </p>
+            </div>
+          )}
 
           <DocumentFormSection
             title="CR (Certificate of Registration)"

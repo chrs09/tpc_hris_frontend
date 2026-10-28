@@ -34,6 +34,7 @@ import IncentivePoliciesPage from "../Payroll/IncentivePoliciesPage";
 import ContributionTablesPage from "../Payroll/ContributionTablesPage";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
+import CompaniesPage from "../Admin/CompaniesPage";
 import TicketsPage from "../Admin/TicketsPage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
@@ -152,6 +153,7 @@ const Dashboard = () => {
           />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="error-logs" element={<ErrorLogsPage />} />
+          <Route path="companies" element={<CompaniesPage />} />
           <Route path="tickets" element={<TicketsPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="admin/trip-dashboard" element={<TripDashboard />} />
