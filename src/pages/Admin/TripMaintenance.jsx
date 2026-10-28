@@ -20,6 +20,7 @@ import {
 import { getPageTitles, savePageTitles } from "../../api/pageTitles";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
 import VehicleChecklistModal from "../../components/tripMaintenance/VehicleChecklistModal";
+import ChecklistDocuments from "../../components/tripMaintenance/ChecklistDocuments";
 import UnitDriverModal from "../../components/tripMaintenance/UnitDriverModal";
 import UnitStatusBadge from "../../components/tripMaintenance/UnitStatusBadge";
 import SearchSelect from "../../components/SearchSelect";
@@ -35,6 +36,7 @@ import {
   updateVehicleMaintenanceRecord,
   deleteVehicleMaintenanceRecord,
   getVehicleORHistory,
+  readVehicleDocumentNumber,
 } from "../../api/adminTripManagement/tripMaintenance";
 import {
   getTruckTypes,
@@ -165,7 +167,9 @@ const DocumentStatusBlock = ({
 
 // CR and OR are two separate physical documents -- this renders one
 // number/expiration/upload block, reused once per document in the
-// Add/Edit Vehicle Unit form (fieldPrefix is "cr" or "or").
+// Add/Edit Vehicle Unit form (fieldPrefix is "cr" or "or"). Picking a
+// file reads its number (PDF text / OCR) and fills the Number field
+// when empty; a different number already typed in is offered instead.
 const DocumentFormSection = ({
   title,
   fieldPrefix,
@@ -177,6 +181,32 @@ const DocumentFormSection = ({
   const numberField = `${fieldPrefix}_number`;
   const expirationField = `${fieldPrefix}_expiration_date`;
   const documentField = `${fieldPrefix}_document`;
+  const [reading, setReading] = useState(false);
+  const [detected, setDetected] = useState(null);
+
+  const pickFile = async (file) => {
+    setVehicleForm((prev) => ({ ...prev, [documentField]: file }));
+    setDetected(null);
+    if (!file) return;
+    setReading(true);
+    try {
+      const result = await readVehicleDocumentNumber(fieldPrefix, file);
+      if (!result.number) {
+        toast(`Couldn't find the ${fieldPrefix.toUpperCase()} number on that file — type it in.`);
+        return;
+      }
+      if (!String(vehicleForm[numberField] || "").trim()) {
+        setVehicleForm((prev) => ({ ...prev, [numberField]: result.number }));
+        toast.success(`${fieldPrefix.toUpperCase()} number read from the file — please check it.`);
+      } else {
+        setDetected(result.number);
+      }
+    } catch {
+      // Reading is only a helper -- the upload itself still works.
+    } finally {
+      setReading(false);
+    }
+  };
 
   return (
     <div className="border-t border-border pt-4">
@@ -200,6 +230,24 @@ const DocumentFormSection = ({
             className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
             placeholder="e.g. 1234567890"
           />
+          {reading && (
+            <p className="mt-1 text-xs text-fg-subtle">Reading the number from the file...</p>
+          )}
+          {detected && detected !== vehicleForm[numberField] && (
+            <p className="mt-1 text-xs text-fg-subtle">
+              File says <span className="font-semibold text-fg">{detected}</span> ·{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setVehicleForm((prev) => ({ ...prev, [numberField]: detected }));
+                  setDetected(null);
+                }}
+                className="font-semibold text-primary hover:underline"
+              >
+                Use it
+              </button>
+            </p>
+          )}
         </div>
 
         {hasExpiration && (
@@ -242,12 +290,7 @@ const DocumentFormSection = ({
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp,application/pdf"
-          onChange={(e) =>
-            setVehicleForm({
-              ...vehicleForm,
-              [documentField]: e.target.files?.[0] || null,
-            })
-          }
+          onChange={(e) => pickFile(e.target.files?.[0] || null)}
           className="w-full rounded-lg border border-border bg-surface p-2 text-sm text-fg file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-primary-foreground"
         />
         <p className="mt-1 text-xs text-fg-subtle">
@@ -1417,6 +1460,8 @@ export default function TripMaintenance() {
             setVehicleForm={setVehicleForm}
             existingUrl={editingUnit?.or_document_url}
           />
+
+          {editingUnit && <ChecklistDocuments vehicleUnitId={editingUnit.id} />}
         </div>
       </MaintenanceModal>
 

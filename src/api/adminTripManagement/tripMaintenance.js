@@ -371,3 +371,39 @@ export const setUnitDriver = async (unitId, driverId) =>
       driver_id: driverId || null,
     })
   ).data;
+
+// Checklist documents: the file for one ticked checklist item
+// (section / item keys from CHECKLIST_SCHEMA). Uploading again replaces
+// it. Returns { url, name, uploaded_at, uploaded_by }.
+export const uploadVehicleChecklistFile = async (id, section, item, file) => {
+  const form = new FormData();
+  form.append("section", section);
+  form.append("item", item);
+  form.append("file", file);
+  const response = await api.post(
+    `/trip-maintenance/vehicle-units/${id}/checklist-files`,
+    form,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return response.data;
+};
+
+export const deleteVehicleChecklistFile = async (id, section, item) => {
+  const response = await api.delete(
+    `/trip-maintenance/vehicle-units/${id}/checklist-files`,
+    { params: { section, item } },
+  );
+  return response.data;
+};
+
+// The OR / CR number read off an uploaded document (PDF text or OCR) --
+// docType "or" | "cr". Returns { number, candidates, text_found }.
+export const readVehicleDocumentNumber = async (docType, file) => {
+  const form = new FormData();
+  form.append("doc_type", docType);
+  form.append("file", file);
+  const response = await api.post("/trip-maintenance/vehicle-documents/read-number", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return response.data;
+};

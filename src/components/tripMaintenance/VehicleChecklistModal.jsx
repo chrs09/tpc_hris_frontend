@@ -48,6 +48,8 @@ export default function VehicleChecklistModal({ vehicleUnit, onClose }) {
           merged[section.key] = {
             checked: Boolean(savedSection.checked),
             items: { ...merged[section.key].items, ...(savedSection.items || {}) },
+            // Uploaded in Edit Vehicle Unit -> Checklist Documents.
+            files: savedSection.files || {},
           };
         }
         setState(merged);
@@ -174,6 +176,22 @@ export default function VehicleChecklistModal({ vehicleUnit, onClose }) {
                                 className="h-4 w-4 rounded border-border"
                               />
                               {item.label}
+                              {sectionState.items[item.key] && (
+                                <span
+                                  className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                    sectionState.files?.[item.key]
+                                      ? "bg-primary/15 text-primary"
+                                      : "bg-surface-active text-fg-subtle"
+                                  }`}
+                                  title={
+                                    sectionState.files?.[item.key]
+                                      ? sectionState.files[item.key].name
+                                      : "Upload it in the vehicle's Edit form"
+                                  }
+                                >
+                                  {sectionState.files?.[item.key] ? "File attached" : "No file yet"}
+                                </span>
+                              )}
                             </label>
                           ))
                         : section.items.map((item) => (
