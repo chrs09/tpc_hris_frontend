@@ -48,6 +48,8 @@ import {
   markPayrollGenerated,
 } from "../../api/payroll/payrollRuns";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
+import { getPayrollIncentives } from "../../api/payroll/incentivePrograms";
+import { fromISODate, toISODate } from "../../utils/isoDate";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
 
 /*
@@ -270,8 +272,21 @@ const PayrollList = () => {
       .catch(() => setTripCheck([]));
   }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
 
+  // Incentive Policies programs paid through payroll this cutoff (long
+  // distance, complete attendance ...), by employee id.
+  const [incentivesByEmployee, setIncentivesByEmployee] = useState({});
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    getPayrollIncentives(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+      .then(setIncentivesByEmployee)
+      .catch(() => setIncentivesByEmployee({}));
+  }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
+
   // Work History: an employee whose department / pay changed inside this
   // cutoff gets one row per part (each in its own department's payroll).
+  // Trip-paid departments (drivers / helpers) keep back-to-back parts as
+  // one row -- trip pay doesn't depend on position, rate or schedule, so
+  // a change of those mid-cutoff shouldn't split the driver in two.
   const [jobSegments, setJobSegments] = useState({});
   const [scheduleList, setScheduleList] = useState([]);
   useEffect(() => {
@@ -297,9 +312,21 @@ const PayrollList = () => {
         if (emp.department === department) entries.push(emp);
         return;
       }
-      const split = spans.length > 1;
-      spans
-        .filter((span) => span.department === department)
+      let own = spans.filter((span) => span.department === department);
+      if (/driver|helper/i.test(department)) {
+        own = own.reduce((acc, span) => {
+          const prev = acc[acc.length - 1];
+          const dayAfterPrev = prev && toISODate(new Date(fromISODate(prev.to).getTime() + 86400000));
+          if (prev && span.from === dayAfterPrev) {
+            acc[acc.length - 1] = { ...span, from: prev.from };
+          } else {
+            acc.push(span);
+          }
+          return acc;
+        }, []);
+      }
+      const split = own.length > 1 || spans.some((span) => span.department !== department);
+      own
         .forEach((span) => {
           const segmentKey = split && span.from !== activePeriod.cutoffStart ? span.from : "";
           const schedule =
@@ -325,7 +352,8 @@ const PayrollList = () => {
                   is_last: span.is_last,
                   key: segmentKey,
                   others: spans
-                    .filter((other) => other !== span)
+                    .filter((other) => other.department !== department || own.length > 1)
+                    .filter((other) => other.from !== span.from)
                     .map((other) => `${other.department} ${other.from.slice(5)}–${other.to.slice(5)}`),
                 }
               : null,
@@ -489,6 +517,14 @@ const PayrollList = () => {
         const isTripBasedEmployee =
           employee.department?.toLowerCase().includes("driver") ||
           employee.department?.toLowerCase().includes("helper");
+
+        // Incentives for the cutoff -- on the last part of a split row.
+        const incentive =
+          employee._segment && !employee._segment.is_last
+            ? null
+            : incentivesByEmployee[String(employee.id)];
+        const incentivesPay = Number(incentive?.total || 0);
+        const incentiveLines = incentive?.lines || [];
 
         let tripPay = 0;
         let totalTrips = 0;
@@ -973,6 +1009,7 @@ const PayrollList = () => {
           grossPay =
             basicPay + allowancePay + otPay + shPay + rhPay + leavePay + others;
         }
+        grossPay += incentivesPay;
 
         // ===== Statutory deductions =====
         // SSS is looked up from the official contribution table (see
@@ -1051,7 +1088,7 @@ const PayrollList = () => {
             : cashAdvanceInfo[String(employee.id)],
           employee._segment && !employee._segment.is_last ? {} : adj,
           isTripBasedEmployee
-            ? tripPay
+            ? tripPay + incentivesPay
             : grossPay - govtDeductions - sssLoan - personalDeduction,
         );
         const cashAdvance = ca.cashAdvance;
@@ -1128,7 +1165,10 @@ const PayrollList = () => {
 
             tripPay,
 
-            grossPay: tripPay,
+            incentivesPay,
+            incentiveLines,
+
+            grossPay: tripPay + incentivesPay,
 
             tripBreakdown,
 
@@ -1180,7 +1220,7 @@ const PayrollList = () => {
             cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
             personalDeduction: 0,
             totalDeductions: cashAdvance,
-            netPay: tripPay - cashAdvance,
+            netPay: tripPay + incentivesPay - cashAdvance,
 
             attendanceCount: records.length,
 
@@ -1271,6 +1311,9 @@ const PayrollList = () => {
           personalDeduction,
           totalDeductions,
 
+          incentivesPay,
+          incentiveLines,
+
           grossPay,
           netPay,
 
@@ -1291,6 +1334,7 @@ const PayrollList = () => {
     cashAdvanceInfo,
     tripCheck,
     departmentEntries,
+    incentivesByEmployee,
   ]);
 
   // Holidays inside the selected cutoff, oldest first.
@@ -1884,6 +1928,13 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                   <th className="px-4 py-3 text-left">Others</th>
 
+                  <th
+                    className="px-4 py-3 text-left"
+                    title="Incentive Policies paid through payroll this cutoff (long distance, complete attendance ...)"
+                  >
+                    Incentives
+                  </th>
+
                   <th className="px-4 py-3 text-left">Gross Pay</th>
 
                   <th className="px-4 py-3 text-left">SSS</th>
@@ -2101,6 +2152,16 @@ Next: Submit for Review. You can generate again after corrections until it's app
                           }
                         />
                       )}
+                    </td>
+
+                    {/* Incentives */}
+                    <td
+                      className="px-4 py-3"
+                      title={row.incentiveLines
+                        .map((line) => `${line.name}: ₱${Number(line.amount).toFixed(2)}`)
+                        .join("\n")}
+                    >
+                      {row.incentivesPay ? `₱${row.incentivesPay.toFixed(2)}` : "--"}
                     </td>
 
                     {/* Gross */}

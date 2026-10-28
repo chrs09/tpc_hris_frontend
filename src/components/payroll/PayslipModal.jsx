@@ -228,12 +228,15 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
   const otherEarnings = Number(payroll.others ?? 0);
 
+  // Incentive Policies paid through payroll this cutoff.
+  const incentivesPay = Number(payroll.incentivesPay ?? 0);
+
   // ===================================================
   // TOTAL OTHER EARNINGS
   // ===================================================
 
   const totalOtherEarnings =
-    allowancePay + otPay + shPay + rhPay + leavePay + otherEarnings;
+    allowancePay + otPay + shPay + rhPay + leavePay + otherEarnings + incentivesPay;
 
   // ===================================================
   // TOTAL EARNINGS
@@ -387,6 +390,10 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               isMoney
               bold
             />
+
+            {incentivesPay > 0 && (
+              <PayslipValue label="Incentives" value={incentivesPay} isMoney />
+            )}
 
             <PayslipValue
               label="Total Earnings"
@@ -708,6 +715,10 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           <PayslipValue label="Leave Pay" value={leavePay} isMoney />
 
           <PayslipValue label="Other Earnings" value={otherEarnings} isMoney />
+
+          {incentivesPay > 0 && (
+            <PayslipValue label="Incentives" value={incentivesPay} isMoney />
+          )}
 
           {/* =================================================
               TOTAL EARNINGS

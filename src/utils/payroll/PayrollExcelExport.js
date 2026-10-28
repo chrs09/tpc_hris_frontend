@@ -75,6 +75,7 @@ export const exportPayrollExcel = async (
     "SH",
     "Leave",
     "Others",
+    "Incentives",
     "Gross",
     "SSS",
     "PhilHealth",
@@ -141,6 +142,8 @@ export const exportPayrollExcel = async (
       row.leavePay,
 
       row.others,
+
+      row.incentivesPay || 0,
 
       row.grossPay,
 
