@@ -101,6 +101,14 @@ export function getNavGroups(role) {
           roles: ["superadmin", "payroll_admin"],
           moduleKey: "payroll.incentive_policies",
         },
+        {
+          // Paying incentives out apart from payroll: runs with their
+          // own approval + the incentive history.
+          label: "Incentive Runs",
+          path: "/dashboard/incentive-runs",
+          roles: ["superadmin", "payroll_admin", "admin"],
+          moduleKey: "payroll.incentive_policies",
+        },
       ],
     },
     {

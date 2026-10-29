@@ -48,7 +48,7 @@ import {
   markPayrollGenerated,
 } from "../../api/payroll/payrollRuns";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
-import { getPayrollIncentives } from "../../api/payroll/incentivePrograms";
+import { getIncentivesForPayroll } from "../../api/payroll/incentiveRuns";
 import { fromISODate, toISODate } from "../../utils/isoDate";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
 
@@ -272,12 +272,13 @@ const PayrollList = () => {
       .catch(() => setTripCheck([]));
   }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
 
-  // Incentive Policies programs paid through payroll this cutoff (long
-  // distance, complete attendance ...), by employee id.
+  // Approved / released Incentive Runs paid "with payroll" on this cutoff,
+  // by employee id. Shown after Net Pay as a separate amount -- never in
+  // gross, so contributions and saved payroll figures stay payroll-only.
   const [incentivesByEmployee, setIncentivesByEmployee] = useState({});
   useEffect(() => {
     if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
-    getPayrollIncentives(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+    getIncentivesForPayroll(activePeriod.cutoffStart, activePeriod.cutoffEnd)
       .then(setIncentivesByEmployee)
       .catch(() => setIncentivesByEmployee({}));
   }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
@@ -518,7 +519,7 @@ const PayrollList = () => {
           employee.department?.toLowerCase().includes("driver") ||
           employee.department?.toLowerCase().includes("helper");
 
-        // Incentives for the cutoff -- on the last part of a split row.
+        // Incentives (separate from pay) -- on the last part of a split row.
         const incentive =
           employee._segment && !employee._segment.is_last
             ? null
@@ -1009,7 +1010,6 @@ const PayrollList = () => {
           grossPay =
             basicPay + allowancePay + otPay + shPay + rhPay + leavePay + others;
         }
-        grossPay += incentivesPay;
 
         // ===== Statutory deductions =====
         // SSS is looked up from the official contribution table (see
@@ -1088,7 +1088,7 @@ const PayrollList = () => {
             : cashAdvanceInfo[String(employee.id)],
           employee._segment && !employee._segment.is_last ? {} : adj,
           isTripBasedEmployee
-            ? tripPay + incentivesPay
+            ? tripPay
             : grossPay - govtDeductions - sssLoan - personalDeduction,
         );
         const cashAdvance = ca.cashAdvance;
@@ -1168,7 +1168,7 @@ const PayrollList = () => {
             incentivesPay,
             incentiveLines,
 
-            grossPay: tripPay + incentivesPay,
+            grossPay: tripPay,
 
             tripBreakdown,
 
@@ -1220,7 +1220,7 @@ const PayrollList = () => {
             cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
             personalDeduction: 0,
             totalDeductions: cashAdvance,
-            netPay: tripPay + incentivesPay - cashAdvance,
+            netPay: tripPay - cashAdvance,
 
             attendanceCount: records.length,
 
@@ -1379,6 +1379,8 @@ const PayrollList = () => {
       ),
 
       totalNet: payrollRows.reduce((sum, row) => sum + (row.netPay || 0), 0),
+
+      totalIncentives: payrollRows.reduce((sum, row) => sum + (row.incentivesPay || 0), 0),
     };
   }, [payrollRows]);
 
@@ -1789,7 +1791,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
       </div>
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 sm:gap-4">
         <div className="bg-surface border border-border rounded-xl p-3 sm:p-4">
           <p className="text-xs sm:text-sm text-fg-subtle">Employees</p>
 
@@ -1836,6 +1838,26 @@ Next: Submit for Review. You can generate again after corrections until it's app
               minimumFractionDigits: 2,
             })}
           </h2>
+        </div>
+
+        <div
+          className="bg-surface border border-border rounded-xl p-3 sm:p-4"
+          title="Approved Incentive Runs paid with this payroll — separate from gross / net"
+        >
+          <p className="text-xs sm:text-sm text-fg-subtle">Incentives (separate)</p>
+
+          <h2 className="text-lg sm:text-2xl font-bold text-primary">
+            ₱
+            {summary.totalIncentives.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </h2>
+          <p className="text-[11px] text-fg-subtle">
+            Take-home ₱
+            {(summary.totalNet + summary.totalIncentives).toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+            })}
+          </p>
         </div>
       </div>
 
@@ -1928,13 +1950,6 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                   <th className="px-4 py-3 text-left">Others</th>
 
-                  <th
-                    className="px-4 py-3 text-left"
-                    title="Incentive Policies paid through payroll this cutoff (long distance, complete attendance ...)"
-                  >
-                    Incentives
-                  </th>
-
                   <th className="px-4 py-3 text-left">Gross Pay</th>
 
                   <th className="px-4 py-3 text-left">SSS</th>
@@ -1952,6 +1967,15 @@ Next: Submit for Review. You can generate again after corrections until it's app
                   <th className="px-4 py-3 text-left">Personal Ded.</th>
 
                   <th className="px-4 py-3 text-left">Net Pay</th>
+
+                  <th
+                    className="px-4 py-3 text-left"
+                    title="Approved Incentive Runs paid with this payroll — separate from gross / net"
+                  >
+                    Incentives (separate)
+                  </th>
+
+                  <th className="px-4 py-3 text-left">Take-home</th>
 
                   <th className="px-4 py-3 text-left">Status</th>
 
@@ -2154,16 +2178,6 @@ Next: Submit for Review. You can generate again after corrections until it's app
                       )}
                     </td>
 
-                    {/* Incentives */}
-                    <td
-                      className="px-4 py-3"
-                      title={row.incentiveLines
-                        .map((line) => `${line.name}: ₱${Number(line.amount).toFixed(2)}`)
-                        .join("\n")}
-                    >
-                      {row.incentivesPay ? `₱${row.incentivesPay.toFixed(2)}` : "--"}
-                    </td>
-
                     {/* Gross */}
                     <td className="px-4 py-3 font-semibold text-green-700">
                       ₱{row.grossPay.toFixed(2)}
@@ -2345,6 +2359,23 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                     <td className="px-4 py-3 font-semibold text-blue-700">
                       ₱{row.netPay.toFixed(2)}
+                    </td>
+
+                    {/* Incentives (separate) */}
+                    <td
+                      className="px-4 py-3 text-primary"
+                      title={row.incentiveLines
+                        .map(
+                          (line) =>
+                            `${line.run_name} · ${line.program_name}: ₱${Number(line.amount).toFixed(2)} (${line.status.toLowerCase()})`,
+                        )
+                        .join("\n")}
+                    >
+                      {row.incentivesPay ? `₱${row.incentivesPay.toFixed(2)}` : "--"}
+                    </td>
+
+                    <td className="px-4 py-3 font-semibold">
+                      ₱{(row.netPay + row.incentivesPay).toFixed(2)}
                     </td>
 
                     <td className="px-4 py-3">

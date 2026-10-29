@@ -228,7 +228,8 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
   const otherEarnings = Number(payroll.others ?? 0);
 
-  // Incentive Policies paid through payroll this cutoff.
+  // Approved Incentive Runs paid with this payroll -- separate from
+  // earnings / net pay (shown after NET PAY with the take-home).
   const incentivesPay = Number(payroll.incentivesPay ?? 0);
 
   // ===================================================
@@ -236,7 +237,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // ===================================================
 
   const totalOtherEarnings =
-    allowancePay + otPay + shPay + rhPay + leavePay + otherEarnings + incentivesPay;
+    allowancePay + otPay + shPay + rhPay + leavePay + otherEarnings;
 
   // ===================================================
   // TOTAL EARNINGS
@@ -391,10 +392,6 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               bold
             />
 
-            {incentivesPay > 0 && (
-              <PayslipValue label="Incentives" value={incentivesPay} isMoney />
-            )}
-
             <PayslipValue
               label="Total Earnings"
               value={grossPay}
@@ -467,6 +464,15 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
             {formatCurrency(netPay)}
           </span>
         </div>
+
+        {incentivesPay > 0 && (
+          <div className="mx-2 mt-1 grid grid-cols-[1fr_auto] gap-x-2 px-2 text-[9px]">
+            <span>Incentives (separate)</span>
+            <span className="tabular-nums">{formatCurrency(incentivesPay)}</span>
+            <span className="font-bold">TOTAL TAKE-HOME</span>
+            <span className="font-bold tabular-nums">{formatCurrency(netPay + incentivesPay)}</span>
+          </div>
+        )}
 
         {/* SIGNATURE */}
 
@@ -716,10 +722,6 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           <PayslipValue label="Other Earnings" value={otherEarnings} isMoney />
 
-          {incentivesPay > 0 && (
-            <PayslipValue label="Incentives" value={incentivesPay} isMoney />
-          )}
-
           {/* =================================================
               TOTAL EARNINGS
           ================================================= */}
@@ -839,6 +841,15 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               {formatCurrency(netPay)}
             </div>
           </div>
+
+          {incentivesPay > 0 && (
+            <div className="mt-1 grid grid-cols-[1fr_auto] gap-x-2 px-2 text-[7.5px]">
+              <span>Incentives (separate)</span>
+              <span className="tabular-nums">{formatCurrency(incentivesPay)}</span>
+              <span className="font-bold">TOTAL TAKE-HOME</span>
+              <span className="font-bold tabular-nums">{formatCurrency(netPay + incentivesPay)}</span>
+            </div>
+          )}
         </section>
       </div>
 

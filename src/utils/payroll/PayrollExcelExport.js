@@ -75,7 +75,6 @@ export const exportPayrollExcel = async (
     "SH",
     "Leave",
     "Others",
-    "Incentives",
     "Gross",
     "SSS",
     "PhilHealth",
@@ -85,6 +84,8 @@ export const exportPayrollExcel = async (
     "Cash Advance",
     "Personal",
     "Net Pay",
+    "Incentives (separate)",
+    "Take-home",
   ]);
 
   header.eachCell((cell) => {
@@ -143,8 +144,6 @@ export const exportPayrollExcel = async (
 
       row.others,
 
-      row.incentivesPay || 0,
-
       row.grossPay,
 
       row.sssDeduction,
@@ -162,6 +161,10 @@ export const exportPayrollExcel = async (
       row.personalDeduction,
 
       row.netPay,
+
+      row.incentivesPay || 0,
+
+      (row.netPay || 0) + (row.incentivesPay || 0),
     ]);
   });
 
