@@ -27,9 +27,12 @@ import ViewToggle from "../ui/viewToggle/ViewToggle";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
-export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
+export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTrips }) {
   const canEditPage = usePageCanEdit();
+  const { scoped: trips, scopeProps } = useApprovalScope(allTrips);
   const [search, setSearch] = useState("");
   const filteredTrips = trips.filter((trip) =>
     matchesSearch(
@@ -244,6 +247,7 @@ export default function OfficePendingTripsCard({ trips = [], refreshTrips }) {
         </div>
       )}
 
+      <ApprovalScopeToggle {...scopeProps} className="mb-3" />
       <div className="mb-4 flex flex-wrap items-center justify-end gap-2">
         <SearchInput
           value={search}

@@ -11,13 +11,16 @@ import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import { matchesSearch } from "../../utils/search";
 import { FuelRequestModal } from "./FuelRequests";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
 // Approvals -> Fuel Request: Org Chart heads with "Fuel Request" ticked
 // approve a driver's request before the coordinator issues the fuel code
 // (app/api/fuel_requests.py). Superadmin sees every one still waiting.
 export default function FuelRequestApprovals() {
   const canEditPage = usePageCanEdit();
-  const [requests, setRequests] = useState([]);
+  const [allRequests, setRequests] = useState([]);
+  const { scoped: requests, scopeProps } = useApprovalScope(allRequests);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [search, setSearch] = useState("");
@@ -72,6 +75,8 @@ export default function FuelRequestApprovals() {
         </div>
         <SearchInput value={search} onChange={setSearch} placeholder="Search driver, plate, city..." />
       </div>
+
+      <ApprovalScopeToggle {...scopeProps} />
 
       <div className="overflow-x-auto rounded-2xl border border-border bg-surface shadow-sm">
         <table className="w-full min-w-[760px] text-left text-sm">

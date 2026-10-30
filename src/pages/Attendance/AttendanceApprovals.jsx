@@ -26,6 +26,8 @@ import {
   reviewStateOf,
   reviewTypesOf,
 } from "../../utils/attendanceReview";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
 const REASON_LABELS = {
   MISSED_TIME_OUT: "Forgot to time out",
@@ -41,7 +43,8 @@ const REASON_LABELS = {
 export default function AttendanceApprovals() {
   // View-only access (e.g. Grid View with "Can edit: No") hides the buttons.
   const canEditPage = usePageCanEdit();
-  const [items, setItems] = useState([]);
+  const [allItems, setItems] = useState([]);
+  const { scoped: items, scopeProps } = useApprovalScope(allItems);
   const [loading, setLoading] = useState(true);
   const [actioningKey, setActioningKey] = useState(null);
   const [search, setSearch] = useState("");
@@ -224,6 +227,8 @@ export default function AttendanceApprovals() {
           })}
         </div>
       )}
+
+      <ApprovalScopeToggle {...scopeProps} />
 
       {items.length > 0 && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">

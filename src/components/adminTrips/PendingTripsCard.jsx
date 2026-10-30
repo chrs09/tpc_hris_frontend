@@ -42,6 +42,8 @@ import {
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
 /* Leaflet icon fix */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -149,12 +151,13 @@ const FinanceStatus = ({ trip }) => (
 );
 
 const PendingTripsCard = ({
-  trips = [],
+  trips: allTrips = [],
   refreshTrips,
   onArchived,
   mode = "pending",
 }) => {
   const canEditPage = usePageCanEdit();
+  const { scoped: trips, scopeProps } = useApprovalScope(allTrips);
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
@@ -448,6 +451,7 @@ const PendingTripsCard = ({
 
   return (
     <>
+      <ApprovalScopeToggle {...scopeProps} className="mb-3" />
       <div className="mb-3 flex justify-end">
         <SearchInput value={search} onChange={setSearch} placeholder="Search trip, driver, shipment, store..." />
       </div>

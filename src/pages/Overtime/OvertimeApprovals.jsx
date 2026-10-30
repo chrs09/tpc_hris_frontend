@@ -13,6 +13,8 @@ import ApprovedBy from "../../components/approvals/ApprovedBy";
 import OvertimeApprovalHistory from "../../components/overtime/OvertimeApprovalHistory";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 import useViewType from "../../hooks/useViewType";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
 // created_at comes back as UTC without a zone marker.
 const filedOn = (value) =>
@@ -24,7 +26,8 @@ const filedOn = (value) =>
     : "";
 
 export default function OvertimeApprovals() {
-  const [requests, setRequests] = useState([]);
+  const [allRequests, setRequests] = useState([]);
+  const { scoped: requests, scopeProps } = useApprovalScope(allRequests);
   const [loading, setLoading] = useState(true);
   const [actioningId, setActioningId] = useState(null);
   const [editedHours, setEditedHours] = useState({});
@@ -134,6 +137,7 @@ export default function OvertimeApprovals() {
           ))}
         </div>
 
+        {tab === "pending" && !loading && <ApprovalScopeToggle {...scopeProps} />}
         {tab === "history" ? (
           <OvertimeApprovalHistory />
         ) : loading ? (

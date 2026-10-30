@@ -17,6 +17,8 @@ import { promptDialog } from "../../components/ui/dialog/dialogService";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
@@ -31,8 +33,10 @@ export default function LeaveManagement({ embedded = false }) {
   // sees the ones on their chain.
   const { isSuperAdmin } = useModuleAccess();
   const hasLeaveModule = isSuperAdmin;
-  const [leaves, setLeaves] = useState([]);
+  const [allLeaves, setLeaves] = useState([]);
   const [statusFilter, setStatusFilter] = useState("pending");
+  // Only requests still pending are anyone's turn.
+  const { scoped: leaves, scopeProps } = useApprovalScope(allLeaves, statusFilter === "pending");
   const [loading, setLoading] = useState(false);
   const [actioningId, setActioningId] = useState(null);
 
@@ -116,6 +120,8 @@ export default function LeaveManagement({ embedded = false }) {
         <h1 className="text-xl font-semibold text-fg">
           Leave Requests
         </h1>
+
+        <ApprovalScopeToggle {...scopeProps} />
 
         <SearchInput
           value={search}

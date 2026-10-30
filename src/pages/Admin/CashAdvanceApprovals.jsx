@@ -37,6 +37,8 @@ import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
 import { matchesSearch } from "../../utils/search";
 import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
 import { toISODate } from "../../utils/isoDate";
+import useApprovalScope from "../../hooks/useApprovalScope";
+import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
 const formatDateNeeded = (value) =>
   value
@@ -100,7 +102,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const [pendingView, setPendingView] = useViewType("cash_advance_pending_view");
   const [tab, setTab] = useState("pending");
 
-  const [pending, setPending] = useState([]);
+  const [allPending, setPending] = useState([]);
+  const { scoped: pending, scopeProps } = useApprovalScope(allPending);
   const [loadingPending, setLoadingPending] = useState(true);
   const [actioningId, setActioningId] = useState(null);
 
@@ -707,6 +710,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             </button>
           )}
         </div>
+
+        {tab === "pending" && <ApprovalScopeToggle {...scopeProps} />}
 
         <div className="flex flex-wrap items-center gap-3">
           <SearchInput
