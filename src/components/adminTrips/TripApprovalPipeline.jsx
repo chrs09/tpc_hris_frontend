@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import TripUnitTags from "./TripUnitTags";
+import TripDetailsModal from "./TripDetailsModal";
 import { getApprovalPipeline } from "../../api/adminTripManagement/trips";
 import { getRouteRides } from "../../api/adminTripManagement/routeRides";
 import { matchesSearch } from "../../utils/search";
@@ -40,6 +41,18 @@ const manualRideRow = (ride) => ({
   status_since: ride.created_at ? ride.created_at.slice(0, 10) : null,
   notes: ride.notes,
 });
+
+// Opens the trip's details. Manual route rides have no trip behind them.
+const ViewButton = ({ trip, onView }) =>
+  trip.is_route_ride_manual ? null : (
+    <button
+      type="button"
+      onClick={() => onView(trip)}
+      className="rounded-lg border border-border px-3 py-1 text-xs font-medium text-fg hover:bg-surface-hover"
+    >
+      View
+    </button>
+  );
 
 // "Route Rider: name" on a trip someone rode along on.
 const RouteRiderTag = ({ trip }) =>
@@ -91,6 +104,7 @@ const SourceBadge = ({ manual, routeRide = false }) =>
 // status filter and search. Filtering and paging run on the server.
 const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneViewChange }) => {
   const [status, setStatus] = useState("");
+  const [viewingTrip, setViewingTrip] = useState(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -212,6 +226,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   <th className="px-4 py-3 text-left font-medium">Stores</th>
                   <th className="px-4 py-3 text-left font-medium">Trip Date</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -266,6 +281,9 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                       )}
                       <CancelNote trip={trip} />
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <ViewButton trip={trip} onView={setViewingTrip} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -307,6 +325,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                     {trip.status_since && (
                       <span className="text-[10px] text-fg-subtle">since {trip.status_since}</span>
                     )}
+                    <ViewButton trip={trip} onView={setViewingTrip} />
                   </div>
                 </div>
               ))}
@@ -343,6 +362,11 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   {trip.status_since && ` · status since ${trip.status_since}`}
                 </p>
                 <CancelNote trip={trip} />
+                {!trip.is_route_ride_manual && (
+                  <div className="mt-3 flex justify-end">
+                    <ViewButton trip={trip} onView={setViewingTrip} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -358,6 +382,10 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           </p>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </>
+      )}
+
+      {viewingTrip && (
+        <TripDetailsModal trip={viewingTrip} onClose={() => setViewingTrip(null)} />
       )}
     </div>
   );
