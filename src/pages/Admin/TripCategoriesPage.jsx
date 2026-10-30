@@ -28,10 +28,32 @@ import DriverRatesPanel from "../../components/tripMaintenance/DriverRatesPanel"
 
 const RATE_KEYS = [
   ["driver_first_trip_rate", "Driver 1st"],
+  ["driver_allowance", "Driver Allowance"],
+  ["driver_other", "Driver Other"],
   ["driver_next_trip_rate", "Driver Next"],
   ["helper_first_trip_rate", "Helper 1st"],
   ["helper_next_trip_rate", "Helper Next"],
 ];
+
+// A first trip pays these three added up.
+const FIRST_PARTS = ["driver_first_trip_rate", "driver_allowance", "driver_other"];
+
+// A rate in effect, for display. In current_rates driver_first_trip_rate
+// is the first-trip total and driver_basic_rate is "Driver 1st".
+const shownRate = (rates, key) =>
+  key === "driver_first_trip_rate" ? (rates.driver_basic_rate ?? rates[key]) : rates[key];
+
+// The first-trip total of rates in effect, or of a category's base rates.
+const firstTripTotal = (rate) =>
+  rate.current_rates
+    ? Number(rate.current_rates.driver_first_trip_rate || 0)
+    : FIRST_PARTS.reduce((sum, key) => sum + Number(rate[key] || 0), 0);
+
+// Blank rate fields save as 0.
+const withZeroRates = (form) => ({
+  ...form,
+  ...Object.fromEntries(RATE_KEYS.map(([key]) => [key, form[key] === "" ? 0 : form[key]])),
+});
 
 // Today in the Philippines, "YYYY-MM-DD".
 const todayPH = () =>
@@ -50,6 +72,8 @@ const EMPTY_FORM = {
   profile_name: "",
   helper_count: 0,
   driver_first_trip_rate: "",
+  driver_allowance: "",
+  driver_other: "",
   driver_next_trip_rate: "",
   helper_first_trip_rate: "",
   helper_next_trip_rate: "",
@@ -57,6 +81,8 @@ const EMPTY_FORM = {
 
 const EMPTY_NEW_RATES = {
   driver_first_trip_rate: "",
+  driver_allowance: "",
+  driver_other: "",
   driver_next_trip_rate: "",
   helper_first_trip_rate: "",
   helper_next_trip_rate: "",
@@ -120,8 +146,16 @@ export default function TripCategoriesPage() {
     }).format(value);
 
   const handleCreate = async () => {
+    if (!form.profile_name.trim()) {
+      toast.error("Enter the category name.");
+      return;
+    }
+    if (RATE_KEYS.some(([key]) => Number(form[key]) < 0)) {
+      toast.error("Rates can't be negative.");
+      return;
+    }
     try {
-      await createRateProfile(form);
+      await createRateProfile(withZeroRates(form));
       toast.success("Rate profile created successfully");
       await loadRateProfiles();
       setShowModal(false);
@@ -148,7 +182,7 @@ export default function TripCategoriesPage() {
       await updateRateProfile(
         editingProfile.id,
         fixBase
-          ? form
+          ? withZeroRates(form)
           : { profile_name: form.profile_name, helper_count: form.helper_count },
       );
       if (filled.length) {
@@ -225,6 +259,8 @@ export default function TripCategoriesPage() {
       profile_name: profile.profile_name || "",
       helper_count: profile.helper_count || 0,
       driver_first_trip_rate: profile.driver_first_trip_rate || 0,
+      driver_allowance: profile.driver_allowance || 0,
+      driver_other: profile.driver_other || 0,
       driver_next_trip_rate: profile.driver_next_trip_rate || 0,
       helper_first_trip_rate: profile.helper_first_trip_rate || 0,
       helper_next_trip_rate: profile.helper_next_trip_rate || 0,
@@ -346,7 +382,7 @@ export default function TripCategoriesPage() {
 
       {viewType === "list" ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[820px] text-sm text-fg">
+          <table className="w-full min-w-[1080px] text-sm text-fg">
             <thead className="bg-surface-hover text-fg-muted">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Category</th>
@@ -355,6 +391,7 @@ export default function TripCategoriesPage() {
                     {label}
                   </th>
                 ))}
+                <th className="px-4 py-3 text-right font-medium whitespace-nowrap">1st Trip Total</th>
                 <th className="px-4 py-3 text-left font-medium">Rate change</th>
                 {canEditPage && <th className="px-4 py-3" />}
               </tr>
@@ -386,9 +423,12 @@ export default function TripCategoriesPage() {
                     </td>
                     {RATE_KEYS.map(([key]) => (
                       <td key={key} className="px-4 py-3 text-right font-semibold tabular-nums">
-                        {formatCurrency(current[key])}
+                        {formatCurrency(shownRate(current, key) || 0)}
                       </td>
                     ))}
+                    <td className="px-4 py-3 text-right font-bold tabular-nums text-primary">
+                      {formatCurrency(firstTripTotal(rate))}
+                    </td>
                     <td className="px-4 py-3 text-xs">
                       {upcoming ? (
                         <span className="text-warning">
@@ -478,32 +518,17 @@ export default function TripCategoriesPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-4">
-              <div className="bg-surface-hover rounded-xl p-3">
-                <p className="text-xs text-fg-subtle">Driver 1st</p>
-                <p className="font-bold">
-                  {formatCurrency((rate.current_rates || rate).driver_first_trip_rate)}
-                </p>
-              </div>
-
-              <div className="bg-surface-hover rounded-xl p-3">
-                <p className="text-xs text-fg-subtle">Driver Next Trip</p>
-                <p className="font-bold">
-                  {formatCurrency((rate.current_rates || rate).driver_next_trip_rate)}
-                </p>
-              </div>
-
-              <div className="bg-surface-hover rounded-xl p-3">
-                <p className="text-xs text-fg-subtle">Helper First Trip</p>
-                <p className="font-bold">
-                  {formatCurrency((rate.current_rates || rate).helper_first_trip_rate)}
-                </p>
-              </div>
-
-              <div className="bg-surface-hover rounded-xl p-3">
-                <p className="text-xs text-fg-subtle">Helper Next Trip</p>
-                <p className="font-bold">
-                  {formatCurrency((rate.current_rates || rate).helper_next_trip_rate)}
-                </p>
+              {RATE_KEYS.map(([key, label]) => (
+                <div key={key} className="bg-surface-hover rounded-xl p-3">
+                  <p className="text-xs text-fg-subtle">{label}</p>
+                  <p className="font-bold">
+                    {formatCurrency(shownRate(rate.current_rates || rate, key) || 0)}
+                  </p>
+                </div>
+              ))}
+              <div className="rounded-xl bg-primary/10 p-3">
+                <p className="text-xs text-fg-subtle">1st Trip Total</p>
+                <p className="font-bold text-primary">{formatCurrency(firstTripTotal(rate))}</p>
               </div>
             </div>
 
@@ -623,66 +648,43 @@ export default function TripCategoriesPage() {
                   Correcting the BASE rates -- this changes every trip, past ones included.
                 </p>
               )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
               <div>
-                <label className="block text-sm font-medium mb-1 text-fg">
-                  Driver 1st Trip
-                </label>
-                <input
-                  type="number"
-                  value={form.driver_first_trip_rate}
-                  onChange={(e) =>
-                    setForm({ ...form, driver_first_trip_rate: e.target.value })
-                  }
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                  placeholder="565"
-                />
+                <p className="text-sm font-semibold text-fg">
+                  {fixBase ? "Base rates" : "Rates"}
+                </p>
+                {!fixBase && (
+                  <p className="text-xs text-fg-subtle">
+                    The starting rates. Change them later with an effective date.
+                  </p>
+                )}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-fg">
-                  Driver Next Trip
-                </label>
-                <input
-                  type="number"
-                  value={form.driver_next_trip_rate}
-                  onChange={(e) =>
-                    setForm({ ...form, driver_next_trip_rate: e.target.value })
-                  }
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                  placeholder="300"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                {RATE_KEYS.map(([key, label]) => (
+                  <label key={key} className="block">
+                    <span className="mb-1 block text-xs font-medium text-fg-muted">
+                      {label}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      placeholder="0"
+                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+                    />
+                  </label>
+                ))}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-fg">
-                  Helper 1st Trip
-                </label>
-                <input
-                  type="number"
-                  value={form.helper_first_trip_rate}
-                  onChange={(e) =>
-                    setForm({ ...form, helper_first_trip_rate: e.target.value })
-                  }
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                  placeholder="217"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-fg">
-                  Helper Next Trip
-                </label>
-                <input
-                  type="number"
-                  value={form.helper_next_trip_rate}
-                  onChange={(e) =>
-                    setForm({ ...form, helper_next_trip_rate: e.target.value })
-                  }
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
-                  placeholder="100"
-                />
-              </div>
+              <p className="text-xs text-fg-muted">
+                First trip pays{" "}
+                <strong>
+                  {formatCurrency(
+                    FIRST_PARTS.reduce((sum, key) => sum + Number(form[key] || 0), 0),
+                  )}
+                </strong>{" "}
+                (Driver 1st + Allowance + Other).
+              </p>
             </div>
             </>
           )}
@@ -707,11 +709,17 @@ export default function TripCategoriesPage() {
                       <p className="text-[11px] text-fg-subtle">{label}</p>
                       <p className="text-sm font-semibold text-fg">
                         {formatCurrency(
-                          Number((editingProfile.current_rates || editingProfile)[key] || 0),
+                          Number(shownRate(editingProfile.current_rates || editingProfile, key) || 0),
                         )}
                       </p>
                     </div>
                   ))}
+                  <div className="rounded-lg bg-primary/10 px-3 py-2">
+                    <p className="text-[11px] text-fg-subtle">1st Trip Total</p>
+                    <p className="text-sm font-semibold text-primary">
+                      {formatCurrency(firstTripTotal(editingProfile))}
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -737,7 +745,7 @@ export default function TripCategoriesPage() {
                           value={newRates[key]}
                           onChange={(e) => setNewRates({ ...newRates, [key]: e.target.value })}
                           placeholder={String(
-                            (editingProfile.current_rates || editingProfile)[key] ?? "",
+                            shownRate(editingProfile.current_rates || editingProfile, key) ?? "",
                           )}
                           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
                         />
@@ -766,6 +774,25 @@ export default function TripCategoriesPage() {
                         {RATE_KEYS.filter(([key]) => String(newRates[key]).trim() !== "")
                           .map(([key, label]) => `${label} ${formatCurrency(Number(newRates[key]))}`)
                           .join(" · ")}
+                        {FIRST_PARTS.some((key) => String(newRates[key]).trim() !== "") && (
+                          <>
+                            {" "}→ first trip pays{" "}
+                            <strong>
+                              {formatCurrency(
+                                FIRST_PARTS.reduce(
+                                  (sum, key) =>
+                                    sum +
+                                    Number(
+                                      String(newRates[key]).trim() !== ""
+                                        ? newRates[key]
+                                        : shownRate(editingProfile.current_rates || editingProfile, key) || 0,
+                                    ),
+                                  0,
+                                ),
+                              )}
+                            </strong>
+                          </>
+                        )}
                       </p>
                     )}
                 </div>

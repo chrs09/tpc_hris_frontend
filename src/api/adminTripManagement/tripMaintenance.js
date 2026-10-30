@@ -178,6 +178,10 @@ export const createRateProfile = async (payload) => {
 
     formData.append("driver_first_trip_rate", payload.driver_first_trip_rate);
 
+    formData.append("driver_allowance", payload.driver_allowance ?? 0);
+
+    formData.append("driver_other", payload.driver_other ?? 0);
+
     formData.append("driver_next_trip_rate", payload.driver_next_trip_rate);
 
     formData.append("helper_first_trip_rate", payload.helper_first_trip_rate);

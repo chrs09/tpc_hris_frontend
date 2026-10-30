@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { notPaidReason, tripStatusLabel } from "../../utils/payroll/tripCheck";
+
+// A driver's first-trip rate split: "540 basic + 25 allowance + 217.50 other".
+const RateParts = ({ parts }) =>
+  parts ? (
+    <p className="whitespace-nowrap text-[11px] font-normal text-fg-subtle">
+      {[
+        `${parts.basic.toFixed(2)} basic`,
+        parts.allowance ? `${parts.allowance.toFixed(2)} allowance` : null,
+        parts.other ? `${parts.other.toFixed(2)} other` : null,
+      ]
+        .filter(Boolean)
+        .join(" + ")}
+    </p>
+  ) : null;
 import {
   approveOT,
   getEmployeeOTHistory,
@@ -621,6 +635,7 @@ const PayrollDetailModal = ({
 
                     <div className="mt-2 border-t border-border pt-2 text-right font-semibold">
                       ₱{Number(trip.rate || 0).toFixed(2)}
+                      <RateParts parts={trip.rateParts} />
                     </div>
                   </div>
                 ))}
@@ -692,6 +707,7 @@ const PayrollDetailModal = ({
 
                         <td className="border border-border px-3 py-2 font-semibold">
                           ₱{Number(trip.rate || 0).toFixed(2)}
+                          <RateParts parts={trip.rateParts} />
                         </td>
                       </tr>
                     ))}

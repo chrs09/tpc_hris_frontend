@@ -737,6 +737,19 @@ const PayrollList = () => {
 
                 rate,
 
+                // First trip of a driver: basic + allowance + other.
+                rateParts:
+                  isFirstTrip &&
+                  trip.role !== "route_rider" &&
+                  employee.department?.toLowerCase().includes("driver") &&
+                  (Number(trip.driver_allowance) || Number(trip.driver_other))
+                    ? {
+                        basic: Number(trip.driver_basic_rate || 0),
+                        allowance: Number(trip.driver_allowance || 0),
+                        other: Number(trip.driver_other || 0),
+                      }
+                    : null,
+
                 tripSequence: dailyTripCounter[date],
 
                 isFirstTrip,

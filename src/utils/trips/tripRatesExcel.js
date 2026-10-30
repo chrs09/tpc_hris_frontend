@@ -48,6 +48,8 @@ async function writeSheet(fileName, sheetName, columns, rows) {
 
 const RATE_COLUMNS = [
   { key: "driver_first_trip_rate", header: "Driver 1st" },
+  { key: "driver_allowance", header: "Driver Allowance" },
+  { key: "driver_other", header: "Driver Other" },
   { key: "driver_next_trip_rate", header: "Driver Next" },
   { key: "helper_first_trip_rate", header: "Helper 1st" },
   { key: "helper_next_trip_rate", header: "Helper Next" },
@@ -70,6 +72,13 @@ export async function exportTripCategories(categories) {
       helpers: rate.helper_count ?? "",
       stores: rate.store_count ?? 0,
       ...Object.fromEntries(RATE_COLUMNS.map(({ key }) => [key, num(current[key])])),
+      // current_rates: driver_first_trip_rate is the total, the basic is apart.
+      driver_first_trip_rate: num(current.driver_basic_rate ?? current.driver_first_trip_rate),
+      first_trip_total: rate.current_rates
+        ? num(current.driver_first_trip_rate)
+        : Number(current.driver_first_trip_rate || 0) +
+          Number(current.driver_allowance || 0) +
+          Number(current.driver_other || 0),
       since: toDate(rate.current_rates?.since),
       upcoming: upcoming
         ? `From ${upcoming.effective_from}: ${RATE_COLUMNS.filter(({ key }) => upcoming[key] !== null)
@@ -89,6 +98,7 @@ export async function exportTripCategories(categories) {
       { key: "helpers", header: "Helpers", width: 10 },
       { key: "stores", header: "Stores using it", width: 14 },
       ...RATE_COLUMNS.map((c) => ({ ...c, type: "money", width: 14 })),
+      { key: "first_trip_total", header: "1st Trip Total", type: "money", width: 14 },
       { key: "since", header: "Rates since", type: "date", width: 14 },
       { key: "upcoming", header: "Upcoming change", width: 44, wrap: true },
       { key: "status", header: "Status", width: 11 },

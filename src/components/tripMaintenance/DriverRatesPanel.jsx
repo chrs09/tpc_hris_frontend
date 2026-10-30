@@ -20,6 +20,8 @@ import { matchesSearch } from "../../utils/search";
 
 const RATE_FIELDS = [
   ["driver_first_trip_rate", "Driver 1st"],
+  ["driver_allowance", "Driver allowance"],
+  ["driver_other", "Driver other"],
   ["driver_next_trip_rate", "Driver next"],
   ["helper_first_trip_rate", "Helper 1st"],
   ["helper_next_trip_rate", "Helper next"],
@@ -35,6 +37,8 @@ const EMPTY_FORM = {
   destination_area: "",
   destination_store_id: null,
   driver_first_trip_rate: "",
+  driver_allowance: "",
+  driver_other: "",
   driver_next_trip_rate: "",
   helper_first_trip_rate: "",
   helper_next_trip_rate: "",
@@ -401,7 +405,7 @@ export default function DriverRatesPanel({ canEdit }) {
           <div className="grid grid-cols-2 gap-4">
             {RATE_FIELDS.map(([key, label]) => (
               <div key={key}>
-                <label className="mb-1 block text-sm font-medium">{label} trip</label>
+                <label className="mb-1 block text-sm font-medium">{label}</label>
                 <input
                   type="number"
                   min="0"
@@ -413,6 +417,10 @@ export default function DriverRatesPanel({ canEdit }) {
               </div>
             ))}
           </div>
+          <p className="-mt-2 text-xs text-fg-subtle">
+            A first trip pays Driver 1st + allowance + other. Blank keeps the category&apos;s, so
+            for an all-in amount put 0 in allowance and other.
+          </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
