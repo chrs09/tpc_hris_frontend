@@ -72,6 +72,13 @@ export default function TripDetailsModal({ trip, onClose }) {
   const [details, setDetails] = useState(null);
   const [failed, setFailed] = useState(false);
   const [photo, setPhoto] = useState(null); // { url, label } | null
+  const [photoZoom, setPhotoZoom] = useState(1);
+
+  // Always starts at 100%, so one photo's zoom doesn't carry to the next.
+  const openPhoto = (next) => {
+    setPhotoZoom(1);
+    setPhoto(next);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -179,17 +186,17 @@ export default function TripDetailsModal({ trip, onClose }) {
 
               <Section title="Documents">
                 <div className="divide-y divide-border rounded-xl border border-border px-3">
-                  <PhotoRow label="Invoice" photos={details.invoice_photos || []} onOpen={setPhoto} />
-                  <PhotoRow label="LM" photos={details.lm_photos || []} onOpen={setPhoto} />
+                  <PhotoRow label="Invoice" photos={details.invoice_photos || []} onOpen={openPhoto} />
+                  <PhotoRow label="LM" photos={details.lm_photos || []} onOpen={openPhoto} />
                   <PhotoRow
                     label="Stamped LM (checkout)"
                     photos={details.lm_checkout_stamped_photo ? [details.lm_checkout_stamped_photo] : []}
-                    onOpen={setPhoto}
+                    onOpen={openPhoto}
                   />
                   <PhotoRow
                     label="Stamped Invoice"
                     photos={details.stamped_invoice_photo ? [details.stamped_invoice_photo] : []}
-                    onOpen={setPhoto}
+                    onOpen={openPhoto}
                   />
                 </div>
               </Section>
@@ -213,12 +220,12 @@ export default function TripDetailsModal({ trip, onClose }) {
                             <PhotoButton
                               label="Unloading"
                               photo={stop.unloading_photo}
-                              onOpen={(p) => setPhoto({ ...p, label: `${stop.store_name} - Unloading` })}
+                              onOpen={(p) => openPhoto({ ...p, label: `${stop.store_name} - Unloading` })}
                             />
                             <PhotoButton
                               label="Proof of Delivery"
                               photo={stop.delivery_proof_photo}
-                              onOpen={(p) => setPhoto({ ...p, label: `${stop.store_name} - Proof of Delivery` })}
+                              onOpen={(p) => openPhoto({ ...p, label: `${stop.store_name} - Proof of Delivery` })}
                             />
                           </div>
                         )}
@@ -242,7 +249,7 @@ export default function TripDetailsModal({ trip, onClose }) {
                         </p>
                         {r.image && (
                           <div className="mt-2">
-                            <PhotoButton label="View image" photo={{ url: r.image }} onOpen={setPhoto} />
+                            <PhotoButton label="View image" photo={{ url: r.image }} onOpen={openPhoto} />
                           </div>
                         )}
                       </li>
@@ -265,37 +272,67 @@ export default function TripDetailsModal({ trip, onClose }) {
         </div>
       </div>
 
+      {/* Same viewer as the approval screens. */}
       {photo && (
-        <div
-          className="fixed inset-0 z-[60] flex flex-col bg-black/85 p-4"
-          onMouseDown={(e) => e.target === e.currentTarget && setPhoto(null)}
-        >
-          <div className="mb-3 flex items-center justify-between gap-3 text-white">
-            <p className="truncate text-sm font-semibold">{photo.label}</p>
-            <div className="flex shrink-0 items-center gap-2">
-              <a
-                href={photo.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium hover:bg-white/10"
-              >
-                Open full size
-              </a>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4">
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-xl bg-surface">
+            <div className="flex items-center justify-between gap-3 border-b border-border p-4">
+              <p className="truncate text-sm font-semibold text-fg">{photo.label}</p>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPhotoZoom((prev) => Math.max(prev - 0.25, 0.5))}
+                  disabled={photoZoom <= 0.5}
+                  title="Zoom out"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover disabled:opacity-40"
+                >
+                  −
+                </button>
+
+                <span className="w-14 text-center text-sm text-fg-muted">
+                  {Math.round(photoZoom * 100)}%
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setPhotoZoom((prev) => Math.min(prev + 0.25, 3))}
+                  disabled={photoZoom >= 3}
+                  title="Zoom in"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover disabled:opacity-40"
+                >
+                  +
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPhotoZoom(1)}
+                  title="Reset zoom"
+                  className="rounded-lg border border-border px-3 py-1 text-sm text-fg hover:bg-surface-hover"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto p-4">
+              <img
+                src={photo.url}
+                alt={photo.label}
+                style={{ width: `${photoZoom * 100}%`, maxWidth: "none" }}
+                className="mx-auto h-auto rounded-lg transition-[width]"
+              />
+            </div>
+
+            <div className="border-t border-border p-4">
               <button
                 type="button"
                 onClick={() => setPhoto(null)}
-                aria-label="Close photo"
-                className="rounded-lg px-2 py-1 text-xl leading-none hover:bg-white/10"
+                className="w-full rounded-lg bg-primary py-2 text-primary-foreground hover:bg-primary-hover"
               >
-                &times;
+                Close
               </button>
             </div>
-          </div>
-          <div
-            className="flex min-h-0 flex-1 items-center justify-center"
-            onMouseDown={(e) => e.target === e.currentTarget && setPhoto(null)}
-          >
-            <img src={photo.url} alt={photo.label} className="max-h-full max-w-full rounded-lg object-contain" />
           </div>
         </div>
       )}
