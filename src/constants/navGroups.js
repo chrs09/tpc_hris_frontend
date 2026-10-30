@@ -95,7 +95,7 @@ export function getNavGroups(role) {
           moduleKey: "payroll.contribution_tables",
         },
         {
-          // Incentive programs (sample UI -- no backend yet).
+          // Incentive programs: rules + amounts per period.
           label: "Incentive Policies",
           path: "/dashboard/incentive-policies",
           roles: ["superadmin", "payroll_admin"],
