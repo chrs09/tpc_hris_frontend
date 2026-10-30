@@ -423,6 +423,14 @@ function RunDetail({ runId, onBack, onChanged }) {
           </div>
         </div>
 
+        {run.status === "GENERATED" && run.lines.length === 0 && (
+          <p className="mt-3 rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning">
+            Nobody earned anything for this period, so there&apos;s nothing to submit. Only fully completed
+            (Finance-approved) trips count. Use Preview on Incentive Policies to see each person&apos;s basis, then
+            Regenerate once trips are completed — or Cancel this run.
+          </p>
+        )}
+
         {run.return_note && run.status === "GENERATED" && (
           <p className="mt-3 rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning">Returned: {run.return_note}</p>
         )}

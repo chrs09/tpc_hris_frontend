@@ -533,6 +533,9 @@ const PayrollList = () => {
 
         const tripsByDate = {};
         const processedTrips = new Set();
+        // Route rides paid above: their tickets are "rr-<ride>-<n>", trip
+        // check lists them by route_ride_id.
+        const paidRouteRides = new Set();
 
         let renderedHours = 0;
         let regularHours = 0;
@@ -655,15 +658,39 @@ const PayrollList = () => {
             tripsByDate[record.attendance_date].push(...trips);
           });
 
+          // Manual route rides are admin-entered and trip-based: paid even
+          // on a day with no attendance record. (A day with a record already
+          // has these tickets -- processedTrips drops the repeat.)
+          tripCheck
+            .filter(
+              (ride) =>
+                ride.employee_id === employee.id &&
+                ride.status === "MANUAL" &&
+                ride.date >= (employee._segment?.from || activePeriod.cutoffStart) &&
+                ride.date <= (employee._segment?.to || activePeriod.cutoffEnd),
+            )
+            .forEach((ride) => {
+              if (!tripsByDate[ride.date]) tripsByDate[ride.date] = [];
+              for (let n = 1; n <= (ride.quantity || 1); n += 1) {
+                tripsByDate[ride.date].push({
+                  ...ride,
+                  trip_id: `rr-${ride.route_ride_id}-${n}`,
+                });
+              }
+            });
+
           const dailyTripCounter = {};
 
-          Object.entries(tripsByDate).forEach(([date, trips]) => {
+          Object.entries(tripsByDate)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .forEach(([date, trips]) => {
             trips.forEach((trip) => {
               if (processedTrips.has(trip.trip_id)) {
                 return;
               }
 
               processedTrips.add(trip.trip_id);
+              if (trip.route_ride_id) paidRouteRides.add(trip.route_ride_id);
 
               dailyTripCounter[date] = (dailyTripCounter[date] || 0) + 1;
 
@@ -1140,7 +1167,9 @@ const PayrollList = () => {
           const unpaidTrips = tripCheck.filter(
             (trip) =>
               trip.employee_id === employee.id &&
-              !processedTrips.has(trip.trip_id) &&
+              (trip.route_ride_id
+                ? !paidRouteRides.has(trip.route_ride_id)
+                : !processedTrips.has(trip.trip_id)) &&
               (!employee._segment ||
                 (trip.date >= employee._segment.from && trip.date <= employee._segment.to)),
           );
