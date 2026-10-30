@@ -155,11 +155,12 @@ export default function TripCategoriesPage() {
       return;
     }
     try {
-      await createRateProfile(withZeroRates(form));
+      await createRateProfile({ ...withZeroRates(form), effective_from: effectiveFrom });
       toast.success("Rate profile created successfully");
       await loadRateProfiles();
       setShowModal(false);
       setForm(EMPTY_FORM);
+      setEffectiveFrom("");
     } catch (error) {
       toast.error(
         error?.response?.data?.detail || "Failed to create rate profile",
@@ -370,6 +371,8 @@ export default function TripCategoriesPage() {
           onClick={() => {
             setEditingProfile(null);
             setForm(EMPTY_FORM);
+            setEffectiveFrom("");
+            setFixBase(false);
             setShowModal(true);
           }}
           className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg flex items-center gap-2"
@@ -655,7 +658,8 @@ export default function TripCategoriesPage() {
                 </p>
                 {!fixBase && (
                   <p className="text-xs text-fg-subtle">
-                    The starting rates. Change them later with an effective date.
+                    Trips before the effective date pay nothing in this category. Leave the
+                    date blank to apply these rates to every trip.
                   </p>
                 )}
               </div>
@@ -676,7 +680,25 @@ export default function TripCategoriesPage() {
                   </label>
                 ))}
               </div>
+              {!editingProfile && (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-medium text-fg-muted">
+                    Effective date
+                  </span>
+                  <input
+                    type="date"
+                    value={effectiveFrom}
+                    onChange={(e) => setEffectiveFrom(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+                  />
+                </label>
+              )}
               <p className="text-xs text-fg-muted">
+                {!editingProfile && effectiveFrom && (
+                  <>
+                    From <strong>{shortDate(effectiveFrom)}</strong>:{" "}
+                  </>
+                )}
                 First trip pays{" "}
                 <strong>
                   {formatCurrency(

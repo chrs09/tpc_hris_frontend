@@ -188,6 +188,10 @@ export const createRateProfile = async (payload) => {
 
     formData.append("helper_next_trip_rate", payload.helper_next_trip_rate);
 
+    if (payload.effective_from) {
+      formData.append("effective_from", payload.effective_from);
+    }
+
     const response = await api.post(
       "/trip-maintenance/rate-profiles",
       formData,
