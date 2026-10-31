@@ -678,7 +678,7 @@ const DriverCashAdvance = () => {
                       <p className="mt-1 text-xs text-fg-subtle">
                         {item.is_fully_paid
                           ? "Fully paid"
-                          : `₱${item.remaining_balance.toLocaleString()} remaining of ₱${(item.approved_amount ?? item.amount).toLocaleString()}`}
+                          : `₱${item.remaining_balance.toLocaleString()} remaining of ₱${(item.effective_amount ?? item.approved_amount ?? item.amount).toLocaleString()}`}
                       </p>
                       {item.release_reference && (
                         <p className="mt-1 text-xs text-fg-subtle">

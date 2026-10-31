@@ -114,6 +114,13 @@ export const getCashAdvanceDeductionHistory = async ({ dateFrom, dateTo, source 
   return res.data;
 };
 
+// Finance: corrects what's owed. change is negative when less was actually
+// released than approved.
+export const adjustCashAdvance = async (requestId, { change, reason }) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/adjust`, { change, reason });
+  return res.data;
+};
+
 // Superadmin: the full ledger of deductions recorded against one
 // request, newest first.
 export const getCashAdvanceTransactions = async (requestId) => {

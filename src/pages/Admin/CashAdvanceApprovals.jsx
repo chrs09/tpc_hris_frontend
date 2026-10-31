@@ -12,6 +12,7 @@ import {
   getCashAdvanceDeductionHistory,
   getOutstandingBalances,
   recordCashAdvanceDeduction,
+  adjustCashAdvance,
   rejectCashAdvanceRequest,
   setCashAdvanceReleaseInfo,
 } from "../../api/cashAdvanceRequests";
@@ -172,7 +173,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     ),
   );
   const deductionsPagination = usePagination(filteredDeductions, 20);
-  const deductionsTotal = filteredDeductions.reduce((sum, d) => sum + d.amount, 0);
+  const deductionsTotal = filteredDeductions.reduce(
+    (sum, d) => (d.source === "adjustment" ? sum : sum + d.amount),
+    0,
+  );
 
   // Superadmin-only: outstanding balances + recording pre-existing
   // ("opening") balances carried over from before this system was
@@ -200,6 +204,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   // single "Record Deduction" prompt now that deductions are meant to
   // eventually be connected to payroll too, not just manual entries.
   const [historyRequest, setHistoryRequest] = useState(null);
+  // Adjust form: { request, actual, reason } -- corrects what's owed to
+  // the amount actually released.
+  const [adjustForm, setAdjustForm] = useState(null);
+  const [savingAdjust, setSavingAdjust] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [newDeductionAmount, setNewDeductionAmount] = useState("");
@@ -493,6 +501,31 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   };
 
   const handleSetRelease = (request) => setReleaseForm({ request, mode: "release" });
+
+  const handleSaveAdjust = async () => {
+    const { request, actual, reason } = adjustForm;
+    const change = Number(actual) - request.effective_amount;
+    if (actual === "" || Number(actual) < 0 || !change) {
+      toast.error("Enter the corrected amount.");
+      return;
+    }
+    if (!reason.trim()) {
+      toast.error("Give the reason for the adjustment.");
+      return;
+    }
+    try {
+      setSavingAdjust(true);
+      await adjustCashAdvance(request.id, { change, reason: reason.trim() });
+      toast.success("Cash advance adjusted.");
+      setAdjustForm(null);
+      await loadBalances();
+      if (allLoaded) await loadAll();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to adjust.");
+    } finally {
+      setSavingAdjust(false);
+    }
+  };
 
   const handleAddOpeningBalance = async () => {
     if (!openingBalanceUser) {
@@ -1106,6 +1139,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                   <option value="">All sources</option>
                   <option value="payroll">Payroll</option>
                   <option value="manual">Recorded by hand</option>
+                  <option value="adjustment">Adjustment</option>
                 </select>
               </div>
             </div>
@@ -1151,10 +1185,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           </td>
                           <td className="px-4 py-3 font-medium text-fg">{d.employee_name || "—"}</td>
                           <td className="whitespace-nowrap px-4 py-3 font-semibold text-fg">
-                            ₱{d.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                            {d.source === "adjustment" && (d.amount > 0 ? "−" : "+")}₱
+                            {Math.abs(d.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3">
-                            {d.source === "payroll" ? (
+                            {d.source === "adjustment" ? (
+                              <span className="font-medium text-warning">Adjustment</span>
+                            ) : d.source === "payroll" ? (
                               <div>
                                 <span className="font-medium text-fg">Payroll</span>
                                 <p className="text-xs text-fg-subtle">
@@ -1318,11 +1355,25 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           ₱{request.remaining_balance.toLocaleString()}{" "}
                           remaining of ₱
                           {(
-                            request.approved_amount ?? request.amount
+                            request.effective_amount ?? request.approved_amount ?? request.amount
                           ).toLocaleString()}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
+                        {canEditPage && (
+                          <button
+                            onClick={() =>
+                              setAdjustForm({
+                                request,
+                                actual: String(request.effective_amount),
+                                reason: "",
+                              })
+                            }
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover"
+                          >
+                            Adjust
+                          </button>
+                        )}
                         {canEditPage && (
                           <button
                           onClick={() => handleSetRelease(request)}
@@ -1373,6 +1424,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       deducted so far
                     </p>
 
+                    {request.total_adjustment !== 0 && (
+                      <p className="mt-1 text-xs font-semibold text-warning">
+                        Adjusted {request.total_adjustment > 0 ? "+" : "−"}₱
+                        {Math.abs(request.total_adjustment).toLocaleString()} (see Transaction History)
+                      </p>
+                    )}
+
                     {request.release_reference && (
                       <p className="mt-1 text-xs text-fg-subtle">
                         Released via: {request.release_reference}
@@ -1407,6 +1465,74 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         )}
       </div>
 
+      {adjustForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-surface p-5 shadow-lg">
+            <h3 className="text-lg font-bold text-fg">Adjust Cash Advance</h3>
+            <p className="mt-1 text-sm text-fg-subtle">
+              {adjustForm.request.employee_name} · currently ₱
+              {adjustForm.request.effective_amount.toLocaleString()} ·{" "}
+              ₱{adjustForm.request.total_deducted.toLocaleString()} deducted so far
+            </p>
+            <label className="mt-4 block text-xs font-medium text-fg-muted">
+              Actual amount released (₱)
+              <input
+                type="number"
+                min="0"
+                value={adjustForm.actual}
+                onChange={(e) => setAdjustForm({ ...adjustForm, actual: e.target.value })}
+                className="mt-1 w-full rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </label>
+            <label className="mt-3 block text-xs font-medium text-fg-muted">
+              Reason
+              <input
+                value={adjustForm.reason}
+                onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })}
+                placeholder="e.g. Only ₱700 was actually released"
+                className="mt-1 w-full rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </label>
+            {adjustForm.actual !== "" &&
+              Number(adjustForm.actual) !== adjustForm.request.effective_amount && (
+                <p className="mt-3 rounded-lg bg-surface-hover px-3 py-2 text-xs text-fg-muted">
+                  Adjustment:{" "}
+                  <strong>
+                    {Number(adjustForm.actual) < adjustForm.request.effective_amount ? "−" : "+"}₱
+                    {Math.abs(
+                      Number(adjustForm.actual) - adjustForm.request.effective_amount,
+                    ).toLocaleString()}
+                  </strong>{" "}
+                  · Balance becomes{" "}
+                  <strong>
+                    ₱
+                    {(
+                      adjustForm.request.remaining_balance +
+                      Number(adjustForm.actual) -
+                      adjustForm.request.effective_amount
+                    ).toLocaleString()}
+                  </strong>
+                </p>
+              )}
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => setAdjustForm(null)}
+                className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAdjust}
+                disabled={savingAdjust}
+                className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+              >
+                {savingAdjust ? "Saving..." : "Save Adjustment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {historyRequest && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-3xl border border-border bg-surface p-5 shadow-lg">
@@ -1418,7 +1544,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                 <p className="mt-1 text-sm text-fg-subtle">
                   {historyRequest.employee_name} · ₱
                   {historyRequest.remaining_balance.toLocaleString()}{" "}
-                  remaining of ₱{historyRequest.amount.toLocaleString()}
+                  remaining of ₱
+                  {(
+                    historyRequest.effective_amount ?? historyRequest.amount
+                  ).toLocaleString()}
                 </p>
               </div>
               <button
@@ -1444,7 +1573,16 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold text-fg">
-                        ₱{tx.amount.toLocaleString()}
+                        {tx.entry_type === "adjustment" ? (
+                          <>
+                            <span className="mr-1.5 rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                              Adjustment
+                            </span>
+                            {tx.amount > 0 ? "−" : "+"}₱{Math.abs(tx.amount).toLocaleString()}
+                          </>
+                        ) : (
+                          <>₱{tx.amount.toLocaleString()}</>
+                        )}
                       </span>
                       <span className="text-xs text-fg-subtle">
                         {new Date(tx.recorded_at).toLocaleString()}
