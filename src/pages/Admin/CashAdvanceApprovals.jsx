@@ -49,9 +49,16 @@ const formatDateNeeded = (value) =>
       })
     : null;
 
+// display_status labels that aren't just the status itself.
+const STATUS_LABELS = {
+  awaiting_acceptance: "Awaiting employee",
+};
+
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
   approved: "bg-success/15 text-success",
+  released: "bg-primary/15 text-primary",
+  awaiting_acceptance: "bg-warning/15 text-warning",
   rejected: "bg-danger/15 text-danger",
   cancelled: "bg-surface-active text-fg-subtle",
 };
@@ -127,6 +134,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       r.employee_name,
       r.reason,
       r.status,
+      r.display_status,
+      STATUS_LABELS[r.display_status],
       r.amount,
       r.approved_amount,
       r.requested_by_name,
@@ -347,7 +356,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         const result = await approveCashAdvanceRequest(request.id, undefined, approvedAmount);
         const next = result?.approval_steps?.find((st) => st.state === "current");
         let receiptSaved = false;
-        if (result?.status === "approved" && (receipt || reference)) {
+        if (result?.status === "approved" && !result.revised_terms_pending && (receipt || reference)) {
           try {
             await saveRelease(request.id, receipt, reference);
             receiptSaved = true;
@@ -362,6 +371,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         toast.success(
           result?.status === "pending" && next
             ? `Approved -- passed to ${next.name} for the next approval.`
+            : result?.revised_terms_pending
+              ? "Approved -- waiting for the employee to accept the revised terms before release."
             : receiptSaved
               ? "Cash advance approved and marked as sent."
               : approvedAmount === request.amount
@@ -562,22 +573,29 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     {
       key: "status",
       label: "Status",
-      render: (req) => (
-        <span
-          className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-            STATUS_STYLES[req.status] || "bg-surface-active text-fg-subtle"
-          }`}
-        >
-          {req.status}
-        </span>
-      ),
+      render: (req) => {
+        const shown = req.display_status || req.status;
+        return (
+          <span
+            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+              STATUS_STYLES[shown] || "bg-surface-active text-fg-subtle"
+            }`}
+            title={
+              req.revised_terms_pending
+                ? `Revised terms: ₱${req.approved_amount?.toLocaleString()} at ₱${req.deduction_per_pay_amount.toLocaleString()} per pay. The employee has to accept before release.`
+                : undefined
+            }
+          >
+            {STATUS_LABELS[shown] || shown}
+          </span>
+        );
+      },
     },
     { key: "approver", label: "Approver", render: (req) => <ApproverCell req={req} /> },
     { key: "filed", label: "Filed", tdClass: "py-4", render: (req) => shortDate(req.created_at) },
     {
       key: "date_approved",
       label: "Date Approved",
-      default: false,
       tdClass: "whitespace-nowrap",
       render: (req) => (req.status === "approved" ? shortDate(req.approved_at) : "—"),
     },
@@ -604,7 +622,6 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     {
       key: "released",
       label: "Date Released",
-      default: false,
       tdClass: "whitespace-nowrap",
       render: (req) => shortDate(req.released_at),
     },
@@ -612,7 +629,17 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       key: "terms",
       label: "Terms Accepted",
       default: false,
-      render: (req) => (req.terms_accepted ? "Yes" : "No"),
+      render: (req) => (
+        <>
+          {req.terms_accepted ? "Yes" : "No"}
+          {req.revised_terms_status && (
+            <span className="block text-xs capitalize text-fg-subtle">
+              Revised: {req.revised_terms_status}
+              {req.revised_terms_responded_at ? ` ${shortDate(req.revised_terms_responded_at)}` : ""}
+            </span>
+          )}
+        </>
+      ),
     },
     {
       key: "receipt",
@@ -633,6 +660,8 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           </button>
         ) : req.release_reference ? (
           <span className="text-xs">{req.release_reference}</span>
+        ) : req.revised_terms_pending ? (
+          <span className="text-xs text-warning">Waiting for employee</span>
         ) : req.status === "approved" && canEditPage ? (
           <button
             type="button"

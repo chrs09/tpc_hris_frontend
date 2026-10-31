@@ -191,6 +191,16 @@ export const getMyCashAdvanceBalance = async () => {
 };
 
 // Cancel one of your own pending cash advance requests.
+// The employee's answer to revised terms after an exception: accept, or
+// decline (cancels the request).
+export const respondToRevisedTerms = async (requestId, accept, remarks) => {
+  const res = await api.post(`/cash-advance-requests/${requestId}/revised-terms`, {
+    accept,
+    remarks: remarks || null,
+  });
+  return res.data;
+};
+
 export const cancelCashAdvanceRequest = async (requestId) => {
   const res = await api.post(`/cash-advance-requests/${requestId}/cancel`);
   return res.data;

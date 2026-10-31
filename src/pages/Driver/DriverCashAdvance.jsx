@@ -7,7 +7,9 @@ import {
   fileCashAdvanceRequest,
   getMyCashAdvanceBalance,
   getMyCashAdvanceRequests,
+  respondToRevisedTerms,
 } from "../../api/cashAdvanceRequests";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 import {
   getDeductionOptions,
   getPurposes,
@@ -19,6 +21,74 @@ const STATUS_STYLES = {
   approved: "bg-emerald-100 text-emerald-800",
   rejected: "bg-rose-100 text-rose-800",
   cancelled: "bg-slate-200 text-slate-700",
+  released: "bg-emerald-100 text-emerald-800",
+  awaiting_acceptance: "bg-amber-100 text-amber-800",
+};
+
+// display_status labels that aren't just the status itself.
+const STATUS_LABELS = {
+  awaiting_acceptance: "ACCEPT TERMS",
+};
+
+// An approved exception changed what was filed: the new terms, and the
+// employee's accept / decline. No money moves until they accept.
+const RevisedTermsPanel = ({ item, termsContent, busy, onRespond }) => {
+  const [agreed, setAgreed] = useState(false);
+  return (
+    <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+      <p className="font-bold">Please review your revised terms</p>
+      <p className="mt-1 text-xs">
+        Your request was approved with different terms. It can&apos;t be released until you accept.
+      </p>
+      <div className="mt-2 grid grid-cols-[auto_1fr_1fr] gap-x-3 gap-y-1 text-xs">
+        <span />
+        <span className="font-semibold">You filed</span>
+        <span className="font-semibold">Approved</span>
+        <span>Amount</span>
+        <span>₱{(item.revised_terms_previous_amount ?? item.amount).toLocaleString()}</span>
+        <span className="font-bold">₱{(item.approved_amount ?? item.amount).toLocaleString()}</span>
+        <span>Per pay</span>
+        <span>₱{(item.revised_terms_previous_per_pay ?? 0).toLocaleString()}</span>
+        <span className="font-bold">₱{item.deduction_per_pay_amount.toLocaleString()}</span>
+      </div>
+      {item.estimated_pay_periods && (
+        <p className="mt-1 text-xs">About {item.estimated_pay_periods} pay periods to repay.</p>
+      )}
+      {item.exception_reason && <p className="mt-1 text-xs">Reason: {item.exception_reason}</p>}
+      {termsContent.trim() && (
+        <p className="mt-2 max-h-32 overflow-y-auto whitespace-pre-wrap rounded-lg bg-white/70 p-2 text-xs">
+          {termsContent}
+        </p>
+      )}
+      <label className="mt-2 flex items-start gap-2 text-xs font-semibold">
+        <input
+          type="checkbox"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="mt-0.5 h-4 w-4"
+        />
+        I have read and accept the revised amount, repayment and terms.
+      </label>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={!agreed || busy}
+          onClick={() => onRespond(item, true)}
+          className="rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+        >
+          Accept
+        </button>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onRespond(item, false)}
+          className="rounded-lg border border-rose-300 px-3 py-1.5 text-xs font-bold text-rose-700 disabled:opacity-50"
+        >
+          Decline
+        </button>
+      </div>
+    </div>
+  );
 };
 
 const OTHER_PURPOSE_ID = "__other__";
@@ -67,6 +137,7 @@ const DriverCashAdvance = () => {
   const [dateNeeded, setDateNeeded] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  const [respondingId, setRespondingId] = useState(null);
 
   const employeeName = localStorage.getItem("username") || "";
 
@@ -274,6 +345,27 @@ const DriverCashAdvance = () => {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRevisedTerms = async (item, accept) => {
+    let remarks;
+    if (!accept) {
+      remarks = await promptDialog(
+        "Decline the revised terms? This cancels your cash advance request. Reason (optional):",
+      );
+      if (remarks === null) return;
+    }
+    try {
+      setRespondingId(item.id);
+      await respondToRevisedTerms(item.id, accept, remarks);
+      toast.success(accept ? "Revised terms accepted." : "Request cancelled.");
+      await loadRequests();
+      await loadBalance();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Could not save your answer.");
+    } finally {
+      setRespondingId(null);
     }
   };
 
@@ -523,7 +615,8 @@ const DriverCashAdvance = () => {
         ) : (
           <div className="space-y-3">
             {requests.map((item) => {
-              const style = STATUS_STYLES[item.status] || STATUS_STYLES.pending;
+              const shownStatus = item.display_status || item.status;
+              const style = STATUS_STYLES[shownStatus] || STATUS_STYLES.pending;
               return (
                 <div
                   key={item.id}
@@ -536,7 +629,7 @@ const DriverCashAdvance = () => {
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-bold ${style}`}
                     >
-                      {item.status.toUpperCase()}
+                      {STATUS_LABELS[shownStatus] || shownStatus.toUpperCase()}
                     </span>
                   </div>
 
@@ -558,8 +651,22 @@ const DriverCashAdvance = () => {
                       : ""}
                   </p>
 
-                  {item.status === "approved" && (
+                  {item.revised_terms_pending && (
+                    <RevisedTermsPanel
+                      item={item}
+                      termsContent={termsContent}
+                      busy={respondingId === item.id}
+                      onRespond={handleRevisedTerms}
+                    />
+                  )}
+
+                  {item.status === "approved" && !item.revised_terms_pending && (
                     <>
+                      {item.approved_at && (
+                        <p className="mt-1 text-xs text-fg-subtle">
+                          Approved: {new Date(item.approved_at).toLocaleDateString()}
+                        </p>
+                      )}
                       {item.approved_amount != null &&
                         item.approved_amount !== item.amount && (
                           <p className="mt-1 text-xs font-semibold text-fg">
