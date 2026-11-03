@@ -146,7 +146,14 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       r.release_reference,
     );
   const filteredPending = pending.filter(matchesRequest);
-  const filteredAll = allRequests.filter(matchesRequest);
+  // All Requests: one status at a time ("" = every status), by the
+  // status shown in the table.
+  const [statusFilter, setStatusFilter] = useState("");
+  const filteredAll = allRequests.filter(
+    (r) =>
+      matchesRequest(r) &&
+      (!statusFilter || (r.display_status || r.status) === statusFilter),
+  );
   const pendingPagination = usePagination(filteredPending, 10);
   const allPagination = usePagination(filteredAll, 15);
 
@@ -1026,6 +1033,23 @@ export default function CashAdvanceApprovals({ embedded = false }) {
 
         {tab === "all" && (
           <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              allPagination.setPage(1);
+            }}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="awaiting_acceptance">Awaiting employee</option>
+            <option value="approved">Approved</option>
+            <option value="released">Released</option>
+            <option value="rejected">Rejected</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
           <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-fg-muted">
             <input
               type="checkbox"
@@ -1038,6 +1062,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             />
             Show archived
           </label>
+          </div>
           <ColumnPicker
             columns={ALL_COLUMNS}
             visible={allColumnPrefs.visible}
@@ -1058,6 +1083,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                 {showArchived
                   ? "Nothing archived."
                   : "No cash advance requests have been filed yet."}
+              </div>
+            ) : filteredAll.length === 0 ? (
+              <div className="p-10 text-center text-sm text-fg-muted">
+                No requests match this search or status.
               </div>
             ) : (
               <div className="overflow-x-auto">
