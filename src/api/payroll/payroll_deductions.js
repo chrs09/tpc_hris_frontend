@@ -9,7 +9,7 @@ import api from "../services/api";
 //   cutoff_period, employee_id, department, gross_pay,
 //   sss_deduction, philhealth_deduction, pagibig_deduction,
 //   tardiness_deduction, undertime_deduction, absent_deduction,
-//   cash_advance_deduction, net_pay
+//   cash_advance_deduction, trip_charge_deduction, net_pay
 // }
 export const savePayrollDeduction = async (payload) => {
   const res = await api.post("/payroll-deductions/save", payload);
@@ -44,6 +44,20 @@ export const getPayrollDeductions = async ({
 export const getCashAdvanceForCutoff = async (cutoffPeriod, employeeIds) => {
   if (!employeeIds.length) return {};
   const res = await api.get("/payroll-deductions/cash-advance", {
+    params: {
+      cutoff_period: cutoffPeriod,
+      employee_ids: employeeIds.join(","),
+    },
+  });
+
+  return res.data || {};
+};
+
+// Trip charges (shortages, accidents) to deduct this cutoff, same shape --
+// see app/services/trip_charge_payroll.py.
+export const getTripChargesForCutoff = async (cutoffPeriod, employeeIds) => {
+  if (!employeeIds.length) return {};
+  const res = await api.get("/payroll-deductions/trip-charges", {
     params: {
       cutoff_period: cutoffPeriod,
       employee_ids: employeeIds.join(","),

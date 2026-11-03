@@ -99,12 +99,15 @@ const ApproverCell = ({ req }) => {
 
 export default function CashAdvanceApprovals({ embedded = false }) {
   const canEditPage = usePageCanEdit();
-  const { isSuperAdmin, hasCustomAccess, grantedModules } = useModuleAccess();
+  const { isSuperAdmin, hasCustomAccess, grantedModules, canEdit } = useModuleAccess();
   // Full history + balances are Finance's; an Org Chart head only gets
   // the requests waiting on them.
   const hasFinanceAccess =
     isSuperAdmin ||
     (hasCustomAccess && grantedModules.has("finance.cash_advance"));
+  // Outstanding Balances actions (Adjust, Release, opening balance):
+  // superadmin, or Finance -> Cash Advances with "Can edit: Yes".
+  const canEditLedger = canEdit("finance.cash_advance");
 
   // Pending Approvals as cards or a compact list (remembered per browser).
   const [pendingView, setPendingView] = useViewType("cash_advance_pending_view");
@@ -178,7 +181,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     0,
   );
 
-  // Superadmin-only: outstanding balances + recording pre-existing
+  // Finance's: outstanding balances + recording pre-existing
   // ("opening") balances carried over from before this system was
   // used -- moved here from Cash Advance Settings so it lives
   // alongside the rest of the cash advance workflow.
@@ -293,14 +296,14 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     };
   }, [tab, hasFinanceAccess, deductionRange, deductionSource]);
 
-  // Same lazy-load pattern for the superadmin-only Balances tab.
+  // Same lazy-load pattern for the Balances tab.
   useEffect(() => {
-    if (tab === "balances" && isSuperAdmin) {
+    if (tab === "balances" && hasFinanceAccess) {
       if (!balancesLoaded) loadBalances();
       if (assignableUsers.length === 0) loadAssignableUsers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab, isSuperAdmin, balancesLoaded]);
+  }, [tab, hasFinanceAccess, balancesLoaded]);
 
   // The final approval is when the money goes out -- that's where the
   // receipt photo is asked for. A head who passes it up only sets the amount.
@@ -747,7 +750,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
               All Requests
             </button>
           )}
-          {isSuperAdmin && (
+          {hasFinanceAccess && (
             <button
               onClick={() => setTab("balances")}
               className={`px-4 py-2 text-sm font-medium ${
@@ -1240,15 +1243,14 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           </div>
         )}
 
-        {tab === "balances" && isSuperAdmin && (
+        {tab === "balances" && hasFinanceAccess && (
           <div className="rounded-3xl border border-border bg-surface p-5 shadow-sm">
             <h3 className="text-lg font-bold text-fg">
               Outstanding Cash Advance Balances
             </h3>
             <p className="mt-1 text-sm text-fg-subtle">
-              Approved requests that aren't fully paid off yet. Record a
-              deduction here each time it's actually taken out of a
-              payslip — this isn't automatic yet.
+              Approved requests that aren't fully paid off yet. Payroll
+              deducts these automatically when payslips are generated.
             </p>
 
             <div className="mt-4 rounded-2xl border border-dashed border-border bg-surface-hover p-4">
@@ -1321,7 +1323,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                     className="w-56 rounded-xl border border-border bg-background p-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                {canEditPage && (
+                {canEditLedger && (
                   <button
                   onClick={handleAddOpeningBalance}
                   disabled={savingOpeningBalance}
@@ -1351,6 +1353,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         <span className="font-semibold text-fg">
                           {request.employee_name}
                         </span>
+                        <span
+                          className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                            request.is_opening_balance
+                              ? "bg-surface-active text-fg-subtle"
+                              : request.released_at
+                                ? STATUS_STYLES.released
+                                : "bg-warning/15 text-warning"
+                          }`}
+                        >
+                          {request.is_opening_balance
+                            ? "Opening balance"
+                            : request.released_at
+                              ? "Released"
+                              : "Not released"}
+                        </span>
                         <span className="ml-2 text-sm text-fg-subtle">
                           ₱{request.remaining_balance.toLocaleString()}{" "}
                           remaining of ₱
@@ -1360,7 +1377,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        {canEditPage && (
+                        {canEditLedger && (
                           <button
                             onClick={() =>
                               setAdjustForm({
@@ -1374,22 +1391,27 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                             Adjust
                           </button>
                         )}
-                        {canEditPage && (
+                        {canEditLedger && !request.released_at && !request.is_opening_balance && (
                           <button
-                          onClick={() => handleSetRelease(request)}
-                          disabled={releasingId === request.id}
-                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
-                        >
-                          {releasingId === request.id
-                            ? "Saving..."
-                            : request.release_reference
-                              ? "Edit Release Info"
-                              : "Record Release"}
-                        </button>
+                            onClick={() => handleSetRelease(request)}
+                            disabled={releasingId === request.id}
+                            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+                          >
+                            {releasingId === request.id ? "Saving..." : "Release"}
+                          </button>
+                        )}
+                        {canEditLedger && request.released_at && (
+                          <button
+                            onClick={() => handleSetRelease(request)}
+                            disabled={releasingId === request.id}
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+                          >
+                            {releasingId === request.id ? "Saving..." : "Edit Release Info"}
+                          </button>
                         )}
                         <button
                           onClick={() => handleOpenHistory(request)}
-                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover"
                         >
                           Transaction History
                         </button>
@@ -1431,9 +1453,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       </p>
                     )}
 
-                    {request.release_reference && (
+                    {(request.release_reference || request.release_receipt_url) && (
                       <p className="mt-1 text-xs text-fg-subtle">
-                        Released via: {request.release_reference}
+                        Released via: {request.release_reference || "Receipt"}
                         {request.released_at
                           ? ` (${new Date(request.released_at).toLocaleDateString()})`
                           : ""}

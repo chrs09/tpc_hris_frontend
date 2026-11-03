@@ -10,6 +10,7 @@ import TripDashboard from "../Admin/TripDashboard";
 import TripAssignment from "../Admin/TripAssignment";
 import TripBypassPage from "../Admin/TripBypass";
 import TripManualEntriesPage from "../Admin/TripManualEntries";
+import TripChargesPage from "../Admin/TripChargesPage";
 import RouteRidesPage from "../Admin/RouteRidesPage";
 import FuelRequestsRedirect from "../Admin/FuelRequestsRedirect";
 import OrgChart from "../Admin/OrgChart";
@@ -166,6 +167,7 @@ const Dashboard = () => {
             path="admin/trip-manual-entries"
             element={<TripManualEntriesPage />}
           />
+          <Route path="admin/trip-charges" element={<TripChargesPage />} />
           <Route path="admin/route-rides" element={<RouteRidesPage />} />
           <Route path="admin/stores" element={<StoreManagement />} />
           <Route path="applicants" element={<ApplicantsPage />} />

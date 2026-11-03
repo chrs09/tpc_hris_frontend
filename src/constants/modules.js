@@ -138,6 +138,15 @@ export const MODULE_GROUPS = [
         label: "Trip Manual Entries",
         path: "/dashboard/admin/trip-manual-entries",
       },
+      {
+        // Shortages and accidents, deducted through payroll.
+        key: "trip_charges",
+        label: "Trip Charges",
+        path: "/dashboard/admin/trip-charges",
+        children: [
+          { key: "trip_charges_approve", label: "Approve & Revise charges" },
+        ],
+      },
     ],
   },
   {

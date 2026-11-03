@@ -291,6 +291,13 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
       ? Number(payroll.cashAdvanceBalanceAfter)
       : null;
 
+  // Shortages and accidents (Trip Management -> Trip Charges).
+  const tripCharge = Number(payroll.tripCharge ?? 0);
+  const tripChargeBalanceAfter =
+    payroll.tripChargeBalanceAfter != null
+      ? Number(payroll.tripChargeBalanceAfter)
+      : null;
+
   const personalDeduction = Number(payroll.personalDeduction ?? 0);
 
   // ===================================================
@@ -303,7 +310,8 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // OTHER DEDUCTION TOTAL
   // ===================================================
 
-  const totalOtherDeductions = sssLoan + cashAdvance + personalDeduction;
+  const totalOtherDeductions =
+    sssLoan + cashAdvance + tripCharge + personalDeduction;
 
   // ===================================================
   // TOTAL DEDUCTIONS
@@ -430,9 +438,18 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               negative
             />
 
+            {(tripCharge > 0 || tripChargeBalanceAfter != null) && (
+              <PayslipValue
+                label="Trip Charges"
+                value={tripCharge}
+                isMoney
+                negative
+              />
+            )}
+
             <PayslipValue
               label="Other Deductions"
-              value={totalOtherDeductions - cashAdvance}
+              value={totalOtherDeductions - cashAdvance - tripCharge}
               isMoney
               negative
             />
@@ -449,6 +466,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               <PayslipValue
                 label="CA Balance Left"
                 value={cashAdvanceBalanceAfter}
+                isMoney
+              />
+            )}
+
+            {tripChargeBalanceAfter != null && (
+              <PayslipValue
+                label="Charges Left"
+                value={tripChargeBalanceAfter}
                 isMoney
               />
             )}
@@ -784,6 +809,23 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
             <PayslipValue
               label="CA Balance Left"
               value={cashAdvanceBalanceAfter}
+              isMoney
+            />
+          )}
+
+          {(tripCharge > 0 || tripChargeBalanceAfter != null) && (
+            <PayslipValue
+              label="Trip Charges"
+              value={tripCharge}
+              isMoney
+              negative
+            />
+          )}
+
+          {tripChargeBalanceAfter != null && (
+            <PayslipValue
+              label="Charges Left"
+              value={tripChargeBalanceAfter}
               isMoney
             />
           )}

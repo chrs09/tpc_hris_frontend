@@ -553,6 +553,13 @@ const PayrollDetailModal = ({
                 </div>
 
                 <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Trip Charges</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.tripCharge || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
                   <p className="text-xs text-fg-subtle">Other Deduction</p>
                   <p className="font-bold text-red-600">
                     ₱{Number(payroll.personalDeduction || 0).toFixed(2)}

@@ -234,6 +234,14 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.trip_manual_entries",
         },
         {
+          // Shortages and accidents. Approving is its own tick on the Org
+          // Chart (trip_charges_approve), or superadmin.
+          label: "Trip Charges",
+          path: "/dashboard/admin/trip-charges",
+          roles: ["superadmin", "coordinator_admin", "office_admin"],
+          moduleKey: "trip_management.trip_charges",
+        },
+        {
           // Route rides (assigned in Trip Assignment) + Route Ride Manual
           // for rides done before route rides existed. Its own tick.
           label: "Route Rides",

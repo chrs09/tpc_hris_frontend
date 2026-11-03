@@ -37,6 +37,7 @@ import {
   savePayrollDeductionsBulk,
   getPayrollDeductions,
   getCashAdvanceForCutoff,
+  getTripChargesForCutoff,
 } from "../../api/payroll/payroll_deductions";
 import PayrollStatusBar from "../../components/payroll/PayrollStatusBar";
 import { payrollStatusLabel } from "../../utils/payroll/payrollStatus";
@@ -101,6 +102,21 @@ const getCashAdvance = (info, adj, availablePay) => {
   };
 };
 
+// This cutoff's trip charge deduction (shortages, accidents): same rules as
+// a cash advance, out of whatever pay the cash advance left.
+const getTripCharge = (info, adj, availablePay) => {
+  const result = getCashAdvance(
+    info,
+    adj.tripCharge !== undefined ? { cashAdvance: adj.tripCharge } : {},
+    availablePay,
+  );
+  return {
+    tripCharge: result.cashAdvance,
+    tripChargeBalanceBefore: result.cashAdvanceBalanceBefore,
+    tripChargeBalanceAfter: result.cashAdvanceBalanceAfter,
+  };
+};
+
 // Placeholder while a department has no cutoff rule (nothing matches it).
 const HOLIDAY_TYPE_LABELS = {
   regular: "Regular",
@@ -151,6 +167,7 @@ const PayrollList = () => {
   // approved cash advances), keyed by employee id -- pre-fills the Cash
   // Advance column. Posted to the cash advance balance on save.
   const [cashAdvanceInfo, setCashAdvanceInfo] = useState({});
+  const [tripChargeInfo, setTripChargeInfo] = useState({});
 
   const getAdjustmentKey = (employeeId, period) =>
     `${employeeId}_${period.cutoffStart}_${period.cutoffEnd}`;
@@ -484,6 +501,17 @@ const PayrollList = () => {
     } catch (err) {
       console.error("Failed to load cash advance balances", err);
       setCashAdvanceInfo({});
+    }
+    try {
+      setTripChargeInfo(
+        await getTripChargesForCutoff(
+          `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+          departmentEmployeeIds,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to load trip charges", err);
+      setTripChargeInfo({});
     }
   }, [activePeriod, departmentEmployeeIds]);
 
@@ -1133,7 +1161,19 @@ const PayrollList = () => {
         );
         const cashAdvance = ca.cashAdvance;
 
-        const otherDeductions = sssLoan + cashAdvance + personalDeduction;
+        const charge = getTripCharge(
+          employee._segment && !employee._segment.is_last
+            ? null
+            : tripChargeInfo[String(employee.id)],
+          employee._segment && !employee._segment.is_last ? {} : adj,
+          (isTripBasedEmployee
+            ? tripPay
+            : grossPay - govtDeductions - sssLoan - personalDeduction) - cashAdvance,
+        );
+        const tripCharge = charge.tripCharge;
+
+        const otherDeductions =
+          sssLoan + cashAdvance + tripCharge + personalDeduction;
 
         const totalDeductions = govtDeductions + otherDeductions;
 
@@ -1260,9 +1300,10 @@ const PayrollList = () => {
             cashAdvance,
             cashAdvanceBalanceBefore: ca.cashAdvanceBalanceBefore,
             cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
+            ...charge,
             personalDeduction: 0,
-            totalDeductions: cashAdvance,
-            netPay: tripPay - cashAdvance,
+            totalDeductions: cashAdvance + tripCharge,
+            netPay: tripPay - cashAdvance - tripCharge,
 
             attendanceCount: records.length,
 
@@ -1350,6 +1391,7 @@ const PayrollList = () => {
           cashAdvance,
           cashAdvanceBalanceBefore: ca.cashAdvanceBalanceBefore,
           cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
+          ...charge,
           personalDeduction,
           totalDeductions,
 
@@ -1374,6 +1416,7 @@ const PayrollList = () => {
     searchEmployee,
     adjustments,
     cashAdvanceInfo,
+    tripChargeInfo,
     tripCheck,
     departmentEntries,
     incentivesByEmployee,
@@ -1523,11 +1566,13 @@ const PayrollList = () => {
     undertime_deduction: row.isTripBasedEmployee ? 0 : row.undertimeDeduction,
     absent_deduction: row.isTripBasedEmployee ? 0 : row.absentDeduction || 0,
     cash_advance_deduction: row.cashAdvance || 0,
+    trip_charge_deduction: row.tripCharge || 0,
     net_pay: row.netPay,
     segment: row.employee._segment?.key || "",
-    // Cash advance is posted once per cutoff, from the last part only.
+    // Cash advance and trip charges are posted once per cutoff, from the
+    // last part only.
     ...(row.employee._segment && !row.employee._segment.is_last
-      ? { cash_advance_deduction: undefined }
+      ? { cash_advance_deduction: undefined, trip_charge_deduction: undefined }
       : {}),
   });
 
@@ -2006,6 +2051,13 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                   <th className="px-4 py-3 text-left">Cash Advance</th>
 
+                  <th
+                    className="px-4 py-3 text-left"
+                    title="Shortages and accidents from Trip Management -> Trip Charges"
+                  >
+                    Trip Charges
+                  </th>
+
                   <th className="px-4 py-3 text-left">Personal Ded.</th>
 
                   <th className="px-4 py-3 text-left">Net Pay</th>
@@ -2373,6 +2425,42 @@ Next: Submit for Review. You can generate again after corrections until it's app
                         >
                           Bal ₱{row.cashAdvanceBalanceBefore.toFixed(2)} → ₱
                           {row.cashAdvanceBalanceAfter.toFixed(2)}
+                        </p>
+                      )}
+                    </td>
+
+                    <td className="px-4 py-3">
+                      <input
+                        disabled={!payrollEditable}
+                        type="number"
+                        min="0"
+                        className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
+                        value={row.tripCharge || ""}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateAdjustment(
+                            row.employee.adjId ?? row.employee.id,
+                            activePeriod,
+                            "tripCharge",
+                            e.target.value,
+                          )
+                        }
+                      />
+                      {row.tripChargeBalanceBefore != null && (
+                        <p
+                          className="mt-1 text-[11px] text-fg-subtle"
+                          title="Trip charges owed before this cutoff -> after this deduction"
+                        >
+                          Bal ₱{row.tripChargeBalanceBefore.toFixed(2)} → ₱
+                          {row.tripChargeBalanceAfter.toFixed(2)}
+                        </p>
+                      )}
+                      {row.tripCharge > row.grossPay * 0.2 && (
+                        <p
+                          className="mt-1 text-[11px] font-semibold text-warning"
+                          title="Loss or damage deductions are generally limited to 20% of wages. Please check with HR."
+                        >
+                          Over 20% of pay
                         </p>
                       )}
                     </td>

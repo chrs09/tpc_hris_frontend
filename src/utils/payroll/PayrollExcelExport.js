@@ -82,6 +82,7 @@ export const exportPayrollExcel = async (
     "WHT",
     "SSS Loan",
     "Cash Advance",
+    "Trip Charges",
     "Personal",
     "Net Pay",
     "Incentives (separate)",
@@ -158,6 +159,8 @@ export const exportPayrollExcel = async (
 
       row.cashAdvance,
 
+      row.tripCharge || 0,
+
       row.personalDeduction,
 
       row.netPay,
@@ -178,7 +181,7 @@ export const exportPayrollExcel = async (
   // Currency
   ////////////////////////////////////////////
 
-  for (let i = 2; i <= 22; i++) {
+  for (let i = 2; i <= 23; i++) {
     payroll.getColumn(i).numFmt = "₱#,##0.00";
   }
 
