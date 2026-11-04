@@ -28,6 +28,8 @@ import {
 } from "../../utils/attendanceReview";
 import useApprovalScope from "../../hooks/useApprovalScope";
 import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
+import MissedTimeInPanel from "../../components/attendance/MissedTimeInPanel";
+import TimeCorrectionPanel from "../../components/attendance/TimeCorrectionPanel";
 
 const REASON_LABELS = {
   MISSED_TIME_OUT: "Forgot to time out",
@@ -203,6 +205,10 @@ export default function AttendanceApprovals() {
           <ViewToggle viewType={viewType} onChange={setViewType} />
         </div>
       </div>
+
+      {/* Not timed in (heads answer) and employees' time corrections. */}
+      <MissedTimeInPanel canEdit={canEditPage} />
+      <TimeCorrectionPanel canEdit={canEditPage} />
 
       {items.length > 0 && (
         <div className="flex flex-wrap gap-2">

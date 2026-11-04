@@ -13,6 +13,7 @@ import {
   getAttendanceSettings,
   getEmployeeAttendanceRules,
   saveAttendanceSettings,
+  saveMissedTimeInWait,
   saveEmployeeAttendanceRules,
   updateAttendanceLocation,
 } from "../../api/attendanceLocations";
@@ -63,6 +64,79 @@ const Modal = ({ title, onClose, children, footer }) => (
     </div>
   </div>
 );
+
+// ---------------- missed time in: wait before the head is asked
+const MissedTimeInCard = ({ minutes, minDuty, canEdit, onSaved }) => {
+  const [hours, setHours] = useState(String(Math.floor(minutes / 60)));
+  const [mins, setMins] = useState(String(minutes % 60));
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    const total = Number(hours || 0) * 60 + Number(mins || 0);
+    if (Number.isNaN(total) || total < 15 || total > 720) {
+      toast.error("Enter 15 minutes to 12 hours.");
+      return;
+    }
+    try {
+      setSaving(true);
+      const result = await saveMissedTimeInWait(minDuty, total);
+      toast.success(`Heads are asked ${hoursLabel(total)} after the scheduled time in.`);
+      onSaved(result.missed_time_in_alert_minutes ?? total);
+    } catch (error) {
+      toast.error(errorOf(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-5">
+      <h2 className="font-semibold text-fg">Missed time in alert</h2>
+      <p className="mt-1 text-sm text-fg-muted">
+        When a scheduled employee hasn&apos;t timed in this long after their schedule, their
+        immediate head is emailed and asked in Approvals &rarr; Attendance: Late, 2nd half or
+        Absent. Drivers and helpers aren&apos;t included (their attendance comes from trips).
+      </p>
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <label className="text-sm text-fg-muted">
+          Hours
+          <input
+            type="number"
+            min="0"
+            max="12"
+            value={hours}
+            disabled={!canEdit}
+            onChange={(e) => setHours(e.target.value)}
+            className={`${inputClass} w-24`}
+          />
+        </label>
+        <label className="text-sm text-fg-muted">
+          Minutes
+          <input
+            type="number"
+            min="0"
+            max="59"
+            value={mins}
+            disabled={!canEdit}
+            onChange={(e) => setMins(e.target.value)}
+            className={`${inputClass} w-24`}
+          />
+        </label>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            className="h-10 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+        )}
+        <span className="pb-2 text-sm text-fg-subtle">Now: {hoursLabel(minutes)}</span>
+      </div>
+    </div>
+  );
+};
 
 // ---------------- minimum hours of duty (company default)
 const MinDutyCard = ({ minutes, canEdit, onSaved }) => {
@@ -357,6 +431,7 @@ export default function AttendanceLocationsPage() {
   const [locations, setLocations] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [companyMinutes, setCompanyMinutes] = useState(null);
+  const [missedWait, setMissedWait] = useState(null);
   const [editingLocation, setEditingLocation] = useState(null); // {} = new
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [search, setSearch] = useState("");
@@ -368,6 +443,7 @@ export default function AttendanceLocationsPage() {
         setLocations(locs);
         setEmployees(emps);
         setCompanyMinutes(settings.min_duty_minutes);
+        setMissedWait(settings.missed_time_in_alert_minutes ?? null);
       })
       .catch((error) => toast.error(errorOf(error)));
 
@@ -377,6 +453,7 @@ export default function AttendanceLocationsPage() {
         setLocations(locs);
         setEmployees(emps);
         setCompanyMinutes(settings.min_duty_minutes);
+        setMissedWait(settings.missed_time_in_alert_minutes ?? null);
       })
       .catch((error) => toast.error(errorOf(error)));
   }, []);
@@ -407,6 +484,16 @@ export default function AttendanceLocationsPage() {
 
       {companyMinutes !== null && (
         <MinDutyCard key={companyMinutes} minutes={companyMinutes} canEdit={canEdit} onSaved={setCompanyMinutes} />
+      )}
+
+      {companyMinutes !== null && missedWait !== null && (
+        <MissedTimeInCard
+          key={missedWait}
+          minutes={missedWait}
+          minDuty={companyMinutes}
+          canEdit={canEdit}
+          onSaved={setMissedWait}
+        />
       )}
 
       {/* LOCATIONS */}

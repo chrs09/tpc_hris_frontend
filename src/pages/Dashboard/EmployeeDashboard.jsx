@@ -1,16 +1,19 @@
 import React, { useEffect, useState, useCallback } from "react";
 import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
 import { format, addMonths, subMonths, parse, endOfMonth } from "date-fns";
-import { CalendarPlus, ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Clock, History } from "lucide-react";
 import { getMyAttendanceHistory } from "../../api/attendance";
 import { getMyLeaveRequests } from "../../api/leave";
 import { getMyOvertimeRequests } from "../../api/overtimeRequests";
+import { getMyMissedDays, getMyTimeCorrections } from "../../api/attendance/requests";
 import AttendanceHistoryList from "../../components/employeeDashboard/AttendanceHistoryList";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
 import OvertimeHistoryList from "../../components/overtime/OvertimeHistoryList";
 import OvertimeActionButton from "../../components/overtime/OvertimeActionButton";
 import FileOvertimeModal from "../../components/overtime/FileOvertimeModal";
+import TimeCorrectionModal from "../../components/timeCorrection/TimeCorrectionModal";
+import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorrectionHistoryList";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import useIsDesktop from "../../hooks/useIsDesktop";
 
@@ -33,6 +36,11 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [showOvertimeModal, setShowOvertimeModal] = useState(false);
+  // Time corrections: own requests, days the head confirmed without a
+  // time in, and the modal (null = closed, else the day to start on).
+  const [corrections, setCorrections] = useState([]);
+  const [missedDays, setMissedDays] = useState([]);
+  const [correctionDate, setCorrectionDate] = useState(null);
   const isDesktop = useIsDesktop();
 
   const employeeName = localStorage.getItem("username") || "there";
@@ -51,12 +59,16 @@ const EmployeeDashboard = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const [leaveData, overtimeData] = await Promise.all([
+      const [leaveData, overtimeData, correctionData, missedData] = await Promise.all([
         getMyLeaveRequests(),
         getMyOvertimeRequests(),
+        getMyTimeCorrections(),
+        getMyMissedDays(),
       ]);
       setLeaves(leaveData);
       setOvertimeRequests(overtimeData);
+      setCorrections(correctionData);
+      setMissedDays(missedData);
     } catch (error) {
       console.error("Failed to load employee dashboard:", error);
     } finally {
@@ -103,6 +115,15 @@ const EmployeeDashboard = () => {
 
   const overtimeActionButton = <OvertimeActionButton onChanged={loadData} />;
 
+  const fileCorrectionButton = (
+    <button
+      onClick={() => setCorrectionDate("")}
+      className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors"
+    >
+      + File Correction
+    </button>
+  );
+
   const attendanceMonthNav = (
     <div className="flex items-center gap-1">
       <button
@@ -148,6 +169,17 @@ const EmployeeDashboard = () => {
     <p className="text-sm text-fg-muted">Loading...</p>
   ) : (
     <OvertimeHistoryList requests={overtimeRequests} onChanged={loadData} />
+  );
+
+  const correctionContent = loading ? (
+    <p className="text-sm text-fg-muted">Loading...</p>
+  ) : (
+    <TimeCorrectionHistoryList
+      requests={corrections}
+      missedDays={missedDays}
+      onFile={setCorrectionDate}
+      onChanged={loadData}
+    />
   );
 
   return (
@@ -213,6 +245,12 @@ const EmployeeDashboard = () => {
             icon: Clock,
             onClick: () => setShowOvertimeModal(true),
           },
+          {
+            key: "file-time-correction",
+            label: "Time Correction",
+            icon: History,
+            onClick: () => setCorrectionDate(""),
+          },
         ]}
       />
 
@@ -231,6 +269,10 @@ const EmployeeDashboard = () => {
             action={overtimeActionButton}
           >
             {overtimeContent}
+          </DashboardCard>
+
+          <DashboardCard title="Time Corrections" action={fileCorrectionButton}>
+            {correctionContent}
           </DashboardCard>
         </div>
       ) : (
@@ -267,6 +309,17 @@ const EmployeeDashboard = () => {
             </div>
             {overtimeContent}
           </section>
+
+          {/* TIME CORRECTIONS */}
+          <section className="px-1">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-base font-bold text-fg">
+                Time Corrections
+              </h2>
+              {fileCorrectionButton}
+            </div>
+            {correctionContent}
+          </section>
         </>
       )}
 
@@ -279,6 +332,13 @@ const EmployeeDashboard = () => {
       {showOvertimeModal && (
         <FileOvertimeModal
           onClose={() => setShowOvertimeModal(false)}
+          onFiled={loadData}
+        />
+      )}
+      {correctionDate !== null && (
+        <TimeCorrectionModal
+          date={correctionDate}
+          onClose={() => setCorrectionDate(null)}
           onFiled={loadData}
         />
       )}

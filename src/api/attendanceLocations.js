@@ -19,6 +19,16 @@ export const getAttendanceSettings = async () =>
 export const saveAttendanceSettings = async (minDutyMinutes) =>
   (await api.put("/attendance-locations/settings", { min_duty_minutes: minDutyMinutes })).data;
 
+// Missed time in: minutes after the scheduled time in before the head is
+// asked (the min duty is sent along unchanged -- same settings row).
+export const saveMissedTimeInWait = async (minDutyMinutes, waitMinutes) =>
+  (
+    await api.put("/attendance-locations/settings", {
+      min_duty_minutes: minDutyMinutes,
+      missed_time_in_alert_minutes: waitMinutes,
+    })
+  ).data;
+
 export const getEmployeeAttendanceRules = async () =>
   (await api.get("/attendance-locations/employees")).data;
 
