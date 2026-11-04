@@ -44,6 +44,9 @@ const UserDrawer = ({
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [role, setRole] = useState("driver");
   const [username, setUsername] = useState("");
+  // Editable only on superadmin accounts (no employee record to take it from).
+  const [email, setEmail] = useState("");
+  const isSuperadminAccount = isEditMode && editingUser.role === "superadmin";
   const [isActive, setIsActive] = useState(true);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,6 +70,7 @@ const UserDrawer = ({
     if (editingUser) {
       setRole(editingUser.role);
       setUsername(editingUser.username || "");
+      setEmail(editingUser.email || "");
       setIsActive(editingUser.is_active);
       setReason("");
       fetchRevisions(editingUser.id);
@@ -121,8 +125,12 @@ const UserDrawer = ({
     try {
       if (isEditMode) {
         const renamed = trimmedUsername !== editingUser.username;
+        const newEmail = email.trim();
+        const emailChanged = isSuperadminAccount && newEmail !== (editingUser.email || "");
         await updateUser(editingUser.id, {
           ...(renamed ? { username: trimmedUsername } : {}),
+          // "" clears it.
+          ...(emailChanged ? { email: newEmail } : {}),
           role,
           is_active: isActive,
           reason: reason.trim() || undefined,
@@ -232,10 +240,33 @@ const UserDrawer = ({
                 )}
               </div>
 
-              <div>
-                <p className="text-xs text-fg-subtle">Email</p>
-                <p className="text-sm text-fg-muted">{editingUser.email}</p>
-              </div>
+              {isSuperadminAccount ? (
+                <div>
+                  <label htmlFor="user-email" className="mb-1 block text-xs text-fg-subtle">
+                    Email
+                  </label>
+                  <input
+                    id="user-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    maxLength={100}
+                    autoComplete="off"
+                    placeholder="name@company.com"
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <p className="mt-1 text-[11px] text-fg-subtle">
+                    Superadmin accounts have no employee record, so their email is set here
+                    (used for alerts like missed time in).
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs text-fg-subtle">Email</p>
+                  <p className="text-sm text-fg-muted">{editingUser.email || "No email"}</p>
+                  <p className="mt-0.5 text-[11px] text-fg-subtle">From their employee record.</p>
+                </div>
+              )}
 
               <div>
                 <p className="text-xs text-fg-subtle mb-1">Status</p>
