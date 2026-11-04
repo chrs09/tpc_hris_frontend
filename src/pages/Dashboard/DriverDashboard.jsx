@@ -9,6 +9,7 @@ import {
 } from "../../api/tripManagement";
 import { getMyTrips, getTripSummary, getWallet } from "../../api/driver/trips";
 import { getMyLeaveRequests } from "../../api/leave";
+import { getMyCashAdvanceBalance } from "../../api/cashAdvanceRequests";
 import WalletCard from "../../components/driverDashboard/WalletCard";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
@@ -46,6 +47,9 @@ const DriverDashboard = () => {
   const [tripHistory, setTripHistory] = useState([]);
   const [tripSummary, setTripSummary] = useState(null);
   const [walletQuick, setWalletQuick] = useState(null);
+  // Cash advance still owed (approved, not fully paid) -- same tile as the
+  // mobile driver dashboard.
+  const [caBalance, setCaBalance] = useState(null);
   const [leaves, setLeaves] = useState([]);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState("trip");
@@ -95,6 +99,10 @@ const DriverDashboard = () => {
         console.error("Failed to load wallet summary:", error);
       }
     };
+
+    getMyCashAdvanceBalance()
+      .then((data) => setCaBalance(data.total_outstanding ?? 0))
+      .catch((error) => console.error("Failed to load cash advance balance:", error));
 
     loadHistory();
     loadSummary();
@@ -501,13 +509,13 @@ const DriverDashboard = () => {
     </button>
   );
 
-  // The 4 at-a-glance cards requested for the driver dashboard: Current
-  // Trip, Wallet, Trip Summary, File Leave. On the mobile tabbed layout
+  // The at-a-glance cards on the driver dashboard: Current Trip, Wallet,
+  // CA Balance, Trip Summary, File Leave. On the mobile tabbed layout
   // each (except File Leave, which is always a direct action) switches
   // to its matching tab; on the desktop grid every section is already
   // visible below, so the cards are informational only.
   const quickCards = (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       <QuickCard
         label="Current Trip"
         value={trip ? trip.current_step : "None"}
@@ -519,6 +527,11 @@ const DriverDashboard = () => {
         value={`₱${(walletQuick?.earnings ?? 0).toLocaleString()}`}
         sub={walletQuick?.cutoff_label || "This cutoff"}
         onClick={!isDesktop ? () => setActiveTab("wallet") : undefined}
+      />
+      <QuickCard
+        label="CA Balance"
+        value={caBalance != null ? `₱${caBalance.toLocaleString()}` : "—"}
+        sub={caBalance ? "Cash advance still owed" : "Nothing owed"}
       />
       <QuickCard
         label="Trip Summary"
