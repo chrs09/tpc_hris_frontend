@@ -21,7 +21,7 @@ import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
 import SearchSelect from "../../components/SearchSelect";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
-import { confirmDialog, promptDialog } from "../../components/ui/dialog/dialogService";
+import { promptDialog } from "../../components/ui/dialog/dialogService";
 import useModuleAccess from "../../hooks/useModuleAccess";
 import ApprovalProgress from "../../components/approvals/ApprovalProgress";
 import ApprovedBy from "../../components/approvals/ApprovedBy";
@@ -324,17 +324,17 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const [exceptionFor, setExceptionFor] = useState(null);
 
   const approveException = async (request) => {
-    const ok = await confirmDialog(
+    const remarks = await promptDialog(
       `Allow this exception? ${request.employee_name} gets ₱${Number(
         request.exception_amount,
       ).toLocaleString()} repaid over ${request.exception_pay_periods} pays (₱${Number(
         request.exception_deduction_per_pay,
-      ).toLocaleString()} each).`,
+      ).toLocaleString()} each). Remarks (optional):`,
     );
-    if (!ok) return;
+    if (remarks === null) return;
     try {
       setActioningId(request.id);
-      await approveCashAdvanceRequest(request.id);
+      await approveCashAdvanceRequest(request.id, remarks.trim() || undefined);
       toast.success("Exception approved -- the cash advance is approved.");
       await loadPending();
       if (allLoaded) await loadAll();
@@ -355,7 +355,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       ? uploadCashAdvanceReceipt(requestId, receipt, reference)
       : setCashAdvanceReleaseInfo(requestId, reference);
 
-  const submitReleaseForm = async ({ approvedAmount, reference, receipt }) => {
+  const submitReleaseForm = async ({ approvedAmount, reference, remarks, receipt }) => {
     const { request, mode } = releaseForm;
     if (mode === "approve") {
       if (!approvedAmount || approvedAmount <= 0) {
@@ -366,12 +366,17 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         toast.error("Approved amount can't exceed the requested amount.");
         return;
       }
+      const nextHead = nextApproverOf(request);
+      if (nextHead && !remarks) {
+        toast.error(`Add remarks for ${nextHead}'s final approval.`);
+        return;
+      }
     }
     try {
       setSavingRelease(true);
       if (mode === "approve") {
         setActioningId(request.id);
-        const result = await approveCashAdvanceRequest(request.id, undefined, approvedAmount);
+        const result = await approveCashAdvanceRequest(request.id, remarks, approvedAmount);
         const next = result?.approval_steps?.find((st) => st.state === "current");
         let receiptSaved = false;
         if (result?.status === "approved" && !result.revised_terms_pending && (receipt || reference)) {
@@ -660,7 +665,18 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       label: "Remarks",
       default: false,
       tdClass: "max-w-[220px]",
-      render: (req) => <span className="line-clamp-2">{req.remarks || "—"}</span>,
+      // Every head's remarks in order, not just the last one's.
+      render: (req) => {
+        const notes = (req.approval_log || [])
+          .filter((e) => ["approved", "rejected"].includes(e.action) && e.remarks)
+          .map((e) => `${e.name}: ${e.remarks}`);
+        const text = notes.length ? notes.join(" · ") : req.remarks || "—";
+        return (
+          <span className="line-clamp-3" title={text}>
+            {text}
+          </span>
+        );
+      },
     },
     {
       key: "released",

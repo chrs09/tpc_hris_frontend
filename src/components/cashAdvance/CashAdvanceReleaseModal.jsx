@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
+import ApprovedBy from "../approvals/ApprovedBy";
 
 const peso = (n) => `₱${Number(n || 0).toLocaleString()}`;
 
-// mode="approve": Pending Approvals -- the amount only.
+// mode="approve": Pending Approvals -- the amount and remarks (required
+// when it passes up to the next head, like mobile), with earlier heads'
+// approvals and remarks shown above.
 // mode="release": the receipt photo proving the money was sent, with an
 // optional reference (GCash ref, check no.) -- All Requests "+ Add
 // receipt" and Outstanding Balances "Record Release".
@@ -22,6 +25,7 @@ export default function CashAdvanceReleaseModal({
   const [reference, setReference] = useState(
     mode === "release" ? request.release_reference || "" : "",
   );
+  const [remarks, setRemarks] = useState("");
   const [receipt, setReceipt] = useState(null);
   const [preview, setPreview] = useState(null);
 
@@ -40,6 +44,7 @@ export default function CashAdvanceReleaseModal({
     onSubmit({
       approvedAmount: Number(amount),
       reference: reference.trim(),
+      remarks: remarks.trim(),
       receipt,
     });
   };
@@ -82,6 +87,31 @@ export default function CashAdvanceReleaseModal({
                 {peso(request.approved_amount)} approved so far by an earlier approver.
               </p>
             )}
+          </div>
+        )}
+
+        {mode === "approve" && (request.approval_log || []).some((e) => e.action === "approved") && (
+          <div className="rounded-xl bg-surface-hover px-3 py-2">
+            <p className="mb-1 text-xs font-medium text-fg-muted">Earlier approvals</p>
+            <ApprovedBy log={request.approval_log} money />
+          </div>
+        )}
+
+        {mode === "approve" && (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-fg">
+              Remarks{" "}
+              <span className="font-normal text-fg-subtle">
+                {isFinal ? "(optional)" : `for ${nextApprover || "the next approver"} (required)`}
+              </span>
+            </label>
+            <textarea
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              rows={2}
+              placeholder="e.g. Checked the balance, no open cash advance."
+              className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg"
+            />
           </div>
         )}
 
