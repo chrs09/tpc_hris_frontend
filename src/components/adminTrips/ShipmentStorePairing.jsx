@@ -2,7 +2,8 @@
 // a trip has 2+ stores (with one store every shipment goes there). Sent
 // as shipment_stores {"<shipment no>": [<store id>, ...]}; Trip Review
 // then shows each stop's own shipment number(s). A shipment usually goes
-// to one store, but can cover several (ticked on each).
+// to one store, but can cover several (ticked on each). A store ticked on
+// one shipment is disabled on the others (one shipment per store).
 
 import { pairedStoreIds } from "../../utils/shipmentStores";
 
@@ -11,6 +12,9 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
   const allIds = stores.map((store) => store.id);
   const set = (number, ids) =>
     onChange({ ...value, [number]: allIds.filter((id) => ids.includes(id)) });
+  // The other shipment a store is already ticked on (null = free).
+  const takenBy = (number, storeId) =>
+    numbers.find((n) => n !== number && pairedStoreIds(value?.[n]).includes(storeId)) ?? null;
   // Stores no shipment is ticked for yet.
   const unpaired = stores.filter(
     (store) => !numbers.some((n) => pairedStoreIds(value?.[n]).includes(store.id)),
@@ -27,7 +31,9 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
       <div className="space-y-2">
         {numbers.map((number) => {
           const picked = pairedStoreIds(value?.[number]);
-          const all = allIds.every((id) => picked.includes(id));
+          // Stores this shipment can still take (not on another shipment).
+          const free = allIds.filter((id) => picked.includes(id) || !takenBy(number, id));
+          const all = free.length > 0 && free.every((id) => picked.includes(id));
           return (
             <div
               key={number}
@@ -35,30 +41,40 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
             >
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <span className="font-mono text-sm font-semibold text-fg">{number}</span>
-                <label className="flex items-center gap-1.5 text-xs text-fg-muted">
+                <label
+                  className={`flex items-center gap-1.5 text-xs ${
+                    free.length ? "text-fg-muted" : "text-fg-subtle opacity-50"
+                  }`}
+                >
                   <input
                     type="checkbox"
                     checked={all}
-                    onChange={() => set(number, all ? [] : allIds)}
+                    disabled={!free.length}
+                    onChange={() => set(number, all ? [] : free)}
                   />
-                  All stores
+                  {free.length < allIds.length ? "All remaining stores" : "All stores"}
                 </label>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {stores.map((store) => {
                   const on = picked.includes(store.id);
+                  const other = on ? null : takenBy(number, store.id);
                   return (
                     <label
                       key={store.id}
-                      className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
-                        on
-                          ? "border-primary bg-primary/10 text-fg"
-                          : "border-border text-fg-muted hover:bg-surface-hover"
+                      title={other ? `Already on shipment ${other}` : undefined}
+                      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
+                        other
+                          ? "cursor-not-allowed border-border text-fg-subtle opacity-50"
+                          : on
+                            ? "cursor-pointer border-primary bg-primary/10 text-fg"
+                            : "cursor-pointer border-border text-fg-muted hover:bg-surface-hover"
                       }`}
                     >
                       <input
                         type="checkbox"
                         checked={on}
+                        disabled={!!other}
                         onChange={() =>
                           set(
                             number,
@@ -67,12 +83,17 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
                         }
                       />
                       {store.name}
+                      {other && <span className="font-mono text-[10px]">({other})</span>}
                     </label>
                   );
                 })}
               </div>
               {!picked.length && (
-                <p className="mt-1 text-[11px] text-warning">Tick at least one store.</p>
+                <p className="mt-1 text-[11px] text-warning">
+                  {free.length
+                    ? "Tick at least one store."
+                    : "Every store is on another shipment -- untick one there first."}
+                </p>
               )}
             </div>
           );
