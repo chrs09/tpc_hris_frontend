@@ -196,6 +196,11 @@ export const createRateProfile = async (payload) => {
 
     // 1-helper rates (2-helper categories): only when filled.
     [
+      "one_helper_driver_first_trip_rate",
+      "one_helper_driver_allowance",
+      "one_helper_driver_other",
+      "one_helper_driver_next_trip_rate",
+      "one_helper_driver_next_other",
       "one_helper_first_trip_rate",
       "one_helper_first_other",
       "one_helper_next_trip_rate",

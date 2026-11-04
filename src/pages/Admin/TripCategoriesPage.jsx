@@ -36,24 +36,27 @@ const RATE_KEYS = [
   ["helper_first_other", "Helper Other"],
   ["helper_next_trip_rate", "Helper Next"],
   ["helper_next_other", "Helper Next Other"],
-  // A 2-helper category when only 1 helper goes. Blank = the normal
-  // helper rates are paid.
+  // A 2-helper category when only 1 helper goes: the driver's and the
+  // helper's pay on that trip. Blank = the normal rates are paid.
+  ["one_helper_driver_first_trip_rate", "1 Helper: Driver 1st"],
+  ["one_helper_driver_allowance", "1 Helper: Driver Allowance"],
+  ["one_helper_driver_other", "1 Helper: Driver Other"],
+  ["one_helper_driver_next_trip_rate", "1 Helper: Driver Next"],
+  ["one_helper_driver_next_other", "1 Helper: Driver Next Other"],
   ["one_helper_first_trip_rate", "1 Helper: 1st"],
   ["one_helper_first_other", "1 Helper: Other"],
   ["one_helper_next_trip_rate", "1 Helper: Next"],
   ["one_helper_next_other", "1 Helper: Next Other"],
 ];
 const RATE_LABEL = Object.fromEntries(RATE_KEYS);
-const ONE_HELPER_KEYS = [
-  "one_helper_first_trip_rate",
-  "one_helper_first_other",
-  "one_helper_next_trip_rate",
-  "one_helper_next_other",
-];
 const isOneHelperKey = (key) => key.startsWith("one_helper_");
-// Under the 1 helper / 2 helpers switch the helper fields keep their names.
-const tileLabel = (key) =>
-  isOneHelperKey(key) ? RATE_LABEL[key.replace("one_helper_", "helper_")] : RATE_LABEL[key];
+const ONE_HELPER_KEYS = RATE_KEYS.map(([key]) => key).filter(isOneHelperKey);
+// Under the 1 helper / 2 helpers switch the fields keep their names.
+const tileLabel = (key) => {
+  if (!isOneHelperKey(key)) return RATE_LABEL[key];
+  const rest = key.replace("one_helper_", "");
+  return RATE_LABEL[rest.startsWith("driver_") ? rest : `helper_${rest}`];
+};
 
 // What each trip pays: the parts added up. The first key is the rate
 // itself (its basic); in current_rates it holds the total. helperView
@@ -61,16 +64,17 @@ const tileLabel = (key) =>
 const rateRows = (helperView = "two") => {
   const one = helperView === "one";
   const h = one ? "one_helper" : "helper";
+  const d = one ? "one_helper_driver" : "driver";
   return [
     {
       total: "1st Trip Total",
-      name: "1st trip",
-      keys: ["driver_first_trip_rate", "driver_allowance", "driver_other"],
+      name: one ? "1-helper 1st trip" : "1st trip",
+      keys: [`${d}_first_trip_rate`, `${d}_allowance`, `${d}_other`],
     },
     {
       total: "Next Trip Total",
-      name: "next trip",
-      keys: ["driver_next_trip_rate", "driver_next_other"],
+      name: one ? "1-helper next trip" : "next trip",
+      keys: [`${d}_next_trip_rate`, `${d}_next_other`],
     },
     {
       total: "Helper 1st Total",
@@ -86,7 +90,7 @@ const rateRows = (helperView = "two") => {
 };
 const RATE_ROWS = rateRows();
 // Every row, the 1-helper ones included (for the "pays" previews).
-const ALL_ROWS = [...RATE_ROWS, ...rateRows("one").slice(2)];
+const ALL_ROWS = [...RATE_ROWS, ...rateRows("one")];
 
 // In current_rates each rate is the total; its basic is under these keys.
 const BASIC_KEY = {
@@ -96,6 +100,8 @@ const BASIC_KEY = {
   helper_next_trip_rate: "helper_next_basic_rate",
   one_helper_first_trip_rate: "one_helper_first_basic_rate",
   one_helper_next_trip_rate: "one_helper_next_basic_rate",
+  one_helper_driver_first_trip_rate: "one_helper_driver_basic_rate",
+  one_helper_driver_next_trip_rate: "one_helper_driver_next_basic_rate",
 };
 
 const isBlank = (value) => value === null || value === undefined || value === "";
@@ -153,14 +159,50 @@ const HelperSwitch = ({ value, onChange }) => (
   </div>
 );
 
-// The switch in the form, with what the 1-helper rates mean.
-const OneHelperNote = ({ value, onChange }) => (
+// 1-helper rates from the 2-helper ones: the 2nd helper's pay (basic +
+// other, 1st / next trip) split in half and added to the driver's and the
+// helper's Other. rate(key) reads a 2-helper rate (its basic or part).
+const splitMissingHelper = (rate) => {
+  const num = (key) => Number(rate(key) || 0);
+  const round = (value) => String(Math.round(value * 100) / 100);
+  const firstHalf = (num("helper_first_trip_rate") + num("helper_first_other")) / 2;
+  const nextHalf = (num("helper_next_trip_rate") + num("helper_next_other")) / 2;
+  return {
+    one_helper_driver_first_trip_rate: round(num("driver_first_trip_rate")),
+    one_helper_driver_allowance: round(num("driver_allowance")),
+    one_helper_driver_other: round(num("driver_other") + firstHalf),
+    one_helper_driver_next_trip_rate: round(num("driver_next_trip_rate")),
+    one_helper_driver_next_other: round(num("driver_next_other") + nextHalf),
+    one_helper_first_trip_rate: round(num("helper_first_trip_rate")),
+    one_helper_first_other: round(num("helper_first_other") + firstHalf),
+    one_helper_next_trip_rate: round(num("helper_next_trip_rate")),
+    one_helper_next_other: round(num("helper_next_other") + nextHalf),
+  };
+};
+
+const SplitButton = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title="Driver and helper each get their 2-helper rate plus half of the 2nd helper's pay (in Other)"
+    className="rounded-lg border border-primary/40 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/10"
+  >
+    Split 2nd helper&apos;s pay
+  </button>
+);
+
+// The switch in the form, with what the 1-helper rates mean. onSplit: the
+// "Split 2nd helper's pay" button (fills the 1-helper fields).
+const OneHelperNote = ({ value, onChange, onSplit }) => (
   <div className="space-y-1">
-    <HelperSwitch value={value} onChange={onChange} />
+    <div className="flex flex-wrap items-center gap-2">
+      <HelperSwitch value={value} onChange={onChange} />
+      {value === "one" && onSplit && <SplitButton onClick={onSplit} />}
+    </div>
     {value === "one" && (
       <p className="text-xs text-fg-subtle">
-        Helper rates when only 1 of the 2 helpers goes on the trip. Blank = the 2-helper rates
-        are paid. Driver rates don&apos;t change.
+        What the driver and the helper get when only 1 of the 2 helpers goes on the trip.
+        Leave a row&apos;s first field blank to pay the 2-helper rate for that row.
       </p>
     )}
   </div>
@@ -520,7 +562,7 @@ export default function TripCategoriesPage() {
 
       {viewType === "list" ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[2000px] text-sm text-fg">
+          <table className="w-full min-w-[2600px] text-sm text-fg">
             <thead className="bg-surface-hover text-fg-muted">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Category</th>
@@ -827,7 +869,13 @@ export default function TripCategoriesPage() {
                 )}
               </div>
               {Number(form.helper_count) === 2 && (
-                <OneHelperNote value={helperView} onChange={setHelperView} />
+                <OneHelperNote
+                  value={helperView}
+                  onChange={setHelperView}
+                  onSplit={() =>
+                    setForm((prev) => ({ ...prev, ...splitMissingHelper((key) => prev[key]) }))
+                  }
+                />
               )}
               <div className="space-y-3">
                 {rateRows(modalHelperView).map((row) => (
@@ -938,7 +986,24 @@ export default function TripCategoriesPage() {
               {!fixBase && (
                 <div className="space-y-3 rounded-xl border border-primary/30 bg-primary/5 p-3">
                   <div>
-                    <p className="text-sm font-semibold text-fg">New rates</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-fg">New rates</p>
+                      {/* From the new 2-helper rates where filled, else the current ones. */}
+                      {modalHelperView === "one" && (
+                        <SplitButton
+                          onClick={() =>
+                            setNewRates((prev) => ({
+                              ...prev,
+                              ...splitMissingHelper((key) =>
+                                String(prev[key]).trim() !== ""
+                                  ? prev[key]
+                                  : shownRate(editingProfile.current_rates || editingProfile, key),
+                              ),
+                            }))
+                          }
+                        />
+                      )}
+                    </div>
                     <p className="text-xs text-fg-subtle">
                       Fill only the rates that change; blank keeps the current rate.
                       Trips before the effective date keep the old rates.

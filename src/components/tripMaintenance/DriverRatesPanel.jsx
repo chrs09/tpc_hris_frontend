@@ -29,6 +29,11 @@ const RATE_FIELDS = [
   ["helper_next_trip_rate", "Helper next"],
   ["helper_next_other", "Helper next other"],
   // 2-helper categories when only 1 helper goes.
+  ["one_helper_driver_first_trip_rate", "1 helper: driver 1st"],
+  ["one_helper_driver_allowance", "1 helper: driver allowance"],
+  ["one_helper_driver_other", "1 helper: driver other"],
+  ["one_helper_driver_next_trip_rate", "1 helper: driver next"],
+  ["one_helper_driver_next_other", "1 helper: driver next other"],
   ["one_helper_first_trip_rate", "1 helper: 1st"],
   ["one_helper_first_other", "1 helper: other"],
   ["one_helper_next_trip_rate", "1 helper: next"],
@@ -57,6 +62,11 @@ const EMPTY_FORM = {
   one_helper_first_other: "",
   one_helper_next_trip_rate: "",
   one_helper_next_other: "",
+  one_helper_driver_first_trip_rate: "",
+  one_helper_driver_allowance: "",
+  one_helper_driver_other: "",
+  one_helper_driver_next_trip_rate: "",
+  one_helper_driver_next_other: "",
   effective_from: today(),
   notes: "",
 };

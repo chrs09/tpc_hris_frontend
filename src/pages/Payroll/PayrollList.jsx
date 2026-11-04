@@ -761,13 +761,14 @@ const PayrollList = () => {
                 trip_rate_profile: trip.trip_rate_profile,
 
                 // Which rate applied (truck type / lane / effective date);
-                // a helper alone on a 2-helper trip gets the 1-helper rate.
-                rate_source:
-                  trip.helper_rate_note &&
-                  trip.role !== "route_rider" &&
-                  !employee.department?.toLowerCase().includes("driver")
-                    ? [trip.rate_source, trip.helper_rate_note].filter(Boolean).join(" · ")
-                    : trip.rate_source,
+                // a 2-helper trip with only 1 helper pays the 1-helper rates.
+                rate_source: (() => {
+                  if (trip.role === "route_rider") return trip.rate_source;
+                  const note = employee.department?.toLowerCase().includes("driver")
+                    ? trip.driver_rate_note
+                    : trip.helper_rate_note;
+                  return [trip.rate_source, note].filter(Boolean).join(" · ");
+                })(),
 
                 rate,
 

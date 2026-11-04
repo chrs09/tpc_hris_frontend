@@ -57,6 +57,11 @@ const RATE_COLUMNS = [
   { key: "helper_next_trip_rate", header: "Helper Next" },
   { key: "helper_next_other", header: "Helper Next Other" },
   // 2-helper categories when only 1 helper goes (blank = 2-helper rates).
+  { key: "one_helper_driver_first_trip_rate", header: "1 Helper: Driver 1st" },
+  { key: "one_helper_driver_allowance", header: "1 Helper: Driver Allowance" },
+  { key: "one_helper_driver_other", header: "1 Helper: Driver Other" },
+  { key: "one_helper_driver_next_trip_rate", header: "1 Helper: Driver Next" },
+  { key: "one_helper_driver_next_other", header: "1 Helper: Driver Next Other" },
   { key: "one_helper_first_trip_rate", header: "1 Helper: 1st" },
   { key: "one_helper_first_other", header: "1 Helper: Other" },
   { key: "one_helper_next_trip_rate", header: "1 Helper: Next" },
@@ -71,6 +76,8 @@ const BASIC_KEY = {
   helper_next_trip_rate: "helper_next_basic_rate",
   one_helper_first_trip_rate: "one_helper_first_basic_rate",
   one_helper_next_trip_rate: "one_helper_next_basic_rate",
+  one_helper_driver_first_trip_rate: "one_helper_driver_basic_rate",
+  one_helper_driver_next_trip_rate: "one_helper_driver_next_basic_rate",
 };
 
 // What each trip pays: the rate (first key) plus its parts.
