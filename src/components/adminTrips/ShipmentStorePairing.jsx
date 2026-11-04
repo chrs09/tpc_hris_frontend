@@ -1,7 +1,10 @@
 // Which destination store each shipment number goes to. Shown only when
 // a trip has 2+ stores (with one store every shipment goes there). Sent
 // as shipment_stores {"<shipment no>": <store id>}; Trip Review then shows
-// each stop's own shipment number(s).
+// each stop's own shipment number(s). "All stores" (ALL_STORES) = one
+// shipment delivered to every stop (rare); it shows on each of them.
+
+import { ALL_STORES } from "../../utils/shipmentStores";
 
 export default function ShipmentStorePairing({ numbers, stores, value, onChange }) {
   if (stores.length < 2 || numbers.length === 0) return null;
@@ -12,7 +15,7 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
       </label>
       <p className="mb-2 text-xs text-fg-subtle">
         Pick which store each shipment number is delivered to. It shows on that
-        store in Trip Review.
+        store in Trip Review. If one shipment covers every store, pick &quot;All stores&quot;.
       </p>
       <div className="space-y-2">
         {numbers.map((number) => (
@@ -23,11 +26,13 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
               onChange={(e) =>
                 onChange({
                   ...value,
-                  [number]: e.target.value ? Number(e.target.value) : undefined,
+                  [number]: e.target.value !== "" ? Number(e.target.value) : undefined,
                 })
               }
               className={`min-w-0 flex-1 rounded-lg border bg-surface px-3 py-2 text-sm text-fg ${
-                value?.[number] ? "border-border" : "border-warning"
+                value?.[number] !== undefined && value?.[number] !== null
+                  ? "border-border"
+                  : "border-warning"
               }`}
             >
               <option value="">Select store...</option>
@@ -36,6 +41,7 @@ export default function ShipmentStorePairing({ numbers, stores, value, onChange 
                   {store.name}
                 </option>
               ))}
+              <option value={ALL_STORES}>All stores ({stores.length})</option>
             </select>
           </div>
         ))}
