@@ -99,7 +99,7 @@ export default function TripManualEntries() {
   const [storeSearch, setStoreSearch] = useState("");
   // [{ storeId, pod }] in visiting order
   const [stops, setStops] = useState([]);
-  // {"<shipment no>": storeId} -- which store each shipment goes to.
+  // {"<shipment no>": [storeId, ...]} -- which store(s) each shipment goes to.
   const [shipmentStores, setShipmentStores] = useState({});
   const [helperIds, setHelperIds] = useState([]);
   const [photos, setPhotos] = useState({});

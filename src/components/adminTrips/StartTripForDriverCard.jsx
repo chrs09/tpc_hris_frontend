@@ -121,7 +121,7 @@ export default function StartTripForDriverCard({
   // "ST-########" trip code instead.
   const [isSpecial, setIsSpecial] = useState(false);
   const [selectedDestinationIds, setSelectedDestinationIds] = useState([]);
-  // {"<shipment no>": storeId} -- which store each shipment goes to.
+  // {"<shipment no>": [storeId, ...]} -- which store(s) each shipment goes to.
   const [shipmentStores, setShipmentStores] = useState({});
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);

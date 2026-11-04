@@ -1,26 +1,29 @@
-// Which destination store each shipment number goes to (dispatch forms;
-// see components/adminTrips/ShipmentStorePairing.jsx).
+// Which destination store(s) each shipment number goes to (dispatch forms;
+// see components/adminTrips/ShipmentStorePairing.jsx). Pairs are
+// {"<shipment no>": [<store id>, ...]}; a shipment can cover several stores.
 
-// A shipment delivered to every store of the trip (rare).
-export const ALL_STORES = 0;
+// A shipment's store ids (older trips hold one id, not a list).
+export const pairedStoreIds = (value) =>
+  (Array.isArray(value) ? value : value === undefined || value === null || value === "" ? [] : [value]).map(
+    Number,
+  );
 
-const validPair = (storeIds, value) =>
-  value !== undefined &&
-  value !== null &&
-  value !== "" &&
-  (Number(value) === ALL_STORES || storeIds.includes(Number(value)));
-
-// Pairs still valid for the current numbers and stores.
+// Pairs still valid for the current numbers and stores, ids in the trip's
+// store order (as the backend saves them).
 export const cleanShipmentStores = (numbers, storeIds, pairs) => {
   if (storeIds.length === 1) {
-    return Object.fromEntries(numbers.map((n) => [n, storeIds[0]]));
+    return Object.fromEntries(numbers.map((n) => [n, [storeIds[0]]]));
   }
   return Object.fromEntries(
     numbers
-      .filter((n) => validPair(storeIds, pairs?.[n]))
-      .map((n) => [n, Number(pairs[n])]),
+      .map((n) => {
+        const picked = pairedStoreIds(pairs?.[n]);
+        return [n, storeIds.filter((id) => picked.includes(id))];
+      })
+      .filter(([, ids]) => ids.length > 0),
   );
 };
 
 export const shipmentStoresComplete = (numbers, storeIds, pairs) =>
-  storeIds.length <= 1 || numbers.every((n) => validPair(storeIds, pairs?.[n]));
+  storeIds.length <= 1 ||
+  numbers.every((n) => pairedStoreIds(pairs?.[n]).some((id) => storeIds.includes(id)));
