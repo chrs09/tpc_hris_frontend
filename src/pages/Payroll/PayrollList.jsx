@@ -760,23 +760,36 @@ const PayrollList = () => {
 
                 trip_rate_profile: trip.trip_rate_profile,
 
-                // Which rate applied (truck type / lane / effective date).
-                rate_source: trip.rate_source,
+                // Which rate applied (truck type / lane / effective date);
+                // a helper alone on a 2-helper trip gets the 1-helper rate.
+                rate_source:
+                  trip.helper_rate_note &&
+                  trip.role !== "route_rider" &&
+                  !employee.department?.toLowerCase().includes("driver")
+                    ? [trip.rate_source, trip.helper_rate_note].filter(Boolean).join(" · ")
+                    : trip.rate_source,
 
                 rate,
 
-                // First trip of a driver: basic + allowance + other.
-                rateParts:
-                  isFirstTrip &&
-                  trip.role !== "route_rider" &&
-                  employee.department?.toLowerCase().includes("driver") &&
-                  (Number(trip.driver_allowance) || Number(trip.driver_other))
-                    ? {
-                        basic: Number(trip.driver_basic_rate || 0),
-                        allowance: Number(trip.driver_allowance || 0),
-                        other: Number(trip.driver_other || 0),
-                      }
-                    : null,
+                // The rate's parts when it has more than a basic: a
+                // driver's first trip is basic + allowance + other; the
+                // others are basic + other.
+                rateParts: (() => {
+                  if (trip.role === "route_rider") return null;
+                  const isDriver = employee.department?.toLowerCase().includes("driver");
+                  const [basicKey, allowanceKey, otherKey] = isDriver
+                    ? isFirstTrip
+                      ? ["driver_basic_rate", "driver_allowance", "driver_other"]
+                      : ["driver_next_basic_rate", null, "driver_next_other"]
+                    : isFirstTrip
+                      ? ["helper_first_basic_rate", null, "helper_first_other"]
+                      : ["helper_next_basic_rate", null, "helper_next_other"];
+                  const allowance = allowanceKey ? Number(trip[allowanceKey] || 0) : 0;
+                  const other = Number(trip[otherKey] || 0);
+                  return allowance || other
+                    ? { basic: Number(trip[basicKey] || 0), allowance, other }
+                    : null;
+                })(),
 
                 tripSequence: dailyTripCounter[date],
 

@@ -188,6 +188,24 @@ export const createRateProfile = async (payload) => {
 
     formData.append("helper_next_trip_rate", payload.helper_next_trip_rate);
 
+    formData.append("driver_next_other", payload.driver_next_other ?? 0);
+
+    formData.append("helper_first_other", payload.helper_first_other ?? 0);
+
+    formData.append("helper_next_other", payload.helper_next_other ?? 0);
+
+    // 1-helper rates (2-helper categories): only when filled.
+    [
+      "one_helper_first_trip_rate",
+      "one_helper_first_other",
+      "one_helper_next_trip_rate",
+      "one_helper_next_other",
+    ].forEach((key) => {
+      if (payload[key] !== undefined && payload[key] !== null && payload[key] !== "") {
+        formData.append(key, payload[key]);
+      }
+    });
+
     if (payload.effective_from) {
       formData.append("effective_from", payload.effective_from);
     }

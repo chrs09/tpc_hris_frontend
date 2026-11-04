@@ -51,8 +51,34 @@ const RATE_COLUMNS = [
   { key: "driver_allowance", header: "Driver Allowance" },
   { key: "driver_other", header: "Driver Other" },
   { key: "driver_next_trip_rate", header: "Driver Next" },
+  { key: "driver_next_other", header: "Driver Next Other" },
   { key: "helper_first_trip_rate", header: "Helper 1st" },
+  { key: "helper_first_other", header: "Helper Other" },
   { key: "helper_next_trip_rate", header: "Helper Next" },
+  { key: "helper_next_other", header: "Helper Next Other" },
+  // 2-helper categories when only 1 helper goes (blank = 2-helper rates).
+  { key: "one_helper_first_trip_rate", header: "1 Helper: 1st" },
+  { key: "one_helper_first_other", header: "1 Helper: Other" },
+  { key: "one_helper_next_trip_rate", header: "1 Helper: Next" },
+  { key: "one_helper_next_other", header: "1 Helper: Next Other" },
+];
+
+// In current_rates each rate is the total; its basic is under these keys.
+const BASIC_KEY = {
+  driver_first_trip_rate: "driver_basic_rate",
+  driver_next_trip_rate: "driver_next_basic_rate",
+  helper_first_trip_rate: "helper_first_basic_rate",
+  helper_next_trip_rate: "helper_next_basic_rate",
+  one_helper_first_trip_rate: "one_helper_first_basic_rate",
+  one_helper_next_trip_rate: "one_helper_next_basic_rate",
+};
+
+// What each trip pays: the rate (first key) plus its parts.
+const TOTAL_COLUMNS = [
+  { key: "first_trip_total", header: "1st Trip Total", parts: ["driver_first_trip_rate", "driver_allowance", "driver_other"] },
+  { key: "next_trip_total", header: "Next Trip Total", parts: ["driver_next_trip_rate", "driver_next_other"] },
+  { key: "helper_first_total", header: "Helper 1st Total", parts: ["helper_first_trip_rate", "helper_first_other"] },
+  { key: "helper_next_total", header: "Helper Next Total", parts: ["helper_next_trip_rate", "helper_next_other"] },
 ];
 
 const num = (value) => (value === null || value === undefined || value === "" ? null : Number(value));
@@ -71,14 +97,18 @@ export async function exportTripCategories(categories) {
       code: rate.code || "",
       helpers: rate.helper_count ?? "",
       stores: rate.store_count ?? 0,
-      ...Object.fromEntries(RATE_COLUMNS.map(({ key }) => [key, num(current[key])])),
-      // current_rates: driver_first_trip_rate is the total, the basic is apart.
-      driver_first_trip_rate: num(current.driver_basic_rate ?? current.driver_first_trip_rate),
-      first_trip_total: rate.current_rates
-        ? num(current.driver_first_trip_rate)
-        : Number(current.driver_first_trip_rate || 0) +
-          Number(current.driver_allowance || 0) +
-          Number(current.driver_other || 0),
+      // current_rates: each rate is the total, its basic is apart.
+      ...Object.fromEntries(
+        RATE_COLUMNS.map(({ key }) => [key, num(current[BASIC_KEY[key]] ?? current[key])]),
+      ),
+      ...Object.fromEntries(
+        TOTAL_COLUMNS.map(({ key, parts }) => [
+          key,
+          rate.current_rates
+            ? num(current[parts[0]])
+            : parts.reduce((sum, part) => sum + Number(current[part] || 0), 0),
+        ]),
+      ),
       since: toDate(rate.current_rates?.since),
       upcoming: upcoming
         ? `From ${upcoming.effective_from}: ${RATE_COLUMNS.filter(({ key }) => upcoming[key] !== null)
@@ -98,7 +128,7 @@ export async function exportTripCategories(categories) {
       { key: "helpers", header: "Helpers", width: 10 },
       { key: "stores", header: "Stores using it", width: 14 },
       ...RATE_COLUMNS.map((c) => ({ ...c, type: "money", width: 14 })),
-      { key: "first_trip_total", header: "1st Trip Total", type: "money", width: 14 },
+      ...TOTAL_COLUMNS.map(({ key, header }) => ({ key, header, type: "money", width: 14 })),
       { key: "since", header: "Rates since", type: "date", width: 14 },
       { key: "upcoming", header: "Upcoming change", width: 44, wrap: true },
       { key: "status", header: "Status", width: 11 },

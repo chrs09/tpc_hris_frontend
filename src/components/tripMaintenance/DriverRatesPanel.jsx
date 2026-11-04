@@ -23,8 +23,16 @@ const RATE_FIELDS = [
   ["driver_allowance", "Driver allowance"],
   ["driver_other", "Driver other"],
   ["driver_next_trip_rate", "Driver next"],
+  ["driver_next_other", "Driver next other"],
   ["helper_first_trip_rate", "Helper 1st"],
+  ["helper_first_other", "Helper other"],
   ["helper_next_trip_rate", "Helper next"],
+  ["helper_next_other", "Helper next other"],
+  // 2-helper categories when only 1 helper goes.
+  ["one_helper_first_trip_rate", "1 helper: 1st"],
+  ["one_helper_first_other", "1 helper: other"],
+  ["one_helper_next_trip_rate", "1 helper: next"],
+  ["one_helper_next_other", "1 helper: next other"],
 ];
 
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
@@ -40,8 +48,15 @@ const EMPTY_FORM = {
   driver_allowance: "",
   driver_other: "",
   driver_next_trip_rate: "",
+  driver_next_other: "",
   helper_first_trip_rate: "",
+  helper_first_other: "",
   helper_next_trip_rate: "",
+  helper_next_other: "",
+  one_helper_first_trip_rate: "",
+  one_helper_first_other: "",
+  one_helper_next_trip_rate: "",
+  one_helper_next_other: "",
   effective_from: today(),
   notes: "",
 };
@@ -282,7 +297,10 @@ export default function DriverRatesPanel({ canEdit }) {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={canEdit ? 10 : 9} className="px-3 py-8 text-center text-fg-subtle">
+                <td
+                  colSpan={RATE_FIELDS.length + (canEdit ? 6 : 5)}
+                  className="px-3 py-8 text-center text-fg-subtle"
+                >
                   No driver rates yet -- trips use their category&apos;s rate.
                 </td>
               </tr>
@@ -418,8 +436,10 @@ export default function DriverRatesPanel({ canEdit }) {
             ))}
           </div>
           <p className="-mt-2 text-xs text-fg-subtle">
-            A first trip pays Driver 1st + allowance + other. Blank keeps the category&apos;s, so
-            for an all-in amount put 0 in allowance and other.
+            A first trip pays Driver 1st + allowance + other; the other trips pay their rate +
+            its other. Blank keeps the category&apos;s, so for an all-in amount put 0 in the
+            allowance and other parts. The &quot;1 helper&quot; rates are paid on a 2-helper
+            category when only 1 helper goes.
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -31,29 +31,155 @@ const RATE_KEYS = [
   ["driver_allowance", "Driver Allowance"],
   ["driver_other", "Driver Other"],
   ["driver_next_trip_rate", "Driver Next"],
+  ["driver_next_other", "Driver Next Other"],
   ["helper_first_trip_rate", "Helper 1st"],
+  ["helper_first_other", "Helper Other"],
   ["helper_next_trip_rate", "Helper Next"],
+  ["helper_next_other", "Helper Next Other"],
+  // A 2-helper category when only 1 helper goes. Blank = the normal
+  // helper rates are paid.
+  ["one_helper_first_trip_rate", "1 Helper: 1st"],
+  ["one_helper_first_other", "1 Helper: Other"],
+  ["one_helper_next_trip_rate", "1 Helper: Next"],
+  ["one_helper_next_other", "1 Helper: Next Other"],
 ];
+const RATE_LABEL = Object.fromEntries(RATE_KEYS);
+const ONE_HELPER_KEYS = [
+  "one_helper_first_trip_rate",
+  "one_helper_first_other",
+  "one_helper_next_trip_rate",
+  "one_helper_next_other",
+];
+const isOneHelperKey = (key) => key.startsWith("one_helper_");
+// Under the 1 helper / 2 helpers switch the helper fields keep their names.
+const tileLabel = (key) =>
+  isOneHelperKey(key) ? RATE_LABEL[key.replace("one_helper_", "helper_")] : RATE_LABEL[key];
 
-// A first trip pays these three added up.
-const FIRST_PARTS = ["driver_first_trip_rate", "driver_allowance", "driver_other"];
+// What each trip pays: the parts added up. The first key is the rate
+// itself (its basic); in current_rates it holds the total. helperView
+// "one" swaps in the 1-helper rates.
+const rateRows = (helperView = "two") => {
+  const one = helperView === "one";
+  const h = one ? "one_helper" : "helper";
+  return [
+    {
+      total: "1st Trip Total",
+      name: "1st trip",
+      keys: ["driver_first_trip_rate", "driver_allowance", "driver_other"],
+    },
+    {
+      total: "Next Trip Total",
+      name: "next trip",
+      keys: ["driver_next_trip_rate", "driver_next_other"],
+    },
+    {
+      total: "Helper 1st Total",
+      name: one ? "1-helper 1st" : "helper 1st",
+      keys: [`${h}_first_trip_rate`, `${h}_first_other`],
+    },
+    {
+      total: "Helper Next Total",
+      name: one ? "1-helper next" : "helper next",
+      keys: [`${h}_next_trip_rate`, `${h}_next_other`],
+    },
+  ];
+};
+const RATE_ROWS = rateRows();
+// Every row, the 1-helper ones included (for the "pays" previews).
+const ALL_ROWS = [...RATE_ROWS, ...rateRows("one").slice(2)];
 
-// A rate in effect, for display. In current_rates driver_first_trip_rate
-// is the first-trip total and driver_basic_rate is "Driver 1st".
-const shownRate = (rates, key) =>
-  key === "driver_first_trip_rate" ? (rates.driver_basic_rate ?? rates[key]) : rates[key];
+// In current_rates each rate is the total; its basic is under these keys.
+const BASIC_KEY = {
+  driver_first_trip_rate: "driver_basic_rate",
+  driver_next_trip_rate: "driver_next_basic_rate",
+  helper_first_trip_rate: "helper_first_basic_rate",
+  helper_next_trip_rate: "helper_next_basic_rate",
+  one_helper_first_trip_rate: "one_helper_first_basic_rate",
+  one_helper_next_trip_rate: "one_helper_next_basic_rate",
+};
 
-// The first-trip total of rates in effect, or of a category's base rates.
-const firstTripTotal = (rate) =>
-  rate.current_rates
-    ? Number(rate.current_rates.driver_first_trip_rate || 0)
-    : FIRST_PARTS.reduce((sum, key) => sum + Number(rate[key] || 0), 0);
+const isBlank = (value) => value === null || value === undefined || value === "";
 
-// Blank rate fields save as 0.
+// A rate in effect, for display (the basic, not the total). null = a
+// 1-helper rate that isn't set.
+const shownRate = (rates, key) => {
+  const value = BASIC_KEY[key] && key in rates ? rates[BASIC_KEY[key]] ?? rates[key] : rates[key];
+  return isBlank(value) ? (isOneHelperKey(key) ? null : 0) : value;
+};
+
+// A row's total from rates in effect, or from a category's base rates.
+// null when it's a 1-helper rate that isn't set (normal rate is paid).
+const rowTotal = (rate, row) => {
+  if (rate.current_rates) {
+    const value = rate.current_rates[row.keys[0]];
+    return isBlank(value) ? null : Number(value);
+  }
+  if (isOneHelperKey(row.keys[0]) && isBlank(rate[row.keys[0]])) return null;
+  return row.keys.reduce((sum, key) => sum + Number(rate[key] || 0), 0);
+};
+
+// Rate tiles grouped per trip, each row ending with what that trip pays.
+// tile(key, label) renders a rate; total(row) renders the row's total.
+const RateTiles = ({ tile, total, helperView }) => (
+  <div className="space-y-3">
+    {rateRows(helperView).map((row) => (
+      <div key={row.total} className="grid grid-cols-4 gap-2">
+        {row.keys.map((key) => tile(key, tileLabel(key)))}
+        {row.keys.length < 3 && <div />}
+        {total(row)}
+      </div>
+    ))}
+  </div>
+);
+
+// [1 helper | 2 helpers] -- which helper rates a 2-helper category shows.
+const HelperSwitch = ({ value, onChange }) => (
+  <div className="inline-flex rounded-lg bg-surface-hover p-0.5 text-xs">
+    {[
+      ["one", "1 helper"],
+      ["two", "2 helpers"],
+    ].map(([key, label]) => (
+      <button
+        key={key}
+        type="button"
+        onClick={() => onChange(key)}
+        className={`rounded-md px-3 py-1 font-medium ${
+          value === key ? "bg-surface text-fg shadow" : "text-fg-muted hover:text-fg"
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
+// The switch in the form, with what the 1-helper rates mean.
+const OneHelperNote = ({ value, onChange }) => (
+  <div className="space-y-1">
+    <HelperSwitch value={value} onChange={onChange} />
+    {value === "one" && (
+      <p className="text-xs text-fg-subtle">
+        Helper rates when only 1 of the 2 helpers goes on the trip. Blank = the 2-helper rates
+        are paid. Driver rates don&apos;t change.
+      </p>
+    )}
+  </div>
+);
+
+// Blank rate fields save as 0 -- except the 1-helper rates, where blank
+// means "pay the normal helper rates" (not sent).
 const withZeroRates = (form) => ({
   ...form,
-  ...Object.fromEntries(RATE_KEYS.map(([key]) => [key, form[key] === "" ? 0 : form[key]])),
+  ...Object.fromEntries(
+    RATE_KEYS.map(([key]) =>
+      isOneHelperKey(key)
+        ? [key, isBlank(form[key]) || Number(form.helper_count) !== 2 ? undefined : form[key]]
+        : [key, form[key] === "" ? 0 : form[key]],
+    ),
+  ),
 });
+
+const money = (value, format) => (value === null ? "—" : format(value));
 
 // Today in the Philippines, "YYYY-MM-DD".
 const todayPH = () =>
@@ -75,18 +201,15 @@ const EMPTY_FORM = {
   driver_allowance: "",
   driver_other: "",
   driver_next_trip_rate: "",
+  driver_next_other: "",
   helper_first_trip_rate: "",
+  helper_first_other: "",
   helper_next_trip_rate: "",
+  helper_next_other: "",
+  ...Object.fromEntries(ONE_HELPER_KEYS.map((key) => [key, ""])),
 };
 
-const EMPTY_NEW_RATES = {
-  driver_first_trip_rate: "",
-  driver_allowance: "",
-  driver_other: "",
-  driver_next_trip_rate: "",
-  helper_first_trip_rate: "",
-  helper_next_trip_rate: "",
-};
+const EMPTY_NEW_RATES = Object.fromEntries(RATE_KEYS.map(([key]) => [key, ""]));
 
 export default function TripCategoriesPage() {
   const canEditPage = usePageCanEdit();
@@ -104,6 +227,10 @@ export default function TripCategoriesPage() {
   const [newRates, setNewRates] = useState(EMPTY_NEW_RATES);
   const [effectiveFrom, setEffectiveFrom] = useState("");
   const [fixBase, setFixBase] = useState(false);
+  // 2-helper categories: which helper rates the form / a card shows.
+  const [helperView, setHelperView] = useState("two");
+  const [cardHelperView, setCardHelperView] = useState({});
+  const modalHelperView = Number(form.helper_count) === 2 ? helperView : "two";
   // Categories as cards or a table (remembered per browser).
   const [viewType, setViewType] = useViewType("trip_categories_view");
   const [search, setSearch] = useState("");
@@ -182,8 +309,10 @@ export default function TripCategoriesPage() {
       // Name / helpers (and the base rates only when correcting a typo).
       await updateRateProfile(
         editingProfile.id,
+        // A typo fix replaces the 1-helper rates too: cleared, then the
+        // filled ones set (none filled = pay the normal helper rates).
         fixBase
-          ? withZeroRates(form)
+          ? { ...withZeroRates(form), clear_one_helper: true }
           : { profile_name: form.profile_name, helper_count: form.helper_count },
       );
       if (filled.length) {
@@ -263,12 +392,17 @@ export default function TripCategoriesPage() {
       driver_allowance: profile.driver_allowance || 0,
       driver_other: profile.driver_other || 0,
       driver_next_trip_rate: profile.driver_next_trip_rate || 0,
+      driver_next_other: profile.driver_next_other || 0,
       helper_first_trip_rate: profile.helper_first_trip_rate || 0,
+      helper_first_other: profile.helper_first_other || 0,
       helper_next_trip_rate: profile.helper_next_trip_rate || 0,
+      helper_next_other: profile.helper_next_other || 0,
+      ...Object.fromEntries(ONE_HELPER_KEYS.map((key) => [key, profile[key] ?? ""])),
     });
     setNewRates(EMPTY_NEW_RATES);
     setEffectiveFrom("");
     setFixBase(false);
+    setHelperView("two");
     setShowModal(true);
   };
 
@@ -373,6 +507,7 @@ export default function TripCategoriesPage() {
             setForm(EMPTY_FORM);
             setEffectiveFrom("");
             setFixBase(false);
+            setHelperView("two");
             setShowModal(true);
           }}
           className="bg-primary text-primary-foreground hover:bg-primary-hover px-4 py-2 rounded-lg flex items-center gap-2"
@@ -385,7 +520,7 @@ export default function TripCategoriesPage() {
 
       {viewType === "list" ? (
         <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-          <table className="w-full min-w-[1080px] text-sm text-fg">
+          <table className="w-full min-w-[2000px] text-sm text-fg">
             <thead className="bg-surface-hover text-fg-muted">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Category</th>
@@ -394,7 +529,11 @@ export default function TripCategoriesPage() {
                     {label}
                   </th>
                 ))}
-                <th className="px-4 py-3 text-right font-medium whitespace-nowrap">1st Trip Total</th>
+                {RATE_ROWS.map((row) => (
+                  <th key={row.total} className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                    {row.total}
+                  </th>
+                ))}
                 <th className="px-4 py-3 text-left font-medium">Rate change</th>
                 {canEditPage && <th className="px-4 py-3" />}
               </tr>
@@ -426,12 +565,14 @@ export default function TripCategoriesPage() {
                     </td>
                     {RATE_KEYS.map(([key]) => (
                       <td key={key} className="px-4 py-3 text-right font-semibold tabular-nums">
-                        {formatCurrency(shownRate(current, key) || 0)}
+                        {money(shownRate(current, key), formatCurrency)}
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-right font-bold tabular-nums text-primary">
-                      {formatCurrency(firstTripTotal(rate))}
-                    </td>
+                    {RATE_ROWS.map((row) => (
+                      <td key={row.total} className="px-4 py-3 text-right font-bold tabular-nums text-primary">
+                        {formatCurrency(rowTotal(rate, row))}
+                      </td>
+                    ))}
                     <td className="px-4 py-3 text-xs">
                       {upcoming ? (
                         <span className="text-warning">
@@ -520,19 +661,41 @@ export default function TripCategoriesPage() {
               <Tags size={20} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              {RATE_KEYS.map(([key, label]) => (
-                <div key={key} className="bg-surface-hover rounded-xl p-3">
-                  <p className="text-xs text-fg-subtle">{label}</p>
-                  <p className="font-bold">
-                    {formatCurrency(shownRate(rate.current_rates || rate, key) || 0)}
-                  </p>
-                </div>
-              ))}
-              <div className="rounded-xl bg-primary/10 p-3">
-                <p className="text-xs text-fg-subtle">1st Trip Total</p>
-                <p className="font-bold text-primary">{formatCurrency(firstTripTotal(rate))}</p>
+            {rate.helper_count === 2 && (
+              <div className="mt-3">
+                <HelperSwitch
+                  value={cardHelperView[rate.id] || "two"}
+                  onChange={(value) =>
+                    setCardHelperView((prev) => ({ ...prev, [rate.id]: value }))
+                  }
+                />
               </div>
+            )}
+
+            <div className="mt-4">
+              <RateTiles
+                helperView={rate.helper_count === 2 ? cardHelperView[rate.id] : "two"}
+                tile={(key, label) => (
+                  <div key={key} className="min-w-0 rounded-xl bg-surface-hover p-2.5">
+                    <p className="truncate text-[11px] text-fg-subtle" title={label}>{label}</p>
+                    <p className="text-sm font-bold">
+                      {money(shownRate(rate.current_rates || rate, key), formatCurrency)}
+                    </p>
+                  </div>
+                )}
+                total={(row) => (
+                  <div key="total" className="min-w-0 rounded-xl bg-primary/10 p-2.5">
+                    <p className="truncate text-[11px] text-fg-subtle" title={row.total}>{row.total}</p>
+                    <p className="text-sm font-bold text-primary">
+                      {rowTotal(rate, row) === null ? (
+                        <span className="text-xs font-medium text-fg-muted">Same as 2 helpers</span>
+                      ) : (
+                        formatCurrency(rowTotal(rate, row))
+                      )}
+                    </p>
+                  </div>
+                )}
+              />
             </div>
 
             {rate.current_rates?.since && (
@@ -663,21 +826,28 @@ export default function TripCategoriesPage() {
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {RATE_KEYS.map(([key, label]) => (
-                  <label key={key} className="block">
-                    <span className="mb-1 block text-xs font-medium text-fg-muted">
-                      {label}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form[key]}
-                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                      placeholder="0"
-                      className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
-                    />
-                  </label>
+              {Number(form.helper_count) === 2 && (
+                <OneHelperNote value={helperView} onChange={setHelperView} />
+              )}
+              <div className="space-y-3">
+                {rateRows(modalHelperView).map((row) => (
+                  <div key={row.total} className="grid grid-cols-3 gap-2">
+                    {row.keys.map((key) => (
+                      <label key={key} className="block min-w-0">
+                        <span className="mb-1 block truncate text-xs font-medium text-fg-muted" title={tileLabel(key)}>
+                          {tileLabel(key)}
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={form[key]}
+                          onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                          placeholder={isOneHelperKey(key) ? "Same" : "0"}
+                          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+                        />
+                      </label>
+                    ))}
+                  </div>
                 ))}
               </div>
               {!editingProfile && (
@@ -699,13 +869,19 @@ export default function TripCategoriesPage() {
                     From <strong>{shortDate(effectiveFrom)}</strong>:{" "}
                   </>
                 )}
-                First trip pays{" "}
-                <strong>
-                  {formatCurrency(
-                    FIRST_PARTS.reduce((sum, key) => sum + Number(form[key] || 0), 0),
-                  )}
-                </strong>{" "}
-                (Driver 1st + Allowance + Other).
+                Each trip pays its parts added up:{" "}
+                {(Number(form.helper_count) === 2 ? ALL_ROWS : RATE_ROWS).map((row, i) => (
+                  <span key={row.name}>
+                    {i > 0 && " · "}
+                    {row.name}{" "}
+                    <strong>
+                      {rowTotal(form, row) === null
+                        ? "same as 2 helpers"
+                        : formatCurrency(rowTotal(form, row))}
+                    </strong>
+                  </span>
+                ))}
+                .
               </p>
             </div>
             </>
@@ -725,23 +901,36 @@ export default function TripCategoriesPage() {
                     )
                   </span>
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {RATE_KEYS.map(([key, label]) => (
-                    <div key={key} className="rounded-lg bg-surface-hover px-3 py-2">
-                      <p className="text-[11px] text-fg-subtle">{label}</p>
-                      <p className="text-sm font-semibold text-fg">
-                        {formatCurrency(
-                          Number(shownRate(editingProfile.current_rates || editingProfile, key) || 0),
-                        )}
-                      </p>
-                    </div>
-                  ))}
-                  <div className="rounded-lg bg-primary/10 px-3 py-2">
-                    <p className="text-[11px] text-fg-subtle">1st Trip Total</p>
-                    <p className="text-sm font-semibold text-primary">
-                      {formatCurrency(firstTripTotal(editingProfile))}
-                    </p>
-                  </div>
+                {Number(form.helper_count) === 2 && (
+                  <OneHelperNote value={helperView} onChange={setHelperView} />
+                )}
+                <div className="mt-2">
+                  <RateTiles
+                    helperView={modalHelperView}
+                    tile={(key, label) => (
+                      <div key={key} className="min-w-0 rounded-lg bg-surface-hover px-2 py-2">
+                        <p className="truncate text-[11px] text-fg-subtle" title={label}>{label}</p>
+                        <p className="text-sm font-semibold text-fg">
+                          {money(
+                            shownRate(editingProfile.current_rates || editingProfile, key),
+                            formatCurrency,
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    total={(row) => (
+                      <div key="total" className="min-w-0 rounded-lg bg-primary/10 px-2 py-2">
+                        <p className="truncate text-[11px] text-fg-subtle" title={row.total}>{row.total}</p>
+                        <p className="text-sm font-semibold text-primary">
+                          {rowTotal(editingProfile, row) === null ? (
+                            <span className="text-xs font-medium text-fg-muted">Same as 2 helpers</span>
+                          ) : (
+                            formatCurrency(rowTotal(editingProfile, row))
+                          )}
+                        </p>
+                      </div>
+                    )}
+                  />
                 </div>
               </div>
 
@@ -755,23 +944,30 @@ export default function TripCategoriesPage() {
                       Trips before the effective date keep the old rates.
                     </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {RATE_KEYS.map(([key, label]) => (
-                      <label key={key} className="block">
-                        <span className="mb-1 block text-xs font-medium text-fg-muted">
-                          New {label}
-                        </span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={newRates[key]}
-                          onChange={(e) => setNewRates({ ...newRates, [key]: e.target.value })}
-                          placeholder={String(
-                            shownRate(editingProfile.current_rates || editingProfile, key) ?? "",
-                          )}
-                          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
-                        />
-                      </label>
+                  <div className="space-y-3">
+                    {rateRows(modalHelperView).map((row) => (
+                      <div key={row.total} className="grid grid-cols-3 gap-2">
+                        {row.keys.map((key) => (
+                          <label key={key} className="block min-w-0">
+                            <span
+                              className="mb-1 block truncate text-xs font-medium text-fg-muted"
+                              title={`New ${RATE_LABEL[key]}`}
+                            >
+                              New {tileLabel(key)}
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={newRates[key]}
+                              onChange={(e) => setNewRates({ ...newRates, [key]: e.target.value })}
+                              placeholder={String(
+                                shownRate(editingProfile.current_rates || editingProfile, key) ?? "",
+                              )}
+                              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-fg"
+                            />
+                          </label>
+                        ))}
+                      </div>
                     ))}
                   </div>
                   <label className="block">
@@ -796,12 +992,14 @@ export default function TripCategoriesPage() {
                         {RATE_KEYS.filter(([key]) => String(newRates[key]).trim() !== "")
                           .map(([key, label]) => `${label} ${formatCurrency(Number(newRates[key]))}`)
                           .join(" · ")}
-                        {FIRST_PARTS.some((key) => String(newRates[key]).trim() !== "") && (
-                          <>
-                            {" "}→ first trip pays{" "}
+                        {ALL_ROWS.filter((row) =>
+                          row.keys.some((key) => String(newRates[key]).trim() !== ""),
+                        ).map((row) => (
+                          <span key={row.name}>
+                            {" "}→ {row.name} pays{" "}
                             <strong>
                               {formatCurrency(
-                                FIRST_PARTS.reduce(
+                                row.keys.reduce(
                                   (sum, key) =>
                                     sum +
                                     Number(
@@ -813,8 +1011,8 @@ export default function TripCategoriesPage() {
                                 ),
                               )}
                             </strong>
-                          </>
-                        )}
+                          </span>
+                        ))}
                       </p>
                     )}
                 </div>
@@ -876,7 +1074,10 @@ export default function TripCategoriesPage() {
                                 {RATE_KEYS.map(([key]) => (
                                   <td key={key} className="px-2 py-1.5 text-right tabular-nums">
                                     {row[key] === null || row[key] === undefined ? (
-                                      <span className="text-fg-subtle">same</span>
+                                      <span className="text-fg-subtle">
+                                        {/* Base 1-helper rate not set: the 2-helper rate is paid. */}
+                                        {row.base && isOneHelperKey(key) ? "—" : "same"}
+                                      </span>
                                     ) : (
                                       formatCurrency(Number(row[key]))
                                     )}
