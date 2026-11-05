@@ -27,6 +27,7 @@ import {
   setEmployeeModuleAccess,
 } from "../../api/employeeModuleAccess";
 import { MODULE_GROUPS, moduleKey } from "../../constants/modules";
+import { getPayrollGroups } from "../../api/payroll/payrollGroups";
 import { getNavGroups } from "../../constants/navGroups";
 
 const getErrorMessage = (error) =>
@@ -918,6 +919,28 @@ function AccessPanel({ person, onClose, onSaved }) {
   );
   const [readOnly, setReadOnly] = useState(initialReadOnly);
   const [saving, setSaving] = useState(false);
+  // Payroll: the payroll groups they may view (none ticked = all groups).
+  const initialPayrollGroups = useMemo(
+    () => new Set(person.payroll_groups || []),
+    [person],
+  );
+  const [payrollGroups, setPayrollGroups] = useState(initialPayrollGroups);
+  const [groupOptions, setGroupOptions] = useState([]);
+  useEffect(() => {
+    setPayrollGroups(new Set(initialPayrollGroups));
+  }, [initialPayrollGroups]);
+  useEffect(() => {
+    getPayrollGroups()
+      .then((data) => setGroupOptions((data.groups || []).map((g) => g.name)))
+      .catch(() => setGroupOptions([]));
+  }, []);
+  const togglePayrollGroup = (name) =>
+    setPayrollGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
 
   useEffect(() => {
     setKeys(new Set(initialKeys));
@@ -931,7 +954,9 @@ function AccessPanel({ person, onClose, onSaved }) {
   const canEdit = person.employee_id && person.role !== "superadmin";
   const effectiveReadOnly = new Set([...readOnly].filter((k) => keys.has(k)));
   const changed =
-    !sameSet(keys, initialKeys) || !sameSet(effectiveReadOnly, initialReadOnly);
+    !sameSet(keys, initialKeys) ||
+    !sameSet(effectiveReadOnly, initialReadOnly) ||
+    !sameSet(payrollGroups, initialPayrollGroups);
 
   const setCanEdit = (key, value) =>
     setReadOnly((prev) => {
@@ -968,6 +993,7 @@ function AccessPanel({ person, onClose, onSaved }) {
         person.employee_id,
         [...keys],
         [...effectiveReadOnly],
+        keys.has("payroll.payroll") ? [...payrollGroups] : [],
       );
       toast.success(`Access saved for ${person.name}.`);
       await onSaved();
@@ -1073,6 +1099,56 @@ function AccessPanel({ person, onClose, onSaved }) {
                         canEdit={!readOnly.has(moduleKey(group.key, sub.key))}
                         onCanEdit={(v) => setCanEdit(moduleKey(group.key, sub.key), v)}
                       />
+                      {moduleKey(group.key, sub.key) === "payroll.payroll" &&
+                        keys.has("payroll.payroll") && (
+                          <div className="mb-2 ml-5 rounded-lg border border-border bg-surface-hover p-2.5">
+                            <p className="text-xs font-semibold text-fg">
+                              Payroll groups they can view
+                            </p>
+                            <p className="mb-1.5 text-[11px] text-fg-subtle">
+                              {payrollGroups.size
+                                ? `Only these ${payrollGroups.size} -- other groups' pay stays hidden.`
+                                : "None ticked = all payroll groups."}
+                            </p>
+                            {groupOptions.length === 0 ? (
+                              <p className="text-[11px] text-fg-subtle">No payroll groups yet.</p>
+                            ) : (
+                              <div className="space-y-1">
+                                {groupOptions.map((name) => (
+                                  <label
+                                    key={name}
+                                    className="flex cursor-pointer items-center gap-2 text-xs text-fg"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      className="h-3.5 w-3.5 accent-primary"
+                                      checked={payrollGroups.has(name)}
+                                      onChange={() => togglePayrollGroup(name)}
+                                    />
+                                    {name}
+                                  </label>
+                                ))}
+                                {/* Kept groups that were renamed / removed since. */}
+                                {[...payrollGroups]
+                                  .filter((name) => !groupOptions.includes(name))
+                                  .map((name) => (
+                                    <label
+                                      key={name}
+                                      className="flex cursor-pointer items-center gap-2 text-xs text-fg-subtle"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        className="h-3.5 w-3.5 accent-primary"
+                                        checked
+                                        onChange={() => togglePayrollGroup(name)}
+                                      />
+                                      {name} (no longer a group)
+                                    </label>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       {(sub.children || []).map((child) => (
                         <div key={child.key} className="pl-5">
                           <ToggleRow
