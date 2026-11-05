@@ -11,6 +11,7 @@ import { getMyTrips, getTripSummary, getWallet } from "../../api/driver/trips";
 import { getMyLeaveRequests } from "../../api/leave";
 import { getMyCashAdvanceBalance } from "../../api/cashAdvanceRequests";
 import WalletCard from "../../components/driverDashboard/WalletCard";
+import MyPayslipsList from "../../components/payslips/MyPayslipsList";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
 import DashboardCard from "../../components/dashboard/DashboardCard";
@@ -609,6 +610,14 @@ const DriverDashboard = () => {
             {leaveContent}
           </DashboardCard>
 
+          <MyPayslipsList
+            wrap={(content) => (
+              <DashboardCard title="My Payslips" className="xl:col-span-2">
+                {content}
+              </DashboardCard>
+            )}
+          />
+
           <div className="xl:col-span-2">
             <h2 className="mb-3 text-base font-bold text-fg">
               Trip Management
@@ -642,8 +651,16 @@ const DriverDashboard = () => {
           )}
 
           {activeTab === "wallet" && (
-            <section>
+            <section className="space-y-4">
               <WalletCard />
+              <MyPayslipsList
+                wrap={(content) => (
+                  <div>
+                    <h2 className="mb-3 text-base font-bold text-fg">My Payslips</h2>
+                    {content}
+                  </div>
+                )}
+              />
             </section>
           )}
 

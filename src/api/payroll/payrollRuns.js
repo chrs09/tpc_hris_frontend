@@ -41,3 +41,38 @@ export const getJobSegments = async (start, end) => {
   const res = await api.get("/payroll-runs/job-segments", { params: { start, end } });
   return res.data;
 };
+
+// Every Locked / Paid payroll (all groups), newest first, with how many
+// payslips are released.
+export const getLockedPayrolls = async () => {
+  const res = await api.get("/payroll-runs/locked");
+  return res.data;
+};
+
+// Released payslips of one payroll: { "<employee id>|<segment>":
+// { released_at, released_by } }.
+export const getPayslipReleases = async (department, cutoffPeriod) => {
+  const res = await api.get("/payroll-runs/releases", {
+    params: { department, cutoff_period: cutoffPeriod },
+  });
+  return res.data;
+};
+
+// Release one employee's payslip (payroll Locked / Paid). snapshot: the
+// payslip as Payroll has it ({ row, period }).
+export const releasePayslip = async (payload) => {
+  const res = await api.post("/payroll-runs/release-payslip", payload);
+  return res.data;
+};
+
+// The logged-in employee's released payslips (no snapshot), newest first.
+export const getMyPayslips = async () => {
+  const res = await api.get("/payroll-runs/my-payslips");
+  return res.data;
+};
+
+// One of them with its snapshot ({ row, period }).
+export const getMyPayslip = async (id) => {
+  const res = await api.get(`/payroll-runs/my-payslips/${id}`);
+  return res.data;
+};

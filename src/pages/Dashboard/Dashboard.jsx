@@ -31,6 +31,7 @@ import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
 import AttendanceLocationsPage from "../Admin/AttendanceLocationsPage";
 import PayrollList from "../Payroll/PayrollList";
 import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
+import LockedPayrollsPage from "../Payroll/LockedPayrollsPage";
 import IncentivePoliciesPage from "../Payroll/IncentivePoliciesPage";
 import IncentiveRunsPage from "../Payroll/IncentiveRunsPage";
 import ContributionTablesPage from "../Payroll/ContributionTablesPage";
@@ -126,6 +127,7 @@ const Dashboard = () => {
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
+          <Route path="payroll-locked" element={<LockedPayrollsPage />} />
           <Route path="incentive-policies" element={<IncentivePoliciesPage />} />
           <Route path="incentive-runs" element={<IncentiveRunsPage />} />
           <Route path="contribution-tables" element={<ContributionTablesPage />} />

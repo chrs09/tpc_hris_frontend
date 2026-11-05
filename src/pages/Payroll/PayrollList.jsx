@@ -47,8 +47,10 @@ import {
   getPayrollRun,
   getPayrollRunStatuses,
   getJobSegments,
+  getPayslipReleases,
   getTripCheck,
   markPayrollGenerated,
+  releasePayslip,
 } from "../../api/payroll/payrollRuns";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import { getIncentivesForPayroll } from "../../api/payroll/incentiveRuns";
@@ -138,7 +140,12 @@ const PayrollList = () => {
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [department, setDepartment] = useState("Motorpool");
+  // Opened from Locked Payrolls: ?payroll=<group>&cutoff=<start>_<end>.
+  const [openTarget] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return { payroll: params.get("payroll"), cutoff: params.get("cutoff") };
+  });
+  const [department, setDepartment] = useState(openTarget.payroll || "Motorpool");
   const [searchEmployee, setSearchEmployee] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState(0);
   const [selectedPayroll, setSelectedPayroll] = useState(null);
@@ -244,14 +251,8 @@ const PayrollList = () => {
     loadHeadApprovedOT();
   }, []);
 
-  const departments = useMemo(() => {
-    return [
-      ...new Set(employees.map((e) => e.department).filter(Boolean)),
-    ].sort();
-  }, [employees]);
-
-  // Payroll groups (Payroll Groups page): one payroll per group. Picking a
-  // department instead opens a payroll from before groups.
+  // Payroll groups (Payroll Groups page): one payroll per group. Past
+  // department payrolls (from before groups) open from Locked Payrolls.
   const [payrollGroups, setPayrollGroups] = useState(null);
   useEffect(() => {
     getPayrollGroups()
@@ -268,13 +269,15 @@ const PayrollList = () => {
     () => (payrollGroups || []).find((g) => g.name === department) || null,
     [payrollGroups, department],
   );
-  const payrollOptions = useMemo(
-    () => [
-      ...(payrollGroups || []).map((g) => ({ value: g.name, label: g.name })),
-      ...departments.map((d) => ({ value: d, label: `${d} (department, before groups)` })),
-    ],
-    [payrollGroups, departments],
-  );
+  // The payroll groups only. A department payroll from before groups
+  // (opened from Locked Payrolls) shows while it's the one open.
+  const payrollOptions = useMemo(() => {
+    const options = (payrollGroups || []).map((g) => ({ value: g.name, label: g.name }));
+    if (payrollGroups && department && !options.some((o) => o.value === department)) {
+      options.push({ value: department, label: `${department} (department, before groups)` });
+    }
+    return options;
+  }, [payrollGroups, department]);
   // Who's in this payroll: the group's departments (and payroll type), or
   // the one department.
   const inThisPayroll = useCallback(
@@ -316,6 +319,15 @@ const PayrollList = () => {
 
   const periods = useMemo(() => periodsFromRule(cutoffRule, 24), [cutoffRule]);
   const activePeriod = periods[selectedPeriod] || periods[0] || NO_PERIOD;
+  const pendingCutoffRef = useRef(openTarget.cutoff);
+  useEffect(() => {
+    if (!pendingCutoffRef.current || !periods.length) return;
+    const index = periods.findIndex(
+      (period) => `${period.cutoffStart}_${period.cutoffEnd}` === pendingCutoffRef.current,
+    );
+    pendingCutoffRef.current = null;
+    if (index >= 0) setSelectedPeriod(index);
+  }, [periods]);
 
   // "Filed OT" column: overtime requests filed in this cutoff.
   const [filedOvertime, setFiledOvertime] = useState([]);
@@ -468,6 +480,114 @@ const PayrollList = () => {
   useEffect(() => {
     loadPayrollRun();
   }, [loadPayrollRun]);
+
+  // Released payslips of this payroll, keyed "employee id|segment" --
+  // Release Payslip shows once it's Locked / Paid.
+  const releasable = ["LOCKED", "PAID"].includes(payrollRun?.status);
+  const canRelease = releasable && Boolean(payrollRun?.my_steps?.release);
+  const [releases, setReleases] = useState({});
+  const [releasingKey, setReleasingKey] = useState(null);
+  useEffect(() => {
+    if (!releasable || !department || !cutoffKey) {
+      setReleases({});
+      return;
+    }
+    getPayslipReleases(department, cutoffKey)
+      .then((data) => setReleases(data || {}))
+      .catch(() => setReleases({}));
+  }, [releasable, department, cutoffKey]);
+  const releaseKeyOf = (row) => `${row.employee.id}|${row.employee._segment?.key || ""}`;
+
+  // Saves the payslip exactly as it opens here (row + period), so the
+  // employee sees what was locked even if data changes later.
+  const releaseOne = async (row) => {
+    const result = await releasePayslip({
+      department,
+      cutoff_period: cutoffKey,
+      employee_id: row.employee.id,
+      segment: row.employee._segment?.key || "",
+      payout_date: activePeriod.payoutDate || null,
+      gross_pay: Number(row.grossPay || 0),
+      net_pay: Number(row.netPay || 0),
+      // Attendance records / warnings aren't on the payslip -- left out.
+      snapshot: JSON.parse(
+        JSON.stringify({
+          row: { ...row, records: undefined, warnings: undefined },
+          period: activePeriod,
+        }),
+      ),
+    });
+    setReleases((prev) => ({
+      ...prev,
+      [result.key]: { released_at: result.released_at, released_by: result.released_by },
+    }));
+  };
+
+  const handleReleasePayslip = async (row) => {
+    const key = releaseKeyOf(row);
+    const name = `${row.employee.first_name} ${row.employee.last_name}`;
+    const again = Boolean(releases[key]);
+    const ok = await confirmDialog(
+      again
+        ? `Release ${name}'s payslip again? It replaces the one they already have.`
+        : `Release ${name}'s payslip? They'll see it in My Payslips.`,
+    );
+    if (!ok) return;
+    try {
+      setReleasingKey(key);
+      await releaseOne(row);
+    } catch (err) {
+      alertDialog(err?.response?.data?.detail || "Could not release the payslip.");
+    } finally {
+      setReleasingKey(null);
+    }
+  };
+
+  // Checked rows for "Release selected" (all pages, keyed like releases).
+  const [releaseSelection, setReleaseSelection] = useState(() => new Set());
+  const [bulkRelease, setBulkRelease] = useState(null); // { done, total }
+  useEffect(() => {
+    setReleaseSelection(new Set());
+  }, [department, cutoffKey]);
+  const toggleReleaseRow = (row) =>
+    setReleaseSelection((prev) => {
+      const next = new Set(prev);
+      const key = releaseKeyOf(row);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+
+  // Releases each row in turn (re-releases any already released);
+  // failures are listed at the end, the rest still go out.
+  const releaseMany = async (rows, what) => {
+    if (!rows.length) return;
+    const ok = await confirmDialog(
+      `Release ${rows.length} payslip${rows.length === 1 ? "" : "s"} (${what})? Each employee sees theirs in My Payslips.`,
+    );
+    if (!ok) return;
+    const failed = [];
+    setBulkRelease({ done: 0, total: rows.length });
+    for (const [index, row] of rows.entries()) {
+      try {
+        await releaseOne(row);
+      } catch (err) {
+        failed.push(
+          `${row.employee.first_name} ${row.employee.last_name}: ${
+            err?.response?.data?.detail || "error"
+          }`,
+        );
+      }
+      setBulkRelease({ done: index + 1, total: rows.length });
+    }
+    setBulkRelease(null);
+    setReleaseSelection(new Set());
+    alertDialog(
+      failed.length
+        ? `Released ${rows.length - failed.length} of ${rows.length}. Not released:\n${failed.join("\n")}`
+        : `Released ${rows.length} payslip${rows.length === 1 ? "" : "s"}.`,
+    );
+  };
 
   // Period picker: each cutoff labelled with its payroll status.
   const periodOptions = periods.map((period, index) => {
@@ -1899,6 +2019,36 @@ Next: Submit for Review. You can generate again after corrections until it's app
           >
             Generate Bulk Payslips
           </button>
+
+          {canRelease &&
+            (() => {
+              const selectedRows = payrollRows.filter((row) =>
+                releaseSelection.has(releaseKeyOf(row)),
+              );
+              const unreleased = payrollRows.filter((row) => !releases[releaseKeyOf(row)]);
+              return (
+                <>
+                  <button
+                    type="button"
+                    className="rounded-lg bg-emerald-600 px-4 text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={Boolean(bulkRelease) || selectedRows.length === 0}
+                    onClick={() => releaseMany(selectedRows, "selected")}
+                  >
+                    Release selected ({selectedRows.length})
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-emerald-600 px-4 text-emerald-600 transition hover:bg-emerald-600/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={Boolean(bulkRelease) || unreleased.length === 0}
+                    onClick={() => releaseMany(unreleased, "everyone not released yet")}
+                  >
+                    {bulkRelease
+                      ? `Releasing ${bulkRelease.done}/${bulkRelease.total}...`
+                      : `Release all (${unreleased.length})`}
+                  </button>
+                </>
+              );
+            })()}
         </div>
       </div>
 
@@ -2054,7 +2204,29 @@ Next: Submit for Review. You can generate again after corrections until it's app
               <thead className="sticky top-0 z-30 bg-surface-hover">
                 <tr>
                   <th className="sticky left-0 z-20 bg-surface-hover px-4 py-3 text-left min-w-55">
-                    Employee
+                    {canRelease ? (
+                      <label className="flex cursor-pointer items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 accent-emerald-600"
+                          title="Select everyone for Release selected"
+                          checked={
+                            payrollRows.length > 0 &&
+                            payrollRows.every((row) => releaseSelection.has(releaseKeyOf(row)))
+                          }
+                          onChange={(e) =>
+                            setReleaseSelection(
+                              e.target.checked
+                                ? new Set(payrollRows.map(releaseKeyOf))
+                                : new Set(),
+                            )
+                          }
+                        />
+                        Employee
+                      </label>
+                    ) : (
+                      "Employee"
+                    )}
                   </th>
 
                   <th className="px-4 py-3">Trip Profile</th>
@@ -2162,6 +2334,14 @@ Next: Submit for Review. You can generate again after corrections until it's app
                 {paginatedPayrollRows.map((row) => (
                   <tr key={row.employee.adjId ?? row.employee.id} className="border-t border-border">
                     <td className="sticky left-0 z-10 bg-surface px-4 py-3 min-w-55 border-r border-border">
+                      {canRelease && (
+                        <input
+                          type="checkbox"
+                          className="mr-2 h-4 w-4 align-middle accent-emerald-600"
+                          checked={releaseSelection.has(releaseKeyOf(row))}
+                          onChange={() => toggleReleaseRow(row)}
+                        />
+                      )}
                       {row.employee.first_name} {row.employee.last_name}
                       {row.employee._segment && (
                         <div
@@ -2673,6 +2853,39 @@ Next: Submit for Review. You can generate again after corrections until it's app
                             ? "Saving..."
                             : "Generate Payslip"}
                         </button>
+
+                        {releasable &&
+                          (() => {
+                            const released = releases[releaseKeyOf(row)];
+                            const busy = releasingKey === releaseKeyOf(row);
+                            return (
+                              <>
+                                {released && (
+                                  <span
+                                    className="self-center rounded-lg bg-success/15 px-2 py-1 text-xs font-semibold text-success"
+                                    title={`Released ${new Date(released.released_at).toLocaleString()}${
+                                      released.released_by ? ` by ${released.released_by}` : ""
+                                    }`}
+                                  >
+                                    Released {new Date(released.released_at).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {canRelease && (
+                                  <button
+                                    className={`px-3 py-1 rounded-lg text-xs disabled:opacity-60 ${
+                                      released
+                                        ? "border border-border text-fg-muted hover:bg-surface-hover"
+                                        : "bg-emerald-600 text-white hover:bg-emerald-700"
+                                    }`}
+                                    disabled={busy}
+                                    onClick={() => handleReleasePayslip(row)}
+                                  >
+                                    {busy ? "Releasing..." : released ? "Release again" : "Release Payslip"}
+                                  </button>
+                                )}
+                              </>
+                            );
+                          })()}
 
                         {(row.otHours > 0 || row.headApprovedOTHours > 0) &&
                         row.otStatus !== "Approved" ? (

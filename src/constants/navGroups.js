@@ -79,6 +79,13 @@ export function getNavGroups(role) {
           moduleKey: "payroll.payroll",
         },
         {
+          // Every locked / paid payroll; open one to release payslips.
+          label: "Locked Payrolls",
+          path: "/dashboard/payroll-locked",
+          roles: ["superadmin", "payroll_admin"],
+          moduleKey: "payroll.payroll",
+        },
+        {
           // Payroll groups: departments paid by the same rule and cutoff.
           label: "Payroll Groups",
           path: "/dashboard/payroll-cutoffs",

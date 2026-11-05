@@ -15,6 +15,7 @@ import FileOvertimeModal from "../../components/overtime/FileOvertimeModal";
 import TimeCorrectionModal from "../../components/timeCorrection/TimeCorrectionModal";
 import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorrectionHistoryList";
 import DashboardCard from "../../components/dashboard/DashboardCard";
+import MyPayslipsList from "../../components/payslips/MyPayslipsList";
 import useIsDesktop from "../../hooks/useIsDesktop";
 
 const getGreeting = () => {
@@ -274,6 +275,10 @@ const EmployeeDashboard = () => {
           <DashboardCard title="Time Corrections" action={fileCorrectionButton}>
             {correctionContent}
           </DashboardCard>
+
+          <MyPayslipsList
+            wrap={(content) => <DashboardCard title="My Payslips">{content}</DashboardCard>}
+          />
         </div>
       ) : (
         <>
@@ -320,6 +325,16 @@ const EmployeeDashboard = () => {
             </div>
             {correctionContent}
           </section>
+
+          {/* PAYSLIPS (only once Payroll released one) */}
+          <MyPayslipsList
+            wrap={(content) => (
+              <section className="px-1">
+                <h2 className="mb-3 text-base font-bold text-fg">My Payslips</h2>
+                {content}
+              </section>
+            )}
+          />
         </>
       )}
 
