@@ -22,6 +22,15 @@ const roleOptions = [
   { value: "office_admin", label: "Office Admin" },
 ];
 
+// A new account's role from the employee's department: drivers / helpers
+// get their trip app, everyone else Employee.
+const roleForDepartment = (department) => {
+  const dept = (department || "").trim().toLowerCase();
+  if (["cdcdriver", "cpdcdriver", "wingvandriver"].includes(dept)) return "driver";
+  if (["cdchelper", "cpdchelper"].includes(dept)) return "helper";
+  return "employee";
+};
+
 const formatFieldName = (field) =>
   field === "is_active" ? "Status" : field.charAt(0).toUpperCase() + field.slice(1);
 
@@ -325,6 +334,9 @@ const UserDrawer = ({
                 onChange={(option) => {
                   setSelectedEmployee(option);
                   setEmployeeId(option?.id ? String(option.id) : "");
+                  // Same rule as Bulk Create / convert-to-employee
+                  // (backend app/services/user_roles.py); still changeable.
+                  if (option) setRole(roleForDepartment(option.department));
                 }}
                 placeholder="Search employee"
                 getOptionLabel={(option) => option?.label || ""}

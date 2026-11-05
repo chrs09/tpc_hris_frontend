@@ -63,7 +63,7 @@ export const MODULE_GROUPS = [
       },
       {
         key: "payroll_cutoffs",
-        label: "Payroll Cutoffs",
+        label: "Payroll Groups",
         path: "/dashboard/payroll-cutoffs",
       },
       {

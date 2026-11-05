@@ -6,6 +6,8 @@ import { attendanceRecord } from "../../api/attendance";
 import { getHolidays } from "../../api/holidays/index";
 import { describeRule, periodsFromRule } from "../../utils/payroll/cutoffRules";
 import { getPayrollCutoffRules } from "../../api/payroll/payrollCutoffs";
+import { getPayrollGroups } from "../../api/payroll/payrollGroups";
+import { groupFor, isTripBasis } from "../../utils/payroll/payrollGroups";
 import PayrollDetailModal from "../../components/payroll/PayrollDetailModal";
 import {
   approveOT,
@@ -248,6 +250,57 @@ const PayrollList = () => {
     ].sort();
   }, [employees]);
 
+  // Payroll groups (Payroll Groups page): one payroll per group. Picking a
+  // department instead opens a payroll from before groups.
+  const [payrollGroups, setPayrollGroups] = useState(null);
+  useEffect(() => {
+    getPayrollGroups()
+      .then((data) => {
+        const groups = data.groups || [];
+        setPayrollGroups(groups);
+        if (groups.length) {
+          setDepartment((current) => (current === "Motorpool" ? groups[0].name : current));
+        }
+      })
+      .catch(() => setPayrollGroups([]));
+  }, []);
+  const selectedGroup = useMemo(
+    () => (payrollGroups || []).find((g) => g.name === department) || null,
+    [payrollGroups, department],
+  );
+  const payrollOptions = useMemo(
+    () => [
+      ...(payrollGroups || []).map((g) => ({ value: g.name, label: g.name })),
+      ...departments.map((d) => ({ value: d, label: `${d} (department, before groups)` })),
+    ],
+    [payrollGroups, departments],
+  );
+  // Who's in this payroll: the group's departments (and payroll type), or
+  // the one department.
+  const inThisPayroll = useCallback(
+    (dept, payrollType) =>
+      selectedGroup
+        ? groupFor(payrollGroups, dept, payrollType)?.name === selectedGroup.name
+        : dept === department,
+    [selectedGroup, payrollGroups, department],
+  );
+  // Per trip or not: the group's pay basis, else (department payrolls from
+  // before groups) the department name.
+  const tripPaid = useCallback(
+    (dept) =>
+      selectedGroup
+        ? isTripBasis(selectedGroup.pay_basis)
+        : Boolean(dept?.toLowerCase().includes("driver") || dept?.toLowerCase().includes("helper")),
+    [selectedGroup],
+  );
+  const driverPaid = useCallback(
+    (dept) =>
+      selectedGroup
+        ? selectedGroup.pay_basis === "per_trip_driver"
+        : Boolean(dept?.toLowerCase().includes("driver")),
+    [selectedGroup],
+  );
+
   // Cutoffs come from the Payroll Cutoffs page (one rule per department)
   // instead of being hard-coded; a department without one shows a notice.
   const [cutoffRules, setCutoffRules] = useState(null);
@@ -319,19 +372,19 @@ const PayrollList = () => {
       .catch(() => setScheduleList([]));
   }, []);
 
-  // This department's payroll people for the cutoff: everyone in it the
-  // whole time, plus the part of the cutoff of anyone moved in or out.
+  // This payroll's people for the cutoff: everyone in it the whole time,
+  // plus the part of the cutoff of anyone moved in or out.
   // adjId keys a part's inputs / saved row (employee id @ part's first day).
   const departmentEntries = useMemo(() => {
     const entries = [];
     employees.forEach((emp) => {
       const spans = jobSegments[String(emp.id)];
       if (!spans || spans.length === 0) {
-        if (emp.department === department) entries.push(emp);
+        if (inThisPayroll(emp.department, emp.payroll_type)) entries.push(emp);
         return;
       }
-      let own = spans.filter((span) => span.department === department);
-      if (/driver|helper/i.test(department)) {
+      let own = spans.filter((span) => inThisPayroll(span.department, span.payroll_type));
+      if (tripPaid(department)) {
         own = own.reduce((acc, span) => {
           const prev = acc[acc.length - 1];
           const dayAfterPrev = prev && toISODate(new Date(fromISODate(prev.to).getTime() + 86400000));
@@ -343,7 +396,8 @@ const PayrollList = () => {
           return acc;
         }, []);
       }
-      const split = own.length > 1 || spans.some((span) => span.department !== department);
+      const split =
+        own.length > 1 || spans.some((span) => !inThisPayroll(span.department, span.payroll_type));
       own
         .forEach((span) => {
           const segmentKey = split && span.from !== activePeriod.cutoffStart ? span.from : "";
@@ -370,7 +424,10 @@ const PayrollList = () => {
                   is_last: span.is_last,
                   key: segmentKey,
                   others: spans
-                    .filter((other) => other.department !== department || own.length > 1)
+                    .filter(
+                      (other) =>
+                        !inThisPayroll(other.department, other.payroll_type) || own.length > 1,
+                    )
                     .filter((other) => other.from !== span.from)
                     .map((other) => `${other.department} ${other.from.slice(5)}–${other.to.slice(5)}`),
                 }
@@ -379,7 +436,7 @@ const PayrollList = () => {
         });
     });
     return entries;
-  }, [employees, jobSegments, scheduleList, department, activePeriod?.cutoffStart]);
+  }, [employees, jobSegments, scheduleList, department, inThisPayroll, tripPaid, activePeriod?.cutoffStart]);
 
   const cutoffKey = activePeriod.cutoffStart
     ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`
@@ -543,9 +600,7 @@ const PayrollList = () => {
           );
 
         //new added
-        const isTripBasedEmployee =
-          employee.department?.toLowerCase().includes("driver") ||
-          employee.department?.toLowerCase().includes("helper");
+        const isTripBasedEmployee = tripPaid(employee.department);
 
         // Incentives (separate from pay) -- on the last part of a split row.
         const incentive =
@@ -733,7 +788,7 @@ const PayrollList = () => {
                 rate = Number(trip.route_ride_amount);
               } else if (
                 trip.role === "route_rider" ||
-                employee.department?.toLowerCase().includes("driver")
+                driverPaid(employee.department)
               ) {
                 rate = isFirstTrip
                   ? Number(trip.driver_first_trip_rate || 0)
@@ -764,7 +819,7 @@ const PayrollList = () => {
                 // a 2-helper trip with only 1 helper pays the 1-helper rates.
                 rate_source: (() => {
                   if (trip.role === "route_rider") return trip.rate_source;
-                  const note = employee.department?.toLowerCase().includes("driver")
+                  const note = driverPaid(employee.department)
                     ? trip.driver_rate_note
                     : trip.helper_rate_note;
                   return [trip.rate_source, note].filter(Boolean).join(" · ");
@@ -777,7 +832,7 @@ const PayrollList = () => {
                 // others are basic + other.
                 rateParts: (() => {
                   if (trip.role === "route_rider") return null;
-                  const isDriver = employee.department?.toLowerCase().includes("driver");
+                  const isDriver = driverPaid(employee.department);
                   const [basicKey, allowanceKey, otherKey] = isDriver
                     ? isFirstTrip
                       ? ["driver_basic_rate", "driver_allowance", "driver_other"]
@@ -1434,6 +1489,8 @@ const PayrollList = () => {
     tripCheck,
     departmentEntries,
     incentivesByEmployee,
+    tripPaid,
+    driverPaid,
   ]);
 
   // Holidays inside the selected cutoff, oldest first.
@@ -1715,7 +1772,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
         <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
           No payroll cutoff is set for <strong>{department}</strong>, so there
           are no cutoff periods to show. Set it in Payroll &rarr; Payroll
-          Cutoffs.
+          Groups.
         </div>
       )}
       {cutoffRule && (
@@ -1791,12 +1848,12 @@ Next: Submit for Review. You can generate again after corrections until it's app
               placeholder="Select period"
             />
           </div>
-          <div className="w-48">
+          <div className="w-64">
             <SearchSelect
-              value={departments.find((dept) => dept === department) || null}
-              options={departments}
-              onChange={(dept) => setDepartment(dept)}
-              placeholder="Select department"
+              value={payrollOptions.find((option) => option.value === department) || null}
+              options={payrollOptions}
+              onChange={(option) => setDepartment(option.value)}
+              placeholder="Select payroll group"
             />
           </div>
           <input
@@ -1860,9 +1917,17 @@ Next: Submit for Review. You can generate again after corrections until it's app
       <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 sm:p-4">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div>
-            <p className="text-xs text-fg-subtle">Department</p>
+            <p className="text-xs text-fg-subtle">
+              {selectedGroup ? "Payroll Group" : "Department"}
+            </p>
 
             <p className="font-semibold text-sm sm:text-base">{department}</p>
+            {selectedGroup && (
+              <p className="text-[11px] text-fg-subtle">
+                {selectedGroup.departments.join(", ")}
+                {selectedGroup.payroll_type ? ` (${selectedGroup.payroll_type})` : ""}
+              </p>
+            )}
           </div>
 
           <div>
@@ -1995,10 +2060,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                   <th className="px-4 py-3">Trip Profile</th>
 
                   <th className="px-4 py-3 text-left">
-                    {department?.toLowerCase().includes("driver") ||
-                    department?.toLowerCase().includes("helper")
-                      ? "Trips"
-                      : "Days Worked"}
+                    {tripPaid(department) ? "Trips" : "Days Worked"}
                   </th>
 
                   <th className="px-4 py-3 text-left">Daily Rate</th>
