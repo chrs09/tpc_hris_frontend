@@ -54,7 +54,7 @@ export default function UnitDriverModal({ unit, onClose, onSaved }) {
         <h2 className="text-lg font-semibold">Assigned driver</h2>
         <p className="mt-1 text-sm text-fg-muted">
           {unit.unit_code ? `${unit.unit_code} · ` : ""}
-          {unit.plate_number}. Trip Assignment picks this unit for the driver
+          {unit.plate_number}. Trip Dispatch picks this unit for the driver
           automatically; using another unit needs a reason.
         </p>
         <div className="mt-4">

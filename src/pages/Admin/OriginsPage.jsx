@@ -77,7 +77,7 @@ export default function OriginsPage() {
         title={
           origin.is_default
             ? "Stop using this as the default hub"
-            : "Preselect this hub in Trip Assignment and center the Customers map on it"
+            : "Preselect this hub in Trip Dispatch and center the Customers map on it"
         }
       >
         {origin.is_default ? "Remove default" : "Set as default"}
@@ -166,7 +166,7 @@ export default function OriginsPage() {
           <p className="mt-1 text-sm text-fg-muted">
             Hubs/yards a driver dispatches from, and must return to for
             Checkin. The <strong>default</strong> hub is preselected as the start
-            point in Trip Assignment and is where the Customers map opens.
+            point in Trip Dispatch and is where the Customers map opens.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

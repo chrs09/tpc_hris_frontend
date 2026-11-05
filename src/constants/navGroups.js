@@ -176,7 +176,9 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.delivery_summary",
         },
         {
-          label: "Trip Assignment",
+          // Dispatching trips (was "Trip Assignment"; the old empty
+          // "Trip Dispatch" item was removed).
+          label: "Trip Dispatch",
           path: "/dashboard/admin/trip-assignment",
           roles: ["superadmin", "coordinator_admin", "coordinator"],
           moduleKey: "trip_management.trip_assignment",
@@ -207,12 +209,6 @@ export function getNavGroups(role) {
           path: "/dashboard/admin/origins",
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "trip_management.origins",
-        },
-        {
-          label: "Trip Dispatch",
-          path: "/dashboard/admin/daily-deliveries",
-          roles: ["superadmin", "coordinator_admin"],
-          moduleKey: "trip_management.daily_dispatch",
         },
         {
           // Role-based default is superadmin-only; "selected users" get

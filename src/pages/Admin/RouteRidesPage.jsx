@@ -357,7 +357,7 @@ export default function RouteRidesPage() {
                     {form.ride.trip?.trip_code}
                   </p>
                   <p className="mt-0.5">
-                    Assigned in Trip Assignment -- the driver, date and trip come from that trip
+                    Assigned in Trip Dispatch -- the driver, date and trip come from that trip
                     (remove and assign again to change them). You can set a fixed amount or notes.
                   </p>
                 </div>

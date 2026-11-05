@@ -67,7 +67,7 @@ export const ROLE_ACCESS_GROUPS = [
         roles: ["superadmin", "coordinator_admin", "coordinator"],
       },
       {
-        label: "Trip Assignment",
+        label: "Trip Dispatch",
         roles: ["superadmin", "coordinator_admin", "coordinator"],
       },
       {
@@ -84,10 +84,6 @@ export const ROLE_ACCESS_GROUPS = [
       },
       {
         label: "Origins",
-        roles: ["superadmin", "coordinator_admin"],
-      },
-      {
-        label: "Trip Dispatch",
         roles: ["superadmin", "coordinator_admin"],
       },
       {

@@ -94,7 +94,7 @@ export const MODULE_GROUPS = [
       },
       {
         key: "trip_assignment",
-        label: "Trip Assignment",
+        label: "Trip Dispatch",
         path: "/dashboard/admin/trip-assignment",
       },
       {
@@ -121,11 +121,6 @@ export const MODULE_GROUPS = [
         key: "origins",
         label: "Hubs",
         path: "/dashboard/admin/origins",
-      },
-      {
-        key: "daily_dispatch",
-        label: "Trip Dispatch",
-        path: "/dashboard/admin/daily-deliveries",
       },
       {
         key: "trip_bypass_actions",

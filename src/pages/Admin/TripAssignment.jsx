@@ -13,7 +13,7 @@ const TripAssignment = () => {
 
       <div>
         <h1 className="text-lg sm:text-xl font-semibold text-fg">
-          Trip Assignment
+          Trip Dispatch
         </h1>
         <p className="mt-1 text-sm text-fg-subtle">
           Start a trip on behalf of a driver who can't file it themselves
