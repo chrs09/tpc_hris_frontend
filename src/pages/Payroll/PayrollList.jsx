@@ -1827,17 +1827,41 @@ const PayrollList = () => {
     }
   };
 
+  // What Generate will post to cash advance / trip charge balances (the
+  // Cash Advance and Trip Charges columns), for the confirm and the
+  // message after.
+  const postingsSummary = () => {
+    const total = (key) =>
+      Math.round(payrollRows.reduce((acc, row) => acc + Number(row[key] || 0), 0) * 100) / 100;
+    const count = (key) => payrollRows.filter((row) => Number(row[key] || 0) > 0).length;
+    const peso = (n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+    const parts = [];
+    if (count("cashAdvance")) {
+      parts.push(`${peso(total("cashAdvance"))} cash advance from ${count("cashAdvance")} employee(s)`);
+    }
+    if (count("tripCharge")) {
+      parts.push(`${peso(total("tripCharge"))} trip charges from ${count("tripCharge")} employee(s)`);
+    }
+    return parts.length
+      ? `This deducts ${parts.join(" and ")} from their balances for this cutoff.`
+      : "No cash advance or trip charge deductions this cutoff -- no balances change.";
+  };
+
   const handleGeneratePayroll = async () => {
+    const incompleteNote =
+      incompleteRows.length > 0
+        ? `\n\n${incompleteRows.length} employee(s) have scheduled days with no attendance record in this cutoff (e.g. ${incompleteRows
+            .slice(0, 3)
+            .map(
+              (row) =>
+                `${row.employee.first_name}: ${formatMissingDates(row.completeness.missingDates)}`,
+            )
+            .join("; ")}). Those days are not paid or deducted until a record is added.`
+        : "";
+    // Confirm first (Cancel = nothing saved or posted).
     if (
-      incompleteRows.length > 0 &&
       !(await confirmDialog(
-        `${incompleteRows.length} employee(s) have scheduled days with no attendance record in this cutoff (e.g. ${incompleteRows
-          .slice(0, 3)
-          .map(
-            (row) =>
-              `${row.employee.first_name}: ${formatMissingDates(row.completeness.missingDates)}`,
-          )
-          .join("; ")}). Those days are not paid or deducted until a record is added. Generate payroll anyway?`,
+        `Generate payroll for ${payrollRows.length} employee(s)? ${postingsSummary()} Generating again later replaces these, it doesn't deduct twice.${incompleteNote}`,
       ))
     ) {
       return;
@@ -1863,12 +1887,60 @@ const PayrollList = () => {
       setPayrollRun(run);
       setRunStatuses((prev) => ({ ...prev, [cutoffKey]: run.status }));
       alertDialog(
-        `Payroll generated for ${payrollRows.length} employee(s). Cash advance deductions were posted to each employee's cash advance balance.
+        `Payroll generated for ${payrollRows.length} employee(s). ${postingsSummary().replace("This deducts", "Deducted")}
 
 Next: Submit for Review. You can generate again after corrections until it's approved.`,
       );
     } catch (err) {
       alertDialog(err?.response?.data?.detail || "Figures were saved, but the payroll status could not be updated.");
+    }
+  };
+
+  // Takes back this cutoff's cash advance / trip charge deductions for
+  // everyone in this payroll (e.g. after a test Generate): saves them as 0,
+  // which removes what was posted and restores the balances, and zeroes
+  // the columns so net pay matches. Only while the payroll can still be
+  // generated (before Approved).
+  const [isDiscarding, setIsDiscarding] = useState(false);
+  const handleDiscardDeductions = async () => {
+    const ok = await confirmDialog(
+      `Discard this cutoff's cash advance and trip charge deductions for all ${payrollRows.length} employee(s)? Their balances go back to before this cutoff, and the Cash Advance / Trip Charges columns become 0. Net pay goes up by the same amount. You can enter amounts again and Generate again.`,
+    );
+    if (!ok) return;
+    const rows = payrollRows.map((row) => {
+      const payload = toDeductionPayload(row);
+      let net = Number(row.netPay || 0);
+      // Parts without the key (earlier Work History parts) don't carry
+      // the deduction -- left untouched.
+      if (payload.cash_advance_deduction !== undefined) {
+        net += Number(row.cashAdvance || 0);
+        payload.cash_advance_deduction = 0;
+      }
+      if (payload.trip_charge_deduction !== undefined) {
+        net += Number(row.tripCharge || 0);
+        payload.trip_charge_deduction = 0;
+      }
+      return { ...payload, net_pay: Math.round(net * 100) / 100 };
+    });
+    try {
+      setIsDiscarding(true);
+      await savePayrollDeductionsBulk(rows);
+      setAdjustments((prev) => {
+        const next = { ...prev };
+        payrollRows.forEach((row) => {
+          const key = getAdjustmentKey(row.employee.adjId ?? row.employee.id, activePeriod);
+          next[key] = { ...next[key], cashAdvance: 0, tripCharge: 0 };
+        });
+        return next;
+      });
+      await loadCashAdvanceInfo();
+      alertDialog(
+        "Deductions discarded. Balances are back to before this cutoff. Generate again to save the payroll's figures without them.",
+      );
+    } catch (err) {
+      alertDialog(err?.response?.data?.detail || "Could not discard the deductions.");
+    } finally {
+      setIsDiscarding(false);
     }
   };
 
@@ -2001,6 +2073,18 @@ Next: Submit for Review. You can generate again after corrections until it's app
                 ? "Generate Again"
                 : "Generate Payroll"}
           </button>
+          )}
+
+          {canPrepare && payrollEditable && payrollRun && payrollRun.status !== "DRAFT" && (
+            <button
+              type="button"
+              className="rounded-lg border border-danger/40 px-4 text-danger transition hover:bg-danger/10 disabled:opacity-60"
+              disabled={isDiscarding || isGeneratingPayroll}
+              title="Take back this cutoff's cash advance and trip charge deductions (e.g. after a test)"
+              onClick={handleDiscardDeductions}
+            >
+              {isDiscarding ? "Discarding..." : "Discard deductions"}
+            </button>
           )}
 
           <button
