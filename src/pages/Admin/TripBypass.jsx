@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import PhotoPicker from "../../components/ui/photoPicker/PhotoPicker";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
@@ -66,6 +67,21 @@ const TripBypass = () => {
   const [trips, setTrips] = useState([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
   const [selectedTripId, setSelectedTripId] = useState(null);
+  // Narrows the In-Progress list: driver, shipment / ticket no., store,
+  // or the step it's stuck on.
+  const [search, setSearch] = useState("");
+  const shownTrips = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return trips;
+    return trips.filter((t) =>
+      [
+        t.driver_name,
+        t.ticket_no,
+        t.destination_store,
+        t.current_step_label || t.current_step,
+      ].some((value) => String(value || "").toLowerCase().includes(q)),
+    );
+  }, [trips, search]);
 
   const [tripDetail, setTripDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -591,15 +607,27 @@ const TripBypass = () => {
             In-Progress Trips
           </h3>
 
+          {trips.length > 0 && (
+            <div className="mb-3">
+              <SearchInput
+                value={search}
+                onChange={setSearch}
+                placeholder="Search driver, shipment, store, step..."
+              />
+            </div>
+          )}
+
           {loadingTrips ? (
             <p className="text-sm text-fg-subtle">Loading...</p>
           ) : trips.length === 0 ? (
             <p className="text-sm text-fg-subtle">
               No assigned/active trips right now.
             </p>
+          ) : shownTrips.length === 0 ? (
+            <p className="text-sm text-fg-subtle">No trips match "{search}".</p>
           ) : (
             <div className="space-y-2">
-              {trips.map((t) => (
+              {shownTrips.map((t) => (
                 <button
                   key={t.trip_id}
                   onClick={() => setSelectedTripId(t.trip_id)}
