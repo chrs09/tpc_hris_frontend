@@ -26,8 +26,9 @@ const initialFormState = {
   // Area the store is in (e.g. Consolacion, Bohol) -- a lane's
   // destination for Driver Rates.
   area: "",
-  // Also a supplier: listed in Suppliers, can be a trip start point and a
-  // driver rate's "From".
+  // Customer, Supplier, or both (at least one). A supplier is listed in
+  // Suppliers, can be a trip start point and a driver rate's "From".
+  is_customer: true,
   is_supplier: false,
   latitude: "",
   longitude: "",
@@ -88,6 +89,8 @@ export default function StoreManagement() {
   }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [profileFilter, setProfileFilter] = useState("ALL");
+  // View: ALL / CUSTOMER / SUPPLIER (a location that's both shows in each).
+  const [typeFilter, setTypeFilter] = useState("ALL");
   const [tripRateProfiles, setTripRateProfiles] = useState([]);
   const [profilesLoading, setProfilesLoading] = useState(true);
 
@@ -151,6 +154,7 @@ export default function StoreManagement() {
       ...initialFormState,
       name: searchParams.get("name") || "",
       address: searchParams.get("address") || "",
+      is_customer: false,
       is_supplier: true,
     });
     setPhotoFile(null);
@@ -182,6 +186,8 @@ export default function StoreManagement() {
       address: store.address || "",
       outlet_number: store.outlet_number || "",
       area: store.area || "",
+      // Older rows without the flag were customers.
+      is_customer: store.is_customer !== false,
       is_supplier: Boolean(store.is_supplier),
       latitude: store.latitude || "",
       longitude: store.longitude || "",
@@ -217,6 +223,7 @@ export default function StoreManagement() {
         address: form.address.trim() || null,
         outlet_number: form.outlet_number.trim() || null,
         area: form.area.trim(),
+        is_customer: Boolean(form.is_customer),
         is_supplier: Boolean(form.is_supplier),
         ...(fromSupplierId && !editingStore ? { supplier_id: fromSupplierId } : {}),
         latitude: Number(form.latitude),
@@ -230,6 +237,11 @@ export default function StoreManagement() {
 
       if (!payload.name) {
         toast.error("Store name is required.");
+        return;
+      }
+
+      if (!payload.is_customer && !payload.is_supplier) {
+        toast.error("Tick Customer, Supplier, or both.");
         return;
       }
 
@@ -305,7 +317,10 @@ export default function StoreManagement() {
     );
     const matchesProfile =
       profileFilter === "ALL" || store.profile === profileFilter;
-    return matchesSearch && matchesProfile;
+    const matchesType =
+      typeFilter === "ALL" ||
+      (typeFilter === "CUSTOMER" ? store.is_customer !== false : Boolean(store.is_supplier));
+    return matchesSearch && matchesProfile && matchesType;
   });
 
   const totalItems = filteredStores.length;
@@ -319,7 +334,7 @@ export default function StoreManagement() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, profileFilter, itemsPerPage, setCurrentPage]);
+  }, [searchTerm, profileFilter, typeFilter, itemsPerPage, setCurrentPage]);
 
   const startIndex = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
@@ -356,6 +371,11 @@ export default function StoreManagement() {
           {store.area && (
             <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
               {store.area}
+            </span>
+          )}
+          {store.is_customer !== false && (
+            <span className="ml-2 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+              Customer
             </span>
           )}
           {store.is_supplier && (
@@ -525,6 +545,35 @@ export default function StoreManagement() {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex w-full rounded-lg border border-border p-0.5 text-sm sm:w-auto">
+          {[
+            { value: "ALL", label: "All" },
+            { value: "CUSTOMER", label: "Customers" },
+            { value: "SUPPLIER", label: "Suppliers" },
+          ].map((option) => {
+            const count = stores.filter((store) =>
+              option.value === "ALL"
+                ? true
+                : option.value === "CUSTOMER"
+                  ? store.is_customer !== false
+                  : Boolean(store.is_supplier),
+            ).length;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setTypeFilter(option.value)}
+                className={`flex-1 whitespace-nowrap rounded-md px-3 py-1.5 sm:flex-none ${
+                  typeFilter === option.value
+                    ? "bg-surface-active font-semibold text-fg"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                {option.label} <span className="text-xs text-fg-subtle">({count})</span>
+              </button>
+            );
+          })}
+        </div>
         <input
           type="text"
           value={searchTerm}
@@ -554,12 +603,13 @@ export default function StoreManagement() {
             placeholder="All Profiles"
           />
         </div>
-        {(searchTerm || profileFilter !== "ALL") && (
+        {(searchTerm || profileFilter !== "ALL" || typeFilter !== "ALL") && (
           <button
             className="text-sm text-fg-muted hover:text-fg underline underline-offset-2 sm:ml-auto"
             onClick={() => {
               setSearchTerm("");
               setProfileFilter("ALL");
+              setTypeFilter("ALL");
             }}
           >
             Clear filters
@@ -812,22 +862,46 @@ export default function StoreManagement() {
             </p>
           </div>
 
-          <label className="flex items-start gap-2 rounded-lg border border-border p-3 text-sm text-fg">
-            <input
-              type="checkbox"
-              checked={Boolean(form.is_supplier)}
-              onChange={(e) => setForm({ ...form, is_supplier: e.target.checked })}
-              className="mt-0.5 h-4 w-4 accent-primary"
-            />
-            <span>
-              <span className="font-medium">Also a supplier</span>
-              <span className="block text-xs text-fg-subtle">
-                Shows in Suppliers, and trips can start here (pick-ups). Driver rates can
-                use it as &quot;From&quot;.
-                {fromSupplierId && !editingStore ? " Linked to the supplier you came from." : ""}
-              </span>
-            </span>
-          </label>
+          <div className="rounded-lg border border-border p-3 text-sm text-fg">
+            <p className="mb-2 font-medium">
+              Type <span className="font-normal text-fg-subtle">(one or both)</span>
+            </p>
+            <div className="space-y-2">
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.is_customer)}
+                  onChange={(e) => setForm({ ...form, is_customer: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                />
+                <span>
+                  <span className="font-medium">Customer</span>
+                  <span className="block text-xs text-fg-subtle">
+                    Deliveries go here.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={Boolean(form.is_supplier)}
+                  onChange={(e) => setForm({ ...form, is_supplier: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                />
+                <span>
+                  <span className="font-medium">Supplier</span>
+                  <span className="block text-xs text-fg-subtle">
+                    Shows in Suppliers, and trips can start here (pick-ups). Driver rates can
+                    use it as &quot;From&quot;.
+                    {fromSupplierId && !editingStore ? " Linked to the supplier you came from." : ""}
+                  </span>
+                </span>
+              </label>
+            </div>
+            {!form.is_customer && !form.is_supplier && (
+              <p className="mt-2 text-xs text-danger">Tick Customer, Supplier, or both.</p>
+            )}
+          </div>
 
           <div>
             <label className="block text-sm font-medium mb-1 text-fg">
