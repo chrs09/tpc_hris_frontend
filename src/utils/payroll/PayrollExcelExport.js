@@ -86,6 +86,7 @@ export const exportPayrollExcel = async (
     "Personal",
     "Net Pay",
     "Incentives (separate)",
+    "Reimbursements",
     "Take-home",
   ]);
 
@@ -167,7 +168,9 @@ export const exportPayrollExcel = async (
 
       row.incentivesPay || 0,
 
-      (row.netPay || 0) + (row.incentivesPay || 0),
+      row.reimbursementsPay || 0,
+
+      (row.netPay || 0) + (row.incentivesPay || 0) + (row.reimbursementsPay || 0),
     ]);
   });
 

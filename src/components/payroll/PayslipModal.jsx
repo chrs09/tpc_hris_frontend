@@ -231,6 +231,8 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // Approved Incentive Runs paid with this payroll -- separate from
   // earnings / net pay (shown after NET PAY with the take-home).
   const incentivesPay = Number(payroll.incentivesPay ?? 0);
+  // Trip Expenses reimbursements paid with this payroll -- also separate.
+  const reimbursementsPay = Number(payroll.reimbursementsPay ?? 0);
 
   // ===================================================
   // TOTAL OTHER EARNINGS
@@ -490,12 +492,24 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           </span>
         </div>
 
-        {incentivesPay > 0 && (
+        {(incentivesPay > 0 || reimbursementsPay > 0) && (
           <div className="mx-2 mt-1 grid grid-cols-[1fr_auto] gap-x-2 px-2 text-[9px]">
-            <span>Incentives (separate)</span>
-            <span className="tabular-nums">{formatCurrency(incentivesPay)}</span>
+            {incentivesPay > 0 && (
+              <>
+                <span>Incentives (separate)</span>
+                <span className="tabular-nums">{formatCurrency(incentivesPay)}</span>
+              </>
+            )}
+            {reimbursementsPay > 0 && (
+              <>
+                <span>Reimbursements</span>
+                <span className="tabular-nums">{formatCurrency(reimbursementsPay)}</span>
+              </>
+            )}
             <span className="font-bold">TOTAL TAKE-HOME</span>
-            <span className="font-bold tabular-nums">{formatCurrency(netPay + incentivesPay)}</span>
+            <span className="font-bold tabular-nums">
+              {formatCurrency(netPay + incentivesPay + reimbursementsPay)}
+            </span>
           </div>
         )}
 
@@ -884,12 +898,24 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
             </div>
           </div>
 
-          {incentivesPay > 0 && (
+          {(incentivesPay > 0 || reimbursementsPay > 0) && (
             <div className="mt-1 grid grid-cols-[1fr_auto] gap-x-2 px-2 text-[7.5px]">
-              <span>Incentives (separate)</span>
-              <span className="tabular-nums">{formatCurrency(incentivesPay)}</span>
+              {incentivesPay > 0 && (
+                <>
+                  <span>Incentives (separate)</span>
+                  <span className="tabular-nums">{formatCurrency(incentivesPay)}</span>
+                </>
+              )}
+              {reimbursementsPay > 0 && (
+                <>
+                  <span>Reimbursements</span>
+                  <span className="tabular-nums">{formatCurrency(reimbursementsPay)}</span>
+                </>
+              )}
               <span className="font-bold">TOTAL TAKE-HOME</span>
-              <span className="font-bold tabular-nums">{formatCurrency(netPay + incentivesPay)}</span>
+              <span className="font-bold tabular-nums">
+                {formatCurrency(netPay + incentivesPay + reimbursementsPay)}
+              </span>
             </div>
           )}
         </section>

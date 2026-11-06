@@ -164,6 +164,16 @@ export function getNavGroups(role) {
           moduleKey: "fleet_management.fuel_requests",
           approverKind: "fuel_request",
         },
+        {
+          // Drivers' trip budgets / expense reports: Org Chart heads with
+          // Trip Expenses ticked approve budgets; Finance -> Trip Expenses
+          // releases, reviews and settles.
+          label: "Trip Expenses",
+          path: "/dashboard/approvals?tab=trip_expense",
+          roles: ["superadmin", "admin"],
+          moduleKey: "finance.trip_expenses",
+          approverKind: "trip_expense",
+        },
       ],
     },
     {

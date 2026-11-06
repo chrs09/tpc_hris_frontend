@@ -204,6 +204,12 @@ export const MODULE_GROUPS = [
         label: "Bank Master",
         path: "/dashboard/finance/banks",
       },
+      {
+        // Drivers' trip budgets / expense reports: release, review, settle.
+        key: "trip_expenses",
+        label: "Trip Expenses",
+        path: "/dashboard/approvals?tab=trip_expense",
+      },
     ],
   },
   {

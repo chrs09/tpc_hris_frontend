@@ -40,3 +40,8 @@ export const approveTimeCorrection = async (id, { remarks, time_in, time_out } =
 
 export const rejectTimeCorrection = async (id, remarks) =>
   (await api.post(`/attendance-requests/time-corrections/${id}/reject`, { remarks })).data;
+
+// { can_file, reason } -- anyone who times in / out (any role), but not
+// drivers / helpers (attendance from trips) or logins without an employee.
+export const getTimeCorrectionEligibility = async () =>
+  (await api.get("/attendance-requests/time-corrections/eligibility")).data;

@@ -17,6 +17,10 @@ import {
 import { promptDialog } from "../../components/ui/dialog/dialogService";
 import { getMyAttendanceForRange, getMyCutoffs } from "../../api/attendance";
 import { getMyOvertimeRequests } from "../../api/overtimeRequests";
+import { getMyMissedDays, getMyTimeCorrections } from "../../api/attendance/requests";
+import TimeCorrectionModal from "../../components/timeCorrection/TimeCorrectionModal";
+import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorrectionHistoryList";
+import useCanFileCorrection from "../../components/timeCorrection/useCanFileCorrection";
 import { getHolidays } from "../../api/holidays";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
@@ -352,6 +356,27 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  // Time corrections (forgot to time in / out): own requests, and days a
+  // head confirmed worked without a time in -- same as the employee
+  // dashboard. correctionDate: null = form closed, "" / a date = open.
+  const [myCorrections, setMyCorrections] = useState([]);
+  const [myMissedDays, setMyMissedDays] = useState([]);
+  const [correctionDate, setCorrectionDate] = useState(null);
+  // Anyone who times in / out -- superadmin included (server decides).
+  const canCorrect = useCanFileCorrection();
+  const loadMyCorrections = useCallback(async () => {
+    try {
+      const [corrections, missed] = await Promise.all([
+        getMyTimeCorrections(),
+        getMyMissedDays(),
+      ]);
+      setMyCorrections(corrections);
+      setMyMissedDays(missed);
+    } catch (error) {
+      console.error("Failed to load time corrections:", error);
+    }
+  }, []);
+
   const loadUpcomingHolidays = useCallback(async () => {
     try {
       setHolidaysLoading(true);
@@ -442,6 +467,10 @@ const AdminDashboard = () => {
       loadUpcomingHolidays();
     }
   }, [canFileLeave, loadMyLeaves, loadMyAttendance, loadMyOvertime, loadUpcomingHolidays]);
+
+  useEffect(() => {
+    if (canCorrect) loadMyCorrections();
+  }, [canCorrect, loadMyCorrections]);
 
   useEffect(() => {
     if (isSuperAdmin) {
@@ -589,10 +618,10 @@ const AdminDashboard = () => {
           superadmin, who manages these company-wide instead of filing
           their own) -- kept right under the hero so it's the first
           actionable thing on the page, above the overview cards below. */}
-      {canFileLeave && (
+      {(canFileLeave || canCorrect) && (
         <DashboardCard title="Quick Actions">
           <div className="flex flex-wrap items-center gap-2">
-            {showLeaveSection && (
+            {canFileLeave && showLeaveSection && (
               <button
                 onClick={() => setShowLeaveModal(true)}
                 className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors"
@@ -600,7 +629,15 @@ const AdminDashboard = () => {
                 + File Leave
               </button>
             )}
-            <OvertimeActionButton onChanged={loadMyOvertime} />
+            {canFileLeave && <OvertimeActionButton onChanged={loadMyOvertime} />}
+            {canCorrect && (
+              <button
+                onClick={() => setCorrectionDate("")}
+                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg hover:bg-surface-hover transition-colors"
+              >
+                Time Correction
+              </button>
+            )}
           </div>
         </DashboardCard>
       )}
@@ -891,13 +928,43 @@ const AdminDashboard = () => {
               />
             )}
           </DashboardCard>
+
         </div>
+      )}
+
+      {canCorrect && (
+        <DashboardCard
+          title="Time Corrections"
+          action={
+            <button
+              onClick={() => setCorrectionDate("")}
+              className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
+            >
+              + File Correction
+            </button>
+          }
+        >
+          <TimeCorrectionHistoryList
+            requests={myCorrections}
+            missedDays={myMissedDays}
+            onFile={setCorrectionDate}
+            onChanged={loadMyCorrections}
+          />
+        </DashboardCard>
       )}
 
       {showLeaveModal && (
         <LeaveRequestModal
           onClose={() => setShowLeaveModal(false)}
           onFiled={loadMyLeaves}
+        />
+      )}
+
+      {correctionDate !== null && (
+        <TimeCorrectionModal
+          date={correctionDate}
+          onClose={() => setCorrectionDate(null)}
+          onFiled={loadMyCorrections}
         />
       )}
     </div>

@@ -54,6 +54,7 @@ import {
 } from "../../api/payroll/payrollRuns";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import { getIncentivesForPayroll } from "../../api/payroll/incentiveRuns";
+import { getReimbursementsForPayroll } from "../../api/tripExpenses";
 import { fromISODate, toISODate } from "../../utils/isoDate";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
 
@@ -363,6 +364,16 @@ const PayrollList = () => {
     getIncentivesForPayroll(activePeriod.cutoffStart, activePeriod.cutoffEnd)
       .then(setIncentivesByEmployee)
       .catch(() => setIncentivesByEmployee({}));
+  }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
+
+  // Trip Expenses reimbursements (expense reports, budget overspend) paid
+  // with this cutoff -- like incentives, a separate amount after Net Pay.
+  const [reimbursementsByEmployee, setReimbursementsByEmployee] = useState({});
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    getReimbursementsForPayroll(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+      .then(setReimbursementsByEmployee)
+      .catch(() => setReimbursementsByEmployee({}));
   }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
 
   // Work History: an employee whose department / pay changed inside this
@@ -729,6 +740,12 @@ const PayrollList = () => {
             : incentivesByEmployee[String(employee.id)];
         const incentivesPay = Number(incentive?.total || 0);
         const incentiveLines = incentive?.lines || [];
+        const reimbursement =
+          employee._segment && !employee._segment.is_last
+            ? null
+            : reimbursementsByEmployee[String(employee.id)];
+        const reimbursementsPay = Number(reimbursement?.total || 0);
+        const reimbursementLines = reimbursement?.lines || [];
 
         let tripPay = 0;
         let totalTrips = 0;
@@ -1438,6 +1455,8 @@ const PayrollList = () => {
 
             incentivesPay,
             incentiveLines,
+            reimbursementsPay,
+            reimbursementLines,
 
             grossPay: tripPay,
 
@@ -1586,6 +1605,8 @@ const PayrollList = () => {
 
           incentivesPay,
           incentiveLines,
+          reimbursementsPay,
+          reimbursementLines,
 
           grossPay,
           netPay,
@@ -1609,6 +1630,7 @@ const PayrollList = () => {
     tripCheck,
     departmentEntries,
     incentivesByEmployee,
+    reimbursementsByEmployee,
     tripPaid,
     driverPaid,
   ]);
@@ -1657,6 +1679,11 @@ const PayrollList = () => {
       totalNet: payrollRows.reduce((sum, row) => sum + (row.netPay || 0), 0),
 
       totalIncentives: payrollRows.reduce((sum, row) => sum + (row.incentivesPay || 0), 0),
+
+      totalReimbursements: payrollRows.reduce(
+        (sum, row) => sum + (row.reimbursementsPay || 0),
+        0,
+      ),
     };
   }, [payrollRows]);
 
@@ -2252,9 +2279,21 @@ Next: Submit for Review. You can generate again after corrections until it's app
               minimumFractionDigits: 2,
             })}
           </h2>
+          {summary.totalReimbursements > 0 && (
+            <p className="text-[11px] text-fg-subtle">
+              + Reimbursements ₱
+              {summary.totalReimbursements.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+              })}
+            </p>
+          )}
           <p className="text-[11px] text-fg-subtle">
             Take-home ₱
-            {(summary.totalNet + summary.totalIncentives).toLocaleString(undefined, {
+            {(
+              summary.totalNet +
+              summary.totalIncentives +
+              summary.totalReimbursements
+            ).toLocaleString(undefined, {
               minimumFractionDigits: 2,
             })}
           </p>
@@ -2399,6 +2438,13 @@ Next: Submit for Review. You can generate again after corrections until it's app
                     title="Approved Incentive Runs paid with this payroll — separate from gross / net"
                   >
                     Incentives (separate)
+                  </th>
+
+                  <th
+                    className="px-4 py-3 text-left"
+                    title="Trip Expenses reimbursements paid with this payroll -- separate from gross / net"
+                  >
+                    Reimbursements
                   </th>
 
                   <th className="px-4 py-3 text-left">Take-home</th>
@@ -2844,8 +2890,18 @@ Next: Submit for Review. You can generate again after corrections until it's app
                       {row.incentivesPay ? `₱${row.incentivesPay.toFixed(2)}` : "--"}
                     </td>
 
+                    {/* Trip Expenses reimbursements (separate) */}
+                    <td
+                      className="px-4 py-3 text-primary"
+                      title={row.reimbursementLines
+                        .map((line) => `${line.label}: ₱${Number(line.amount).toFixed(2)}`)
+                        .join("\n")}
+                    >
+                      {row.reimbursementsPay ? `₱${row.reimbursementsPay.toFixed(2)}` : "--"}
+                    </td>
+
                     <td className="px-4 py-3 font-semibold">
-                      ₱{(row.netPay + row.incentivesPay).toFixed(2)}
+                      ₱{(row.netPay + row.incentivesPay + row.reimbursementsPay).toFixed(2)}
                     </td>
 
                     <td className="px-4 py-3">

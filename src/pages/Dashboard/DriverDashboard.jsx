@@ -12,6 +12,7 @@ import { getMyLeaveRequests } from "../../api/leave";
 import { getMyCashAdvanceBalance } from "../../api/cashAdvanceRequests";
 import WalletCard from "../../components/driverDashboard/WalletCard";
 import MyPayslipsList from "../../components/payslips/MyPayslipsList";
+import useMyTripExpenses from "../../components/tripExpenses/MyTripExpenses";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
 import DashboardCard from "../../components/dashboard/DashboardCard";
@@ -54,6 +55,8 @@ const DriverDashboard = () => {
   const [leaves, setLeaves] = useState([]);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [activeTab, setActiveTab] = useState("trip");
+  // Trip budgets (released, then liquidated) and expense reports.
+  const tripExpenses = useMyTripExpenses();
   const isDesktop = useIsDesktop();
 
   const driverName = localStorage.getItem("username") || "Driver";
@@ -610,6 +613,10 @@ const DriverDashboard = () => {
             {leaveContent}
           </DashboardCard>
 
+          <DashboardCard title="Trip Expenses" action={tripExpenses.button}>
+            {tripExpenses.content}
+          </DashboardCard>
+
           <MyPayslipsList
             wrap={(content) => (
               <DashboardCard title="My Payslips" className="xl:col-span-2">
@@ -653,6 +660,13 @@ const DriverDashboard = () => {
           {activeTab === "wallet" && (
             <section className="space-y-4">
               <WalletCard />
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="text-base font-bold text-fg">Trip Expenses</h2>
+                  {tripExpenses.button}
+                </div>
+                {tripExpenses.content}
+              </div>
               <MyPayslipsList
                 wrap={(content) => (
                   <div>

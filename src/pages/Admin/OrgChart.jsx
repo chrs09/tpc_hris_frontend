@@ -861,6 +861,8 @@ const APPROVAL_TYPES = [
   // Drivers' fuel requests: approved here before the coordinator issues
   // the fuel code.
   { key: "fuel_request", label: "Fuel Request" },
+  // Drivers' trip budgets: approved here before Finance releases them.
+  { key: "trip_expense", label: "Trip Expenses" },
   // Which step of a trip's approval is this head's: shows under "For me"
   // on that page for drivers below them.
   { key: "trip_coordinator", label: "Trip Approvals" },

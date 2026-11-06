@@ -14,6 +14,7 @@ import OvertimeActionButton from "../../components/overtime/OvertimeActionButton
 import FileOvertimeModal from "../../components/overtime/FileOvertimeModal";
 import TimeCorrectionModal from "../../components/timeCorrection/TimeCorrectionModal";
 import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorrectionHistoryList";
+import useCanFileCorrection from "../../components/timeCorrection/useCanFileCorrection";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import MyPayslipsList from "../../components/payslips/MyPayslipsList";
 import useIsDesktop from "../../hooks/useIsDesktop";
@@ -42,6 +43,8 @@ const EmployeeDashboard = () => {
   const [corrections, setCorrections] = useState([]);
   const [missedDays, setMissedDays] = useState([]);
   const [correctionDate, setCorrectionDate] = useState(null);
+  // Not for helpers -- their attendance comes from trips.
+  const canCorrect = useCanFileCorrection();
   const isDesktop = useIsDesktop();
 
   const employeeName = localStorage.getItem("username") || "there";
@@ -246,12 +249,16 @@ const EmployeeDashboard = () => {
             icon: Clock,
             onClick: () => setShowOvertimeModal(true),
           },
-          {
-            key: "file-time-correction",
-            label: "Time Correction",
-            icon: History,
-            onClick: () => setCorrectionDate(""),
-          },
+          ...(canCorrect
+            ? [
+                {
+                  key: "file-time-correction",
+                  label: "Time Correction",
+                  icon: History,
+                  onClick: () => setCorrectionDate(""),
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -272,9 +279,11 @@ const EmployeeDashboard = () => {
             {overtimeContent}
           </DashboardCard>
 
-          <DashboardCard title="Time Corrections" action={fileCorrectionButton}>
-            {correctionContent}
-          </DashboardCard>
+          {canCorrect && (
+            <DashboardCard title="Time Corrections" action={fileCorrectionButton}>
+              {correctionContent}
+            </DashboardCard>
+          )}
 
           <MyPayslipsList
             wrap={(content) => <DashboardCard title="My Payslips">{content}</DashboardCard>}
@@ -315,16 +324,18 @@ const EmployeeDashboard = () => {
             {overtimeContent}
           </section>
 
-          {/* TIME CORRECTIONS */}
-          <section className="px-1">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-base font-bold text-fg">
-                Time Corrections
-              </h2>
-              {fileCorrectionButton}
-            </div>
-            {correctionContent}
-          </section>
+          {/* TIME CORRECTIONS (not helpers -- attendance from trips) */}
+          {canCorrect && (
+            <section className="px-1">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-bold text-fg">
+                  Time Corrections
+                </h2>
+                {fileCorrectionButton}
+              </div>
+              {correctionContent}
+            </section>
+          )}
 
           {/* PAYSLIPS (only once Payroll released one) */}
           <MyPayslipsList
