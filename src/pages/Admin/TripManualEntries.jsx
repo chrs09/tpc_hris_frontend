@@ -96,6 +96,9 @@ export default function TripManualEntries() {
   const [form, setForm] = useState(emptyForm);
   const [shipmentInput, setShipmentInput] = useState("");
   const [shipments, setShipments] = useState([]);
+  // Special trip: no shipment numbers -- the server gives it an
+  // ST-######## code (same as Trip Dispatch -> Special Trip).
+  const [isSpecial, setIsSpecial] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
   // [{ storeId, pod }] in visiting order
   const [stops, setStops] = useState([]);
@@ -201,17 +204,19 @@ export default function TripManualEntries() {
     form.startTime &&
     form.endTime &&
     form.reason.trim() &&
-    shipments.length > 0 &&
     stops.length > 0 &&
-    shipmentStoresComplete(
-      shipments,
-      stops.map((s) => s.storeId),
-      shipmentStores,
-    );
+    (isSpecial ||
+      (shipments.length > 0 &&
+        shipmentStoresComplete(
+          shipments,
+          stops.map((s) => s.storeId),
+          shipmentStores,
+        )));
 
   const resetForm = () => {
     setForm(emptyForm);
     setShipments([]);
+    setIsSpecial(false);
     setShipmentInput("");
     setStops([]);
     setShipmentStores({});
@@ -237,15 +242,18 @@ export default function TripManualEntries() {
     fd.append("end_time", form.endTime);
     fd.append("reason", form.reason.trim());
     if (form.odometer) fd.append("odometer_reading", form.odometer);
-    fd.append("shipment_numbers", JSON.stringify(shipments));
+    fd.append("is_special", isSpecial ? "true" : "false");
+    fd.append("shipment_numbers", JSON.stringify(isSpecial ? [] : shipments));
     fd.append(
       "shipment_stores",
       JSON.stringify(
-        cleanShipmentStores(
-          shipments,
-          stops.map((s) => s.storeId),
-          shipmentStores,
-        ),
+        isSpecial
+          ? {}
+          : cleanShipmentStores(
+              shipments,
+              stops.map((s) => s.storeId),
+              shipmentStores,
+            ),
       ),
     );
     fd.append("helper_ids", JSON.stringify(helperIds));
@@ -430,6 +438,29 @@ export default function TripManualEntries() {
             <Section
               title={`Shipment Numbers (${shipments.length}/${MAX_SHIPMENT_NUMBERS})`}
             >
+              <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">
+                <input
+                  type="checkbox"
+                  checked={isSpecial}
+                  onChange={(e) => {
+                    setIsSpecial(e.target.checked);
+                    if (e.target.checked) {
+                      setShipments([]);
+                      setShipmentInput("");
+                      setShipmentStores({});
+                    }
+                  }}
+                  className="h-4 w-4 accent-primary"
+                />
+                Special Trip
+                <span className="text-xs font-normal text-fg-subtle">(no shipment number)</span>
+              </label>
+              {isSpecial && (
+                <p className="mb-2 text-xs text-fg-subtle">
+                  Not needed for a special trip -- it gets an ST-######## trip code automatically.
+                </p>
+              )}
+              <fieldset disabled={isSpecial} className={isSpecial ? "opacity-50" : ""}>
               <div className="flex gap-2">
                 <input
                   inputMode="numeric"
@@ -468,6 +499,7 @@ export default function TripManualEntries() {
                   ))}
                 </div>
               )}
+              </fieldset>
             </Section>
 
             <Section title={`Destination Stores (${stops.length}/${MAX_STORES})`}>
@@ -554,6 +586,7 @@ export default function TripManualEntries() {
                   ))}
                 </div>
               )}
+              {!isSpecial && (
               <div className="mt-3">
                 <ShipmentStorePairing
                   numbers={shipments}
@@ -567,6 +600,7 @@ export default function TripManualEntries() {
                   onChange={setShipmentStores}
                 />
               </div>
+              )}
             </Section>
 
             <Section title={`Helpers (${helperIds.length}/3, optional)`}>
