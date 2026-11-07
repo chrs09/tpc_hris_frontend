@@ -74,6 +74,18 @@ export default function SearchSelect({
     setQuery("");
   };
 
+  // Open upward when the field sits near the bottom of the screen, and
+  // cap the list height to the room available, so options never render
+  // off-screen.
+  const DROPDOWN_HEIGHT = 300; // search box + max-h-60 list
+  const spaceBelow = rect ? window.innerHeight - rect.bottom - 8 : 0;
+  const spaceAbove = rect ? rect.top - 8 : 0;
+  const openUp = rect ? spaceBelow < DROPDOWN_HEIGHT && spaceAbove > spaceBelow : false;
+  const listMaxHeight = Math.max(
+    120,
+    Math.min(240, (openUp ? spaceAbove : spaceBelow) - 56),
+  );
+
   const selectedLabel = value ? getOptionLabel(value) : "";
   const selectedValue = value ? getOptionValue(value) : null;
 
@@ -103,8 +115,13 @@ export default function SearchSelect({
             data-searchable-dropdown
             style={{
               position: "fixed",
-              top: rect.bottom + 4,
-              left: rect.left,
+              ...(openUp
+                ? { bottom: window.innerHeight - rect.top + 4 }
+                : { top: rect.bottom + 4 }),
+              left: Math.max(
+                8,
+                Math.min(rect.left, window.innerWidth - Math.max(rect.width, 260) - 8),
+              ),
               width: Math.max(rect.width, 260),
             }}
             className="z-9999 rounded-lg border border-border bg-surface shadow-lg"
@@ -119,7 +136,7 @@ export default function SearchSelect({
               />
             </div>
 
-            <div className="max-h-60 overflow-auto">
+            <div className="overflow-auto" style={{ maxHeight: listMaxHeight }}>
               {filtered.length === 0 ? (
                 <div className="p-3 text-sm text-fg-subtle">No results</div>
               ) : (
