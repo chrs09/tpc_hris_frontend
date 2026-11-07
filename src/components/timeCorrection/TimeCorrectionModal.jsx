@@ -1,9 +1,43 @@
 import React, { useState } from "react";
 import toast from "react-hot-toast";
-import { fileTimeCorrection } from "../../api/attendance/requests";
+import { fileTimeCorrection, uploadTimeCorrectionPhotos } from "../../api/attendance/requests";
 
 const inputClass =
   "w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
+
+// A small "attach photo" field (optional proof), with a thumbnail.
+function PhotoPicker({ label, file, onChange }) {
+  return (
+    <div className="mt-2">
+      {file ? (
+        <div className="flex items-center gap-2">
+          <img
+            src={URL.createObjectURL(file)}
+            alt={label}
+            className="h-12 w-12 rounded-lg border border-border object-cover"
+          />
+          <button
+            type="button"
+            onClick={() => onChange(null)}
+            className="text-xs text-danger hover:underline"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <label className="block cursor-pointer rounded-lg border border-dashed border-border px-2 py-1.5 text-center text-[11px] text-fg-muted hover:bg-surface-hover">
+          + {label} (optional)
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => onChange(e.target.files?.[0] || null)}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
 
 // Today in the Philippines, "YYYY-MM-DD".
 const todayPH = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
@@ -16,6 +50,9 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
   const [timeIn, setTimeIn] = useState("");
   const [timeOut, setTimeOut] = useState("");
   const [reason, setReason] = useState("");
+  // Optional proof for each time (photo / screenshot), sent after filing.
+  const [timeInPhoto, setTimeInPhoto] = useState(null);
+  const [timeOutPhoto, setTimeOutPhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
@@ -30,12 +67,26 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
     }
     try {
       setSubmitting(true);
-      await fileTimeCorrection({
+      const filed = await fileTimeCorrection({
         attendance_date: day,
         time_in: timeIn || undefined,
         time_out: timeOut || undefined,
         reason: reason.trim(),
       });
+      if (filed?.id && (timeInPhoto || timeOutPhoto)) {
+        try {
+          await uploadTimeCorrectionPhotos(filed.id, {
+            timeIn: timeInPhoto,
+            timeOut: timeOutPhoto,
+          });
+        } catch (error) {
+          toast.error(
+            `Filed, but the photos didn't upload (${
+              error.response?.data?.detail || "error"
+            }).`,
+          );
+        }
+      }
       toast.success("Time correction filed.");
       onFiled?.();
       onClose();
@@ -88,6 +139,7 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
                 onChange={(e) => setTimeIn(e.target.value)}
                 className={inputClass}
               />
+              <PhotoPicker label="Time in photo" file={timeInPhoto} onChange={setTimeInPhoto} />
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-fg-muted">Time out</label>
@@ -97,6 +149,7 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
                 onChange={(e) => setTimeOut(e.target.value)}
                 className={inputClass}
               />
+              <PhotoPicker label="Time out photo" file={timeOutPhoto} onChange={setTimeOutPhoto} />
             </div>
           </div>
           <p className="-mt-2 text-[11px] text-fg-subtle">

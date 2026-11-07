@@ -45,3 +45,11 @@ export const rejectTimeCorrection = async (id, remarks) =>
 // drivers / helpers (attendance from trips) or logins without an employee.
 export const getTimeCorrectionEligibility = async () =>
   (await api.get("/attendance-requests/time-corrections/eligibility")).data;
+
+// Proof photos for a pending correction: { timeIn?: File, timeOut?: File }.
+export const uploadTimeCorrectionPhotos = async (id, { timeIn, timeOut }) => {
+  const form = new FormData();
+  if (timeIn) form.append("time_in_photo", timeIn);
+  if (timeOut) form.append("time_out_photo", timeOut);
+  return (await api.post(`/attendance-requests/time-corrections/${id}/photos`, form)).data;
+};

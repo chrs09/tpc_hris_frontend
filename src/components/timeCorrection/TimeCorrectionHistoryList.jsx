@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { cancelTimeCorrection } from "../../api/attendance/requests";
 import ApprovalProgress from "../approvals/ApprovalProgress";
 import ApprovedBy from "../approvals/ApprovedBy";
+import CorrectionPhotos from "./CorrectionPhotos";
 
 const STATUS_STYLES = {
   pending: "bg-warning/15 text-warning",
@@ -81,6 +82,7 @@ export default function TimeCorrectionHistoryList({ requests, missedDays = [], o
               </span>
             </div>
             <p className="mt-2 text-sm text-fg-muted">{request.reason}</p>
+            <CorrectionPhotos item={request} className="mt-2" />
             <ApprovalProgress steps={request.approval_steps} className="mt-2" />
             <ApprovedBy log={request.approval_log} className="mt-2" />
             {request.status === "pending" && (

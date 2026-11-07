@@ -7,6 +7,7 @@ import {
   rejectTimeCorrection,
 } from "../../api/attendance/requests";
 import ApprovalProgress from "../approvals/ApprovalProgress";
+import CorrectionPhotos from "../timeCorrection/CorrectionPhotos";
 import ApprovedBy from "../approvals/ApprovedBy";
 import { promptDialog } from "../ui/dialog/dialogService";
 
@@ -111,6 +112,7 @@ export default function TimeCorrectionPanel({ canEdit = true }) {
             {timeRow(item, "time_in", "Time in")}
             {timeRow(item, "time_out", "Time out")}
             <p className="text-xs text-fg-muted">Reason: “{item.reason}”</p>
+            <CorrectionPhotos item={item} />
             <ApprovalProgress steps={item.approval_steps} />
             <ApprovedBy log={item.approval_log} />
             {canEdit && item.can_act && (
