@@ -25,6 +25,7 @@ import TripPlanning from "../Coordinator/TripPlanning";
 import DriverTrips from "../Driver/DriverTrips";
 import DriverCashAdvance from "../Driver/DriverCashAdvance";
 import EmployeeListPage from "../Employee/EmployeeListPage";
+import HrDashboardPage from "../Employee/HrDashboardPage";
 import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
@@ -125,6 +126,7 @@ const Dashboard = () => {
           {/* Old approval addresses -> the Approvals tabs */}
           <Route path="leave" element={<Navigate to="/dashboard/approvals?tab=leave" replace />} />
           <Route path="employees" element={<EmployeeListPage />} />
+          <Route path="hr-dashboard" element={<HrDashboardPage />} />
           <Route path="payroll" element={<PayrollList />} />
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
           <Route path="payroll-locked" element={<LockedPayrollsPage />} />

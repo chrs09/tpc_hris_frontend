@@ -820,6 +820,7 @@ export default function EmployeeForm({
                 formData={formData}
                 isEditing={isEditing}
                 onFileChange={handleFileChange}
+                onExpiryChange={handleChange}
                 setPreviewImage={setPreviewImage}
               />
 
@@ -831,6 +832,7 @@ export default function EmployeeForm({
                 formData={formData}
                 isEditing={isEditing}
                 onFileChange={handleFileChange}
+                onExpiryChange={handleChange}
                 setPreviewImage={setPreviewImage}
               />
 
@@ -842,6 +844,7 @@ export default function EmployeeForm({
                 formData={formData}
                 isEditing={isEditing}
                 onFileChange={handleFileChange}
+                onExpiryChange={handleChange}
                 setPreviewImage={setPreviewImage}
               />
             </div>
@@ -899,6 +902,7 @@ export default function EmployeeForm({
                   formData={formData}
                   isEditing={isEditing}
                   onFileChange={handleFileChange}
+                  onExpiryChange={handleChange}
                   setPreviewImage={setPreviewImage}
                 />
               </div>
@@ -918,6 +922,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -929,6 +934,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -940,6 +946,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -951,6 +958,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -962,6 +970,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -973,6 +982,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -984,6 +994,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -995,6 +1006,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -1007,6 +1019,7 @@ export default function EmployeeForm({
               formData={formData}
               isEditing={isEditing}
               onFileChange={handleFileChange}
+              onExpiryChange={handleChange}
               setPreviewImage={setPreviewImage}
             />
           )}
@@ -1020,6 +1033,7 @@ export default function EmployeeForm({
               formData={formData}
               isEditing={isEditing}
               onFileChange={handleFileChange}
+              onExpiryChange={handleChange}
               setPreviewImage={setPreviewImage}
             />
           )}
@@ -1032,6 +1046,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -1043,6 +1058,7 @@ export default function EmployeeForm({
             formData={formData}
             isEditing={isEditing}
             onFileChange={handleFileChange}
+            onExpiryChange={handleChange}
             setPreviewImage={setPreviewImage}
           />
 
@@ -1055,6 +1071,21 @@ export default function EmployeeForm({
               formData={formData}
               isEditing={isEditing}
               onFileChange={handleFileChange}
+              onExpiryChange={handleChange}
+              setPreviewImage={setPreviewImage}
+            />
+          )}
+
+          {isDriver && (
+            <FilePreview
+              label="Defensive Driving Certificate"
+              field="defensive_driving"
+              documentType="DEFENSIVE_DRIVING"
+              employee={employee}
+              formData={formData}
+              isEditing={isEditing}
+              onFileChange={handleFileChange}
+              onExpiryChange={handleChange}
               setPreviewImage={setPreviewImage}
             />
           )}
@@ -1298,6 +1329,36 @@ function EditableField({
   );
 }
 
+// "Expires Mar 3, 2027" -- red once expired, amber within 60 days.
+function ExpiryBadge({ date, hasFile }) {
+  if (!date) {
+    return hasFile ? (
+      <span className="text-[11px] text-fg-subtle">No expiry date set</span>
+    ) : null;
+  }
+  const [y, m, d] = date.split("-").map(Number);
+  const expiry = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const daysLeft = Math.round((expiry - today) / 86400000);
+  const text = expiry.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const tone =
+    daysLeft < 0
+      ? "bg-danger/10 text-danger"
+      : daysLeft <= 60
+        ? "bg-warning/15 text-warning"
+        : "bg-surface-hover text-fg-muted";
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
+      {daysLeft < 0 ? `Expired ${text}` : `Expires ${text}`}
+    </span>
+  );
+}
+
 function FilePreview({
   label,
   field,
@@ -1306,9 +1367,19 @@ function FilePreview({
   formData,
   isEditing,
   onFileChange,
+  onExpiryChange,
   setPreviewImage,
 }) {
   const [showHistory, setShowHistory] = useState(false);
+  // Expiry (HR Dashboard -> Nearing expiry). Not for the profile photo.
+  const canExpire = documentType !== "PROFILE_IMAGE";
+  const expiries = formData?.document_expiries || {};
+  const expiry = expiries[documentType] || { has_expiry: false, expiry_date: null };
+  const setExpiry = (patch) =>
+    onExpiryChange?.("document_expiries", {
+      ...expiries,
+      [documentType]: { ...expiry, ...patch },
+    });
   const fileFromDB = employee?.files?.find(
     (f) => f.document_type === documentType,
   )?.file_url;
@@ -1392,6 +1463,36 @@ function FilePreview({
           />
         </label>
       )}
+
+      {canExpire &&
+        (isEditing ? (
+          <div className="w-full space-y-1">
+            <label className="flex items-center justify-center gap-1.5 text-xs text-fg-muted">
+              <input
+                type="checkbox"
+                checked={Boolean(expiry.has_expiry)}
+                onChange={(e) =>
+                  setExpiry({
+                    has_expiry: e.target.checked,
+                    expiry_date: e.target.checked ? expiry.expiry_date : null,
+                  })
+                }
+              />
+              Has expiry
+            </label>
+            {expiry.has_expiry && (
+              <input
+                type="date"
+                value={expiry.expiry_date || ""}
+                onChange={(e) => setExpiry({ expiry_date: e.target.value || null })}
+                className="w-full rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg"
+                aria-label={`${label} expiry date`}
+              />
+            )}
+          </div>
+        ) : (
+          expiry.has_expiry && <ExpiryBadge date={expiry.expiry_date} hasFile={Boolean(fileUrl)} />
+        ))}
 
       {showHistory && (
         <FileHistoryModal

@@ -22,6 +22,9 @@ export const mapEmployeeToForm = (employee) => {
     schedule_template_id: employee.schedule_template_id ?? "",
     // May request a different time on a day (Schedule Change).
     allow_schedule_change: employee.allow_schedule_change ? "Yes" : "No",
+    // {document_type: {has_expiry, expiry_date}} -- Employment Files expiry
+    // (HRIS -> HR Dashboard "Nearing expiry").
+    document_expiries: employee.document_expiries || {},
     schedule_template: employee.schedule_template || null,
 
     // PERSONAL

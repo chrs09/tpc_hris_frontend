@@ -157,6 +157,7 @@ export default function EmployeeDrawer({
         philhealth_upload_file: "PHILHEALTH",
         pagibig_upload_file: "PAGIBIG",
         nc3_file: "NC3",
+        defensive_driving_file: "DEFENSIVE_DRIVING",
       };
 
       if (Number(formData.is_active) === 0) {
@@ -190,6 +191,11 @@ export default function EmployeeDrawer({
           key === "character_references"
         ) {
           formDataUpload.append(key, JSON.stringify(value || []));
+          return;
+        }
+
+        if (key === "document_expiries") {
+          formDataUpload.append(key, JSON.stringify(value || {}));
           return;
         }
 
