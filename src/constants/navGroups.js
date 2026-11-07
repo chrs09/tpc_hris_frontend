@@ -32,6 +32,13 @@ export function getNavGroups(role) {
       label: "HRIS",
       children: [
         {
+          // 201 compliance: lacking docs, nearing expiry, government IDs.
+          label: "HR Dashboard",
+          path: "/dashboard/hr-dashboard",
+          roles: ["superadmin", "admin"],
+          moduleKey: "hris.employees",
+        },
+        {
           label: "Attendance",
           path: "/dashboard/attendance",
           roles: ["superadmin", "admin"],
@@ -40,13 +47,6 @@ export function getNavGroups(role) {
         {
           label: "Employees",
           path: "/dashboard/employees",
-          roles: ["superadmin", "admin"],
-          moduleKey: "hris.employees",
-        },
-        {
-          // 201 compliance: lacking docs, nearing expiry, government IDs.
-          label: "HR Dashboard",
-          path: "/dashboard/hr-dashboard",
           roles: ["superadmin", "admin"],
           moduleKey: "hris.employees",
         },
