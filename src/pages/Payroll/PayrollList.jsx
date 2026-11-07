@@ -55,6 +55,8 @@ import {
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import { getIncentivesForPayroll } from "../../api/payroll/incentiveRuns";
 import { getReimbursementsForPayroll } from "../../api/tripExpenses";
+import { getApprovedScheduleChanges } from "../../api/scheduleChanges";
+import { withScheduleOverrides } from "../../utils/payroll/attendance/scheduleOverrides";
 import { fromISODate, toISODate } from "../../utils/isoDate";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
 
@@ -366,6 +368,17 @@ const PayrollList = () => {
       .catch(() => setIncentivesByEmployee({}));
   }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
 
+  // Approved schedule changes in this cutoff: a different time in / out on
+  // a date, which that day's late / undertime / pay follow.
+  // { "<employee id>": { "YYYY-MM-DD": { time_in, time_out } } }
+  const [scheduleChanges, setScheduleChanges] = useState({});
+  useEffect(() => {
+    if (!activePeriod?.cutoffStart || !activePeriod?.cutoffEnd) return;
+    getApprovedScheduleChanges(activePeriod.cutoffStart, activePeriod.cutoffEnd)
+      .then(setScheduleChanges)
+      .catch(() => setScheduleChanges({}));
+  }, [activePeriod?.cutoffStart, activePeriod?.cutoffEnd]);
+
   // Trip Expenses reimbursements (expense reports, budget overspend) paid
   // with this cutoff -- like incentives, a separate amount after Net Pay.
   const [reimbursementsByEmployee, setReimbursementsByEmployee] = useState({});
@@ -403,7 +416,15 @@ const PayrollList = () => {
     employees.forEach((emp) => {
       const spans = jobSegments[String(emp.id)];
       if (!spans || spans.length === 0) {
-        if (inThisPayroll(emp.department, emp.payroll_type)) entries.push(emp);
+        if (inThisPayroll(emp.department, emp.payroll_type)) {
+          entries.push({
+            ...emp,
+            schedule_template: withScheduleOverrides(
+              emp.schedule_template,
+              scheduleChanges[String(emp.id)],
+            ),
+          });
+        }
         return;
       }
       let own = spans.filter((span) => inThisPayroll(span.department, span.payroll_type));
@@ -438,7 +459,7 @@ const PayrollList = () => {
             daily_rate: span.daily_rate,
             monthly_basic: span.monthly_basic,
             monthly_allow: span.monthly_allow,
-            schedule_template: schedule,
+            schedule_template: withScheduleOverrides(schedule, scheduleChanges[String(emp.id)]),
             adjId: split ? `${emp.id}@${segmentKey}` : emp.id,
             _segment: split
               ? {
@@ -459,7 +480,16 @@ const PayrollList = () => {
         });
     });
     return entries;
-  }, [employees, jobSegments, scheduleList, department, inThisPayroll, tripPaid, activePeriod?.cutoffStart]);
+  }, [
+    employees,
+    jobSegments,
+    scheduleList,
+    scheduleChanges,
+    department,
+    inThisPayroll,
+    tripPaid,
+    activePeriod?.cutoffStart,
+  ]);
 
   const cutoffKey = activePeriod.cutoffStart
     ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`

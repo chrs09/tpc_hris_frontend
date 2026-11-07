@@ -174,6 +174,14 @@ export function getNavGroups(role) {
           moduleKey: "finance.trip_expenses",
           approverKind: "trip_expense",
         },
+        {
+          // A different time in / out for one day: Org Chart heads with
+          // Schedule Change ticked (and superadmin) approve.
+          label: "Schedule Change",
+          path: "/dashboard/approvals?tab=schedule_change",
+          roles: ["superadmin"],
+          approverKind: "schedule_change",
+        },
       ],
     },
     {

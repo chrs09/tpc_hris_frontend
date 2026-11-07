@@ -1,3 +1,5 @@
+import { scheduleTimesForDate } from "./scheduleOverrides";
+
 // =====================================================
 // ATTENDANCE TIME UTILITIES
 // =====================================================
@@ -107,12 +109,11 @@ export function getScheduleMinutesForDate(schedule, attendanceDate) {
     return null;
   }
 
-  const dayName = new Date(`${attendanceDate}T00:00:00`)
-    .toLocaleDateString("en-US", { weekday: "long" })
-    .toLowerCase();
-
-  const scheduleInStr = schedule?.[`${dayName}_in`];
-  const scheduleOutStr = schedule?.[`${dayName}_out`];
+  // An approved schedule change for the date, else the weekday's times.
+  const { inStr: scheduleInStr, outStr: scheduleOutStr } = scheduleTimesForDate(
+    schedule,
+    attendanceDate,
+  );
 
   if (!scheduleInStr || !scheduleOutStr) {
     return null;

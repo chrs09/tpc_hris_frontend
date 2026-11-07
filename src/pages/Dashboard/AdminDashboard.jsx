@@ -21,6 +21,7 @@ import { getMyMissedDays, getMyTimeCorrections } from "../../api/attendance/requ
 import TimeCorrectionModal from "../../components/timeCorrection/TimeCorrectionModal";
 import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorrectionHistoryList";
 import useCanFileCorrection from "../../components/timeCorrection/useCanFileCorrection";
+import useMyScheduleChanges from "../../components/scheduleChange/useMyScheduleChanges";
 import { getHolidays } from "../../api/holidays";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
@@ -364,6 +365,8 @@ const AdminDashboard = () => {
   const [correctionDate, setCorrectionDate] = useState(null);
   // Anyone who times in / out -- superadmin included (server decides).
   const canCorrect = useCanFileCorrection();
+  // A different time on a day (only people allowed on their 201).
+  const schedule = useMyScheduleChanges();
   const loadMyCorrections = useCallback(async () => {
     try {
       const [corrections, missed] = await Promise.all([
@@ -618,7 +621,7 @@ const AdminDashboard = () => {
           superadmin, who manages these company-wide instead of filing
           their own) -- kept right under the hero so it's the first
           actionable thing on the page, above the overview cards below. */}
-      {(canFileLeave || canCorrect) && (
+      {(canFileLeave || canCorrect || schedule.canRequest) && (
         <DashboardCard title="Quick Actions">
           <div className="flex flex-wrap items-center gap-2">
             {canFileLeave && showLeaveSection && (
@@ -636,6 +639,14 @@ const AdminDashboard = () => {
                 className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg hover:bg-surface-hover transition-colors"
               >
                 Time Correction
+              </button>
+            )}
+            {schedule.canRequest && (
+              <button
+                onClick={schedule.openForm}
+                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg hover:bg-surface-hover transition-colors"
+              >
+                Schedule Change
               </button>
             )}
           </div>
@@ -952,6 +963,13 @@ const AdminDashboard = () => {
           />
         </DashboardCard>
       )}
+
+      {schedule.canRequest && (
+        <DashboardCard title="Schedule Changes" action={schedule.button}>
+          {schedule.content}
+        </DashboardCard>
+      )}
+      {schedule.modal}
 
       {showLeaveModal && (
         <LeaveRequestModal

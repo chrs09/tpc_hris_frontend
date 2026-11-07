@@ -863,6 +863,8 @@ const APPROVAL_TYPES = [
   { key: "fuel_request", label: "Fuel Request" },
   // Drivers' trip budgets: approved here before Finance releases them.
   { key: "trip_expense", label: "Trip Expenses" },
+  // A different time in / out for one day (people allowed on their 201).
+  { key: "schedule_change", label: "Schedule Change" },
   // Which step of a trip's approval is this head's: shows under "For me"
   // on that page for drivers below them.
   { key: "trip_coordinator", label: "Trip Approvals" },

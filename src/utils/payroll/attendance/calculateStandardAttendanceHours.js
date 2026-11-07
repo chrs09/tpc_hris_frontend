@@ -9,6 +9,7 @@ import {
   isSecondHalfAbsent,
   getExpectedHoursForSchedule,
 } from "./attendanceTimeUtils";
+import { scheduleTimesForDate } from "./scheduleOverrides";
 
 // =====================================================
 // STANDARD ATTENDANCE CALCULATOR
@@ -59,15 +60,11 @@ export function calculateStandardAttendanceHours({
   // DETERMINE DAY
   // ===================================================
 
-  const dayName = new Date(`${attendanceDate}T00:00:00`)
-    .toLocaleDateString("en-US", {
-      weekday: "long",
-    })
-    .toLowerCase();
-
-  const scheduleInStr = schedule?.[`${dayName}_in`];
-
-  const scheduleOutStr = schedule?.[`${dayName}_out`];
+  // That date's schedule: an approved schedule change, else the weekday's.
+  const { inStr: scheduleInStr, outStr: scheduleOutStr } = scheduleTimesForDate(
+    schedule,
+    attendanceDate,
+  );
 
   // ===================================================
   // NO SCHEDULE

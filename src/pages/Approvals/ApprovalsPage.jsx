@@ -9,6 +9,7 @@ import LeaveManagement from "../Leave/LeaveManagement";
 import OvertimeApprovals from "../Overtime/OvertimeApprovals";
 import FuelRequestsTab from "../Admin/FuelRequestsTab";
 import TripExpensesTab from "../Admin/TripExpensesTab";
+import ScheduleChangeApprovals from "./ScheduleChangeApprovals";
 
 // Approvals -- every kind of approval in one place, one tab each
 // (Attendance, Cash Advance, Overtime, Leave, Fuel Request). Which tabs show is the same
@@ -21,6 +22,7 @@ const TABS = {
   leave: LeaveManagement,
   fuel_request: FuelRequestsTab,
   trip_expense: TripExpensesTab,
+  schedule_change: ScheduleChangeApprovals,
 };
 
 const tabOf = (path) => new URLSearchParams(path.split("?")[1] || "").get("tab");

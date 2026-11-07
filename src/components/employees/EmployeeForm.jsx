@@ -393,6 +393,16 @@ export default function EmployeeForm({
               onChange={handleChange}
               options={scheduleOptions}
             />
+            {/* A different time in / out on a specific day, approved by
+                their head (Schedule Change) -- per employee. */}
+            <EditableField
+              label="Can request schedule changes"
+              field="allow_schedule_change"
+              value={formData.allow_schedule_change || "No"}
+              isEditing={isEditing}
+              onChange={handleChange}
+              options={["Yes", "No"]}
+            />
             <EditableField
               label="Date Hired"
               field="date_hired"

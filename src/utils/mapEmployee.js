@@ -20,6 +20,8 @@ export const mapEmployeeToForm = (employee) => {
     payroll_type: employee.payroll_type || "",
 
     schedule_template_id: employee.schedule_template_id ?? "",
+    // May request a different time on a day (Schedule Change).
+    allow_schedule_change: employee.allow_schedule_change ? "Yes" : "No",
     schedule_template: employee.schedule_template || null,
 
     // PERSONAL

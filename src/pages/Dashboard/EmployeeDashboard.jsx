@@ -15,6 +15,7 @@ import FileOvertimeModal from "../../components/overtime/FileOvertimeModal";
 import TimeCorrectionModal from "../../components/timeCorrection/TimeCorrectionModal";
 import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorrectionHistoryList";
 import useCanFileCorrection from "../../components/timeCorrection/useCanFileCorrection";
+import useMyScheduleChanges from "../../components/scheduleChange/useMyScheduleChanges";
 import DashboardCard from "../../components/dashboard/DashboardCard";
 import MyPayslipsList from "../../components/payslips/MyPayslipsList";
 import useIsDesktop from "../../hooks/useIsDesktop";
@@ -45,6 +46,8 @@ const EmployeeDashboard = () => {
   const [correctionDate, setCorrectionDate] = useState(null);
   // Not for helpers -- their attendance comes from trips.
   const canCorrect = useCanFileCorrection();
+  // A different time on a day (only people allowed on their 201).
+  const schedule = useMyScheduleChanges();
   const isDesktop = useIsDesktop();
 
   const employeeName = localStorage.getItem("username") || "there";
@@ -259,6 +262,16 @@ const EmployeeDashboard = () => {
                 },
               ]
             : []),
+          ...(schedule.canRequest
+            ? [
+                {
+                  key: "request-schedule-change",
+                  label: "Schedule Change",
+                  icon: CalendarPlus,
+                  onClick: schedule.openForm,
+                },
+              ]
+            : []),
         ]}
       />
 
@@ -282,6 +295,12 @@ const EmployeeDashboard = () => {
           {canCorrect && (
             <DashboardCard title="Time Corrections" action={fileCorrectionButton}>
               {correctionContent}
+            </DashboardCard>
+          )}
+
+          {schedule.canRequest && (
+            <DashboardCard title="Schedule Changes" action={schedule.button}>
+              {schedule.content}
             </DashboardCard>
           )}
 
@@ -337,6 +356,17 @@ const EmployeeDashboard = () => {
             </section>
           )}
 
+          {/* SCHEDULE CHANGES (only people allowed on their 201) */}
+          {schedule.canRequest && (
+            <section className="px-1">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="text-base font-bold text-fg">Schedule Changes</h2>
+                {schedule.button}
+              </div>
+              {schedule.content}
+            </section>
+          )}
+
           {/* PAYSLIPS (only once Payroll released one) */}
           <MyPayslipsList
             wrap={(content) => (
@@ -368,6 +398,7 @@ const EmployeeDashboard = () => {
           onFiled={loadData}
         />
       )}
+      {schedule.modal}
     </div>
   );
 };

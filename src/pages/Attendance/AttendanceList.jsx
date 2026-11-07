@@ -16,6 +16,8 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { getEmployeeList } from "../../api/employee";
+import { getApprovedScheduleChanges } from "../../api/scheduleChanges";
+import { withScheduleOverrides } from "../../utils/payroll/attendance/scheduleOverrides";
 import {
   attendanceRecord,
   updateAttendance,
@@ -114,6 +116,8 @@ const AttendanceList = () => {
   // Table View range ("YYYY-MM-DD"); [null, null] = the month shown.
   // Can span months (e.g. a payroll cutoff Sep 26 -> Oct 10).
   const [dateRange, setDateRange] = useState([null, null]);
+  // Approved schedule changes for the days shown (by employee, by date).
+  const [scheduleChanges, setScheduleChanges] = useState({});
   const [draftRange, setDraftRange] = useState(["", ""]);
 
   // Lets NeedsReviewCard's "Review" link (dashboard) deep-link straight
@@ -287,15 +291,23 @@ const AttendanceList = () => {
         id: emp.id,
         name: `${emp.first_name || ""} ${emp.last_name || ""}`.trim(),
         role: emp.department,
-        // For the overtime worked past schedule (same maths as payroll).
-        schedule: emp.schedule_template,
+        // For the overtime worked past schedule (same maths as payroll) --
+        // with approved schedule changes on their dates.
+        schedule: withScheduleOverrides(emp.schedule_template, scheduleChanges[String(emp.id)]),
         payrollType: emp.payroll_type,
       }))
       .filter((emp) => filter === "All" || emp.role === filter)
       .filter(
         (emp) => !searchTerm || emp.name.toLowerCase().includes(searchTerm),
       );
-  }, [teamEmployees, teamInactiveEmployees, employeeStatus, filter, employeeSearch]);
+  }, [
+    teamEmployees,
+    teamInactiveEmployees,
+    employeeStatus,
+    filter,
+    employeeSearch,
+    scheduleChanges,
+  ]);
 
   const {
     page: currentPage,
@@ -319,6 +331,14 @@ const AttendanceList = () => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentMonth, dateRange[0], dateRange[1]]);
+
+  useEffect(() => {
+    if (!daysInMonth.length) return;
+    const iso = (d) => format(d, "yyyy-MM-dd");
+    getApprovedScheduleChanges(iso(daysInMonth[0]), iso(daysInMonth[daysInMonth.length - 1]))
+      .then(setScheduleChanges)
+      .catch(() => setScheduleChanges({}));
+  }, [daysInMonth]);
 
   // ---------------------------------------
   // FILED OVERTIME (OT tag per day + Filed OT column)
