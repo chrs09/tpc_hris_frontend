@@ -287,7 +287,15 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  const { role, isSuperAdmin, isVisible } = useModuleAccess();
+  const { role, isSuperAdmin, isVisible, approvesAny, canEditModule } =
+    useModuleAccess();
+  // Needs Review: only attendance reviewers -- superadmin, an Org Chart
+  // head ticked for Attendance, or an Attendance grid "Can edit" grant
+  // (same rule as the backend's /attendance/for-my-approval).
+  const showNeedsReview =
+    isSuperAdmin ||
+    approvesAny("attendance") ||
+    canEditModule("hris.attendance_grid_view");
   const [myLeaves, setMyLeaves] = useState([]);
   const [showLeaveSection, setShowLeaveSection] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -732,20 +740,24 @@ const AdminDashboard = () => {
       )}
 
       {/* ATTENDANCE REVIEW + INCOMING LEAVE REQUESTS */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-        <div className="xl:col-span-1">
-          <NeedsReviewCard />
-        </div>
+      {(showNeedsReview || isSuperAdmin) && (
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+          {showNeedsReview && (
+            <div className="xl:col-span-1">
+              <NeedsReviewCard />
+            </div>
+          )}
 
-        {isSuperAdmin && !pendingLeavesLoading && (
-          <IncomingLeaveRequestsCard
-            leaves={pendingLeaves}
-            onApprove={handleApproveLeave}
-            onReject={handleRejectLeave}
-            actioningId={actioningLeaveId}
-          />
-        )}
-      </div>
+          {isSuperAdmin && !pendingLeavesLoading && (
+            <IncomingLeaveRequestsCard
+              leaves={pendingLeaves}
+              onApprove={handleApproveLeave}
+              onReject={handleRejectLeave}
+              actioningId={actioningLeaveId}
+            />
+          )}
+        </div>
+      )}
 
       {isSuperAdmin && (
         <>

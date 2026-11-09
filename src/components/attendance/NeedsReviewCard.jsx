@@ -1,78 +1,74 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
-import { format, addDays, isToday } from "date-fns";
-import { attendanceRecord } from "../../api/attendance";
-
-const NEEDS_REVIEW_STATUSES = [
-  "NEEDS_REVIEW",
-  "NO_PROFILE_PHOTO",
-  "FACE_MATCH_FAILED",
-];
+import { format, addDays, isToday, differenceInCalendarDays } from "date-fns";
+import { getAttendanceForMyApproval } from "../../api/attendance";
 
 const REVIEW_REASON_LABEL = {
   NEEDS_REVIEW: "Needs Review",
   NO_PROFILE_PHOTO: "No Profile Photo",
   FACE_MATCH_FAILED: "Match Failed",
+  MISSED_TIME_OUT: "Missed Time Out",
 };
 
-// Dashboard widget surfacing attendance selfies that face recognition
-// flagged and a superadmin has not yet approved/rejected (see
-// AttendanceGridReview.jsx, which owns the actual Approve/Reject action) --
-// on its own date toggle so an admin can catch up on days they missed,
-// independent of whatever date the full Attendance page happens to be on.
+// /attendance/for-my-approval only covers the last 30 days.
+const MAX_DAYS_BACK = 30;
+
+// Dashboard widget: attendance time in/out waiting for review that THIS
+// user is assigned to (their turn on the org chart chain, their own team
+// as a head, or everyone for a superadmin / Attendance grid "Can edit"
+// grant -- decided by the backend's /attendance/for-my-approval). Only
+// rendered for attendance reviewers (see AdminDashboard.jsx). On its own
+// date toggle so a reviewer can catch up on days they missed.
 const NeedsReviewCard = () => {
   const [date, setDate] = useState(new Date());
-  const [records, setRecords] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const dateKey = format(date, "yyyy-MM-dd");
+  const atOldest = differenceInCalendarDays(new Date(), date) >= MAX_DAYS_BACK;
 
   useEffect(() => {
     let cancelled = false;
-
-    const load = async () => {
-      try {
-        setLoading(true);
-
-        const data = await attendanceRecord({
-          attendance_date: dateKey,
-          includePhotos: false,
-        });
-
-        const list = Array.isArray(data) ? data : data?.records || [];
-
-        if (!cancelled) {
-          // Face review now runs independently for time-in and time-out
-          // (see AttendanceGridReview.jsx) -- a record is flagged here if
-          // either side needs it, even once the other side is settled.
-          setRecords(
-            list.filter(
-              (item) =>
-                NEEDS_REVIEW_STATUSES.includes(
-                  item.time_in_face_review_status,
-                ) ||
-                (item.check_out_time &&
-                  NEEDS_REVIEW_STATUSES.includes(
-                    item.time_out_face_review_status,
-                  )),
-            ),
-          );
-        }
-      } catch (error) {
+    getAttendanceForMyApproval()
+      .then((data) => {
+        if (!cancelled) setItems(Array.isArray(data) ? data : []);
+      })
+      .catch((error) => {
         console.error("Failed to load needs-review attendance:", error);
-        if (!cancelled) setRecords([]);
-      } finally {
+        if (!cancelled) setItems([]);
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    };
-
-    load();
-
+      });
     return () => {
       cancelled = true;
     };
-  }, [dateKey]);
+  }, []);
+
+  // One row per attendance record (time in and time out may both wait).
+  const records = useMemo(() => {
+    const byRecord = new Map();
+    items
+      .filter((item) => item.attendance_date === dateKey)
+      .forEach((item) => {
+        const row = byRecord.get(item.attendance_id) || {
+          id: item.attendance_id,
+          employee_name: item.employee_name,
+          position: item.position,
+          sides: [],
+        };
+        row.sides.push(
+          `${item.side_label}: ${
+            item.outside_geofence
+              ? "Outside Geofence"
+              : REVIEW_REASON_LABEL[item.review_status] || item.review_status
+          }`,
+        );
+        byRecord.set(item.attendance_id, row);
+      });
+    return [...byRecord.values()];
+  }, [items, dateKey]);
 
   return (
     <div className="bg-surface rounded-2xl p-5 border border-border shadow-sm">
@@ -88,7 +84,8 @@ const NeedsReviewCard = () => {
           <button
             type="button"
             onClick={() => setDate((d) => addDays(d, -1))}
-            className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-muted"
+            disabled={atOldest}
+            className="p-1.5 rounded-lg hover:bg-surface-hover text-fg-muted disabled:opacity-30 disabled:cursor-not-allowed"
             title="Previous day"
           >
             <ChevronLeft size={16} />
@@ -114,7 +111,7 @@ const NeedsReviewCard = () => {
         <div className="text-xs text-fg-muted">Loading...</div>
       ) : records.length === 0 ? (
         <div className="text-xs text-fg-muted">
-          No flagged attendance for this date.
+          Nothing waiting for your review on this date.
         </div>
       ) : (
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
@@ -125,38 +122,15 @@ const NeedsReviewCard = () => {
             >
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-amber-900 truncate">
-                  {record.employee_name || `Employee #${record.employee_id}`}
+                  {record.employee_name}
                 </p>
                 <p className="text-[11px] text-amber-700 truncate">
-                  {record.employee_department || record.department || "—"} •{" "}
-                  {[
-                    NEEDS_REVIEW_STATUSES.includes(
-                      record.time_in_face_review_status,
-                    ) &&
-                      `Time In: ${
-                        record.time_in_outside_geofence
-                          ? "Outside Geofence"
-                          : REVIEW_REASON_LABEL[record.time_in_face_review_status]
-                      }`,
-                    record.check_out_time &&
-                      NEEDS_REVIEW_STATUSES.includes(
-                        record.time_out_face_review_status,
-                      ) &&
-                      `Time Out: ${
-                        record.time_out_outside_geofence
-                          ? "Outside Geofence"
-                          : REVIEW_REASON_LABEL[
-                              record.time_out_face_review_status
-                            ]
-                      }`,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
+                  {record.position || "—"} • {record.sides.join(", ")}
                 </p>
               </div>
 
               <Link
-                to={`/dashboard/attendance?view=grid&date=${dateKey}`}
+                to="/dashboard/approvals?tab=attendance"
                 className="shrink-0 text-[11px] font-medium text-primary hover:text-primary-hover"
               >
                 Review
