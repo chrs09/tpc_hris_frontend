@@ -30,6 +30,7 @@ import useApprovalScope from "../../hooks/useApprovalScope";
 import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 import MissedTimeInPanel from "../../components/attendance/MissedTimeInPanel";
 import TimeCorrectionPanel from "../../components/attendance/TimeCorrectionPanel";
+import ImageViewer from "../../components/ui/ImageViewer";
 
 const REASON_LABELS = {
   MISSED_TIME_OUT: "Forgot to time out",
@@ -53,6 +54,10 @@ export default function AttendanceApprovals() {
   // Filter chip: "all" or one of REVIEW_TYPES.
   const [typeFilter, setTypeFilter] = useState("all");
   const [photo, setPhoto] = useState(null);
+  // Tabs: reviews (time in / out checks), missed time in, time corrections.
+  const [tab, setTab] = useState(null);
+  const [missedCount, setMissedCount] = useState(null);
+  const [correctionCount, setCorrectionCount] = useState(null);
   // Cards or a compact list (remembered per browser).
   const [viewType, setViewType] = useViewType("attendance_approvals_view");
   // Missed time out: the time out the approver saves ("HH:MM"), starting
@@ -90,7 +95,11 @@ export default function AttendanceApprovals() {
       if (remarks === null) return;
       try {
         setActioningKey(item.key);
-        const result = await setMissedTimeOut(item.attendance_id, missedTimeOf(item), remarks.trim());
+        const result = await setMissedTimeOut(
+          item.attendance_id,
+          missedTimeOf(item),
+          remarks.trim(),
+        );
         toast.success(result?.message || "Time out saved.");
         await load();
       } catch (error) {
@@ -147,7 +156,11 @@ export default function AttendanceApprovals() {
   const rotate = async (item) => {
     try {
       setRotatingKey(item.key);
-      const result = await rotateAttendancePhoto(item.attendance_id, item.side, 90);
+      const result = await rotateAttendancePhoto(
+        item.attendance_id,
+        item.side,
+        90,
+      );
       const patch = {
         photo_url: result.photo_url,
         review_status: result.review_status,
@@ -156,7 +169,9 @@ export default function AttendanceApprovals() {
       setItems((current) =>
         current.map((i) => (i.key === item.key ? { ...i, ...patch } : i)),
       );
-      setPhoto((current) => (current?.key === item.key ? { ...current, ...patch } : current));
+      setPhoto((current) =>
+        current?.key === item.key ? { ...current, ...patch } : current,
+      );
     } catch (error) {
       toast.error(error.response?.data?.detail || "Couldn't rotate the photo.");
     } finally {
@@ -167,7 +182,8 @@ export default function AttendanceApprovals() {
   const typeCounts = REVIEW_TYPES.reduce(
     (counts, t) => ({
       ...counts,
-      [t.key]: items.filter((item) => reviewTypesOf(item).includes(t.key)).length,
+      [t.key]: items.filter((item) => reviewTypesOf(item).includes(t.key))
+        .length,
     }),
     {},
   );
@@ -185,365 +201,483 @@ export default function AttendanceApprovals() {
       ),
   );
 
+  const tabs = [
+    {
+      key: "reviews",
+      label: "Time in / out reviews",
+      count: loading ? null : items.length,
+    },
+    { key: "missed", label: "No time in", count: missedCount },
+    { key: "corrections", label: "Time corrections", count: correctionCount },
+  ];
+  // Until one is picked: the first tab with something waiting.
+  const countsKnown =
+    !loading && missedCount !== null && correctionCount !== null;
+  const activeTab =
+    tab ??
+    (countsKnown
+      ? (tabs.find((t) => t.count > 0)?.key ?? "reviews")
+      : "reviews");
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-fg">Attendance Approvals</h1>
+          <h1 className="text-xl font-semibold text-fg">
+            Attendance Approvals
+          </h1>
           <p className="mt-1 text-sm text-fg-subtle">
             Time in / out that needs a look from you: a forgotten time out, no
             work photo, outside the work area, or a face check. Approving passes
             it to the next head up, if any.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search name, date, reason..."
-          />
-          <ViewToggle viewType={viewType} onChange={setViewType} />
-        </div>
+        {activeTab === "reviews" && (
+          <div className="flex items-center gap-2">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search name, date, reason..."
+            />
+            <ViewToggle viewType={viewType} onChange={setViewType} />
+          </div>
+        )}
       </div>
 
-      {/* Not timed in (heads answer) and employees' time corrections. */}
-      <MissedTimeInPanel canEdit={canEditPage} />
-      <TimeCorrectionPanel canEdit={canEditPage} />
+      <div className="flex gap-1 overflow-x-auto border-b border-border">
+        {tabs.map((t) => {
+          const active = activeTab === t.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTab(t.key)}
+              className={`-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition ${
+                active
+                  ? "border-primary text-fg"
+                  : "border-transparent text-fg-muted hover:text-fg"
+              }`}
+            >
+              {t.label}
+              {t.count ? (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    active
+                      ? "bg-primary/15 text-primary"
+                      : "bg-surface-active text-fg-muted"
+                  }`}
+                >
+                  {t.count}
+                </span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
 
-      {items.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {[{ key: "all", label: "All" }, ...REVIEW_TYPES].map((t) => {
-            const count = t.key === "all" ? items.length : typeCounts[t.key];
-            if (t.key !== "all" && !count) return null;
-            const active = typeFilter === t.key;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setTypeFilter(t.key)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                  active
-                    ? "border-fg bg-fg text-background"
-                    : "border-border bg-surface text-fg-muted hover:bg-surface-hover"
-                }`}
-              >
-                {t.label} <span className={active ? "opacity-80" : "text-fg-subtle"}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {/* Kept mounted (hidden) so the tab counts stay current. */}
+      <div className={activeTab === "missed" ? "" : "hidden"}>
+        <MissedTimeInPanel
+          canEdit={canEditPage}
+          onCount={setMissedCount}
+          showEmpty
+        />
+      </div>
+      <div className={activeTab === "corrections" ? "" : "hidden"}>
+        <TimeCorrectionPanel
+          canEdit={canEditPage}
+          onCount={setCorrectionCount}
+          showEmpty
+        />
+      </div>
 
-      <ApprovalScopeToggle {...scopeProps} />
+      <div className={activeTab === "reviews" ? "space-y-5" : "hidden"}>
+        {items.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {[{ key: "all", label: "All" }, ...REVIEW_TYPES].map((t) => {
+              const count = t.key === "all" ? items.length : typeCounts[t.key];
+              if (t.key !== "all" && !count) return null;
+              const active = typeFilter === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTypeFilter(t.key)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    active
+                      ? "border-fg bg-fg text-background"
+                      : "border-border bg-surface text-fg-muted hover:bg-surface-hover"
+                  }`}
+                >
+                  {t.label}{" "}
+                  <span className={active ? "opacity-80" : "text-fg-subtle"}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-      {items.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">
-          <span className="font-medium text-fg-subtle">Status:</span>
-          {REVIEW_STATES.filter((st) => items.some((item) => reviewStateOf(item).key === st.key)).map(
-            (st) => (
+        <ApprovalScopeToggle {...scopeProps} />
+
+        {items.length > 0 && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">
+            <span className="font-medium text-fg-subtle">Status:</span>
+            {REVIEW_STATES.filter((st) =>
+              items.some((item) => reviewStateOf(item).key === st.key),
+            ).map((st) => (
               <span key={st.key} className="inline-flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-full ${STATE_STYLES[st.key].dot}`} />
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${STATE_STYLES[st.key].dot}`}
+                />
                 {st.label}
               </span>
-            ),
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {loading ? (
-        <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-subtle">
-          {items.length ? "Nothing matches this filter or search." : "All caught up -- nothing waiting on you. 🎉"}
-        </div>
-      ) : viewType === "list" ? (
-        <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-          <table className="w-full min-w-[860px] text-sm">
-            <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
-              <tr>
-                <th className="px-3 py-3 text-left font-medium">Employee</th>
-                <th className="px-3 py-3 text-left font-medium">When</th>
-                <th className="px-3 py-3 text-left font-medium">Needs a look</th>
-                <th className="px-3 py-3 text-left font-medium">Status</th>
-                {canEditPage && <th className="px-3 py-3 text-right font-medium">Action</th>}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => {
-                const state = reviewStateOf(item);
-                const unfiled = item.missed_time_out && !item.missed_time_out.filed;
-                return (
-                  <tr
-                    key={item.key}
-                    className={`border-t border-l-4 border-border align-top hover:bg-surface-hover ${STATE_STYLES[state.key].border}`}
-                  >
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => item.photo_url && setPhoto(item)}
-                          className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-hover"
-                          aria-label={`View ${item.employee_name}'s photo`}
-                        >
-                          {item.photo_url ? (
-                            <img src={item.photo_url} alt="" className="h-full w-full object-cover" />
-                          ) : null}
-                        </button>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-fg">{item.employee_name}</p>
-                          <p className="text-xs text-fg-subtle">{item.side_label}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 whitespace-nowrap text-xs text-fg-muted">
-                      {item.attendance_date}
-                      {item.time ? <span className="block">{item.time}</span> : null}
-                    </td>
-                    <td className="max-w-[320px] px-3 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {reviewTypesOf(item).map((type) => (
-                          <span
-                            key={type}
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[type]}`}
-                          >
-                            {REVIEW_TYPES.find((t) => t.key === type)?.label}
-                          </span>
-                        ))}
-                      </div>
-                      {item.missed_time_out ? (
-                        <div className="mt-1 text-xs text-fg-muted">
-                          In {item.missed_time_out.time_in || "-"}
-                          {item.missed_time_out.filed
-                            ? ` · says left ${item.missed_time_out.requested_time}`
-                            : " · not filed yet"}
-                          {canEditPage && item.can_act !== false && (
-                            <input
-                              type="time"
-                              aria-label={`Time out for ${item.employee_name}`}
-                              value={missedTimeOf(item)}
-                              onChange={(e) =>
-                                setMissedTimes((prev) => ({ ...prev, [item.key]: e.target.value }))
-                              }
-                              className="ml-2 rounded-md border border-border bg-surface px-1.5 py-0.5 text-xs text-fg"
-                            />
-                          )}
-                        </div>
-                      ) : (
-                        <p className="mt-1 line-clamp-2 text-xs text-fg-muted">
-                          {friendlyReason(item.review_reason) || REASON_LABELS[item.review_status]}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATE_STYLES[state.key].pill}`}
-                      >
-                        <span className={`h-1.5 w-1.5 rounded-full ${STATE_STYLES[state.key].dot}`} />
-                        {state.label}
-                      </span>
-                    </td>
-                    {canEditPage && (
+        {loading ? (
+          <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-subtle">
+            {items.length
+              ? "Nothing matches this filter or search."
+              : "All caught up -- nothing waiting on you. 🎉"}
+          </div>
+        ) : viewType === "list" ? (
+          <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+            <table className="w-full min-w-[860px] text-sm">
+              <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
+                <tr>
+                  <th className="px-3 py-3 text-left font-medium">Employee</th>
+                  <th className="px-3 py-3 text-left font-medium">When</th>
+                  <th className="px-3 py-3 text-left font-medium">
+                    Needs a look
+                  </th>
+                  <th className="px-3 py-3 text-left font-medium">Status</th>
+                  {canEditPage && (
+                    <th className="px-3 py-3 text-right font-medium">Action</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((item) => {
+                  const state = reviewStateOf(item);
+                  const unfiled =
+                    item.missed_time_out && !item.missed_time_out.filed;
+                  return (
+                    <tr
+                      key={item.key}
+                      className={`border-t border-l-4 border-border align-top hover:bg-surface-hover ${STATE_STYLES[state.key].border}`}
+                    >
                       <td className="px-3 py-3">
-                        {item.can_act !== false && (
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              disabled={actioningKey === item.key}
-                              onClick={() => act(item, true)}
-                              className="whitespace-nowrap rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:opacity-50"
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => item.photo_url && setPhoto(item)}
+                            className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-surface-hover"
+                            aria-label={`View ${item.employee_name}'s photo`}
+                          >
+                            {item.photo_url ? (
+                              <img
+                                src={item.photo_url}
+                                alt=""
+                                className="h-full w-full object-cover"
+                              />
+                            ) : null}
+                          </button>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-fg">
+                              {item.employee_name}
+                            </p>
+                            <p className="text-xs text-fg-subtle">
+                              {item.side_label}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-xs text-fg-muted">
+                        {item.attendance_date}
+                        {item.time ? (
+                          <span className="block">{item.time}</span>
+                        ) : null}
+                      </td>
+                      <td className="max-w-[320px] px-3 py-3">
+                        <div className="flex flex-wrap gap-1">
+                          {reviewTypesOf(item).map((type) => (
+                            <span
+                              key={type}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[type]}`}
                             >
-                              {unfiled ? "Save Time Out" : "Approve"}
-                            </button>
-                            {!unfiled && (
+                              {REVIEW_TYPES.find((t) => t.key === type)?.label}
+                            </span>
+                          ))}
+                        </div>
+                        {item.missed_time_out ? (
+                          <div className="mt-1 text-xs text-fg-muted">
+                            In {item.missed_time_out.time_in || "-"}
+                            {item.missed_time_out.filed
+                              ? ` · says left ${item.missed_time_out.requested_time}`
+                              : " · not filed yet"}
+                            {canEditPage && item.can_act !== false && (
+                              <input
+                                type="time"
+                                aria-label={`Time out for ${item.employee_name}`}
+                                value={missedTimeOf(item)}
+                                onChange={(e) =>
+                                  setMissedTimes((prev) => ({
+                                    ...prev,
+                                    [item.key]: e.target.value,
+                                  }))
+                                }
+                                className="ml-2 rounded-md border border-border bg-surface px-1.5 py-0.5 text-xs text-fg"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <p className="mt-1 line-clamp-2 text-xs text-fg-muted">
+                            {friendlyReason(item.review_reason) ||
+                              REASON_LABELS[item.review_status]}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATE_STYLES[state.key].pill}`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${STATE_STYLES[state.key].dot}`}
+                          />
+                          {state.label}
+                        </span>
+                      </td>
+                      {canEditPage && (
+                        <td className="px-3 py-3">
+                          {item.can_act !== false && (
+                            <div className="flex justify-end gap-2">
                               <button
                                 type="button"
                                 disabled={actioningKey === item.key}
-                                onClick={() => act(item, false)}
-                                className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                                onClick={() => act(item, true)}
+                                className="whitespace-nowrap rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:opacity-50"
                               >
-                                Reject
+                                {unfiled ? "Save Time Out" : "Approve"}
                               </button>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {filtered.map((item) => (
-            <div
-              key={item.key}
-              className={`flex gap-4 rounded-2xl border border-l-4 border-border bg-surface p-4 ${
-                STATE_STYLES[reviewStateOf(item).key].border
-              }`}
-            >
-              <div className="relative h-28 w-24 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => item.photo_url && setPhoto(item)}
-                  className="h-full w-full overflow-hidden rounded-xl bg-surface-hover"
-                >
-                  {item.photo_url ? (
-                    <img
-                      src={item.photo_url}
-                      alt={`${item.employee_name} ${item.side_label}`}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs text-fg-subtle">No photo</span>
-                  )}
-                </button>
-                {canEditPage && item.photo_url && (
+                              {!unfiled && (
+                                <button
+                                  type="button"
+                                  disabled={actioningKey === item.key}
+                                  onClick={() => act(item, false)}
+                                  className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                                >
+                                  Reject
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            {filtered.map((item) => (
+              <div
+                key={item.key}
+                className={`flex gap-4 rounded-2xl border border-l-4 border-border bg-surface p-4 ${
+                  STATE_STYLES[reviewStateOf(item).key].border
+                }`}
+              >
+                <div className="relative h-28 w-24 shrink-0">
                   <button
                     type="button"
-                    title="Rotate photo 90° clockwise"
-                    aria-label="Rotate photo"
-                    disabled={rotatingKey === item.key}
-                    onClick={() => rotate(item)}
-                    className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50"
+                    onClick={() => item.photo_url && setPhoto(item)}
+                    className="h-full w-full overflow-hidden rounded-xl bg-surface-hover"
                   >
-                    <RotateCw size={14} className={rotatingKey === item.key ? "animate-spin" : ""} />
-                  </button>
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1 space-y-1.5">
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                    STATE_STYLES[reviewStateOf(item).key].pill
-                  }`}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${STATE_STYLES[reviewStateOf(item).key].dot}`} />
-                  {reviewStateOf(item).label}
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-fg">{item.employee_name}</p>
-                  <span className="rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
-                    {item.side_label}
-                  </span>
-                  {reviewTypesOf(item).map((type) => (
-                    <span
-                      key={type}
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[type]}`}
-                    >
-                      {REVIEW_TYPES.find((t) => t.key === type)?.label}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs text-fg-muted">
-                  {item.attendance_date}
-                  {item.time ? ` · ${item.time}` : ""}
-                  {item.position ? ` · ${item.position}` : ""}
-                </p>
-                {!item.missed_time_out && (
-                  <p className="text-xs text-fg-muted">
-                    {friendlyReason(item.review_reason) || REASON_LABELS[item.review_status]}
-                  </p>
-                )}
-                {item.missed_time_out && (
-                  <div className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs text-fg">
-                    <p>
-                      Timed in {item.missed_time_out.time_in || "-"} -- forgot to time out.
-                      {item.missed_time_out.filed
-                        ? ` Says they left at ${item.missed_time_out.requested_time}.`
-                        : " Not filed yet -- you can enter the time out."}
-                    </p>
-                    {item.missed_time_out.reason && (
-                      <p className="mt-0.5 text-fg-muted">Reason: “{item.missed_time_out.reason}”</p>
+                    {item.photo_url ? (
+                      <img
+                        src={item.photo_url}
+                        alt={`${item.employee_name} ${item.side_label}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs text-fg-subtle">No photo</span>
                     )}
-                    {canEditPage && (
-                      <label className="mt-1.5 flex items-center gap-2">
-                        <span className="font-medium">Time out</span>
-                        <input
-                          type="time"
-                          value={missedTimeOf(item)}
-                          onChange={(e) =>
-                            setMissedTimes((prev) => ({ ...prev, [item.key]: e.target.value }))
-                          }
-                          className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg"
-                        />
-                        {item.missed_time_out.filed && (
-                          <span className="text-fg-subtle">change it if needed</span>
-                        )}
-                      </label>
-                    )}
-                  </div>
-                )}
-                {item.address && (
-                  <p className="truncate text-[11px] text-fg-subtle" title={item.address}>
-                    {item.address}
-                  </p>
-                )}
-                <WorkReport
-                  text={item.work_accomplished}
-                  proofUrl={item.work_proof_url}
-                  missing={item.work_proof_missing}
-                  compact
-                />
-                <ApprovalProgress steps={item.approval_steps} />
-                <ApprovedBy log={item.approval_log} />
-
-
-                {canEditPage && item.can_act !== false && (
-                <div className="flex gap-2 pt-1">
-                  <button
-                    type="button"
-                    disabled={actioningKey === item.key}
-                    onClick={() => act(item, true)}
-                    className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:opacity-50"
-                  >
-                    {item.missed_time_out && !item.missed_time_out.filed
-                      ? "Save Time Out"
-                      : "Approve"}
                   </button>
-                  {!(item.missed_time_out && !item.missed_time_out.filed) && (
+                  {canEditPage && item.photo_url && (
                     <button
                       type="button"
-                      disabled={actioningKey === item.key}
-                      onClick={() => act(item, false)}
-                      className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                      title="Rotate photo 90° clockwise"
+                      aria-label="Rotate photo"
+                      disabled={rotatingKey === item.key}
+                      onClick={() => rotate(item)}
+                      className="absolute bottom-1 right-1 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:opacity-50"
                     >
-                      Reject
+                      <RotateCw
+                        size={14}
+                        className={
+                          rotatingKey === item.key ? "animate-spin" : ""
+                        }
+                      />
                     </button>
                   )}
                 </div>
-                )}
+
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      STATE_STYLES[reviewStateOf(item).key].pill
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${STATE_STYLES[reviewStateOf(item).key].dot}`}
+                    />
+                    {reviewStateOf(item).label}
+                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-fg">
+                      {item.employee_name}
+                    </p>
+                    <span className="rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
+                      {item.side_label}
+                    </span>
+                    {reviewTypesOf(item).map((type) => (
+                      <span
+                        key={type}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${TYPE_STYLES[type]}`}
+                      >
+                        {REVIEW_TYPES.find((t) => t.key === type)?.label}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-fg-muted">
+                    {item.attendance_date}
+                    {item.time ? ` · ${item.time}` : ""}
+                    {item.position ? ` · ${item.position}` : ""}
+                  </p>
+                  {!item.missed_time_out && (
+                    <p className="text-xs text-fg-muted">
+                      {friendlyReason(item.review_reason) ||
+                        REASON_LABELS[item.review_status]}
+                    </p>
+                  )}
+                  {item.missed_time_out && (
+                    <div className="rounded-lg border border-warning/40 bg-warning/10 p-2 text-xs text-fg">
+                      <p>
+                        Timed in {item.missed_time_out.time_in || "-"} -- forgot
+                        to time out.
+                        {item.missed_time_out.filed
+                          ? ` Says they left at ${item.missed_time_out.requested_time}.`
+                          : " Not filed yet -- you can enter the time out."}
+                      </p>
+                      {item.missed_time_out.reason && (
+                        <p className="mt-0.5 text-fg-muted">
+                          Reason: “{item.missed_time_out.reason}”
+                        </p>
+                      )}
+                      {canEditPage && (
+                        <label className="mt-1.5 flex items-center gap-2">
+                          <span className="font-medium">Time out</span>
+                          <input
+                            type="time"
+                            value={missedTimeOf(item)}
+                            onChange={(e) =>
+                              setMissedTimes((prev) => ({
+                                ...prev,
+                                [item.key]: e.target.value,
+                              }))
+                            }
+                            className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-fg"
+                          />
+                          {item.missed_time_out.filed && (
+                            <span className="text-fg-subtle">
+                              change it if needed
+                            </span>
+                          )}
+                        </label>
+                      )}
+                    </div>
+                  )}
+                  {item.address && (
+                    <p
+                      className="truncate text-[11px] text-fg-subtle"
+                      title={item.address}
+                    >
+                      {item.address}
+                    </p>
+                  )}
+                  <WorkReport
+                    text={item.work_accomplished}
+                    proofUrl={item.work_proof_url}
+                    missing={item.work_proof_missing}
+                    compact
+                  />
+                  <ApprovalProgress steps={item.approval_steps} />
+                  <ApprovedBy log={item.approval_log} />
+
+                  {canEditPage && item.can_act !== false && (
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={actioningKey === item.key}
+                        onClick={() => act(item, true)}
+                        className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground disabled:opacity-50"
+                      >
+                        {item.missed_time_out && !item.missed_time_out.filed
+                          ? "Save Time Out"
+                          : "Approve"}
+                      </button>
+                      {!(
+                        item.missed_time_out && !item.missed_time_out.filed
+                      ) && (
+                        <button
+                          type="button"
+                          disabled={actioningKey === item.key}
+                          onClick={() => act(item, false)}
+                          className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {photo && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
-          onClick={() => setPhoto(null)}
-        >
-          <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={photo.photo_url}
-              alt={`${photo.employee_name} ${photo.side_label}`}
-              className="max-h-[80vh] max-w-full rounded-xl"
-            />
-            {canEditPage && (
+        <ImageViewer
+          key={photo.photo_url}
+          src={photo.photo_url}
+          alt={`${photo.employee_name} ${photo.side_label}`}
+          title={`${photo.employee_name} · ${photo.side_label}`}
+          onClose={() => setPhoto(null)}
+          actions={
+            canEditPage && (
               <button
                 type="button"
                 disabled={rotatingKey === photo.key}
                 onClick={() => rotate(photo)}
-                className="flex items-center gap-2 rounded-lg bg-surface px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-hover disabled:opacity-50"
+                className="flex h-9 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-sm text-white hover:bg-white/20 disabled:opacity-40"
+                title="Rotate 90° clockwise"
               >
-                <RotateCw size={16} className={rotatingKey === photo.key ? "animate-spin" : ""} />
+                <RotateCw
+                  size={16}
+                  className={rotatingKey === photo.key ? "animate-spin" : ""}
+                />
                 Rotate
               </button>
-            )}
-          </div>
-        </div>
+            )
+          }
+        />
       )}
     </div>
   );

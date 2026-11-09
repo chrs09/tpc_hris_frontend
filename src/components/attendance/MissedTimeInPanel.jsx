@@ -15,7 +15,7 @@ const WAITING_TEXT = {
   waiting_employee: () => "Waiting for their time correction.",
 };
 
-export default function MissedTimeInPanel({ canEdit = true }) {
+export default function MissedTimeInPanel({ canEdit = true, onCount, showEmpty = false }) {
   const [items, setItems] = useState([]);
   const [busyId, setBusyId] = useState(null);
 
@@ -30,6 +30,11 @@ export default function MissedTimeInPanel({ canEdit = true }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // The Attendance Approvals tab count.
+  useEffect(() => {
+    onCount?.(items.length);
+  }, [items.length, onCount]);
 
   const decide = async (item, decision) => {
     let reason;
@@ -55,7 +60,13 @@ export default function MissedTimeInPanel({ canEdit = true }) {
     }
   };
 
-  if (!items.length) return null;
+  if (!items.length) {
+    return showEmpty ? (
+      <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-subtle">
+        Everyone scheduled has timed in -- nothing to answer.
+      </div>
+    ) : null;
+  }
 
   const button = (item, decision, label, tone) => (
     <button

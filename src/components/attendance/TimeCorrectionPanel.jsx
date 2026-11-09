@@ -14,7 +14,7 @@ import { promptDialog } from "../ui/dialog/dialogService";
 // Approvals -> Attendance: employees' time corrections waiting on me. The
 // approver can adjust the times; the last approval writes them into the
 // attendance (each change in the audit log). Renders nothing when empty.
-export default function TimeCorrectionPanel({ canEdit = true }) {
+export default function TimeCorrectionPanel({ canEdit = true, onCount, showEmpty = false }) {
   const [items, setItems] = useState([]);
   const [busyId, setBusyId] = useState(null);
   // Times the approver changed: { [id]: { time_in, time_out } }.
@@ -31,6 +31,11 @@ export default function TimeCorrectionPanel({ canEdit = true }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  // The Attendance Approvals tab count.
+  useEffect(() => {
+    onCount?.(items.length);
+  }, [items.length, onCount]);
 
   const valueOf = (item, side) => edits[item.id]?.[side] ?? item[`${side}_hhmm`] ?? "";
   const setValue = (item, side, value) =>
@@ -61,7 +66,13 @@ export default function TimeCorrectionPanel({ canEdit = true }) {
     }
   };
 
-  if (!items.length) return null;
+  if (!items.length) {
+    return showEmpty ? (
+      <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-fg-subtle">
+        No time corrections waiting on you.
+      </div>
+    ) : null;
+  }
 
   const timeRow = (item, side, label) => {
     if (!item[`${side}_hhmm`]) return null;
