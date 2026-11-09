@@ -237,16 +237,18 @@ const DriverCashAdvance = () => {
   );
   const isOtherPurposeSelected = selectedPurposeId === OTHER_PURPOSE_ID;
 
-  // Keeps `reason` (what actually gets submitted) in sync with either
-  // the picked preset purpose, or the free-typed text once "Other" is
-  // selected.
+  // Keeps `reason` (what actually gets submitted) in sync: "Purpose -
+  // details" (e.g. "Medical Emergency - Check-up of my mother at XYZ
+  // Hospital"), or just the typed text for "Other". The details are
+  // required for every purpose.
   useEffect(() => {
+    const details = otherReason.trim();
     if (isOtherPurposeSelected) {
-      setReason(otherReason);
+      setReason(details);
       return;
     }
     const picked = purposes.find((p) => p.id === selectedPurposeId);
-    setReason(picked?.label || "");
+    setReason(picked ? (details ? `${picked.label} - ${details}` : picked.label) : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPurposeId, otherReason, purposes]);
 
@@ -261,6 +263,7 @@ const DriverCashAdvance = () => {
     !exceedsMaxLoanAmount &&
     !!selectedOptionId &&
     !!reason.trim() &&
+    !!otherReason.trim() &&
     !!dateNeeded &&
     (!requiresTermsAcceptance || termsAccepted);
 
@@ -296,8 +299,8 @@ const DriverCashAdvance = () => {
       return;
     }
 
-    if (isOtherPurposeSelected && !otherReason.trim()) {
-      toast.error("Please specify your reason for Other.");
+    if (!otherReason.trim()) {
+      toast.error("Please specify the details of your loan purpose.");
       return;
     }
 
@@ -484,16 +487,32 @@ const DriverCashAdvance = () => {
           />
         )}
 
-        {isOtherPurposeSelected && (
-          <input
-            type="text"
-            value={otherReason}
-            onChange={(e) => setOtherReason(e.target.value)}
-            placeholder="Please specify..."
-            className={`mt-2 w-full rounded-xl border px-3 py-2.5 text-sm text-fg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 ${
-              otherReason.trim() ? "border-border" : "border-danger"
-            }`}
-          />
+        {selectedPurposeId && (
+          <>
+            <label
+              htmlFor="ca-purpose-details"
+              className="mt-3 mb-1 block text-sm font-semibold text-fg-subtle"
+            >
+              Please specify <span className="text-danger">*</span>
+            </label>
+            <textarea
+              id="ca-purpose-details"
+              rows={2}
+              value={otherReason}
+              onChange={(e) => setOtherReason(e.target.value)}
+              placeholder={
+                isOtherPurposeSelected
+                  ? "What is the cash advance for?"
+                  : "Give the details, e.g. check-up of my mother at XYZ Hospital"
+              }
+              className={`w-full rounded-xl border px-3 py-2.5 text-sm text-fg bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 ${
+                otherReason.trim() ? "border-border" : "border-danger"
+              }`}
+            />
+            {!otherReason.trim() && (
+              <p className="mt-1 text-xs text-danger">Required -- can't be left blank.</p>
+            )}
+          </>
         )}
 
         <label
