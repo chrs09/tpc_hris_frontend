@@ -73,6 +73,9 @@ export default function StartTripForDriverCard({
   // Is Route Ride: the driver rides along on another driver's trip in
   // progress (shipments / stores / truck come from that trip).
   const [isRouteRide, setIsRouteRide] = useState(false);
+  // Relief driver (rare): the Driver list shows the helpers instead of
+  // the regular drivers -- any free helper can be picked to drive.
+  const [isReliefDriver, setIsReliefDriver] = useState(false);
   const [hosts, setHosts] = useState([]);
   const [loadingHosts, setLoadingHosts] = useState(false);
   const [hostTripId, setHostTripId] = useState(null);
@@ -240,10 +243,12 @@ export default function StartTripForDriverCard({
   const storeLabel = (store) =>
     store.profile ? `${store.name} (${store.profile})` : store.name;
 
+  // A helper who can drive (relief driver) is labelled so it's clear.
   const driverLabel = (driver) =>
-    driver.employee_name
+    (driver.employee_name
       ? `${driver.employee_name} (${driver.username})`
-      : driver.username;
+      : driver.username) +
+    (driver.is_relief_driver ? " · Helper, relief driver" : "");
 
   // Only stores flagged with required_helper actually need a loader on
   // this trip -- if none of the currently-selected destinations need
@@ -262,8 +267,10 @@ export default function StartTripForDriverCard({
 
   const selectedDriver = drivers.find((d) => String(d.id) === String(driverId));
 
-  const filteredDrivers = drivers.filter((driver) =>
-    driverLabel(driver).toLowerCase().includes(driverSearch.toLowerCase()),
+  const filteredDrivers = drivers.filter(
+    (driver) =>
+      Boolean(driver.is_relief_driver) === (isReliefDriver && !isRouteRide) &&
+      driverLabel(driver).toLowerCase().includes(driverSearch.toLowerCase()),
   );
 
   // Picking a driver picks their assigned unit -- unless it's under
@@ -294,6 +301,7 @@ export default function StartTripForDriverCard({
     setShipmentNoInput("");
     setIsSpecial(false);
     setIsRouteRide(false);
+    setIsReliefDriver(false);
     setHostTripId(null);
     setSelectedDestinationIds([]);
     setShipmentStores({});
@@ -413,7 +421,14 @@ export default function StartTripForDriverCard({
                   onChange={(e) => {
                     setIsRouteRide(e.target.checked);
                     setHostTripId(null);
-                    if (e.target.checked) loadHosts();
+                    if (e.target.checked) {
+                      loadHosts();
+                      // Route riders are drivers only.
+                      if (isReliefDriver) {
+                        setIsReliefDriver(false);
+                        setDriverId("");
+                      }
+                    }
                   }}
                   className="h-4 w-4 accent-primary"
                 />
@@ -423,9 +438,31 @@ export default function StartTripForDriverCard({
                 </span>
               </label>
 
+              {!isRouteRide && (
+                <label className="flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">
+                  <input
+                    type="checkbox"
+                    checked={isReliefDriver}
+                    onChange={(e) => {
+                      setIsReliefDriver(e.target.checked);
+                      setDriverId("");
+                    }}
+                    className="h-4 w-4 accent-primary"
+                  />
+                  Helper as Driver
+                  <span className="text-xs font-normal text-fg-subtle">
+                    (relief driver -- pick a helper to drive)
+                  </span>
+                </label>
+              )}
+
               <div className="relative">
                 <label className="mb-1 block text-sm font-medium text-fg">
-                  {isRouteRide ? "Driver (route rider)" : "Driver"}
+                  {isRouteRide
+                    ? "Driver (route rider)"
+                    : isReliefDriver
+                      ? "Driver (helper as relief driver)"
+                      : "Driver"}
                 </label>
                 <input
                   type="text"
@@ -444,7 +481,11 @@ export default function StartTripForDriverCard({
                   onBlur={() =>
                     setTimeout(() => setDriverDropdownOpen(false), 150)
                   }
-                  placeholder="Search driver..."
+                  placeholder={
+                    isReliefDriver && !isRouteRide
+                      ? "Search helper..."
+                      : "Search driver..."
+                  }
                   className={inputStyles}
                 />
 
@@ -452,7 +493,9 @@ export default function StartTripForDriverCard({
                   <div className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-surface shadow-lg">
                     {filteredDrivers.length === 0 ? (
                       <p className="p-3 text-xs text-fg-subtle">
-                        No drivers match.
+                        {isReliefDriver && !isRouteRide
+                          ? "No free helpers match."
+                          : "No drivers match."}
                       </p>
                     ) : (
                       filteredDrivers.map((driver) => (

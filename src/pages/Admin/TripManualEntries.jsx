@@ -105,6 +105,8 @@ export default function TripManualEntries() {
   // {"<shipment no>": [storeId, ...]} -- which store(s) each shipment goes to.
   const [shipmentStores, setShipmentStores] = useState({});
   const [helperIds, setHelperIds] = useState([]);
+  // Relief driver (rare): the Driver list shows the helpers instead.
+  const [helperAsDriver, setHelperAsDriver] = useState(false);
   const [photos, setPhotos] = useState({});
 
   const setField = (field, value) =>
@@ -221,6 +223,7 @@ export default function TripManualEntries() {
     setStops([]);
     setShipmentStores({});
     setHelperIds([]);
+    setHelperAsDriver(false);
     setPhotos({});
   };
 
@@ -363,13 +366,38 @@ export default function TripManualEntries() {
           {/* ================= FORM ================= */}
           <div className="space-y-5 rounded-2xl border border-border bg-surface p-5">
             <Section title="Driver & Vehicle">
+              <label className="mb-3 flex w-fit cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium text-fg hover:bg-surface-hover">
+                <input
+                  type="checkbox"
+                  checked={helperAsDriver}
+                  onChange={(e) => {
+                    setHelperAsDriver(e.target.checked);
+                    setField("driverId", "");
+                  }}
+                  className="h-4 w-4 accent-primary"
+                />
+                Helper as Driver
+                <span className="text-xs font-normal text-fg-subtle">
+                  (relief driver -- pick a helper to drive)
+                </span>
+              </label>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <Field label="Driver">
+                <Field label={helperAsDriver ? "Driver (helper as relief driver)" : "Driver"}>
                   <SearchSelect
                     value={options.drivers.find((d) => d.id === form.driverId)}
-                    options={options.drivers}
-                    onChange={(d) => setField("driverId", d?.id || "")}
-                    placeholder="Select driver"
+                    options={options.drivers.filter(
+                      (d) => Boolean(d.is_relief_driver) === helperAsDriver,
+                    )}
+                    onChange={(d) => {
+                      setField("driverId", d?.id || "");
+                      // A relief driver (helper who can drive) can't also
+                      // be a helper on this trip.
+                      if (d?.employee_id)
+                        setHelperIds((prev) =>
+                          prev.filter((id) => id !== d.employee_id),
+                        );
+                    }}
+                    placeholder={helperAsDriver ? "Select helper" : "Select driver"}
                     getOptionLabel={(d) =>
                       d ? `${d.label}${d.is_active ? "" : " (inactive)"}` : ""
                     }
@@ -607,7 +635,12 @@ export default function TripManualEntries() {
               <SearchSelect
                 value={null}
                 options={options.helpers.filter(
-                  (h) => !helperIds.includes(h.id),
+                  (h) =>
+                    !helperIds.includes(h.id) &&
+                    // Not the person picked as driver (relief driver).
+                    h.id !==
+                      options.drivers.find((d) => d.id === form.driverId)
+                        ?.employee_id,
                 )}
                 onChange={(h) => h && toggleHelper(h.id)}
                 placeholder={

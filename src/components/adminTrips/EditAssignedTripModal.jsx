@@ -86,7 +86,11 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
         const unitList = Array.isArray(everyUnit) ? everyUnit : everyUnit?.items || [];
         setAllUnits(unitList);
 
-        const driverList = driverRes.data || [];
+        // Regular drivers only (a helper is picked to drive from Trip
+        // Dispatch's "Helper as Driver") -- plus the current driver below.
+        const driverList = (driverRes.data || []).filter(
+          (d) => !d.is_relief_driver || d.id === trip.driver_id,
+        );
         // The trip's current driver must stay pickable.
         if (!driverList.some((d) => d.id === trip.driver_id)) {
           driverList.unshift({
@@ -165,10 +169,12 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
     };
   }, [driverId, trip]);
 
+  // A helper who can drive (relief driver) is labelled so it's clear.
   const driverLabel = (driver) =>
-    driver.employee_name && driver.employee_name !== driver.username
+    (driver.employee_name && driver.employee_name !== driver.username
       ? `${driver.employee_name} (${driver.username})`
-      : driver.username;
+      : driver.username) +
+    (driver.is_relief_driver ? " · Helper, relief driver" : "");
 
   const storeLabel = (store) =>
     store.profile ? `${store.name} (${store.profile})` : store.name;

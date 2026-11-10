@@ -955,7 +955,11 @@ const PayrollList = () => {
                 rate = Number(trip.route_ride_amount);
               } else if (
                 trip.role === "route_rider" ||
-                driverPaid(employee.department)
+                // Their role on this trip decides the rate (a helper who
+                // drove as relief driver gets the driver rate); older
+                // data without a role falls back to the payroll group.
+                trip.role === "driver" ||
+                (trip.role !== "helper" && driverPaid(employee.department))
               ) {
                 rate = isFirstTrip
                   ? Number(trip.driver_first_trip_rate || 0)
