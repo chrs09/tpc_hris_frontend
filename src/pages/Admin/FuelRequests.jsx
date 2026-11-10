@@ -40,7 +40,10 @@ const FUEL_STATUS = {
   completed: ["Completed", "bg-success/15 text-success"],
   declined: ["Declined", "bg-danger/15 text-danger"],
   cancelled: ["Cancelled", "bg-surface-active text-fg-muted"],
-  // Code never used: past its expiry, or the driver cancelled it.
+  // Past its expiry but still open: the driver must upload the receipt
+  // (or mark the code not used) before requesting a new one.
+  receipt_overdue: ["Receipt Overdue", "bg-danger/15 text-danger"],
+  // Older rows: closed automatically at expiry (before receipts were required).
   expired: ["Code Expired", "bg-surface-active text-fg-muted"],
   code_cancelled: ["Code Cancelled", "bg-surface-active text-fg-muted"],
 };
@@ -79,7 +82,8 @@ const isMyTurn = (req) =>
 
 const statusKey = (req) =>
   isMyTurn(req) ? "mine" :
-  req.status === "pending" && req.awaiting_approval ? "awaiting" : req.status;
+  req.status === "pending" && req.awaiting_approval ? "awaiting" :
+  req.code_expired ? "receipt_overdue" : req.status;
 
 const StatusPill = ({ status }) => {
   const [label, classes] = FUEL_STATUS[status] || [
@@ -577,7 +581,11 @@ export function FuelRequestModal({ requestId, onClose, onChanged }) {
                     }
                   />
                   <Info
-                    label={req.status === "expired" ? "Expired" : "Code expires"}
+                    label={
+                      req.status === "expired" || req.code_expired
+                        ? "Expired"
+                        : "Code expires"
+                    }
                     value={req.code_expires_at}
                   />
                 </section>
@@ -651,6 +659,12 @@ export function FuelRequestModal({ requestId, onClose, onChanged }) {
                 {req.code_cancelled_at && (
                   <span className="block text-xs text-fg-subtle">{req.code_cancelled_at}</span>
                 )}
+              </p>
+            )}
+            {req.code_expired && (
+              <p className="rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm text-danger">
+                The code expired and no receipt was uploaded yet. The driver can&apos;t
+                request a new code until they upload the receipt or mark it as not used.
               </p>
             )}
             {req.status === "expired" && (
