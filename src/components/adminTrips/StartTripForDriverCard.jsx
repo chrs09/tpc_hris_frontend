@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import SearchSelect from "../SearchSelect";
 import { getAvailableDrivers } from "../../api/adminTripManagement/trips";
 import { getStores } from "../../api/adminTripManagement/stores";
 import { getDefaultHub } from "../../api/adminTripManagement/origins";
+import { getCustomerChart, previewTripRate } from "../../api/customerChart";
 import {
   getAvailableHelpers,
   getAvailableVehicleUnits,
@@ -23,6 +24,9 @@ import {
   cleanShipmentStores,
   shipmentStoresComplete,
 } from "../../utils/shipmentStores";
+
+const peso = (n) =>
+  `₱${Number(n || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // Start point order: hubs, then suppliers, then customers.
 const kindRank = (s) => (s.is_hub ? 0 : s.is_supplier ? 1 : 2);
@@ -128,6 +132,15 @@ export default function StartTripForDriverCard({
   const [shipmentStores, setShipmentStores] = useState({});
   const [selectedHelperIds, setSelectedHelperIds] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+  // Customer Chart: pick the customer, then the tier -- the destination
+  // list then shows only that tier's locations, and the tier decides where
+  // the rate comes from (lane rate / trip profile). "none" = locations not
+  // on the chart yet. Without a chart (load failed) every store is listed.
+  const [customerChart, setCustomerChart] = useState(null);
+  const [customerId, setCustomerId] = useState("");
+  const [tierId, setTierId] = useState("");
+  // What the trip would pay (or why it can't go), from the backend.
+  const [ratePreview, setRatePreview] = useState(null);
 
   useEffect(() => {
     if (!expanded) return;
@@ -142,6 +155,9 @@ export default function StartTripForDriverCard({
           getVehicleUnits().catch(() => []),
           getDefaultHub().catch(() => null),
         ]);
+        getCustomerChart()
+          .then(setCustomerChart)
+          .catch(() => setCustomerChart(null));
         if (defaultHub?.id) {
           setDefaultHubId(defaultHub.id);
           setOriginStoreId((current) => current || defaultHub.id);
@@ -232,9 +248,82 @@ export default function StartTripForDriverCard({
     setShipmentNumbers((prev) => prev.filter((n) => n !== value));
   };
 
-  const filteredDestinationStores = destinationStores.filter((store) =>
+  // Customers with at least one active tier, labelled with their path
+  // (e.g. "Coca-Cola › Visayas"), plus locations not on the chart.
+  const customerOptions = useMemo(() => {
+    if (!customerChart) return [];
+    const byId = Object.fromEntries(customerChart.customers.map((c) => [c.id, c]));
+    const path = (c) => {
+      const names = [];
+      for (let node = c; node; node = byId[node.parent_id]) names.unshift(node.name);
+      return names.join(" › ");
+    };
+    const list = customerChart.customers
+      .filter((c) => c.is_active && c.tiers.some((t) => t.is_active))
+      .map((c) => ({ id: c.id, label: path(c), tiers: c.tiers.filter((t) => t.is_active) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    if (customerChart.unassigned_count > 0) {
+      list.push({ id: "none", label: "Not on Customer Chart", tiers: [] });
+    }
+    return list;
+  }, [customerChart]);
+  const selectedCustomer = customerOptions.find((c) => String(c.id) === String(customerId));
+  const selectedTier = selectedCustomer?.tiers.find((t) => String(t.id) === String(tierId));
+
+  // One customer only: preselect it.
+  useEffect(() => {
+    if (!customerId && customerOptions.length === 1) setCustomerId(customerOptions[0].id);
+  }, [customerOptions, customerId]);
+
+  const pickCustomer = (id) => {
+    setCustomerId(id);
+    setTierId("");
+    setSelectedDestinationIds([]);
+    setShipmentStores({});
+  };
+  const pickTier = (id) => {
+    setTierId(id);
+    setSelectedDestinationIds([]);
+    setShipmentStores({});
+  };
+
+  const tierStores = !customerChart
+    ? destinationStores
+    : customerId === "none"
+      ? destinationStores.filter((s) => !s.customer_tier_id)
+      : tierId
+        ? destinationStores.filter((s) => String(s.customer_tier_id) === String(tierId))
+        : [];
+  const filteredDestinationStores = tierStores.filter((store) =>
     store.name.toLowerCase().includes(destinationSearch.toLowerCase()),
   );
+
+  // Rate preview: what the trip pays with the current picks, or why not.
+  useEffect(() => {
+    if (!selectedDestinationIds.length) {
+      setRatePreview(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      previewTripRate({
+        origin_store_id: originStoreId || null,
+        destination_store_ids: selectedDestinationIds,
+        vehicle_unit_id: vehicleUnitId || null,
+        helper_count: selectedHelperIds.length,
+      })
+        .then((data) => !cancelled && setRatePreview({ ok: true, ...data }))
+        .catch(
+          (error) =>
+            !cancelled &&
+            setRatePreview({ ok: false, message: getErrorMessage(error) }),
+        );
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [selectedDestinationIds, originStoreId, vehicleUnitId, selectedHelperIds.length]);
 
   // e.g. "2 RK GEN. MERCHANDISE (WS)" -- profile is the store's channel
   // code (WS = Wholesaler, DP, KD, KA, PUP; see StoreProfile in
@@ -303,6 +392,9 @@ export default function StartTripForDriverCard({
     setIsRouteRide(false);
     setIsReliefDriver(false);
     setHostTripId(null);
+    setTierId("");
+    if (customerOptions.length !== 1) setCustomerId("");
+    setRatePreview(null);
     setSelectedDestinationIds([]);
     setShipmentStores({});
     setSelectedHelperIds([]);
@@ -321,6 +413,7 @@ export default function StartTripForDriverCard({
     !unitBlocked &&
     reasonOk &&
     selectedDestinationIds.length > 0 &&
+    ratePreview?.ok !== false &&
     (isSpecial ||
       (shipmentNumbers.length > 0 &&
         shipmentStoresComplete(shipmentNumbers, selectedDestinationIds, shipmentStores)));
@@ -348,6 +441,7 @@ export default function StartTripForDriverCard({
       formData.append("driver_id", driverId);
       formData.append("vehicle_unit_id", vehicleUnitId);
       formData.append("origin_store_id", originStoreId);
+      if (selectedTier) formData.append("customer_tier_id", selectedTier.id);
       formData.append("shipment_no", JSON.stringify(isSpecial ? [] : shipmentNumbers));
       formData.append("is_special", isSpecial ? "true" : "false");
       formData.append(
@@ -633,6 +727,51 @@ export default function StartTripForDriverCard({
                 </fieldset>
               </div>
 
+              {customerChart && (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-fg">
+                      Customer
+                    </label>
+                    <SearchSelect
+                      value={selectedCustomer || null}
+                      options={customerOptions}
+                      onChange={(c) => pickCustomer(c ? c.id : "")}
+                      placeholder="Select customer"
+                      getOptionLabel={(c) => c?.label || ""}
+                      getOptionValue={(c) => String(c?.id)}
+                    />
+                  </div>
+                  {selectedCustomer && selectedCustomer.id !== "none" && (
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-fg">
+                        Tier
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedCustomer.tiers.map((t) => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => pickTier(t.id)}
+                            title={t.description || undefined}
+                            className={`rounded-xl border px-3 py-2 text-sm font-semibold ${
+                              String(t.id) === String(tierId)
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-fg-muted hover:bg-surface-hover"
+                            }`}
+                          >
+                            {t.name}
+                            <span className="ml-1.5 text-xs font-normal">
+                              {t.rate_source === "lane" ? "lane rate" : "trip profile"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="mb-1 block text-sm font-medium text-fg">
                   Start point
@@ -655,9 +794,13 @@ export default function StartTripForDriverCard({
                   {MAX_DESTINATION_STORES})
                 </label>
                 <p className="mb-2 text-xs text-fg-subtle">
-                  A trip can cover multiple stores under one dispatch -- the
-                  driver visits each in turn. The first store selected sets
-                  the trip's pay rate.
+                  {customerChart && !selectedCustomer
+                    ? "Pick the customer first."
+                    : customerChart && selectedCustomer?.id !== "none" && !selectedTier
+                      ? "Pick a tier to see its locations."
+                      : selectedTier
+                        ? `Only ${selectedCustomer.label} · ${selectedTier.name} locations are listed. The driver visits each in turn.`
+                        : "A trip can cover multiple stores under one dispatch -- the driver visits each in turn. The first store selected sets the trip's pay rate."}
                 </p>
 
                 {selectedDestinationIds.length > 0 && (
@@ -791,6 +934,32 @@ export default function StartTripForDriverCard({
               )}
 
               </>
+              )}
+
+              {!isRouteRide && ratePreview && (
+                <div
+                  className={`rounded-xl border px-4 py-3 text-sm ${
+                    ratePreview.ok
+                      ? "border-dashed border-warning/60 bg-warning/10 text-fg"
+                      : "border-danger/40 bg-danger/10 text-danger"
+                  }`}
+                >
+                  {ratePreview.ok ? (
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span>
+                        Driver 1st trip pays{" "}
+                        <b className="tabular-nums">
+                          {peso(ratePreview.driver_first_trip_rate)}
+                        </b>
+                        {ratePreview.helper_first_trip_rate > 0 &&
+                          ` · helper ${peso(ratePreview.helper_first_trip_rate)}`}
+                      </span>
+                      <span className="text-xs text-fg-muted">{ratePreview.source}</span>
+                    </div>
+                  ) : (
+                    ratePreview.message
+                  )}
+                </div>
               )}
 
               {canEditPage && (

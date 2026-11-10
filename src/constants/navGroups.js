@@ -282,6 +282,13 @@ export function getNavGroups(role) {
       label: "Customers",
       children: [
         {
+          // Customer master as a tree: customers -> tiers -> locations.
+          label: "Customer Chart",
+          path: "/dashboard/admin/customer-chart",
+          roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "customers.customers",
+        },
+        {
           label: "Customers",
           path: "/dashboard/admin/stores",
           roles: ["superadmin", "coordinator_admin"],

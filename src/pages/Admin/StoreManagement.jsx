@@ -18,6 +18,7 @@ import SearchSelect from "../../components/SearchSelect";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import MapLinks from "../../components/ui/mapLinks/MapLinks";
 import StoreLocationHistoryModal from "../../components/adminTrips/StoreLocationHistoryModal";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const initialFormState = {
   name: "",
@@ -388,7 +389,15 @@ export default function StoreManagement() {
         <td className="px-6 py-4 text-fg-muted max-w-xs truncate">
           {store.address || "-"}
         </td>
-        <td className="px-6 py-4 text-fg-muted">{store.profile || "Unassigned"}</td>
+        <td className="px-6 py-4 text-fg-muted">
+          {store.profile || "Unassigned"}
+          {/* Customer Chart: its customer and tier. */}
+          <span className="block text-xs text-fg-subtle">
+            {store.customer_name
+              ? `${store.customer_name} · ${store.customer_tier_name}`
+              : "Not on Customer Chart"}
+          </span>
+        </td>
         <td className="px-6 py-4 text-fg-muted">{store.required_helper}</td>
         <td className="px-6 py-4 text-fg-muted">{store.allowed_radius_meters} m</td>
         <td className="px-6 py-4 text-fg-muted">
@@ -452,6 +461,8 @@ export default function StoreManagement() {
               <p className="font-semibold text-fg">{store.name}</p>
               <p className="text-xs text-fg-subtle">
                 {store.profile || "Unassigned"}
+                {store.customer_name &&
+                  ` · ${store.customer_name} ${store.customer_tier_name}`}
               </p>
               {store.outlet_number && (
                 <p className="text-xs text-fg-subtle">
@@ -511,6 +522,7 @@ export default function StoreManagement() {
 
   return (
     <div className="space-y-5">
+      <SectionTabs group="Customers" />
       {locationStore && (
         <StoreLocationHistoryModal
           store={locationStore}

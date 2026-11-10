@@ -17,6 +17,7 @@ import OrgChart from "../Admin/OrgChart";
 import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
 import RoleAccess from "../Admin/RoleAccess";
 import StoreManagement from "../Admin/StoreManagement";
+import CustomerChart from "../Admin/CustomerChart";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripCategoriesPage from "../Admin/TripCategoriesPage";
 import OriginsPage from "../Admin/OriginsPage";
@@ -174,6 +175,7 @@ const Dashboard = () => {
           <Route path="admin/trip-charges" element={<TripChargesPage />} />
           <Route path="admin/route-rides" element={<RouteRidesPage />} />
           <Route path="admin/stores" element={<StoreManagement />} />
+          <Route path="admin/customer-chart" element={<CustomerChart />} />
           <Route path="applicants" element={<ApplicantsPage />} />
           <Route path="applicant/questionaire" element={<Questionaire />} />
           <Route
