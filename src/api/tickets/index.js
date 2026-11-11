@@ -5,8 +5,9 @@ import api from "../services/api";
 // (backend: app/api/tickets.py).
 
 // { tickets, sees_all }
-export const getTickets = async () => {
-  const res = await api.get("/tickets");
+// scope: "mine" (default) or "all" (Tickets grant only -- "Everyone").
+export const getTickets = async (scope = "mine") => {
+  const res = await api.get("/tickets", { params: { scope } });
   return res.data;
 };
 

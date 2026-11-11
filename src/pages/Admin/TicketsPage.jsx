@@ -58,6 +58,9 @@ export default function TicketsPage() {
   const [teams, setTeams] = useState([]);
   const [canManage, setCanManage] = useState(false);
   const [seesAll, setSeesAll] = useState(false);
+  // "mine" (default, for everyone): tickets you filed, are assigned, or
+  // your team handles. "all": every ticket -- only with the Tickets grant.
+  const [scope, setScope] = useState("mine");
   const [showCategories, setShowCategories] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState(null);
   // Board (cards by status) or one list of every ticket.
@@ -77,7 +80,7 @@ export default function TicketsPage() {
   const loadTickets = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await getTickets();
+      const data = await getTickets(scope);
       setTickets(data.tickets || []);
       setSeesAll(Boolean(data.sees_all));
     } catch (error) {
@@ -85,7 +88,7 @@ export default function TicketsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scope]);
 
   useEffect(() => {
     loadTickets();
@@ -130,8 +133,8 @@ export default function TicketsPage() {
           <h2 className="text-2xl font-bold text-fg">Tickets</h2>
           <p className="text-sm text-fg-subtle">
             Each ticket goes to the team for its category (set on the Org
-            Chart). {seesAll
-              ? "You see every ticket."
+            Chart). {seesAll && scope === "all"
+              ? "You're seeing every ticket."
               : "You see tickets you filed, tickets assigned to you, and your team's tickets."}{" "}
             Customers can file tickets at <span className="font-mono">/support</span>.
           </p>
@@ -144,6 +147,28 @@ export default function TicketsPage() {
           placeholder="Search ticket no., title, person, store..."
         />
         <ViewToggle viewType={viewType} onChange={setViewType} />
+        {/* Tickets grant only: switch to every ticket (starts on your own). */}
+        {seesAll && (
+          <div className="flex rounded-xl border border-border p-0.5 text-sm">
+            {[
+              { key: "mine", label: "Mine" },
+              { key: "all", label: "Everyone" },
+            ].map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => setScope(option.key)}
+                className={`rounded-lg px-3 py-1.5 font-medium ${
+                  scope === option.key
+                    ? "bg-primary text-primary-foreground"
+                    : "text-fg-muted hover:text-fg"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="w-48">
           <SearchSelect
             value={categoryFilter}
