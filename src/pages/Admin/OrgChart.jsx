@@ -868,7 +868,7 @@ const APPROVAL_TYPES = [
   // Which step of a trip's approval is this head's: shows under "For me"
   // on that page for drivers below them.
   { key: "trip_coordinator", label: "Trip Approvals" },
-  { key: "trip_office", label: "Trip Confirmation" },
+  { key: "trip_office", label: "Trip Document" },
   { key: "trip_finance", label: "Finance Trips" },
 ];
 

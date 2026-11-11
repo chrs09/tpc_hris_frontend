@@ -225,7 +225,7 @@ export function getNavGroups(role) {
           moduleKey: "trip_management.trips",
         },
         {
-          label: "Trip Confirmation",
+          label: "Trip Document",
           path: "/dashboard/office/trips",
           roles: ["superadmin", "coordinator_admin", "office_admin"],
           moduleKey: "trip_management.office_trip_review",

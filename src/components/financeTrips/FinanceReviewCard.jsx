@@ -12,9 +12,12 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+import toast from "react-hot-toast";
 import {
   getFinanceTripDetail,
   approveFinanceTrip,
+  blockFinanceTrip,
+  unblockFinanceTrip,
 } from "../../api/financeTrips/index";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
@@ -47,11 +50,13 @@ L.Icon.Default.mergeOptions({
 const STATUS_STYLES = {
   finance_review: "bg-warning/15 text-warning",
   approved: "bg-success/15 text-success",
+  blocked: "bg-danger/15 text-danger",
 };
 
 const STATUS_LABELS = {
   finance_review: "For Finance Review",
   approved: "Approved",
+  blocked: "Blocked",
 };
 
 function StatusBadge({ status }) {
@@ -80,7 +85,7 @@ function FitBounds({ coordinates }) {
   return null;
 }
 
-export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips }) {
+export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips, onChanged }) {
   const canEditPage = usePageCanEdit();
   const { scoped: trips, scopeProps } = useApprovalScope(allTrips);
   const [selectedTrip, setSelectedTrip] = useState(null);
@@ -88,6 +93,10 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips }
   const [activePhoto, setActivePhoto] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [approving, setApproving] = useState(false);
+  // Block (documents not valid): reason box open + saving.
+  const [blocking, setBlocking] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
+  const [savingBlock, setSavingBlock] = useState(false);
 
   const [search, setSearch] = useState("");
   const filteredTrips = trips.filter((trip) =>
@@ -154,6 +163,38 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips }
       console.error("Failed to approve Finance trip:", error);
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleBlock = async () => {
+    if (!selectedTrip || !blockReason.trim()) return;
+    try {
+      setSavingBlock(true);
+      await blockFinanceTrip(selectedTrip.trip_id, blockReason.trim());
+      toast.success("Trip blocked. It won't be paid until it's unblocked.");
+      setBlocking(false);
+      setBlockReason("");
+      handleCloseModal();
+      if (onChanged) await onChanged();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to block the trip.");
+    } finally {
+      setSavingBlock(false);
+    }
+  };
+
+  const handleUnblock = async () => {
+    if (!selectedTrip) return;
+    try {
+      setSavingBlock(true);
+      await unblockFinanceTrip(selectedTrip.trip_id);
+      toast.success("Trip is back in For Finance Review.");
+      handleCloseModal();
+      if (onChanged) await onChanged();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to unblock the trip.");
+    } finally {
+      setSavingBlock(false);
     }
   };
 
@@ -771,16 +812,80 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips }
                     </div>
                   )}
 
+                  {selectedTrip.status === "blocked" && (
+                    <div className="mt-4 space-y-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm text-danger">
+                      <p>
+                        <b>Blocked</b> {selectedTrip.blocked_at || ""} -- not paid until
+                        unblocked.
+                      </p>
+                      {selectedTrip.block_reason && <p>{selectedTrip.block_reason}</p>}
+                      {canEditPage && (
+                        <button
+                          type="button"
+                          onClick={handleUnblock}
+                          disabled={savingBlock}
+                          className="w-full rounded-xl border border-danger/50 bg-surface py-2.5 font-semibold text-fg hover:bg-surface-hover disabled:opacity-60"
+                        >
+                          {savingBlock ? "Saving..." : "Unblock (back to For Finance Review)"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {selectedTrip.status === "finance_review" && (
                     (canEditPage ? (
+                      <div className="mt-6 space-y-3">
                       <button
                       type="button"
                       onClick={handleApprove}
-                      disabled={approving}
-                      className="mt-6 w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+                      disabled={approving || savingBlock}
+                      className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
                     >
                       {approving ? "Approving..." : "Approve Trip"}
                     </button>
+                      {blocking ? (
+                        <div className="space-y-2 rounded-xl border border-danger/40 p-3">
+                          <label htmlFor="block-reason" className="block text-sm font-medium text-fg">
+                            Why aren&apos;t the documents valid?
+                          </label>
+                          <textarea
+                            id="block-reason"
+                            value={blockReason}
+                            onChange={(e) => setBlockReason(e.target.value)}
+                            maxLength={1000}
+                            className="min-h-[72px] w-full rounded-xl border border-border bg-background p-3 text-sm text-fg"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setBlocking(false);
+                                setBlockReason("");
+                              }}
+                              className="flex-1 rounded-xl border border-border py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleBlock}
+                              disabled={!blockReason.trim() || savingBlock}
+                              className="flex-1 rounded-xl bg-danger py-2 text-sm font-semibold text-white disabled:opacity-50"
+                            >
+                              {savingBlock ? "Blocking..." : "Block Trip"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setBlocking(true)}
+                          className="w-full rounded-xl border border-danger/50 py-2.5 text-sm font-semibold text-danger hover:bg-danger/10"
+                        >
+                          Block (documents not valid)
+                        </button>
+                      )}
+                      </div>
                     ) : null)
                   )}
                 </div>

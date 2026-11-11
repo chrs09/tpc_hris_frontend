@@ -6,6 +6,13 @@ import api from "../services/api";
 export const getPendingOfficeTrips = () => api.get("/office/trips/pending");
 
 // =========================================================
+// TRIP DOCUMENTS: every trip with its document status
+// params: { date_from, date_to, q, driver_id, status, include_cancelled }
+// =========================================================
+export const getTripDocuments = (params = {}) =>
+  api.get("/office/trips/documents", { params });
+
+// =========================================================
 // GET COMPLETE TRIP DETAILS FOR OFFICE REVIEW
 // =========================================================
 export const reviewOfficeTrip = (tripId) =>

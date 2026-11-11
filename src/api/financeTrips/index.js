@@ -12,4 +12,11 @@ export const getFinanceTripDetail = (tripId) =>
 export const approveFinanceTrip = (tripId) =>
   api.post(`/finance/trips/${tripId}/approve`);
 
+// Documents not valid: not paid until unblocked ("Blocked" on Trip Documents).
+export const blockFinanceTrip = (tripId, reason) =>
+  api.post(`/finance/trips/${tripId}/block`, { reason });
+
+export const unblockFinanceTrip = (tripId) =>
+  api.post(`/finance/trips/${tripId}/unblock`);
+
 export const getFinanceTripSummary = () => api.get("/finance/trips/summary");

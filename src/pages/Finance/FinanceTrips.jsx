@@ -155,11 +155,24 @@ const FinanceTrips = () => {
           >
             Approved
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("blocked")}
+            className={`rounded-lg px-4 py-2 ${
+              activeTab === "blocked"
+                ? "bg-yellow-400 text-black"
+                : "bg-surface-active text-fg-muted"
+            }`}
+          >
+            Blocked{summary.blocked_count ? ` (${summary.blocked_count})` : ""}
+          </button>
         </div>
 
         <FinanceReviewCard
           trips={trips}
           refreshTrips={handleTripApproved}
+          onChanged={() => loadTrips(activeTab)}
           mode={activeTab}
         />
       </div>

@@ -69,7 +69,7 @@ const ICONS = {
   "Trip Management/Dashboard": Gauge,
   "Trip Management/Delivery Summary": BarChart3,
   "Trip Management/Trip Approvals": CheckCheck,
-  "Trip Management/Trip Confirmation": FileText,
+  "Trip Management/Trip Document": FileText,
   "Trip Management/Trip Category & Rates": Receipt,
   "Trip Management/Origins": MapPin,
   "Trip Management/Trip Dispatch": Navigation,

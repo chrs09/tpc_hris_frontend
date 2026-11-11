@@ -109,7 +109,7 @@ export const MODULE_GROUPS = [
       },
       {
         key: "office_trip_review",
-        label: "Trip Confirmation",
+        label: "Trip Document",
         path: "/dashboard/office/trips",
       },
       {

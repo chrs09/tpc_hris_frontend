@@ -75,7 +75,7 @@ export const ROLE_ACCESS_GROUPS = [
         roles: ["superadmin", "driver", "coordinator_admin"],
       },
       {
-        label: "Trip Confirmation",
+        label: "Trip Document",
         roles: ["superadmin", "coordinator_admin", "office_admin"],
       },
       {
