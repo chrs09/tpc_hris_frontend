@@ -1210,14 +1210,8 @@ const PayrollList = () => {
             item.status === "Approved",
         );
 
-        const approvedOTHours = approval?.approved_ot_hours || 0;
-
-        const otPay = approvedOTHours * hourlyRate * 1.25;
-
-        // Sum of this employee's immediate-head-approved OvertimeRequest
-        // hours whose date falls inside this cutoff -- offered as the
-        // default value for HR's own Approve OT step below, so HR isn't
-        // re-deriving a number the head already approved from scratch.
+        // Sum of this employee's OvertimeRequest hours approved in
+        // Approvals -> Overtime whose date falls inside this cutoff.
         const headApprovedOTHours = headApprovedOTRequests
           .filter(
             (r) =>
@@ -1226,6 +1220,16 @@ const PayrollList = () => {
               r.ot_date <= activePeriod.cutoffEnd,
           )
           .reduce((sum, r) => sum + (r.approved_hours || 0), 0);
+
+        // OT that's paid: HR's own Approve OT figure for this cutoff when
+        // there is one (it overrides), else the hours approved in
+        // Approvals -> Overtime -- those count without HR re-approving.
+        const approvedOTHours = approval
+          ? approval.approved_ot_hours || 0
+          : headApprovedOTHours;
+        const otSource = approval ? "payroll" : headApprovedOTHours > 0 ? "approvals" : null;
+
+        const otPay = approvedOTHours * hourlyRate * 1.25;
 
         // ===== Allowance =====
         // Paid per day actually worked. Derived above from monthly_allow
@@ -1612,7 +1616,9 @@ const PayrollList = () => {
           approvedOTHours,
           headApprovedOTHours,
 
-          otStatus: approval?.status || "Pending",
+          otSource,
+          otStatus:
+            approval?.status || (headApprovedOTHours > 0 ? "From Approvals" : "Pending"),
 
           basicPay,
           otPay,

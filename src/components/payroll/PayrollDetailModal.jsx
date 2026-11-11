@@ -478,10 +478,19 @@ const PayrollDetailModal = ({
                 </div>
 
                 <div className="border border-border rounded-lg p-3">
-                  <p className="text-xs text-fg-subtle">OT Hours</p>
+                  <p className="text-xs text-fg-subtle">OT Hours (paid)</p>
 
                   <p className="font-bold">
-                    {Number(payroll.otHours || 0).toFixed(2)}
+                    {Number(payroll.approvedOTHours ?? payroll.otHours ?? 0).toFixed(2)}
+                  </p>
+                  {/* Where the paid hours come from, and what attendance shows. */}
+                  <p className="mt-0.5 text-[11px] text-fg-subtle">
+                    {payroll.otSource === "approvals"
+                      ? "Approved in Approvals → Overtime"
+                      : payroll.otSource === "payroll"
+                        ? "Approved in Payroll"
+                        : "Not approved yet"}
+                    {" · "}detected {Number(payroll.otHours || 0).toFixed(2)}
                   </p>
                 </div>
 
