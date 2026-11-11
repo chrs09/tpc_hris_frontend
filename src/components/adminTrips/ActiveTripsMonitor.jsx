@@ -110,6 +110,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
               <th className="px-4 py-3 text-left font-medium">Dispatched By</th>
               <th className="px-4 py-3 text-left font-medium">Trip Code</th>
               <th className="px-4 py-3 text-left font-medium">Ticket</th>
+              <th className="px-4 py-3 text-left font-medium">Truck Type</th>
               <th className="px-4 py-3 text-left font-medium">Started</th>
               <th className="px-4 py-3 text-left font-medium">Status</th>
               <th className="px-4 py-3 text-left font-medium">Current Stop</th>
@@ -120,7 +121,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-6 text-fg-subtle">
+                <td colSpan="9" className="text-center py-6 text-fg-subtle">
                   No active trips
                 </td>
               </tr>
@@ -147,6 +148,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
                   <td className="px-4 py-4">{trip.dispatched_by_name || "-"}</td>
                   <td className="px-4 py-4 uppercase">{trip.trip_code || "-"}</td>
                   <td className="px-4 py-4 capitalize">{trip.ticket_no}</td>
+                  <td className="px-4 py-4">{trip.truck_type || "-"}</td>
                   <td className="px-4 py-4">
                     {new Date(trip.start_time).toLocaleString()}
                   </td>
@@ -260,6 +262,11 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
               <div className="text-sm mt-2">
                 <span className="text-fg-muted block capitalize">Ticket</span>
                 {trip.ticket_no}
+              </div>
+
+              <div className="text-sm mt-2">
+                <span className="text-fg-muted block">Truck Type</span>
+                {trip.truck_type || "-"}
               </div>
 
               <div className="mt-2 text-sm">

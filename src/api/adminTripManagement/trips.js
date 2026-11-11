@@ -84,11 +84,12 @@ export const acknowledgeHubAlert = (notificationId) =>
 // Trip Dashboard: every finished trip and its approval stage
 // (coordinator -> office -> finance -> approved). Server-side filter,
 // search and paging; also returns per-status counts.
-export const getApprovalPipeline = ({ status, search, limit = 20, offset = 0 } = {}) =>
+export const getApprovalPipeline = ({ status, search, truckTypeId, limit = 20, offset = 0 } = {}) =>
   api.get("/admin/trips/approval-pipeline", {
     params: {
       status: status || undefined,
       search: search?.trim() || undefined,
+      truck_type_id: truckTypeId || undefined,
       limit,
       offset,
     },

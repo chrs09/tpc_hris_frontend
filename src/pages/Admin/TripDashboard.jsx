@@ -25,6 +25,8 @@ const TripDashboard = () => {
   const [loading, setLoading] = useState(true);
   // Bumped by the background refresh so the approval list reloads too.
   const [pipelineRefreshKey, setPipelineRefreshKey] = useState(0);
+  // Truck type filter (null = all), from the summary's truck_types.
+  const [truckTypeId, setTruckTypeId] = useState(null);
   // Phones: Assigned / Active trips as cards or a compact list --
   // remembered on this device.
   const [phoneView, setPhoneViewState] = useState(() => {
@@ -93,6 +95,11 @@ const TripDashboard = () => {
     };
   }, []);
 
+  // Truck type filter (10wwv, 6W Dropside ...) for all three tables.
+  const truckTypes = summary?.truck_types || [];
+  const byTruckType = (list) =>
+    truckTypeId ? (list || []).filter((t) => t.truck_type_id === truckTypeId) : list;
+
   if (loading)
     return (
       <div className="flex items-center justify-center min-h-screen text-fg-subtle text-sm">
@@ -118,6 +125,33 @@ const TripDashboard = () => {
         />
       </div>
 
+      {/* TRUCK TYPE FILTER: all three tables below */}
+      {truckTypes.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-fg-muted">Truck type</span>
+          {[{ id: null, name: "All" }, ...truckTypes].map((t) => (
+            <button
+              key={t.id ?? "all"}
+              type="button"
+              onClick={() => setTruckTypeId(t.id)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                truckTypeId === t.id
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-fg-muted hover:bg-surface-hover"
+              }`}
+            >
+              {t.name}
+              {t.id && (
+                <span className="ml-1 font-normal tabular-nums">
+                  {assignedTrips.filter((x) => x.truck_type_id === t.id).length +
+                    activeTrips.filter((x) => x.truck_type_id === t.id).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ASSIGNED */}
       <div>
         <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
@@ -129,7 +163,7 @@ const TripDashboard = () => {
         </p>
 
         <AssignedTripsMonitor
-          trips={assignedTrips}
+          trips={byTruckType(assignedTrips)}
           onChanged={loadTrips}
           phoneView={phoneView}
           onPhoneViewChange={setPhoneView}
@@ -148,7 +182,7 @@ const TripDashboard = () => {
         </p>
 
         <ActiveTripsMonitor
-          trips={activeTrips}
+          trips={byTruckType(activeTrips)}
           onChanged={loadTrips}
           phoneView={phoneView}
           onPhoneViewChange={setPhoneView}
@@ -170,6 +204,7 @@ const TripDashboard = () => {
 
         <TripApprovalPipeline
           refreshKey={pipelineRefreshKey}
+          truckTypeId={truckTypeId}
           phoneView={phoneView}
           onPhoneViewChange={setPhoneView}
         />

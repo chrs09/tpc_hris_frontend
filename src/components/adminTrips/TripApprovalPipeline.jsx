@@ -102,7 +102,9 @@ const SourceBadge = ({ manual, routeRide = false }) =>
 // Trip Dashboard list: every finished trip and where it is in the
 // approval chain (coordinator -> office -> finance -> approved), with a
 // status filter and search. Filtering and paging run on the server.
-const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneViewChange }) => {
+// truckTypeId: the dashboard's truck type filter (server-side; manual
+// route rides have no unit, so they're hidden while it's set).
+const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneViewChange, truckTypeId = null }) => {
   const [status, setStatus] = useState("");
   const [viewingTrip, setViewingTrip] = useState(null);
   const [search, setSearch] = useState("");
@@ -144,10 +146,11 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
         getApprovalPipeline({
           status,
           search: debouncedSearch,
+          truckTypeId,
           limit: PAGE_SIZE,
           offset: (page - 1) * PAGE_SIZE,
         }),
-        status ? Promise.resolve([]) : getRouteRides().catch(() => []),
+        status || truckTypeId ? Promise.resolve([]) : getRouteRides().catch(() => []),
       ]);
       setData(res.data);
       setManualRides(
@@ -164,7 +167,14 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
     } finally {
       setLoading(false);
     }
-  }, [status, debouncedSearch, page]);
+  }, [status, debouncedSearch, page, truckTypeId]);
+
+  // A new truck type filter starts again from page 1.
+  const [lastTruckTypeId, setLastTruckTypeId] = useState(truckTypeId);
+  if (lastTruckTypeId !== truckTypeId) {
+    setLastTruckTypeId(truckTypeId);
+    setPage(1);
+  }
 
   // refreshKey: the dashboard's background refresh.
   useEffect(() => {
@@ -223,6 +233,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   <th className="px-4 py-3 text-left font-medium">Trip Code</th>
                   <th className="px-4 py-3 text-left font-medium">Driver</th>
                   <th className="px-4 py-3 text-left font-medium">Shipment No.</th>
+                  <th className="px-4 py-3 text-left font-medium">Truck Type</th>
                   <th className="px-4 py-3 text-left font-medium">Stores</th>
                   <th className="px-4 py-3 text-left font-medium">Trip Date</th>
                   <th className="px-4 py-3 text-left font-medium">Status</th>
@@ -250,6 +261,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                       )}
                     </td>
                     <td className="px-4 py-3 uppercase">{trip.ticket_no || "-"}</td>
+                    <td className="px-4 py-3">{trip.truck_type || "-"}</td>
                     <td className="px-4 py-3">
                       {trip.stores?.length ? (
                         <ol className="space-y-0.5">
@@ -305,6 +317,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                     </p>
                     <p className="truncate text-xs text-fg-subtle">
                       {trip.ticket_no || "-"}
+                      {trip.truck_type ? ` · ${trip.truck_type}` : ""}
                       {trip.stores?.length ? ` · ${trip.stores.join(" → ")}` : ""}
                     </p>
                     {trip.route_rider_names?.length > 0 && (
@@ -353,7 +366,10 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                     </span>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-fg-muted">Shipment: {trip.ticket_no || "-"}</p>
+                <p className="mt-2 text-xs text-fg-muted">
+                  Shipment: {trip.ticket_no || "-"}
+                  {trip.truck_type ? ` · ${trip.truck_type}` : ""}
+                </p>
                 <p className="mt-1 text-xs text-fg-muted">
                   {trip.stores?.length ? trip.stores.join(" → ") : "-"}
                 </p>

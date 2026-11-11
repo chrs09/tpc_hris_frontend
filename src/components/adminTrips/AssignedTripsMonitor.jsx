@@ -125,6 +125,7 @@ const AssignedTripViewModal = ({
             <Detail label="Route Rider">{trip.route_rider_names.join(", ")}</Detail>
           )}
           <Detail label="Vehicle">{trip.vehicle_unit}</Detail>
+          <Detail label="Truck Type">{trip.truck_type || "-"}</Detail>
           <Detail label="Trip Category">{trip.trip_profile}</Detail>
           <Detail label="Origin">{trip.origin_store}</Detail>
           <Detail label="Dispatched By">{trip.dispatched_by_name}</Detail>
@@ -268,6 +269,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
                 Shipment No.
               </th>
               <th className="px-4 py-3 text-left font-medium">Vehicle</th>
+              <th className="px-4 py-3 text-left font-medium">Truck Type</th>
               <th className="px-4 py-3 text-left font-medium">
                 Destination(s)
               </th>
@@ -284,7 +286,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="8" className="text-center py-6 text-fg-subtle">
+                <td colSpan="9" className="text-center py-6 text-fg-subtle">
                   No assigned trips
                 </td>
               </tr>
@@ -305,6 +307,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
                   </td>
                   <td className="px-4 py-4">{trip.ticket_no || "-"}</td>
                   <td className="px-4 py-4">{trip.vehicle_unit || "-"}</td>
+                  <td className="px-4 py-4">{trip.truck_type || "-"}</td>
                   <td className="px-4 py-4">
                     <DestinationSteps destinations={trip.destinations} />
                   </td>
@@ -352,6 +355,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
                     <p className="truncate text-xs text-fg-subtle">
                       <span className="uppercase">{trip.trip_code || "-"}</span> · {trip.ticket_no || "-"}
                       {trip.vehicle_unit ? ` · ${trip.vehicle_unit}` : ""}
+                      {trip.truck_type ? ` · ${trip.truck_type}` : ""}
                     </p>
                     {destinations.length > 0 && (
                       <p className="truncate text-xs text-fg-muted">
@@ -398,6 +402,9 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
               <div className="mt-2 text-sm">
                 <span className="text-fg-muted block">Vehicle</span>
                 {trip.vehicle_unit || "-"}
+                {trip.truck_type && (
+                  <span className="text-fg-subtle"> · {trip.truck_type}</span>
+                )}
               </div>
 
               <div className="mt-2 text-sm">
