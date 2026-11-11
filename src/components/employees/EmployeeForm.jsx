@@ -1,3 +1,4 @@
+import useNoScheduleLabel from "../../hooks/useNoScheduleLabel";
 import { useEffect, useState } from "react";
 import SeparationDetails from "./SeparationDetails";
 import FileHistoryModal from "./FileHistoryModal";
@@ -54,6 +55,7 @@ export default function EmployeeForm({
   scheduleTemplates,
   errors = {},
 }) {
+  const noScheduleLabel = useNoScheduleLabel();
   const profileImageFromDB = employee?.files?.find(
     (f) => f.document_type === "PROFILE_IMAGE",
   )?.file_url;
@@ -86,11 +88,15 @@ export default function EmployeeForm({
       ? [...bankNames, formData.bank_type]
       : bankNames;
 
-  const scheduleOptions =
-    scheduleTemplates?.map((schedule) => ({
+  // Blank = no fixed work hours (drivers / helpers paid per trip), shown
+  // with its name from the Work Schedules page (e.g. "Per Trip").
+  const scheduleOptions = [
+    { value: "", label: noScheduleLabel },
+    ...(scheduleTemplates?.map((schedule) => ({
       value: schedule.id,
       label: schedule.name,
-    })) || [];
+    })) || []),
+  ];
 
   const isDriver = DRIVER_DEPARTMENTS.includes(formData.department);
 
@@ -1146,7 +1152,7 @@ function EditableArrayField({
   const selectedOption = isSelect
     ? options.find((option) =>
         typeof option === "object"
-          ? String(option.value) === String(value)
+          ? String(option.value) === String(value ?? "")
           : String(option) === String(value),
       )
     : null;
@@ -1275,7 +1281,7 @@ function EditableField({
   const selectedOption = isSelect
     ? options.find((option) =>
         typeof option === "object"
-          ? String(option.value) === String(value)
+          ? String(option.value) === String(value ?? "")
           : String(option) === String(value),
       )
     : null;
@@ -1305,7 +1311,9 @@ function EditableField({
               onChange(
                 field,
                 field === "schedule_template_id"
-                  ? Number(rawValue)
+                  ? rawValue === "" || rawValue == null
+                    ? ""
+                    : Number(rawValue)
                   : rawValue,
               );
             }}

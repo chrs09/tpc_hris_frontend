@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import useNoScheduleLabel from "../../hooks/useNoScheduleLabel";
 import toast from "react-hot-toast";
 import { CalendarClock, Plus, X } from "lucide-react";
 import { cancelJobChange, getJobHistory, recordJobChange } from "../../api/employee";
@@ -45,6 +46,7 @@ const MONEY = ["daily_rate", "monthly_basic", "monthly_allow"];
 const RATE_FIELDS = MONEY;
 
 function ChangeForm({ current, scheduleTemplates, showRates, onCancel, onSave, saving }) {
+  const noScheduleLabel = useNoScheduleLabel();
   const [form, setForm] = useState({
     effective_date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" }),
     reason: "",
@@ -121,7 +123,7 @@ function ChangeForm({ current, scheduleTemplates, showRates, onCancel, onSave, s
         <label className="text-sm text-fg-muted">
           Work schedule
           <select id="job-schedule" value={form.schedule_template_id} onChange={set("schedule_template_id")} className={inputClass}>
-            <option value="">--</option>
+            <option value="">{noScheduleLabel}</option>
             {scheduleTemplates.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
@@ -182,6 +184,7 @@ function ChangeForm({ current, scheduleTemplates, showRates, onCancel, onSave, s
 }
 
 export default function WorkHistory({ employee, canEdit, scheduleTemplates = [], onChanged }) {
+  const noScheduleLabel = useNoScheduleLabel();
   const [data, setData] = useState(null);
   const [adding, setAdding] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -234,11 +237,15 @@ export default function WorkHistory({ employee, canEdit, scheduleTemplates = [],
     return Object.entries(FIELD_LABELS)
       .filter(([field]) => showRates || !MONEY.includes(field))
       .filter(([field]) => !prev || String(prev[field] ?? "") !== String(change[field] ?? ""))
-      .map(([field, label]) => ({
-        label,
-        from: prev ? (MONEY.includes(field) ? peso(prev[field]) : prev[field] || "--") : null,
-        to: MONEY.includes(field) ? peso(change[field]) : change[field] || "--",
-      }));
+      .map(([field, label]) => {
+        // Blank schedule = no fixed work hours, shown by its name (e.g. Per Trip).
+        const blank = field === "schedule_template_name" ? noScheduleLabel : "--";
+        return {
+          label,
+          from: prev ? (MONEY.includes(field) ? peso(prev[field]) : prev[field] || blank) : null,
+          to: MONEY.includes(field) ? peso(change[field]) : change[field] || blank,
+        };
+      });
   };
 
   return (
@@ -321,7 +328,7 @@ export default function WorkHistory({ employee, canEdit, scheduleTemplates = [],
               )}
               {change.kind === "HIRED" && (
                 <p className="mt-1 text-xs text-fg-muted">
-                  {[change.employment_type, change.payroll_type, change.schedule_template_name]
+                  {[change.employment_type, change.payroll_type, change.schedule_template_name || noScheduleLabel]
                     .filter(Boolean)
                     .join(" · ")}
                   {showRates && (change.payroll_type === "Monthly"

@@ -7,7 +7,9 @@ import {
   createScheduleTemplate,
   updateScheduleTemplate,
   deleteScheduleTemplate,
+  saveNoScheduleLabel,
 } from "../../api/scheduleTemplates";
+import useNoScheduleLabel, { setNoScheduleLabel } from "../../hooks/useNoScheduleLabel";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
@@ -187,6 +189,8 @@ export default function ScheduleTemplatesPage() {
         )}
         </div>
       </div>
+
+      <NoScheduleLabelCard canEdit={canEditPage} />
 
       <div className="overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
         <div className="overflow-x-auto">
@@ -385,3 +389,64 @@ const ScheduleTemplateModal = ({
     </div>
   </div>
 );
+
+// The name for employees with no work schedule (blank) -- drivers and
+// helpers paid per trip, not on fixed work hours. Blank still works the
+// same everywhere; this only names it in the 201, Work History and Payroll.
+function NoScheduleLabelCard({ canEdit }) {
+  const label = useNoScheduleLabel();
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const value = draft ?? label;
+
+  const save = async () => {
+    try {
+      setSaving(true);
+      const res = await saveNoScheduleLabel(value.trim());
+      setNoScheduleLabel(res.label);
+      setDraft(null);
+      toast.success(`Blank schedule is now shown as "${res.label}".`);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-fg">No work schedule</p>
+        <p className="text-xs text-fg-subtle">
+          Name shown when an employee&apos;s Work Schedule is left blank, e.g.
+          drivers and helpers paid per trip and not on fixed work hours.
+          Attendance and payroll treat it the same as before.
+        </p>
+      </div>
+      {canEdit ? (
+        <div className="flex shrink-0 items-center gap-2">
+          <input
+            id="no-schedule-label"
+            value={value}
+            onChange={(e) => setDraft(e.target.value)}
+            maxLength={50}
+            placeholder="Per Trip"
+            className="w-48 rounded-xl border border-border bg-background px-3 py-2 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving || !value.trim() || value.trim() === label}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      ) : (
+        <span className="rounded-full bg-surface-hover px-3 py-1 text-sm font-medium text-fg">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}

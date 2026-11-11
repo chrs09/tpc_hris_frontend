@@ -49,3 +49,10 @@ export const deleteScheduleTemplate = async (id) => {
   const res = await api.delete(`/schedule-templates/${id}`);
   return res.data;
 };
+
+// Name for "no work schedule" (blank), e.g. "Per Trip" -- set on this page.
+export const getNoScheduleLabel = async () =>
+  (await api.get("/schedule-templates/no-schedule-label")).data;
+
+export const saveNoScheduleLabel = async (label) =>
+  (await api.put("/schedule-templates/no-schedule-label", { label })).data;

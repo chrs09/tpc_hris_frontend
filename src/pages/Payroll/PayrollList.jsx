@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useNoScheduleLabel from "../../hooks/useNoScheduleLabel";
 import { TailSpin } from "react-loader-spinner";
 import * as XLSX from "xlsx";
 import { getEmployeeList } from "../../api/employee";
@@ -140,6 +141,7 @@ const NO_PERIOD = {
 };
 
 const PayrollList = () => {
+  const noScheduleLabel = useNoScheduleLabel();
   const [employees, setEmployees] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2952,7 +2954,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                     <td className="px-4 py-3">
                       {row.isTripBasedEmployee ? (
-                        "--"
+                        <span className="text-xs text-fg-subtle">{noScheduleLabel}</span>
                       ) : !row.completeness?.hasSchedule ? (
                         <span className="text-xs text-fg-subtle">No schedule</span>
                       ) : (
