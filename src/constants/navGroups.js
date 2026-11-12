@@ -276,6 +276,20 @@ export function getNavGroups(role) {
           roles: ["superadmin", "coordinator_admin", "coordinator"],
           moduleKey: "trip_management.route_rides",
         },
+        {
+          // Shipment control: request a change to a finished trip;
+          // Finance approves (app/api/admin/trip_corrections.py).
+          label: "Correction Requests",
+          path: "/dashboard/admin/trip-corrections",
+          roles: ["superadmin", "coordinator_admin", "coordinator"],
+          moduleKey: "trip_management.trip_corrections",
+        },
+        {
+          label: "Correction History",
+          path: "/dashboard/admin/trip-corrections?view=history",
+          roles: ["superadmin", "coordinator_admin", "coordinator"],
+          moduleKey: "trip_management.trip_corrections",
+        },
       ],
     },
     {
@@ -361,6 +375,14 @@ export function getNavGroups(role) {
           label: "Trip Review",
           path: "/dashboard/finance/trips",
           roles: ["superadmin"],
+          moduleKey: "finance.finance_trips",
+        },
+        {
+          // Approve / reject trip corrections (same page as Trip
+          // Management's Correction Requests).
+          label: "Trip Corrections",
+          path: "/dashboard/admin/trip-corrections",
+          roles: ["superadmin", "admin"],
           moduleKey: "finance.finance_trips",
         },
         {

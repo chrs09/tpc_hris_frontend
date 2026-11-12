@@ -18,6 +18,7 @@ import CashAdvanceSettings from "../Admin/CashAdvanceSettings";
 import RoleAccess from "../Admin/RoleAccess";
 import StoreManagement from "../Admin/StoreManagement";
 import CustomerChart from "../Admin/CustomerChart";
+import TripCorrections from "../Admin/TripCorrections";
 import TripMaintenance from "../Admin/TripMaintenance";
 import TripCategoriesPage from "../Admin/TripCategoriesPage";
 import OriginsPage from "../Admin/OriginsPage";
@@ -167,6 +168,7 @@ const Dashboard = () => {
           <Route path="admin/trip-dashboard" element={<TripDashboard />} />
           <Route path="admin/delivery-summary" element={<DeliverySummary />} />
           <Route path="admin/trip-assignment" element={<TripAssignment />} />
+          <Route path="admin/trip-corrections" element={<TripCorrections />} />
           <Route path="admin/trip-bypass" element={<TripBypassPage />} />
           <Route
             path="admin/trip-manual-entries"

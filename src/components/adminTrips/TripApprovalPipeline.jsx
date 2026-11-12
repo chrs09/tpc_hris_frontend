@@ -247,6 +247,14 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                       <div className="font-medium uppercase">{trip.trip_code || `#${trip.id}`}</div>
                       <div className="mt-1 flex flex-wrap gap-1">
                         <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} />
+                        {trip.is_corrected && (
+                          <span
+                            title="Changed by an approved correction -- see Correction History"
+                            className="inline-flex whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary"
+                          >
+                            Corrected
+                          </span>
+                        )}
                         <TripUnitTags trip={trip} />
                       </div>
                     </td>

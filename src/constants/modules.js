@@ -113,6 +113,12 @@ export const MODULE_GROUPS = [
         path: "/dashboard/office/trips",
       },
       {
+        // Request corrections to finished trips (Finance approves).
+        key: "trip_corrections",
+        label: "Trip Corrections",
+        path: "/dashboard/admin/trip-corrections",
+      },
+      {
         key: "trip_categories",
         label: "Trip Category & Rates",
         path: "/dashboard/admin/trip-categories",
