@@ -16,6 +16,8 @@ import {
   Tag,
   Check,
   X,
+  Gauge,
+  CircleDot,
 } from "lucide-react";
 import { getPageTitles, savePageTitles } from "../../api/pageTitles";
 import { getCompanies } from "../../api/companies";
@@ -24,6 +26,8 @@ import VehicleChecklistModal from "../../components/tripMaintenance/VehicleCheck
 import ChecklistDocuments from "../../components/tripMaintenance/ChecklistDocuments";
 import UnitDriverModal from "../../components/tripMaintenance/UnitDriverModal";
 import UnitStatusBadge from "../../components/tripMaintenance/UnitStatusBadge";
+import FleetStatusModal from "../../components/tripMaintenance/FleetStatusModal";
+import TruckUtilization from "../../components/tripMaintenance/TruckUtilization";
 import SearchSelect from "../../components/SearchSelect";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../../components/ui/pagination/Pagination";
@@ -310,7 +314,19 @@ const DEFAULT_CARD_TITLES = {
   units: "Vehicle List",
   maintenance: "Vehicle Maintenance",
   truck_types: "Vehicle Types",
+  utilization: "Truck Utilization",
 };
+
+// Vehicle List status filter (fleet status, app/services/fleet_status.py).
+const STATUS_FILTERS = [
+  ["", "All"],
+  ["available", "Available"],
+  ["assigned", "Assigned"],
+  ["in_transit", "In transit"],
+  ["breakdown", "Breakdown"],
+  ["maintenance", "Maintenance"],
+  ["hold", "Hold"],
+];
 
 // A summary card: click to open its tab; the superadmin gets a pencil to
 // rename the title.
@@ -416,7 +432,7 @@ export default function TripMaintenance() {
   // the sidebar links switch it -- not just the summary cards below.
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTab = searchParams.get("tab");
-  const activeTab = ["maintenance", "truck-types"].includes(urlTab) ? urlTab : "units";
+  const activeTab = ["maintenance", "truck-types", "utilization"].includes(urlTab) ? urlTab : "units";
   const setActiveTab = (tab) => setSearchParams({ tab }, { replace: true });
 
   const [showUnitModal, setShowUnitModal] = useState(false);
@@ -456,6 +472,9 @@ export default function TripMaintenance() {
   };
 
   const [checklistUnit, setChecklistUnit] = useState(null);
+  // Set status (fleet status) for this unit.
+  const [statusUnit, setStatusUnit] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("");
   const [driverUnit, setDriverUnit] = useState(null);
 
   const [truckTypes, setTruckTypes] = useState([]);
@@ -486,6 +505,7 @@ export default function TripMaintenance() {
   const [recordSearch, setRecordSearch] = useState("");
   const [truckTypeSearch, setTruckTypeSearch] = useState("");
   const filteredUnits = vehicleUnits.filter((unit) =>
+    (!statusFilter || unit.status === statusFilter) &&
     matchesSearch(
       unitSearch,
       unit.unit_code,
@@ -789,7 +809,7 @@ export default function TripMaintenance() {
       </div>
 
       {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
         <SummaryCard
           active={activeTab === "units"}
           onClick={() => setActiveTab("units")}
@@ -817,11 +837,42 @@ export default function TripMaintenance() {
           canRename={canEditVehicleTypes}
           onRename={(value) => renameCard("truck_types", value)}
         />
+        <SummaryCard
+          active={activeTab === "utilization"}
+          onClick={() => setActiveTab("utilization")}
+          icon={<Gauge size={22} className="shrink-0" />}
+          title={cardTitle("utilization")}
+          subtitle={`${vehicleUnits.filter((u) => u.status === "available").length} available now`}
+          canRename={canEditVehicleTypes}
+          onRename={(value) => renameCard("utilization", value)}
+        />
       </div>
 
       {/* VEHICLE LIST */}
       {activeTab === "units" && (
         <>
+          {/* Fleet status filter */}
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {STATUS_FILTERS.map(([key, label]) => {
+              const count = key
+                ? vehicleUnits.filter((u) => u.status === key).length
+                : vehicleUnits.length;
+              return (
+                <button
+                  key={key || "all"}
+                  type="button"
+                  onClick={() => setStatusFilter(key)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                    statusFilter === key
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-fg-muted hover:bg-surface-hover"
+                  }`}
+                >
+                  {label} <span className="font-normal tabular-nums">{count}</span>
+                </button>
+              );
+            })}
+          </div>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
             <div className="flex gap-2">
               <div className="relative">
@@ -983,6 +1034,15 @@ export default function TripMaintenance() {
                               >
                                 <History size={16} />
                               </button>
+                              {canEditPage && (
+                                <button
+                                  onClick={() => setStatusUnit(unit)}
+                                  title="Set status"
+                                  className="text-fg-muted hover:text-primary"
+                                >
+                                  <CircleDot size={16} />
+                                </button>
+                              )}
                               <button
                                 onClick={() => setChecklistUnit(unit)}
                                 title="Vehicle Checklist"
@@ -1084,6 +1144,15 @@ export default function TripMaintenance() {
                   <UnitStatusBadge unit={unit} />
 
                   <div className="flex items-center gap-3">
+                    {canEditPage && (
+                      <button
+                        onClick={() => setStatusUnit(unit)}
+                        title="Set status"
+                        className="text-fg-muted hover:text-primary"
+                      >
+                        <CircleDot size={16} />
+                      </button>
+                    )}
                     <button
                       onClick={() => setChecklistUnit(unit)}
                       title="Vehicle Checklist"
@@ -1113,6 +1182,9 @@ export default function TripMaintenance() {
           />
         </>
       )}
+
+      {/* TRUCK UTILIZATION */}
+      {activeTab === "utilization" && <TruckUtilization />}
 
       {/* VEHICLE MAINTENANCE */}
       {activeTab === "maintenance" && (
@@ -1772,6 +1844,14 @@ export default function TripMaintenance() {
         <UnitDriverModal
           unit={driverUnit}
           onClose={() => setDriverUnit(null)}
+          onSaved={loadVehicleUnits}
+        />
+      )}
+
+      {statusUnit && (
+        <FleetStatusModal
+          unit={statusUnit}
+          onClose={() => setStatusUnit(null)}
           onSaved={loadVehicleUnits}
         />
       )}

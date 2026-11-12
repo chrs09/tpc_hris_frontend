@@ -322,6 +322,13 @@ export function getNavGroups(role) {
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "fleet_management.vehicle_maintenance",
         },
+        {
+          // Trips, days used, downtime and utilization per truck.
+          label: "Truck Utilization",
+          path: "/dashboard/admin/trip-maintenance?tab=utilization",
+          roles: ["superadmin", "coordinator_admin"],
+          moduleKey: "fleet_management.vehicle_list",
+        },
       ],
     },
     {

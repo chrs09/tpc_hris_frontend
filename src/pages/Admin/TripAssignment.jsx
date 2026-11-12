@@ -1,6 +1,7 @@
 import React from "react";
 import StartTripForDriverCard from "../../components/adminTrips/StartTripForDriverCard";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import TruckAvailabilityBoard from "../../components/tripMaintenance/TruckAvailabilityBoard";
 
 // Formerly "Start Trip (Bypass)" -- renamed since "bypass" now refers to
 // the separate Trip Bypass feature (acting as a driver on a stuck trip,
@@ -21,6 +22,9 @@ const TripAssignment = () => {
           it's started.
         </p>
       </div>
+
+      {/* Which trucks can be assigned now (Fleet Management statuses). */}
+      <TruckAvailabilityBoard />
 
       <StartTripForDriverCard alwaysExpanded />
     </div>
