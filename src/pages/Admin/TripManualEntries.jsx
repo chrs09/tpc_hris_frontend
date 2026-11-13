@@ -50,8 +50,9 @@ const emptyForm = {
 // the Org Chart: records a whole trip that really
 // happened but never went through the driver's phone (e.g. the server
 // was down that day). The trip is created already finished -- every
-// store delivered, no GPS or geofence checks -- and goes into the normal
-// Trip Approvals flow. A coordinator_admin's entry first waits for a
+// store delivered, no GPS or geofence checks -- and goes straight to Trip
+// Document (office review), skipping Trip Approvals since the coordinator
+// entered it. A coordinator_admin's entry first waits for a
 // superadmin to accept or reject it -- done from Trip Approvals, or from
 // the View window the alert bell opens here (?view=<trip id>).
 export default function TripManualEntries() {
@@ -231,7 +232,7 @@ export default function TripManualEntries() {
     const driver = options.drivers.find((d) => d.id === form.driverId);
     if (
       !(await confirmDialog(
-        `Enter this trip for ${driver?.label || "the driver"}? It's created as already completed and sent to Trip Approvals. Logged for audit.`,
+        `Enter this trip for ${driver?.label || "the driver"}? It's created as already completed and goes to Trip Document for office review. Logged for audit.`,
       ))
     ) {
       return;
@@ -291,7 +292,7 @@ export default function TripManualEntries() {
 
   const handleApprove = async (entry) => {
     const remarks = await promptDialog(
-      `Approve ${entry.trip_code} for ${entry.driver_name || "the driver"}? It moves to Trip Approvals. Remarks (optional):`,
+      `Approve ${entry.trip_code} for ${entry.driver_name || "the driver"}? It goes to Trip Document for office review. Remarks (optional):`,
     );
     if (remarks === null) return;
     try {
@@ -351,7 +352,7 @@ export default function TripManualEntries() {
           Record a trip that really happened but never went through the
           driver&apos;s phone -- e.g. the server was down that day. It&apos;s
           created as already completed (every store delivered, no location
-          checks) and goes to Trip Approvals like any other trip.
+          checks) and goes straight to Trip Document for office review.
           {isSuperAdmin
             ? " Entries from coordinator admins wait for your approval first."
             : " Your entry waits for a superadmin's approval first."}{" "}

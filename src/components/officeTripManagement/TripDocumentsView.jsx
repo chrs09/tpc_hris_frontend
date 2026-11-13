@@ -22,16 +22,19 @@ const STATUS_STYLES = {
 
 const pad = (n) => String(n).padStart(2, "0");
 const isoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const firstOfMonth = () => {
+// Default period: the last 30 days, so trips from the end of last month
+// (still being reviewed) don't drop out on the 1st.
+const thirtyDaysAgo = () => {
   const d = new Date();
-  return isoDate(new Date(d.getFullYear(), d.getMonth(), 1));
+  d.setDate(d.getDate() - 30);
+  return isoDate(d);
 };
 
 const inputStyles =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 export default function TripDocumentsView() {
-  const [dateFrom, setDateFrom] = useState(firstOfMonth);
+  const [dateFrom, setDateFrom] = useState(thirtyDaysAgo);
   const [dateTo, setDateTo] = useState(() => isoDate(new Date()));
   const [shipment, setShipment] = useState("");
   const [query, setQuery] = useState("");

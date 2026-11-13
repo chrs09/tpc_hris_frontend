@@ -14,9 +14,13 @@ export const isForMe = (item) => {
 // user; a superadmin (or anyone who sees more) can switch to everything.
 // `enabled` false = show the whole list (e.g. a list of finished requests).
 export default function useApprovalScope(items = [], enabled = true) {
-  const [scope, setScope] = useState("me");
+  // null = not picked yet: open on "For me", or on "All" when nothing is
+  // waiting on this user (so a superadmin doesn't see an empty list while
+  // others' requests are waiting).
+  const [picked, setScope] = useState(null);
   const forMe = useMemo(() => items.filter(isForMe), [items]);
   const applies = enabled && forMe.length !== items.length;
+  const scope = picked || (forMe.length === 0 && items.length > 0 ? "all" : "me");
   return {
     scoped: applies && scope === "me" ? forMe : items,
     scopeProps: { applies, scope, onChange: setScope, forMeCount: forMe.length, allCount: items.length },
