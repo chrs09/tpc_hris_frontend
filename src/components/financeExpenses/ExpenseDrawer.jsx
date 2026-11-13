@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 import { extractFinanceExpenseReceipt } from "../../api/financeExpenses";
 
@@ -110,6 +110,70 @@ function Suggestions({ label, values, current, onPick, disabled, format }) {
   );
 }
 
+// Text read from the uploaded receipt, shared with every Field: its lines
+// and the number-like pieces in them (invoice / PO / check numbers).
+const ReceiptText = createContext({ lines: [], numbers: [] });
+
+// Fields that usually hold a number pick from the number pieces first.
+const NUMBERISH = /#|number|amount|ap$/i;
+
+// The dropdown under a text field: the likely values first, then the
+// receipt's text, narrowed by what's typed. Click one to fill the field;
+// or just type the right value.
+function ReceiptDropdown({ label, value, likely, onPick }) {
+  const { lines, numbers } = useContext(ReceiptText);
+  const typed = String(value ?? "").trim().toLowerCase();
+  const pool = NUMBERISH.test(label) ? [...numbers, ...lines] : [...lines, ...numbers];
+  const seen = new Set();
+  const rows = [];
+  for (const v of likely || []) {
+    if (v && !seen.has(v)) {
+      seen.add(v);
+      rows.push({ v, likely: true });
+    }
+  }
+  for (const v of pool) {
+    if (!v || seen.has(v)) continue;
+    // Narrow by what's typed, unless it's already exactly an option.
+    if (typed && !v.toLowerCase().includes(typed) && !(likely || []).includes(value)) continue;
+    seen.add(v);
+    rows.push({ v, likely: false });
+  }
+  if (!rows.length) return null;
+  return (
+    <ul
+      role="listbox"
+      className="absolute left-0 right-0 top-full z-30 mt-1 max-h-56 overflow-y-auto rounded-lg border border-border bg-surface py-1 text-sm shadow-lg"
+    >
+      <li className="px-3 pb-1 pt-0.5 text-[11px] font-medium text-fg-subtle">From the receipt · click to use</li>
+      {rows.slice(0, 40).map((row) => (
+        <li key={row.v}>
+          <button
+            type="button"
+            role="option"
+            aria-selected={row.v === value}
+            // mousedown so the input doesn't blur (and close the list) first
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onPick(row.v);
+            }}
+            className={`flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-surface-hover ${
+              row.v === value ? "text-primary" : "text-fg-muted"
+            }`}
+          >
+            <span className="min-w-0 flex-1 truncate">{row.v}</span>
+            {row.likely && (
+              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                likely
+              </span>
+            )}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Field({
   label,
   value,
@@ -120,6 +184,10 @@ function Field({
   suggestions = null,
   formatSuggestion,
 }) {
+  const { lines } = useContext(ReceiptText);
+  const [open, setOpen] = useState(false);
+  // Text fields get the receipt dropdown; a date keeps its chips.
+  const dropdown = type === "text" && !disabled && lines.length > 0;
   return (
     <div className="flex flex-col gap-1.5">
       <label className="flex flex-col gap-1.5">
@@ -127,23 +195,45 @@ function Field({
           {label}
         </span>
 
-        <input
-          type={type}
-          value={value ?? ""}
-          disabled={disabled}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
-        />
+        <span className="relative">
+          <input
+            type={type}
+            value={value ?? ""}
+            disabled={disabled}
+            placeholder={dropdown && !placeholder ? "Type, or pick from the receipt" : placeholder}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)}
+            onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+            autoComplete="off"
+            className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
+          />
+          {dropdown && open && (
+            <ReceiptDropdown
+              label={label}
+              value={value}
+              likely={suggestions}
+              onPick={(v) => {
+                onChange(v);
+                setOpen(false);
+              }}
+            />
+          )}
+        </span>
       </label>
-      <Suggestions
-        label={label}
-        values={suggestions}
-        current={value}
-        onPick={onChange}
-        disabled={disabled}
-        format={formatSuggestion}
-      />
+      {!dropdown && (
+        <Suggestions
+          label={label}
+          values={suggestions}
+          current={value}
+          onPick={onChange}
+          disabled={disabled}
+          format={formatSuggestion}
+        />
+      )}
     </div>
   );
 }
@@ -425,12 +515,16 @@ export default function ExpenseDrawer({
         next.invoiceDate = parsed.invoiceDate;
       }
 
-      if (parsed.invoiceNumber) {
-        next.invoiceNumber = parsed.invoiceNumber;
+      const invoiceNumber = parsed.candidates?.invoiceNumber?.[0] ||
+        (/\d/.test(parsed.invoiceNumber || "") ? parsed.invoiceNumber : "");
+      if (invoiceNumber) {
+        next.invoiceNumber = invoiceNumber;
       }
 
-      if (parsed.poNumber) {
-        next.poNumber = parsed.poNumber;
+      const poNumber = parsed.candidates?.poNumber?.[0] ||
+        (/\d/.test(parsed.poNumber || "") ? parsed.poNumber : "");
+      if (poNumber) {
+        next.poNumber = poNumber;
       }
 
       if (Array.isArray(parsed.items) && parsed.items.length > 0) {
@@ -544,6 +638,22 @@ export default function ExpenseDrawer({
     setOcrError("");
   };
 
+  // Receipt text for the field dropdowns: each line, plus the number-like
+  // pieces inside lines (e.g. "0228227" out of "INVOICE No. 0228227").
+  const receiptText = useMemo(() => {
+    const lines = (ocrLines.length > 0 ? ocrLines : ocrText.split("\n"))
+      .map((l) => l.trim())
+      .filter((l) => l.length > 1);
+    const numbers = [];
+    for (const line of lines) {
+      for (const m of line.matchAll(/[A-Z]{0,3}-?\d[\d,./-]{2,}\d/gi)) {
+        const n = m[0].replace(/[.,]$/, "");
+        if (!numbers.includes(n)) numbers.push(n);
+      }
+    }
+    return { lines: [...new Set(lines)], numbers };
+  }, [ocrLines, ocrText]);
+
   /*
    * Save expense.
    */
@@ -564,6 +674,7 @@ export default function ExpenseDrawer({
   }
 
   return (
+    <ReceiptText.Provider value={receiptText}>
     <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <button
@@ -1325,5 +1436,6 @@ export default function ExpenseDrawer({
         </div>
       )}
     </div>
+    </ReceiptText.Provider>
   );
 }
