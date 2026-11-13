@@ -376,12 +376,12 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       ? approveException(request)
       : setReleaseForm({ request, mode: "approve" });
 
-  const saveRelease = (requestId, receipt, reference) =>
+  const saveRelease = (requestId, receipt, reference, releasedDate) =>
     receipt
-      ? uploadCashAdvanceReceipt(requestId, receipt, reference)
-      : setCashAdvanceReleaseInfo(requestId, reference);
+      ? uploadCashAdvanceReceipt(requestId, receipt, reference, releasedDate)
+      : setCashAdvanceReleaseInfo(requestId, reference, releasedDate);
 
-  const submitReleaseForm = async ({ approvedAmount, reference, remarks, receipt }) => {
+  const submitReleaseForm = async ({ approvedAmount, reference, remarks, receipt, releasedDate }) => {
     const { request, mode } = releaseForm;
     if (mode === "approve") {
       if (!approvedAmount || approvedAmount <= 0) {
@@ -407,7 +407,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         let receiptSaved = false;
         if (result?.status === "approved" && !result.revised_terms_pending && (receipt || reference)) {
           try {
-            await saveRelease(request.id, receipt, reference);
+            await saveRelease(request.id, receipt, reference, releasedDate);
             receiptSaved = true;
           } catch (error) {
             toast.error(
@@ -431,7 +431,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
         await loadPending();
       } else {
         setReleasingId(request.id);
-        await saveRelease(request.id, receipt, reference);
+        await saveRelease(request.id, receipt, reference, releasedDate);
         toast.success("Release recorded.");
         if (balancesLoaded) await loadBalances();
       }

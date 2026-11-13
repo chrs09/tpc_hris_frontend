@@ -64,10 +64,12 @@ export const unarchiveCashAdvanceRequest = async (requestId) => {
 
 // Photo proving the approved cash advance was sent (+ optional
 // reference). Marks it released.
-export const uploadCashAdvanceReceipt = async (requestId, file, reference) => {
+export const uploadCashAdvanceReceipt = async (requestId, file, reference, releasedDate) => {
   const formData = new FormData();
   formData.append("receipt", file);
   if (reference) formData.append("release_reference", reference);
+  // The day the money actually went out (not the upload day).
+  if (releasedDate) formData.append("released_date", releasedDate);
   const res = await api.post(`/cash-advance-requests/${requestId}/receipt`, formData);
   return res.data;
 };
@@ -161,9 +163,11 @@ export const createOpeningBalance = async ({
 export const setCashAdvanceReleaseInfo = async (
   requestId,
   releaseReference,
+  releasedDate,
 ) => {
   const res = await api.post(`/cash-advance-requests/${requestId}/release`, {
     release_reference: releaseReference,
+    released_date: releasedDate || null,
   });
   return res.data;
 };

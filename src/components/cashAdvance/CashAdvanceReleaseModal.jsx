@@ -4,6 +4,14 @@ import ApprovedBy from "../approvals/ApprovedBy";
 
 const peso = (n) => `₱${Number(n || 0).toLocaleString()}`;
 
+// "YYYY-MM-DD" in the viewer's own date (PH for this app's users).
+const dayOf = (value) => {
+  const d = value ? new Date(value) : new Date();
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 // mode="approve": Pending Approvals -- the amount and remarks (required
 // when it passes up to the next head, like mobile), with earlier heads'
 // approvals and remarks shown above.
@@ -26,6 +34,11 @@ export default function CashAdvanceReleaseModal({
     mode === "release" ? request.release_reference || "" : "",
   );
   const [remarks, setRemarks] = useState("");
+  // The day the money actually went out -- not the day the photo is
+  // uploaded. Starts on the recorded release day, else today.
+  const [releasedDate, setReleasedDate] = useState(dayOf(request.released_at || null));
+  const today = dayOf(null);
+  const approvedDay = request.approved_at ? dayOf(request.approved_at) : "";
   const [receipt, setReceipt] = useState(null);
   const [preview, setPreview] = useState(null);
 
@@ -46,6 +59,7 @@ export default function CashAdvanceReleaseModal({
       reference: reference.trim(),
       remarks: remarks.trim(),
       receipt,
+      releasedDate: mode === "release" ? releasedDate : null,
     });
   };
 
@@ -175,6 +189,26 @@ export default function CashAdvanceReleaseModal({
                 className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg"
               />
             </div>
+            {mode === "release" && (
+              <div>
+                <label htmlFor="ca-released-date" className="mb-1 block text-sm font-medium text-fg">
+                  Date released
+                </label>
+                <input
+                  id="ca-released-date"
+                  type="date"
+                  value={releasedDate}
+                  min={approvedDay || undefined}
+                  max={today}
+                  onChange={(e) => setReleasedDate(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-border bg-surface px-3 py-2 text-sm text-fg"
+                />
+                <p className="mt-1 text-xs text-fg-subtle">
+                  The day the money was actually given or sent, not the day you upload the receipt.
+                </p>
+              </div>
+            )}
           </>
         )}
 
@@ -188,7 +222,7 @@ export default function CashAdvanceReleaseModal({
           </button>
           <button
             type="submit"
-            disabled={busy || (mode === "release" && !receipt && !reference.trim())}
+            disabled={busy || (mode === "release" && ((!receipt && !reference.trim()) || !releasedDate))}
             className="rounded-xl bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:opacity-50"
           >
             {busy ? "Saving..." : mode === "release" ? "Save" : "Approve"}
