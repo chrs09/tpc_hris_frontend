@@ -81,6 +81,35 @@ const accounts = ["CST", "Tytan"];
 
 const statuses = ["Pending", "Paid", "Cancelled"];
 
+// Read from the receipt image: "Possible <label>" chips under the input;
+// clicking one fills the field. `format` turns a value into its chip text.
+function Suggestions({ label, values, current, onPick, disabled, format }) {
+  if (!values?.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px] text-fg-subtle">Possible {label.toLowerCase()}:</span>
+      {values.map((v) => {
+        const picked = String(current ?? "").slice(0, 10) === String(v) || current === v;
+        return (
+          <button
+            key={v}
+            type="button"
+            disabled={disabled}
+            onClick={() => onPick(v)}
+            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition disabled:cursor-default ${
+              picked
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-surface text-fg-muted hover:border-primary hover:bg-surface-hover"
+            }`}
+          >
+            {format ? format(v) : v}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function Field({
   label,
   value,
@@ -88,24 +117,43 @@ function Field({
   type = "text",
   disabled = false,
   placeholder = "",
+  suggestions = null,
+  formatSuggestion,
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-medium text-fg-subtle">
-        {label}
-      </span>
+    <div className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1.5">
+        <span className="text-xs font-medium text-fg-subtle">
+          {label}
+        </span>
 
-      <input
-        type={type}
-        value={value ?? ""}
+        <input
+          type={type}
+          value={value ?? ""}
+          disabled={disabled}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
+        />
+      </label>
+      <Suggestions
+        label={label}
+        values={suggestions}
+        current={value}
+        onPick={onChange}
         disabled={disabled}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-10 rounded-lg border border-border bg-surface px-3 text-sm text-fg-muted outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-hover"
+        format={formatSuggestion}
       />
-    </label>
+    </div>
   );
 }
+
+const fmtDateChip = (iso) => {
+  const d = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
 
 function SelectField({
   label,
@@ -201,7 +249,8 @@ export default function ExpenseDrawer({
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrText, setOcrText] = useState("");
   const [ocrLines, setOcrLines] = useState([]);
-  const [ocrSupplierCandidates, setOcrSupplierCandidates] = useState([]);
+  // Possible values per field read from the receipt (shown under each input).
+  const [ocrSuggestions, setOcrSuggestions] = useState({});
   const [ocrEnhancedImage, setOcrEnhancedImage] = useState("");
   const [ocrError, setOcrError] = useState("");
   const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -433,7 +482,7 @@ export default function ExpenseDrawer({
     setOcrLoading(true);
     setOcrText("");
     setOcrLines([]);
-    setOcrSupplierCandidates([]);
+    setOcrSuggestions({});
     setOcrEnhancedImage("");
     setOcrError("");
 
@@ -459,7 +508,11 @@ export default function ExpenseDrawer({
         ? payload.supplier_candidates
         : parsed.supplierCandidates || [];
 
-      setOcrSupplierCandidates(supplierCandidates);
+      setOcrSuggestions({
+        ...(parsed.candidates || {}),
+        supplier: supplierCandidates,
+        total: parsed.total || "",
+      });
 
       applyParsedReceiptData({
         ...parsed,
@@ -486,7 +539,7 @@ export default function ExpenseDrawer({
 
     setOcrText("");
     setOcrLines([]);
-    setOcrSupplierCandidates([]);
+    setOcrSuggestions({});
     setOcrEnhancedImage("");
     setOcrError("");
   };
@@ -561,60 +614,16 @@ export default function ExpenseDrawer({
               EXPENSE DETAILS
           ============================== */}
 
-          <Section title="Expense Details">
-            <SelectField
-              label="Payment Type"
-              disabled={isView}
-              value={form.paymentType || "PO"}
-              options={["PO", "Cash"]}
-              onChange={handlePaymentTypeChange}
-            />
-
-            <Field
-              label="Expense #"
-              disabled
-              value={form.expenseNumber}
-              onChange={() => {}}
-            />
-
-            <Field
-              label="Invoice Date"
-              type="date"
-              disabled={isView}
-              value={form.invoiceDate?.slice(0, 10)}
-              onChange={(v) => update("invoiceDate", v)}
-            />
-
-            {/* PO # only applies to PO expenses */}
-            {form.paymentType === "PO" && (
-              <Field
-                label="PO #"
-                disabled={isView}
-                value={form.poNumber}
-                onChange={(v) => update("poNumber", v)}
-              />
-            )}
-
-            <Field
-              label="Supplier"
-              disabled={isView}
-              value={form.supplier}
-              onChange={(v) => update("supplier", v)}
-            />
-
-            <Field
-              label="Invoice Number"
-              disabled={isView}
-              value={form.invoiceNumber}
-              onChange={(v) => update("invoiceNumber", v)}
-            />
-
+          <Section title="Receipt / Expense Image">
             {/* Receipt Image */}
             <div className="md:col-span-2">
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-medium text-fg-subtle">
-                  Receipt / Expense Image
-                </span>
+              <div className="flex flex-col gap-1.5">
+                {!isView && (
+                  <span className="text-xs text-fg-subtle">
+                    Upload first: the fields below are filled from the receipt, with other possible
+                    values under each field.
+                  </span>
+                )}
 
                 {!isView && (
                   <input
@@ -707,32 +716,10 @@ export default function ExpenseDrawer({
 
                 {/* OCR Raw Text */}
                 {ocrText && (
-                  <div className="mt-3">
-                    {ocrSupplierCandidates.length > 0 && (
-                      <div className="mb-3">
-                        <p className="mb-1.5 text-xs font-medium text-fg-subtle">
-                          Possible supplier names
-                        </p>
-
-                        <div className="flex flex-wrap gap-2">
-                          {ocrSupplierCandidates.map((candidate) => (
-                            <button
-                              key={candidate}
-                              type="button"
-                              disabled={isView}
-                              onClick={() => update("supplier", candidate)}
-                              className="rounded-full border border-border bg-surface px-3 py-1 text-xs font-medium text-fg-muted transition hover:border-primary hover:bg-surface-hover disabled:cursor-default disabled:opacity-80"
-                            >
-                              {candidate}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <p className="mb-1.5 text-xs font-medium text-fg-subtle">
-                      Extracted receipt lines
-                    </p>
+                  <details className="mt-3">
+                    <summary className="mb-1.5 cursor-pointer text-xs font-medium text-fg-subtle">
+                      Show all text read from the receipt
+                    </summary>
 
                     <ol className="max-h-60 space-y-1 overflow-auto rounded-lg border border-border bg-surface-hover p-3 text-xs text-fg-muted">
                       {(ocrLines.length > 0 ? ocrLines : ocrText.split("\n")).map(
@@ -746,10 +733,65 @@ export default function ExpenseDrawer({
                         ),
                       )}
                     </ol>
-                  </div>
+                  </details>
                 )}
-              </label>
+              </div>
             </div>
+
+          </Section>
+
+          <Section title="Expense Details">
+            <SelectField
+              label="Payment Type"
+              disabled={isView}
+              value={form.paymentType || "PO"}
+              options={["PO", "Cash"]}
+              onChange={handlePaymentTypeChange}
+            />
+
+            <Field
+              label="Expense #"
+              disabled
+              value={form.expenseNumber}
+              onChange={() => {}}
+            />
+
+            <Field
+              label="Invoice Date"
+              type="date"
+              disabled={isView}
+              value={form.invoiceDate?.slice(0, 10)}
+              onChange={(v) => update("invoiceDate", v)}
+              suggestions={ocrSuggestions.invoiceDate}
+              formatSuggestion={fmtDateChip}
+            />
+
+            {/* PO # only applies to PO expenses */}
+            {form.paymentType === "PO" && (
+              <Field
+                label="PO #"
+                disabled={isView}
+                value={form.poNumber}
+                onChange={(v) => update("poNumber", v)}
+                suggestions={ocrSuggestions.poNumber}
+              />
+            )}
+
+            <Field
+              label="Supplier"
+              disabled={isView}
+              value={form.supplier}
+              onChange={(v) => update("supplier", v)}
+              suggestions={ocrSuggestions.supplier}
+            />
+
+            <Field
+              label="Invoice Number"
+              disabled={isView}
+              value={form.invoiceNumber}
+              onChange={(v) => update("invoiceNumber", v)}
+              suggestions={ocrSuggestions.invoiceNumber}
+            />
 
             {/* ==============================
                 PARTICULARS / EXPENSE ITEMS
@@ -955,7 +997,25 @@ export default function ExpenseDrawer({
                 </table>
               </div>
 
-              <div className="mt-3 flex items-center justify-end">
+              <div className="mt-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+                {ocrSuggestions.total && (
+                  <span
+                    className={`text-xs ${
+                      Math.abs(Number(ocrSuggestions.total) - calculatedItemsTotal) < 0.01
+                        ? "text-success"
+                        : "text-warning"
+                    }`}
+                  >
+                    Total on the receipt: ₱
+                    {Number(ocrSuggestions.total).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                    {Math.abs(Number(ocrSuggestions.total) - calculatedItemsTotal) < 0.01
+                      ? " · matches"
+                      : " · check the items"}
+                  </span>
+                )}
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-medium text-fg-subtle">
                     Total

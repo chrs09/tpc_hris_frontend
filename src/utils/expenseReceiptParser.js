@@ -104,6 +104,63 @@ const extractAfterLabel = (lines, patterns) => {
   return "";
 };
 
+// Every distinct value the patterns find, in order (for "Possible ..."
+// suggestions under each field).
+const extractAllAfterLabel = (lines, patterns, limit = 3) => {
+  const out = [];
+  for (const line of lines) {
+    for (const pattern of patterns) {
+      const value = line.match(pattern)?.[1]?.trim();
+      if (!value || /^(no|number|num)$/i.test(value)) continue;
+      if (!out.some((v) => v.toLowerCase() === value.toLowerCase())) out.push(value);
+    }
+  }
+  return out.slice(0, limit);
+};
+
+const INVOICE_NUMBER_PATTERNS = [
+  /(?:invoice|inv|sales\s*invoice|sales\s*inv)\s*(?:no|number|num)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
+  /(?:official\s*receipt|or|receipt)\s*(?:no|number|num)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
+  /(?:si)\s*(?:no|number|#)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
+  /(?:no|n[o0]\.|#)\s*[:.]?\s*(\d{4,10})\b/i,
+];
+
+const extractInvoiceNumberCandidates = (lines) => {
+  // A PO number line also matches the generic "No." pattern -- leave it out.
+  const poNumbers = new Set(extractPONumberCandidates(lines));
+  const found = extractAllAfterLabel(lines.filter((l) => !/\b(p\.\s?o\.|po\b|purchase\s*order)/i.test(l)), INVOICE_NUMBER_PATTERNS, 5)
+    .map((v) => v.replace(/\s+/g, " ").trim())
+    // Keep values that have a digit (labels' leftovers like "OF" are noise).
+    .filter((v) => /\d/.test(v) && !poNumbers.has(v));
+  return [...new Set(found)].slice(0, 3);
+};
+
+const extractPONumberCandidates = (lines) =>
+  extractAllAfterLabel(lines, [
+    /(?:po|p\.o\.|purchase\s*order)\s*(?:no|number|num|#)?\s*[:#.-]?\s*([A-Z0-9/-]+)/i,
+  ]).filter((v) => /\d/.test(v));
+
+const extractInvoiceDateCandidates = (lines) => {
+  const out = [];
+  const add = (raw) => {
+    const normalized = raw && normalizeDate(raw);
+    if (normalized && !out.includes(normalized)) out.push(normalized);
+  };
+  extractAllAfterLabel(lines, [
+    /(?:invoice\s*)?date\s*[:#.-]?\s*(.+)$/i,
+    /(?:transaction|purchase|sales)\s*date\s*[:#.-]?\s*(.+)$/i,
+  ]).forEach(add);
+  for (const line of lines) {
+    const match =
+      line.match(/\b(\d{1,2}[/-]\d{1,2}[/-]\d{4}|\d{4}[-/]\d{1,2}[-/]\d{1,2})\b/) ||
+      line.match(
+        /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:st|nd|rd|th)?[,]?\s+\d{4}\b/i,
+      );
+    if (match) add(match[1] || match[0]);
+  }
+  return out.slice(0, 3);
+};
+
 const extractInvoiceNumber = (lines) => {
   const patterns = [
     /(?:invoice|inv|sales\s*invoice|sales\s*inv)\s*(?:no|number|num)?\s*[:#.-]?\s*([A-Z0-9/-]+(?:\s*[A-Z0-9/-]+)*)/i,
@@ -185,6 +242,11 @@ const extractSupplierCandidates = (lines) => {
   for (const line of lines.slice(0, 12)) {
     if (line.length < 3) continue;
     if (ignoredPatterns.some((pattern) => pattern.test(line))) continue;
+    // Label lines ("SALES INVOICE No. 0228227", "TIN 123", "Date: ...")
+    // aren't a supplier name.
+    if (/\b(invoice|receipt|tin|tel|vat|date|cashier|p\.\s?o\.|po|no\.)(\b|\s|$)|#/i.test(line)) continue;
+    // Item and total lines carry amounts (50.00); a name doesn't.
+    if (/\d+\.\d{2}\b/.test(line) || /^\s*(sub)?total\b/i.test(line)) continue;
 
     const letters = (line.match(/[A-Za-z]/g) || []).length;
     const numbers = (line.match(/[\d]/g) || []).length;
@@ -313,6 +375,7 @@ export const parseReceiptText = (rawText) => {
       total: "",
       items: [],
       supplierCandidates: [],
+      candidates: { supplier: [], invoiceNumber: [], invoiceDate: [], poNumber: [] },
     };
   }
 
@@ -326,6 +389,13 @@ export const parseReceiptText = (rawText) => {
     poNumber: extractPONumber(lines),
     total: extractTotal(lines),
     items: extractItems(lines),
+    // Up to 3 possible values per field, shown under each input.
+    candidates: {
+      supplier: extractSupplierCandidates(lines),
+      invoiceNumber: extractInvoiceNumberCandidates(lines),
+      invoiceDate: extractInvoiceDateCandidates(lines),
+      poNumber: extractPONumberCandidates(lines),
+    },
   };
 };
 
