@@ -4,7 +4,7 @@ import SearchSelect from "../SearchSelect";
 import { getStores } from "../../api/adminTripManagement/stores";
 import { changeTripStore } from "../../api/adminTripManagement/trips";
 
-// Trip Dashboard -> Active Trips -> Change store: the dispatch had a wrong
+// Trip Dashboard -> Active Trips (and Trip Bypass) -> Change store: the dispatch had a wrong
 // store and the driver has already checked out. Swap a stop that isn't
 // delivered yet for the right store -- same place in the route, its
 // shipment numbers move with it, and the driver's app checks in there
@@ -65,7 +65,7 @@ export default function ChangeStoreModal({ trip, onClose, onChanged }) {
         <div className="border-b border-border px-5 py-4">
           <h2 className="text-lg font-bold">Change store</h2>
           <p className="text-xs text-fg-subtle">
-            {trip.trip_code} · {trip.username} · {trip.vehicle_unit}
+            {[trip.trip_code, trip.username, trip.vehicle_unit].filter(Boolean).join(" · ")}
           </p>
         </div>
 

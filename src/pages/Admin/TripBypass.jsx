@@ -8,6 +8,7 @@ import PhotoPicker from "../../components/ui/photoPicker/PhotoPicker";
 import { confirmDialog } from "../../components/ui/dialog/dialogService";
 import { getStores } from "../../api/adminTripManagement/stores";
 import { cancelAssignedTrip } from "../../api/adminTripManagement/trips";
+import ChangeStoreModal from "../../components/adminTrips/ChangeStoreModal";
 import {
   getBypassableTrips,
   getBypassTripDetail,
@@ -104,6 +105,9 @@ const TripBypass = () => {
   const [lmStampedPhoto, setLmStampedPhoto] = useState(null);
   const [forceCheckin, setForceCheckin] = useState(false);
   const [assignStoreId, setAssignStoreId] = useState("");
+  // Wrong store on the dispatch: swap a stop not delivered yet (same
+  // window as Trip Dashboard -> Active Trips).
+  const [changingStore, setChangingStore] = useState(false);
 
   const loadTrips = useCallback(async () => {
     try {
@@ -666,18 +670,49 @@ const TripBypass = () => {
             <p className="text-sm text-fg-subtle">Trip not found.</p>
           ) : (
             <div className="space-y-4">
-              <div>
-                <h2 className="text-base font-semibold text-fg">
-                  {tripDetail.driver_name || `Driver #${tripDetail.driver_id}`}
-                </h2>
-                <p className="text-xs text-fg-subtle">
-                  {tripDetail.current_step_label ||
-                    tripDetail.current_step}
-                  {tripDetail.ticket_no && ` • ${tripDetail.ticket_no}`}
-                </p>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-base font-semibold text-fg">
+                    {tripDetail.driver_name || `Driver #${tripDetail.driver_id}`}
+                  </h2>
+                  <p className="text-xs text-fg-subtle">
+                    {tripDetail.current_step_label ||
+                      tripDetail.current_step}
+                    {tripDetail.ticket_no && ` • ${tripDetail.ticket_no}`}
+                  </p>
+                </div>
+                {canEditPage &&
+                  ["ASSIGNED", "ACTIVE"].includes(tripDetail.status) &&
+                  (tripDetail.planned_stores || []).some((s) => !s.delivered) && (
+                    <button
+                      type="button"
+                      onClick={() => setChangingStore(true)}
+                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted hover:bg-surface-hover hover:text-fg"
+                    >
+                      Change store
+                    </button>
+                  )}
               </div>
 
               {renderForm()}
+
+              {changingStore && (
+                <ChangeStoreModal
+                  trip={{
+                    id: tripDetail.trip_id,
+                    trip_code: tripDetail.ticket_no,
+                    username: tripDetail.driver_name,
+                    vehicle_unit: tripDetail.vehicle_unit || "",
+                    stops: (tripDetail.planned_stores || []).map((s) => ({
+                      store_id: s.store_id,
+                      name: s.store_name,
+                      delivered: s.delivered,
+                    })),
+                  }}
+                  onClose={() => setChangingStore(false)}
+                  onChanged={refreshAfterAction}
+                />
+              )}
             </div>
           )}
         </div>
