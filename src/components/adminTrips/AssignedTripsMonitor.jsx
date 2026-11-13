@@ -11,6 +11,7 @@ import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
 import { ChevronRight } from "lucide-react";
 import { matchesSearch } from "../../utils/search";
+import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
 
 // Renders a trip's planned route as an ordered stop-by-stop chain
 // instead of a flat "Store A, Store B, Store C" string, so a
@@ -261,22 +262,22 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
       {/* DESKTOP TABLE */}
       <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full text-fg text-sm">
-          <thead className="bg-surface-hover text-fg-muted">
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Driver</th>
-              <th className="px-4 py-3 text-left font-medium">Trip Code</th>
-              <th className="px-4 py-3 text-left font-medium">
+              <th className="px-4 py-3 text-left font-semibold">Driver</th>
+              <th className="px-4 py-3 text-left font-semibold">Trip Code</th>
+              <th className="px-4 py-3 text-left font-semibold">
                 Shipment No.
               </th>
-              <th className="px-4 py-3 text-left font-medium">Vehicle</th>
-              <th className="px-4 py-3 text-left font-medium">Truck Type</th>
-              <th className="px-4 py-3 text-left font-medium">
+              <th className="px-4 py-3 text-left font-semibold">Vehicle</th>
+              <th className="px-4 py-3 text-left font-semibold">Truck Type</th>
+              <th className="px-4 py-3 text-left font-semibold">
                 Destination(s)
               </th>
-              <th className="px-4 py-3 text-left font-medium">
+              <th className="px-4 py-3 text-left font-semibold">
                 Dispatched By
               </th>
-              <th className="px-4 py-3 text-left font-medium">
+              <th className="px-4 py-3 text-left font-semibold">
                 Dispatched At
               </th>
               <th className="px-4 py-3" />
@@ -294,7 +295,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
               paginatedItems.map((trip) => (
                 <tr
                   key={trip.id}
-                  className="border-t border-border hover:bg-surface-hover"
+                  className={TABLE_ROW}
                 >
                   <td className="px-4 py-4">
                     {trip.driver_name || "-"}

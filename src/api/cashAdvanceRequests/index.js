@@ -10,6 +10,13 @@ export const getCashAdvanceRequestsForMyApproval = async () => {
   return res.data;
 };
 
+// Every cash advance (any status) of the approver's Org Chart team, with
+// each person's outstanding balance: { requests, team_size }.
+export const getMyTeamCashAdvances = async () => {
+  const res = await api.get("/cash-advance-requests/my-team");
+  return res.data;
+};
+
 // approvedAmount lets the approver grant less than what was requested
 // (e.g. requested 5000, approve 3000). Omit/null to approve the full
 // requested amount.

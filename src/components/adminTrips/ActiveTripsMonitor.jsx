@@ -11,6 +11,8 @@ import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
 import { ChevronRight } from "lucide-react";
 import { matchesSearch } from "../../utils/search";
+import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
+import Pill from "../ui/statusPill/StatusPill";
 
 // Badge color per current_step -- mirrors CURRENT_STEP_LABELS in
 // app/api/admin/trips.py so the live status a driver's own button tap
@@ -27,13 +29,7 @@ const STEP_BADGE_STYLES = {
 };
 
 const StepBadge = ({ step, label }) => (
-  <span
-    className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
-      STEP_BADGE_STYLES[step] || "bg-surface-active text-fg-muted"
-    }`}
-  >
-    {label || step || "-"}
-  </span>
+  <Pill colors={STEP_BADGE_STYLES[step]}>{label || step || "-"}</Pill>
 );
 
 const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhoneViewChange }) => {
@@ -104,17 +100,17 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
       {/* DESKTOP TABLE */}
       <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full text-fg text-sm">
-          <thead className="bg-surface-hover text-fg-muted">
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Driver</th>
-              <th className="px-4 py-3 text-left font-medium">Dispatched By</th>
-              <th className="px-4 py-3 text-left font-medium">Trip Code</th>
-              <th className="px-4 py-3 text-left font-medium">Ticket</th>
-              <th className="px-4 py-3 text-left font-medium">Truck Type</th>
-              <th className="px-4 py-3 text-left font-medium">Started</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
-              <th className="px-4 py-3 text-left font-medium">Current Stop</th>
-              <th className="px-4 py-3 text-right font-medium">Actions</th>
+              <th className="px-4 py-3 text-left font-semibold">Driver</th>
+              <th className="px-4 py-3 text-left font-semibold">Dispatched By</th>
+              <th className="px-4 py-3 text-left font-semibold">Trip Code</th>
+              <th className="px-4 py-3 text-left font-semibold">Ticket</th>
+              <th className="px-4 py-3 text-left font-semibold">Truck Type</th>
+              <th className="px-4 py-3 text-left font-semibold">Started</th>
+              <th className="px-4 py-3 text-left font-semibold">Status</th>
+              <th className="px-4 py-3 text-left font-semibold">Current Stop</th>
+              <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
 
@@ -129,7 +125,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
               paginatedItems.map((trip) => (
                 <tr
                   key={trip.id}
-                  className="border-t border-border hover:bg-surface-hover"
+                  className={TABLE_ROW}
                 >
                   <td className="px-4 py-4 capitalize">
                     {trip.username}

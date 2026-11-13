@@ -21,6 +21,8 @@ import {
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
+import { TABLE_HEAD, TABLE_ROW } from "../../components/ui/table/tableStyles";
+import Pill from "../../components/ui/statusPill/StatusPill";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -90,13 +92,7 @@ const StatusPill = ({ status }) => {
     status,
     "bg-surface-active text-fg-muted",
   ];
-  return (
-    <span
-      className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${classes}`}
-    >
-      {label}
-    </span>
-  );
+  return <Pill colors={classes}>{label}</Pill>;
 };
 
 // Coordinator admin's side of driver fuel requests: issue a fuel code +
@@ -199,16 +195,16 @@ export default function FuelRequests({ embedded = false }) {
 
       <div className="overflow-x-auto rounded-xl border border-border bg-surface">
         <table className="w-full min-w-180 text-sm text-fg">
-          <thead className="bg-surface-hover text-fg-muted">
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-4 py-3 text-left font-medium">Driver</th>
-              <th className="px-4 py-3 text-left font-medium">Plate No.</th>
-              <th className="px-4 py-3 text-left font-medium">Odometer</th>
-              <th className="px-4 py-3 text-left font-medium">City</th>
-              <th className="px-4 py-3 text-left font-medium">Requested</th>
-              <th className="px-4 py-3 text-left font-medium">Fuel Code</th>
-              <th className="px-4 py-3 text-left font-medium">Liters</th>
-              <th className="px-4 py-3 text-left font-medium">Status</th>
+              <th className="px-4 py-3 text-left font-semibold">Driver</th>
+              <th className="px-4 py-3 text-left font-semibold">Plate No.</th>
+              <th className="px-4 py-3 text-left font-semibold">Odometer</th>
+              <th className="px-4 py-3 text-left font-semibold">City</th>
+              <th className="px-4 py-3 text-left font-semibold">Requested</th>
+              <th className="px-4 py-3 text-left font-semibold">Fuel Code</th>
+              <th className="px-4 py-3 text-left font-semibold">Liters</th>
+              <th className="px-4 py-3 text-left font-semibold">Status</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -229,7 +225,7 @@ export default function FuelRequests({ embedded = false }) {
               paginatedItems.map((req) => (
                 <tr
                   key={req.id}
-                  className="border-t border-border hover:bg-surface-hover"
+                  className={TABLE_ROW}
                 >
                   <td className="px-4 py-3 font-medium">
                     {req.driver_name || "-"}

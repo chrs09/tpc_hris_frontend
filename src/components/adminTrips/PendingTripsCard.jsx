@@ -44,6 +44,8 @@ import SearchInput from "../ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 import useApprovalScope from "../../hooks/useApprovalScope";
 import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
+import Pill from "../ui/statusPill/StatusPill";
+import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
 
 /* Leaflet icon fix */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -137,9 +139,7 @@ const AwaitingSuperadminBadge = () => (
 // trip COMPLETED), shown with who approved it and when.
 const FinanceStatus = ({ trip }) => (
   <div>
-    <span className="inline-flex rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
-      {trip.status_label || "Completed"}
-    </span>
+    <Pill tone="success">{trip.status_label || "Completed"}</Pill>
     {(trip.finance_approved_by || trip.finance_approved_at) && (
       <p className="mt-1 text-xs text-fg-subtle">
         {[trip.finance_approved_by, trip.finance_approved_at]
@@ -458,19 +458,19 @@ const PendingTripsCard = ({
       {/* ======================= DESKTOP TABLE ======================= */}
       <div className="hidden md:block bg-surface border border-border rounded-xl overflow-hidden">
         <table className="w-full text-sm text-fg">
-          <thead className="bg-surface-hover text-fg-muted">
+          <thead className={TABLE_HEAD}>
             <tr>
-              <th className="px-6 py-3 text-left font-medium">Trip ID</th>
-              <th className="px-6 py-3 text-left font-medium">Trip Code</th>
-              <th className="px-6 py-3 text-left font-medium">Driver</th>
-              <th className="px-6 py-3 text-left font-medium">Ticket</th>
-              <th className="px-6 py-3 text-left font-medium">Start</th>
-              <th className="px-6 py-3 text-left font-medium">
+              <th className="px-6 py-3 text-left font-semibold">Trip ID</th>
+              <th className="px-6 py-3 text-left font-semibold">Trip Code</th>
+              <th className="px-6 py-3 text-left font-semibold">Driver</th>
+              <th className="px-6 py-3 text-left font-semibold">Ticket</th>
+              <th className="px-6 py-3 text-left font-semibold">Start</th>
+              <th className="px-6 py-3 text-left font-semibold">
                 Stores Assigned
               </th>
-              <th className="px-6 py-3 text-left font-medium">Stops</th>
+              <th className="px-6 py-3 text-left font-semibold">Stops</th>
               {mode === "completed" && (
-                <th className="px-6 py-3 text-left font-medium">Status</th>
+                <th className="px-6 py-3 text-left font-semibold">Status</th>
               )}
               <th></th>
             </tr>
@@ -480,7 +480,7 @@ const PendingTripsCard = ({
             {paginatedTrips.map((trip) => (
               <tr
                 key={trip.id}
-                className="border-t border-border hover:bg-surface-hover"
+                className={TABLE_ROW}
               >
                 <td className="px-6 py-4">{trip.id}</td>
                 <td className="px-6 py-4 uppercase">

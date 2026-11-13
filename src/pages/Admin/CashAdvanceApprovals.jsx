@@ -8,6 +8,7 @@ import {
   createOpeningBalance,
   getAllCashAdvanceRequests,
   getCashAdvanceRequestsForMyApproval,
+  getMyTeamCashAdvances,
   getCashAdvanceTransactions,
   getCashAdvanceDeductionHistory,
   getOutstandingBalances,
@@ -40,6 +41,9 @@ import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
 import { toISODate } from "../../utils/isoDate";
 import useApprovalScope from "../../hooks/useApprovalScope";
 import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
+import CashAdvanceTeamView from "../../components/cashAdvance/CashAdvanceTeamView";
+import { TABLE_HEAD, TABLE_ROW } from "../../components/ui/table/tableStyles";
+import Pill from "../../components/ui/statusPill/StatusPill";
 
 const formatDateNeeded = (value) =>
   value
@@ -114,6 +118,10 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const [tab, setTab] = useState("pending");
 
   const [allPending, setPending] = useState([]);
+  // Org Chart approver (not Finance): "For me" / "All under my team".
+  const [teamScope, setTeamScope] = useState("me");
+  const [team, setTeam] = useState(null); // { requests, team_size }
+  const [loadingTeam, setLoadingTeam] = useState(false);
   const { scoped: pending, scopeProps } = useApprovalScope(allPending);
   const [loadingPending, setLoadingPending] = useState(true);
   const [actioningId, setActioningId] = useState(null);
@@ -277,6 +285,24 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   useEffect(() => {
     loadPending();
   }, []);
+
+  // Team list: loaded the first time "All under my team" is opened, and
+  // once up front so the toggle can show its count.
+  const loadTeam = async () => {
+    try {
+      setLoadingTeam(true);
+      setTeam(await getMyTeamCashAdvances());
+    } catch (error) {
+      console.error("Failed to load team cash advances:", error);
+      setTeam({ requests: [], team_size: 0 });
+    } finally {
+      setLoadingTeam(false);
+    }
+  };
+  useEffect(() => {
+    if (!hasFinanceAccess) loadTeam();
+  }, [hasFinanceAccess]);
+  const showTeamToggle = !hasFinanceAccess && (team?.requests?.length || 0) > 0;
 
   // Load the "All Requests" list lazily, the first time that tab is
   // opened, instead of always fetching it up front.
@@ -624,10 +650,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       render: (req) => {
         const shown = req.display_status || req.status;
         return (
-          <span
-            className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-              STATUS_STYLES[shown] || "bg-surface-active text-fg-subtle"
-            }`}
+          <Pill
+            colors={STATUS_STYLES[shown]}
+            className="capitalize"
             title={
               req.revised_terms_pending
                 ? `Revised terms: ₱${req.approved_amount?.toLocaleString()} at ₱${req.deduction_per_pay_amount.toLocaleString()} per pay. The employee has to accept before release.`
@@ -635,7 +660,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             }
           >
             {STATUS_LABELS[shown] || shown}
-          </span>
+          </Pill>
         );
       },
     },
@@ -799,7 +824,33 @@ export default function CashAdvanceApprovals({ embedded = false }) {
           )}
         </div>
 
-        {tab === "pending" && <ApprovalScopeToggle {...scopeProps} />}
+        {tab === "pending" && !showTeamToggle && <ApprovalScopeToggle {...scopeProps} />}
+        {tab === "pending" && showTeamToggle && (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex gap-1 rounded-xl bg-surface-hover p-1">
+              {[
+                ["me", `For me (${pending.length})`],
+                ["team", `All under my team (${team.requests.length})`],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setTeamScope(key)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+                    teamScope === key ? "bg-surface text-fg shadow" : "text-fg-muted hover:text-fg"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {teamScope === "team" && (
+              <p className="text-xs text-fg-subtle">
+                Every status for your team on the Org Chart. Approve from For me.
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-3">
           <SearchInput
@@ -807,12 +858,17 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             onChange={setSearch}
             placeholder="Search name, reason, status, amount..."
           />
-          {tab === "pending" && (
+          {tab === "pending" && teamScope === "me" && (
             <ViewToggle viewType={pendingView} onChange={setPendingView} className="ml-auto" />
           )}
         </div>
 
+        {tab === "pending" && showTeamToggle && teamScope === "team" && (
+          <CashAdvanceTeamView requests={team.requests} loading={loadingTeam} search={search} />
+        )}
+
         {tab === "pending" &&
+          (!showTeamToggle || teamScope === "me") &&
           (loadingPending ? (
             <div className="rounded-2xl border border-border bg-surface-hover p-6 text-center text-sm text-fg-muted">
               Loading...
@@ -827,22 +883,23 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             <div className="space-y-3">
               <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
                 <table className="w-full min-w-[860px] text-sm">
-                  <thead className="bg-surface-hover text-xs uppercase tracking-wide text-fg-muted">
+                  <thead className={TABLE_HEAD}>
                     <tr>
-                      <th className="px-4 py-3 text-left font-medium">Employee</th>
-                      <th className="px-4 py-3 text-left font-medium">Requested</th>
-                      <th className="px-4 py-3 text-left font-medium">Per pay</th>
-                      <th className="px-4 py-3 text-left font-medium">Loan Purpose</th>
-                      <th className="px-4 py-3 text-left font-medium whitespace-nowrap">Date Needed</th>
-                      <th className="px-4 py-3 text-left font-medium">Waiting on</th>
-                      {canEditPage && <th className="px-4 py-3 text-right font-medium">Action</th>}
+                      <th className="px-4 py-3 text-left font-semibold">Employee</th>
+                      <th className="px-4 py-3 text-left font-semibold">Requested</th>
+                      <th className="px-4 py-3 text-left font-semibold">Per pay</th>
+                      <th className="px-4 py-3 text-left font-semibold">Loan Purpose</th>
+                      <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">Date Needed</th>
+                      <th className="px-4 py-3 text-left font-semibold">Waiting on</th>
+                      <th className="px-4 py-3 text-right font-semibold whitespace-nowrap">CA balance now</th>
+                      {canEditPage && <th className="px-4 py-3 text-right font-semibold">Action</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {pendingPagination.paginatedItems.map((req) => {
                       const current = (req.approval_steps || []).find((st) => st.state === "current");
                       return (
-                        <tr key={req.id} className="border-t border-border hover:bg-surface-hover">
+                        <tr key={req.id} className={TABLE_ROW}>
                           <td className="px-4 py-3">
                             <p className="font-semibold text-fg">{req.employee_name}</p>
                             <p className="text-xs text-fg-subtle">
@@ -876,6 +933,18 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                             {req.can_act === false
                               ? `Passed to ${current?.name || "the next approver"}`
                               : current?.name || "You"}
+                          </td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <span
+                              className={`tabular-nums ${req.employee_outstanding_balance > 0 ? "font-semibold text-warning" : "text-fg-muted"}`}
+                            >
+                              ₱{Number(req.employee_outstanding_balance || 0).toLocaleString()}
+                            </span>
+                            {req.employee_open_advances > 0 && (
+                              <span className="block text-xs text-fg-subtle">
+                                {req.employee_open_advances} open
+                              </span>
+                            )}
                           </td>
                           {canEditPage && (
                             <td className="px-4 py-3">
@@ -938,9 +1007,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         Filed {new Date(req.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <span className="rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning">
+                    <Pill tone="warning">
                       {req.awaiting_exception ? "Exception -- Your Approval" : "Pending Approval"}
-                    </span>
+                    </Pill>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -958,6 +1027,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       </p>
                       <p className="text-sm font-semibold text-fg">
                         ₱{req.deduction_per_pay_amount.toLocaleString()}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-fg-subtle">
+                        CA Balance Now
+                      </p>
+                      <p
+                        className={`text-sm font-semibold ${req.employee_outstanding_balance > 0 ? "text-warning" : "text-fg"}`}
+                      >
+                        ₱{Number(req.employee_outstanding_balance || 0).toLocaleString()}
+                        {req.employee_open_advances > 0 && (
+                          <span className="ml-1 text-xs font-normal text-fg-subtle">
+                            ({req.employee_open_advances} open)
+                          </span>
+                        )}
                       </p>
                     </div>
                     <div>
@@ -1107,7 +1191,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-surface-hover text-fg-muted">
+                  <thead className={TABLE_HEAD}>
                     <tr className="text-xs uppercase tracking-wide">
                       {shownColumns.map((col) => (
                         <th key={col.key} className="px-6 py-4 text-left font-medium">
@@ -1115,7 +1199,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         </th>
                       ))}
                       {canEditPage && (
-                        <th className="px-6 text-right font-medium">Action</th>
+                        <th className="px-6 text-right font-semibold">Action</th>
                       )}
                     </tr>
                   </thead>
@@ -1213,7 +1297,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
               <>
                 <div className="mt-4 overflow-x-auto rounded-2xl border border-border">
                   <table className="w-full text-left text-sm">
-                    <thead className="bg-surface-hover text-xs text-fg-subtle">
+                    <thead className={TABLE_HEAD}>
                       <tr>
                         <th className="px-4 py-3">Date</th>
                         <th className="px-4 py-3">Employee</th>

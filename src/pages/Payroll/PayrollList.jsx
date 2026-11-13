@@ -60,6 +60,7 @@ import { getApprovedScheduleChanges } from "../../api/scheduleChanges";
 import { withScheduleOverrides } from "../../utils/payroll/attendance/scheduleOverrides";
 import { fromISODate, toISODate } from "../../utils/isoDate";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
+import { TABLE_HEAD_STICKY } from "../../components/ui/table/tableStyles";
 
 /*
  * Government contribution lookup used by Admin payroll.
@@ -2366,7 +2367,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
                 whitespace-nowrap
               "
             >
-              <thead className="sticky top-0 z-30 bg-surface-hover">
+              <thead className={`sticky top-0 z-30 ${TABLE_HEAD_STICKY}`}>
                 <tr>
                   <th className="sticky left-0 z-20 bg-surface-hover px-4 py-3 text-left min-w-55">
                     {canRelease ? (

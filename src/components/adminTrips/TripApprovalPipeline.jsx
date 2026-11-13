@@ -8,6 +8,8 @@ import SearchSelect from "../SearchSelect";
 import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
 import Pagination from "../ui/pagination/Pagination";
+import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
+import Pill from "../ui/statusPill/StatusPill";
 
 const PAGE_SIZE = 15;
 
@@ -73,15 +75,7 @@ const CancelNote = ({ trip }) =>
 
 const StatusBadge = ({ trip }) => {
   const meta = STATUSES.find((s) => s.value === trip.status);
-  return (
-    <span
-      className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
-        meta?.classes || "bg-surface-active text-fg-muted"
-      }`}
-    >
-      {trip.status_label || meta?.label || trip.status}
-    </span>
-  );
+  return <Pill colors={meta?.classes}>{trip.status_label || meta?.label || trip.status}</Pill>;
 };
 
 const SourceBadge = ({ manual, routeRide = false }) =>
@@ -228,21 +222,21 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           {/* DESKTOP */}
           <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
             <table className="w-full text-sm text-fg">
-              <thead className="bg-surface-hover text-fg-muted">
+              <thead className={TABLE_HEAD}>
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium">Trip Code</th>
-                  <th className="px-4 py-3 text-left font-medium">Driver</th>
-                  <th className="px-4 py-3 text-left font-medium">Shipment No.</th>
-                  <th className="px-4 py-3 text-left font-medium">Truck Type</th>
-                  <th className="px-4 py-3 text-left font-medium">Stores</th>
-                  <th className="px-4 py-3 text-left font-medium">Trip Date</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-right font-medium">Actions</th>
+                  <th className="px-4 py-3 text-left font-semibold">Trip Code</th>
+                  <th className="px-4 py-3 text-left font-semibold">Driver</th>
+                  <th className="px-4 py-3 text-left font-semibold">Shipment No.</th>
+                  <th className="px-4 py-3 text-left font-semibold">Truck Type</th>
+                  <th className="px-4 py-3 text-left font-semibold">Stores</th>
+                  <th className="px-4 py-3 text-left font-semibold">Trip Date</th>
+                  <th className="px-4 py-3 text-left font-semibold">Status</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((trip) => (
-                  <tr key={trip.id} className="border-t border-border hover:bg-surface-hover">
+                  <tr key={trip.id} className={TABLE_ROW}>
                     <td className="px-4 py-3">
                       <div className="font-medium uppercase">{trip.trip_code || `#${trip.id}`}</div>
                       <div className="mt-1 flex flex-wrap gap-1">
