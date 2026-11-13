@@ -11,9 +11,9 @@ import useNavigationLayout, {
 
 const MAX_TABS = 4;
 
-// Settings -> Navigation (superadmin): the sidebar's group order and which
-// groups sit in the phone's bottom bar, for everyone. People still only
-// see what they can open.
+// Settings -> Navigation (superadmin): your own sidebar group order and
+// phone bottom bar. Saved for your account only; other people keep the
+// default menu.
 export default function NavigationLayoutCard({ canEdit }) {
   const saved = useNavigationLayout();
   const allLabels = useMemo(() => getNavGroups("superadmin").map((g) => g.label), []);
@@ -45,7 +45,7 @@ export default function NavigationLayoutCard({ canEdit }) {
       setSaving(true);
       const result = await saveNavigationLayout({ sidebar_order: order, mobile_tabs: tabs });
       window.dispatchEvent(new CustomEvent("navigation-layout-changed", { detail: result }));
-      toast.success("Navigation saved. Everyone sees it on their next page load.");
+      toast.success("Your navigation is saved.");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to save.");
     } finally {
@@ -67,8 +67,8 @@ export default function NavigationLayoutCard({ canEdit }) {
         <div>
           <h2 className="text-lg font-semibold text-fg">Navigation</h2>
           <p className="mt-1 text-sm text-fg-subtle">
-            The sidebar order and the phone bottom bar, for everyone. People only see the
-            groups they can open.
+            Your own sidebar order and phone bottom bar. Only your account changes; other
+            people keep the default menu.
           </p>
         </div>
         {canEdit && (

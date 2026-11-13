@@ -25,7 +25,11 @@ import { getUserList, impersonateUser } from "../api/users";
 import { startImpersonation } from "../utils/impersonation";
 import { getNavGroups } from "../constants/navGroups";
 import useModuleAccess from "../hooks/useModuleAccess";
-import useNavigationLayout, { orderGroups, TAB_LABELS } from "../hooks/useNavigationLayout";
+import useNavigationLayout, {
+  DEFAULT_LAYOUT,
+  orderGroups,
+  TAB_LABELS,
+} from "../hooks/useNavigationLayout";
 import ThemeCustomizer from "./ui/ThemeCustomizer";
 import HubAlertsBell from "./adminTrips/HubAlertsBell";
 import CashAdvanceAlertsBell from "./adminTrips/CashAdvanceAlertsBell";
@@ -162,9 +166,10 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const renderIcon = (Icon) =>
     Icon ? <Icon size={isCollapsed ? 22 : 18} className="shrink-0" /> : null;
 
-  // Group order and the phone bottom bar are set by the superadmin
-  // (Administrator -> Settings -> Navigation).
-  const navLayout = useNavigationLayout();
+  // A superadmin's own group order and phone bottom bar (Administrator ->
+  // Settings -> Navigation). Everyone else keeps the default menu.
+  const savedLayout = useNavigationLayout();
+  const navLayout = isSuperAdmin ? savedLayout : DEFAULT_LAYOUT;
   const navGroups = useMemo(
     () =>
       orderGroups(getNavGroups(role), navLayout.sidebar_order).map((group) => ({

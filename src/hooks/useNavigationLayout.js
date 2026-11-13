@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { getNavigationLayout } from "../api/navigationLayout";
 
-// The superadmin's menu arrangement (sidebar order + phone bottom bar),
-// loaded once and shared; Settings fires "navigation-layout-changed"
-// after saving so the menu updates right away.
+// The signed-in superadmin's own menu arrangement (sidebar order + phone
+// bottom bar; everyone else gets the default), loaded once and shared.
+// Settings fires "navigation-layout-changed" after saving so the menu
+// updates right away.
 export const DEFAULT_LAYOUT = {
   sidebar_order: [],
   mobile_tabs: ["Approvals", "Trip Management", "Tickets"],
