@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { AlarmClock } from "lucide-react";
-import { decideMissedTimeIn, getMissedTimeInForMe } from "../../api/attendance/requests";
-import { promptDialog } from "../ui/dialog/dialogService";
+import {
+  decideMissedTimeIn,
+  getMissedTimeInForMe,
+  undoMissedTimeIn,
+} from "../../api/attendance/requests";
+import { confirmDialog, promptDialog } from "../ui/dialog/dialogService";
 
 // Approvals -> Attendance: scheduled employees who haven't timed in
 // (tpc_hris_backend/app/services/attendance_alerts.py). Today: Late (Delay
@@ -35,6 +39,26 @@ export default function MissedTimeInPanel({ canEdit = true, onCount, showEmpty =
   useEffect(() => {
     onCount?.(items.length);
   }, [items.length, onCount]);
+
+  // An answer given by mistake ("Yes, they worked", Late, 2nd half):
+  // ask the question again so it can be answered properly.
+  const undo = async (item) => {
+    const ok = await confirmDialog(
+      `Undo "${item.decision_label}" for ${item.employee_name} on ${item.date_label}? The question comes back so you can answer it again.`,
+      { confirmText: "Undo", danger: false },
+    );
+    if (!ok) return;
+    try {
+      setBusyId(item.id);
+      const res = await undoMissedTimeIn(item.id);
+      toast.success(res.message);
+      await load();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to undo.");
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const decide = async (item, decision) => {
     let reason;
@@ -121,6 +145,16 @@ export default function MissedTimeInPanel({ canEdit = true, onCount, showEmpty =
                 {item.decision_label ? " -- " : ""}
                 {WAITING_TEXT[item.status]?.(item)}
               </p>
+            )}
+            {canEdit && item.can_undo && (
+              <button
+                type="button"
+                onClick={() => undo(item)}
+                disabled={busyId === item.id}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover hover:text-fg disabled:opacity-50"
+              >
+                Undo answer
+              </button>
             )}
             {!item.can_act && item.needs_answer && item.head_name && (
               <p className="text-xs text-fg-subtle">For {item.head_name}</p>

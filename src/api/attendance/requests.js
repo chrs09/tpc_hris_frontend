@@ -11,6 +11,10 @@ export const getMissedTimeInForMe = async () =>
 export const decideMissedTimeIn = async (id, decision, reason) =>
   (await api.post(`/attendance-requests/missed-time-in/${id}/decide`, { decision, reason })).data;
 
+// Take back an answer given by mistake (asked again).
+export const undoMissedTimeIn = async (id) =>
+  (await api.post(`/attendance-requests/missed-time-in/${id}/undo`)).data;
+
 // Employee: days their head said they worked, still without a time in.
 export const getMyMissedDays = async () =>
   (await api.get("/attendance-requests/my-alerts")).data;
