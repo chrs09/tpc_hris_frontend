@@ -62,6 +62,24 @@ export const replaceTripFile = (fileId, photo) => {
 
 export const getCompletedTrips = () => api.get("/admin/trips/completed");
 
+// A trip Office returned: the coordinator admin hands it to a coordinator
+// to fix (upload the corrected document), who marks it fixed -- back to
+// Trip Approvals. See send_to_coordinator in app/api/admin/trips.py.
+export const getTripCoordinators = () => api.get("/admin/trips/coordinators");
+
+export const sendTripToCoordinator = (tripId, coordinatorUserId, note) =>
+  api.post(`/admin/trips/${tripId}/send-to-coordinator`, {
+    coordinator_user_id: coordinatorUserId,
+    note,
+  });
+
+export const takeTripBack = (tripId) => api.post(`/admin/trips/${tripId}/take-back`);
+
+export const getTripsToFix = () => api.get("/admin/trips/to-fix");
+
+export const markTripFixed = (tripId, note) =>
+  api.post(`/admin/trips/${tripId}/mark-fixed`, { note });
+
 // Soft delete: hides a pending or completed trip from those lists
 // without deleting the row or its related stops/GPS logs/files. See
 // app/models/trips.py Trip.is_archived and archive_trip() in

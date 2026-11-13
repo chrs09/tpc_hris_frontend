@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
-import { reviewTrip } from "../../api/adminTripManagement/trips";
+import { markTripFixed, replaceTripFile, reviewTrip } from "../../api/adminTripManagement/trips";
 
 // Trip Dashboard -> Trip Approval Status -> View: one trip's details at any
 // status, read-only -- helpers, Invoice / LM pages, stops and their photos,
 // remarks. Same data the approval screens review.
+//
+// fixMode (Trip Dashboard -> Trips to fix): a coordinator handed this
+// returned trip can replace document photos and mark it fixed.
 
 // Rebuilds a localhost URL with the current API base; a relative path gets
 // the base added (same as the approval screens).
@@ -36,19 +39,31 @@ const Section = ({ title, children }) => (
   </section>
 );
 
-const PhotoButton = ({ label, photo, onOpen }) =>
+const PhotoButton = ({ label, photo, onOpen, onReplace }) =>
   photo?.url ? (
-    <button
-      type="button"
-      onClick={() => onOpen({ url: resolvePhotoUrl(photo.url), label })}
-      className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
-    >
-      {label}
-    </button>
+    <span className="inline-flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => onOpen({ url: resolvePhotoUrl(photo.url), label })}
+        className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+      >
+        {label}
+      </button>
+      {onReplace && photo.id && (
+        <button
+          type="button"
+          onClick={() => onReplace(photo.id)}
+          className="rounded-lg border border-warning/60 px-2 py-1 text-xs font-semibold text-warning hover:bg-warning/10"
+          title="Upload the corrected photo in place of this one"
+        >
+          Replace
+        </button>
+      )}
+    </span>
   ) : null;
 
 // One document's pages: "LM  [Page 1] [Page 2]", or "No photo".
-const PhotoRow = ({ label, photos, onOpen }) => (
+const PhotoRow = ({ label, photos, onOpen, onReplace }) => (
   <div className="flex flex-wrap items-center justify-between gap-2 py-1.5">
     <span className="text-sm text-fg-muted">{label}</span>
     {photos.length ? (
@@ -59,6 +74,7 @@ const PhotoRow = ({ label, photos, onOpen }) => (
             label={photos.length > 1 ? `Page ${index + 1}` : "View"}
             photo={photo}
             onOpen={(p) => onOpen({ ...p, label: photos.length > 1 ? `${label} - Page ${index + 1}` : label })}
+            onReplace={onReplace}
           />
         ))}
       </div>
@@ -68,9 +84,55 @@ const PhotoRow = ({ label, photos, onOpen }) => (
   </div>
 );
 
-export default function TripDetailsModal({ trip, onClose }) {
+export default function TripDetailsModal({ trip, onClose, fixMode = false, onFixed }) {
   const [details, setDetails] = useState(null);
   const [failed, setFailed] = useState(false);
+  // Fix mode: which photo is being replaced, the note, saving.
+  const fileInput = useRef(null);
+  const [replacingId, setReplacingId] = useState(null);
+  const [replacedCount, setReplacedCount] = useState(0);
+  const [fixNote, setFixNote] = useState("");
+  const [savingFix, setSavingFix] = useState(false);
+
+  const reload = async () => {
+    const res = await reviewTrip(trip.id);
+    setDetails(res.data);
+  };
+
+  const startReplace = (fileId) => {
+    setReplacingId(fileId);
+    fileInput.current?.click();
+  };
+
+  const onFilePicked = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !replacingId) return;
+    try {
+      await replaceTripFile(replacingId, file);
+      toast.success("Photo replaced.");
+      setReplacedCount((n) => n + 1);
+      await reload();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to replace the photo.");
+    } finally {
+      setReplacingId(null);
+    }
+  };
+
+  const markFixed = async () => {
+    try {
+      setSavingFix(true);
+      await markTripFixed(trip.id, fixNote.trim());
+      toast.success("Marked fixed. It's back in Trip Approvals.");
+      await onFixed?.();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to mark it fixed.");
+    } finally {
+      setSavingFix(false);
+    }
+  };
+  const replace = fixMode ? startReplace : undefined;
   const [photo, setPhoto] = useState(null); // { url, label } | null
   const [photoZoom, setPhotoZoom] = useState(1);
 
@@ -144,10 +206,20 @@ export default function TripDetailsModal({ trip, onClose }) {
             <p className="text-sm text-fg-subtle">Loading...</p>
           ) : (
             <>
+              {fixMode && details.resolver_note && (
+                <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm">
+                  <p className="font-semibold text-warning">
+                    To fix · from {details.resolver_assigned_by || "coordinator admin"}
+                  </p>
+                  <p className="whitespace-pre-wrap text-fg">{details.resolver_note}</p>
+                  <p className="mt-1 text-xs text-fg-muted">
+                    Use Replace on the wrong document below, then mark it fixed.
+                  </p>
+                </div>
+              )}
               {details.return_reason && (
                 <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-                  Sent back by {details.returned_from === "finance" ? "Finance" : "Office"}:{" "}
-                  {details.return_reason}
+                  Sent back by Office: {details.return_reason}
                 </p>
               )}
 
@@ -187,17 +259,19 @@ export default function TripDetailsModal({ trip, onClose }) {
 
               <Section title="Documents">
                 <div className="divide-y divide-border rounded-xl border border-border px-3">
-                  <PhotoRow label="Invoice" photos={details.invoice_photos || []} onOpen={openPhoto} />
-                  <PhotoRow label="LM" photos={details.lm_photos || []} onOpen={openPhoto} />
+                  <PhotoRow label="Invoice" photos={details.invoice_photos || []} onOpen={openPhoto} onReplace={replace} />
+                  <PhotoRow label="LM" photos={details.lm_photos || []} onOpen={openPhoto} onReplace={replace} />
                   <PhotoRow
                     label="Stamped LM (checkout)"
                     photos={details.lm_checkout_stamped_photo ? [details.lm_checkout_stamped_photo] : []}
                     onOpen={openPhoto}
+                    onReplace={replace}
                   />
                   <PhotoRow
                     label="Stamped Invoice"
                     photos={details.stamped_invoice_photo ? [details.stamped_invoice_photo] : []}
                     onOpen={openPhoto}
+                    onReplace={replace}
                   />
                 </div>
               </Section>
@@ -222,11 +296,13 @@ export default function TripDetailsModal({ trip, onClose }) {
                               label="Unloading"
                               photo={stop.unloading_photo}
                               onOpen={(p) => openPhoto({ ...p, label: `${stop.store_name} - Unloading` })}
+                              onReplace={replace}
                             />
                             <PhotoButton
                               label="Proof of Delivery"
                               photo={stop.delivery_proof_photo}
                               onOpen={(p) => openPhoto({ ...p, label: `${stop.store_name} - Proof of Delivery` })}
+                              onReplace={replace}
                             />
                           </div>
                         )}
@@ -262,7 +338,35 @@ export default function TripDetailsModal({ trip, onClose }) {
           )}
         </div>
 
-        <div className="flex justify-end border-t border-border px-5 py-3">
+        {fixMode && details && (
+          <div className="space-y-2 border-t border-border px-5 py-3">
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onFilePicked}
+              aria-label="Corrected photo"
+            />
+            <label htmlFor="fix-done-note" className="block text-xs font-medium text-fg-muted">
+              What did you fix? (optional)
+            </label>
+            <textarea
+              id="fix-done-note"
+              value={fixNote}
+              onChange={(e) => setFixNote(e.target.value)}
+              maxLength={1000}
+              rows={2}
+              placeholder="e.g. Uploaded the complete LM (2 pages)."
+              className="w-full rounded-lg border border-border bg-background p-2.5 text-sm text-fg"
+            />
+            {replacedCount === 0 && (
+              <p className="text-xs text-fg-subtle">You haven&apos;t replaced any photo yet.</p>
+            )}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 border-t border-border px-5 py-3">
           <button
             type="button"
             onClick={onClose}
@@ -270,6 +374,16 @@ export default function TripDetailsModal({ trip, onClose }) {
           >
             Close
           </button>
+          {fixMode && details && (
+            <button
+              type="button"
+              onClick={markFixed}
+              disabled={savingFix || replacingId !== null}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
+            >
+              {savingFix ? "Saving..." : "Mark fixed"}
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import TripUnitTags from "./TripUnitTags";
+import ReturnFixBadge from "./ReturnFixBadge";
+import SendToCoordinatorPanel from "./SendToCoordinatorPanel";
 import { StopShipments } from "./ShipmentStorePairing";
 import {
   approveTrip,
@@ -299,9 +301,7 @@ const PendingTripsCard = ({
 
     if (
       !(await confirmDialog(
-        `Approve ${selectedTrip.trip_code || selectedTrip.ticket_no} and send it ${
-          selectedTrip.returned_from === "finance" ? "back to Finance" : "to Office Personnel"
-        }? This cannot be undone.`,
+        `Approve ${selectedTrip.trip_code || selectedTrip.ticket_no} and send it to Office Personnel? This cannot be undone.`,
       ))
     ) {
       return;
@@ -325,9 +325,7 @@ const PendingTripsCard = ({
       setRemarks("");
 
       toast.success(
-        `Approved by ${res?.data?.coordinator_name || "you"} and sent ${
-          res?.data?.sent_to === "finance" ? "back to Finance" : "to Office Personnel"
-        }.`,
+        `Approved by ${res?.data?.coordinator_name || "you"} and sent to Office Personnel.`,
       );
 
       await refreshTrips();
@@ -493,14 +491,7 @@ const PendingTripsCard = ({
                     <TripSourceBadge trip={trip} />
                     <TripUnitTags trip={trip} />
                     {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
-                    {trip.return_reason && (
-                      <span
-                        title={`Sent back by ${trip.returned_from === "finance" ? "Finance" : "Office"}: ${trip.return_reason}`}
-                        className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-danger"
-                      >
-                        {trip.returned_from === "finance" ? "Returned by Finance" : "Correction Requested"}
-                      </span>
-                    )}
+                    <ReturnFixBadge trip={trip} />
                   </div>
                 </td>
                 <td className="px-6 py-4 capitalize">{trip.username}</td>
@@ -567,14 +558,7 @@ const PendingTripsCard = ({
               <TripSourceBadge trip={trip} />
                     <TripUnitTags trip={trip} />
               {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
-              {trip.return_reason && (
-                <span
-                  title={trip.return_reason}
-                  className="inline-block rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger"
-                >
-                  {trip.returned_from === "finance" ? "Returned by Finance" : "Correction Requested"}
-                </span>
-              )}
+              <ReturnFixBadge trip={trip} />
             </div>
 
             <div className="flex justify-between items-center">
@@ -1240,17 +1224,23 @@ const PendingTripsCard = ({
                 {selectedTrip.return_reason && (
                   <div className="mb-6 rounded-xl border border-danger/30 bg-danger/10 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-danger">
-                      Sent Back by {selectedTrip.returned_from === "finance" ? "Finance" : "Office"} for Correction
+                      Sent Back by Office for Correction
                       {selectedTrip.returned_at && ` -- ${selectedTrip.returned_at}`}
                     </p>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-fg">
                       {selectedTrip.return_reason}
                     </p>
-                    <p className="mt-2 text-xs text-fg-muted">
-                      Replace the wrong document photo above (edit icon on the photo), then approve.
-                      {selectedTrip.returned_from === "finance" &&
-                        " It goes straight back to Finance -- Office already verified it."}
-                    </p>
+                    {mode === "pending" && selectedTrip.status === "PENDING_APPROVAL" && (
+                      <SendToCoordinatorPanel
+                        trip={selectedTrip}
+                        canEdit={canEditPage}
+                        onChanged={async () => {
+                          const res = await reviewTrip(selectedTrip.trip_id);
+                          setSelectedTrip(res.data);
+                          await refreshTrips();
+                        }}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -1470,14 +1460,17 @@ const PendingTripsCard = ({
                     {canEditPage && (
                       <button
                       onClick={handleApprove}
-                      disabled={submitting}
+                      disabled={submitting || selectedTrip.fix_status === "with_coordinator"}
+                      title={
+                        selectedTrip.fix_status === "with_coordinator"
+                          ? `With ${selectedTrip.resolver_name} to fix`
+                          : undefined
+                      }
                       className="mt-6 bg-primary text-primary-foreground hover:bg-primary-hover py-3 w-full rounded-xl font-bold disabled:opacity-60"
                     >
                       {submitting
                         ? "Approving..."
-                        : selectedTrip.returned_from === "finance"
-                          ? "Approve & Send Back to Finance"
-                          : "Approve & Send to Office Review"}
+                        : "Approve & Send to Office Review"}
                     </button>
                     )}
                   </>

@@ -9,6 +9,7 @@ import SummaryCard from "../../components/adminTrips/SummaryCards";
 import AssignedTripsMonitor from "../../components/adminTrips/AssignedTripsMonitor";
 import ActiveTripsMonitor from "../../components/adminTrips/ActiveTripsMonitor";
 import TripApprovalPipeline from "../../components/adminTrips/TripApprovalPipeline";
+import TripsToFixCard from "../../components/adminTrips/TripsToFixCard";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 // Trip Dashboard -- a live look at every trip currently in motion:
@@ -110,6 +111,9 @@ const TripDashboard = () => {
   return (
     <div className="space-y-5">
       <SectionTabs group="Trip Management" />
+
+      {/* Returned trips handed to me to fix (hidden when none) */}
+      <TripsToFixCard />
 
       {/* SUMMARY */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
