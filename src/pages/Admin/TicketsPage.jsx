@@ -21,7 +21,7 @@ import {
 } from "../../api/tickets";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
-import { matchesSearch } from "../../utils/search";
+import { matchesSearch, urlQuery } from "../../utils/search";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 import useViewType from "../../hooks/useViewType";
 
@@ -44,7 +44,7 @@ const PRIORITY_STYLES = {
 export default function TicketsPage() {
   const canEditPage = usePageCanEdit();
   const [tickets, setTickets] = useState([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlQuery);
   // Per-column search (To Do / In Progress / Review / Done), on top of
   // the page-wide one above.
   const [columnSearch, setColumnSearch] = useState({});

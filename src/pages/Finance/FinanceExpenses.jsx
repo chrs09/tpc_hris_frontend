@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { urlQuery } from "../../utils/search";
 
 import {
   createFinanceExpense,
@@ -203,7 +204,7 @@ export default function FinanceExpenses() {
 
   const [error, setError] = useState("");
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlQuery);
 
   const [supplier, setSupplier] = useState("All Suppliers");
 

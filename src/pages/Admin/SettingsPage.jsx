@@ -9,6 +9,7 @@ import {
 import { Button } from "../../components/ui/button/Button";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import NavigationLayoutCard from "../../components/settings/NavigationLayoutCard";
 
 // The mobile app is currently distributed as a directly-sideloaded APK
 // (not through Google Play), which has no store-driven update
@@ -124,6 +125,8 @@ const SettingsPage = () => {
       <div>
         <h1 className="text-2xl font-bold text-fg">Settings</h1>
       </div>
+
+      <NavigationLayoutCard canEdit={canEditPage} />
 
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start">
       <div className="rounded-2xl border border-border bg-surface p-5 xl:w-105 xl:shrink-0">

@@ -14,7 +14,7 @@ import Pagination from "../../components/ui/pagination/Pagination";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
-import { matchesSearch } from "../../utils/search";
+import { matchesSearch, urlQuery } from "../../utils/search";
 
 const EMPTY_FORM = {
   name: "",
@@ -31,7 +31,7 @@ export default function SuppliersPage() {
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [viewType, setViewType] = useViewType("suppliers_view_type");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlQuery);
   const navigate = useNavigate();
   // A supplier with a map location is also a customer / delivery point
   // and a trip start point. "Add map location" opens Customers prefilled.

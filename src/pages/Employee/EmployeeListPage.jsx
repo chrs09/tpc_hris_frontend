@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { urlQuery } from "../../utils/search";
 import { TailSpin } from "react-loader-spinner";
 import toast from "react-hot-toast";
 import { useEmployees } from "../../hooks/useEmployee";
@@ -38,7 +39,7 @@ export default function EmployeeListPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlQuery);
   const [departmentFilter, setDepartmentFilter] = useState("All");
   const [sortBy, setSortBy] = useState("lastname");
   const [sortOrder, setSortOrder] = useState("asc");

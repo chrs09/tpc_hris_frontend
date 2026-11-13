@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { urlQuery } from "../../utils/search";
 import { Button } from "../../components/ui/button/Button";
 import { getUserList, bulkCreateUsers } from "../../api/users";
 import UserDrawer from "../../components/users/UserDrawer";
@@ -28,7 +29,7 @@ const UsersPage = () => {
   const [bulkResult, setBulkResult] = useState(null);
   const [bulkCreating, setBulkCreating] = useState(false);
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlQuery);
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
 

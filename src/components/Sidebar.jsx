@@ -17,12 +17,15 @@ import {
   LogOut,
   LifeBuoy,
   ShoppingCart,
+  Search,
 } from "lucide-react";
+import GlobalSearch from "./GlobalSearch";
 import { logout } from "../utils/auth";
 import { getUserList, impersonateUser } from "../api/users";
 import { startImpersonation } from "../utils/impersonation";
 import { getNavGroups } from "../constants/navGroups";
 import useModuleAccess from "../hooks/useModuleAccess";
+import useNavigationLayout, { orderGroups, TAB_LABELS } from "../hooks/useNavigationLayout";
 import ThemeCustomizer from "./ui/ThemeCustomizer";
 import HubAlertsBell from "./adminTrips/HubAlertsBell";
 import CashAdvanceAlertsBell from "./adminTrips/CashAdvanceAlertsBell";
@@ -66,6 +69,20 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   // Greeting: the person's full name (saved at login), else the username.
   const displayName = localStorage.getItem("full_name") || username;
   const { role, isSuperAdmin, isVisible } = useModuleAccess();
+
+  // Superadmin's global search: Ctrl+K (Cmd+K) or the search buttons.
+  const [searchOpen, setSearchOpen] = useState(false);
+  useEffect(() => {
+    if (!isSuperAdmin) return undefined;
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isSuperAdmin]);
 
   // "View As" -- superadmin picks another user to see their live,
   // read-only view (Sidebar, dashboards, data), lives in the greeting
@@ -145,13 +162,16 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const renderIcon = (Icon) =>
     Icon ? <Icon size={isCollapsed ? 22 : 18} className="shrink-0" /> : null;
 
+  // Group order and the phone bottom bar are set by the superadmin
+  // (Administrator -> Settings -> Navigation).
+  const navLayout = useNavigationLayout();
   const navGroups = useMemo(
     () =>
-      getNavGroups(role).map((group) => ({
+      orderGroups(getNavGroups(role), navLayout.sidebar_order).map((group) => ({
         ...group,
         icon: GROUP_ICONS[group.label],
       })),
-    [role],
+    [role, navLayout.sidebar_order],
   );
 
   // ---------------------------------------------------------------
@@ -162,32 +182,25 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   // ---------------------------------------------------------------
   const visibleOf = (label) =>
     navGroups.find((g) => g.label === label)?.children.filter(isVisible) || [];
-  const approvalsItems = visibleOf("Approvals");
-  const tripItems = visibleOf("Trip Management");
-  const ticketItems = visibleOf("Tickets");
+  // Home, then the superadmin's picks (each only when this person can
+  // open it), then Menu.
   const bottomTabs = [
     { key: "home", label: "Home", icon: Home, path: "/dashboard" },
-    approvalsItems.length && {
-      key: "approvals",
-      label: "Approvals",
-      icon: CheckCheck,
-      path: approvalsItems[0].path,
-      match: "/dashboard/approvals",
-    },
-    tripItems.length && {
-      key: "trips",
-      label: "Trips",
-      icon: Truck,
-      path: tripItems[0].path,
-      matchAny: tripItems.map((item) => item.path),
-    },
-    ticketItems.length && {
-      key: "tickets",
-      label: "Tickets",
-      icon: LifeBuoy,
-      path: ticketItems[0].path,
-    },
-  ].filter(Boolean);
+    ...(navLayout.mobile_tabs || [])
+      .filter((label) => label !== "Dashboard")
+      .map((label) => {
+        const items = visibleOf(label);
+        if (!items.length) return null;
+        return {
+          key: label,
+          label: TAB_LABELS[label] || label,
+          icon: label === "Approvals" ? CheckCheck : GROUP_ICONS[label] || LayoutGrid,
+          path: items[0].path,
+          matchAny: label === "Approvals" ? ["/dashboard/approvals"] : items.map((item) => item.path),
+        };
+      })
+      .filter(Boolean),
+  ];
   const tabActive = (tab) =>
     !isMobileOpen &&
     (tab.matchAny
@@ -203,11 +216,23 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
 
   return (
     <>
+      {isSuperAdmin && <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />}
+
       {/* MOBILE TOP BAR (title + alerts) */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 flex h-14 items-center justify-between gap-3 border-b border-border bg-surface/95 px-4 text-fg backdrop-blur">
         <h1 className="min-w-0 flex-1 truncate text-lg font-bold">
           {isMobileOpen ? "Menu" : currentPageLabel}
         </h1>
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search everything"
+            className="shrink-0 rounded-full p-1.5 text-fg-muted hover:bg-surface-hover"
+          >
+            <Search size={20} />
+          </button>
+        )}
         {/* Alerts scroll sideways in their own lane so the title keeps its room. */}
         <div className="flex max-w-[58%] items-center gap-2.5 overflow-x-auto py-1 [scrollbar-width:none]">
           <HubAlertsBell />
@@ -386,6 +411,26 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 </button>
               )}
             </div>
+          )}
+
+          {/* GLOBAL SEARCH (superadmin) */}
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              title="Search everything (Ctrl+K)"
+              className={`mb-4 flex w-full items-center gap-2 rounded-lg border border-border text-sm text-fg-subtle hover:border-primary hover:text-fg ${
+                isCollapsed ? "justify-center py-2.5" : "px-3 py-2"
+              }`}
+            >
+              <Search size={isCollapsed ? 20 : 16} className="shrink-0" />
+              {!isCollapsed && (
+                <>
+                  <span className="flex-1 text-left">Search...</span>
+                  <kbd className="rounded border border-border px-1.5 text-[10px]">Ctrl K</kbd>
+                </>
+              )}
+            </button>
           )}
 
           {/* NAVIGATION */}

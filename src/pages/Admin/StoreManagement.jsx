@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { urlQuery } from "../../utils/search";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import MaintenanceModal from "../../components/tripMaintenance/MaintenanceModal";
@@ -88,7 +89,7 @@ export default function StoreManagement() {
       })
       .catch(() => {});
   }, []);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(urlQuery);
   const [profileFilter, setProfileFilter] = useState("ALL");
   // View: ALL / CUSTOMER / SUPPLIER (a location that's both shows in each).
   const [typeFilter, setTypeFilter] = useState("ALL");

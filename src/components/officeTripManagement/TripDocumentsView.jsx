@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Search } from "lucide-react";
 import SearchSelect from "../SearchSelect";
+import { urlQuery } from "../../utils/search";
 import TripDetailsModal from "../adminTrips/TripDetailsModal";
 import StatusPill from "../ui/statusPill/StatusPill";
 import { TABLE_HEAD, TABLE_ROW, TABLE_WRAP } from "../ui/table/tableStyles";
@@ -53,10 +54,11 @@ const inputStyles =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 export default function TripDocumentsView() {
-  const [dateFrom, setDateFrom] = useState(thirtyDaysAgo);
+  // Opened from a global search result (?q=): that shipment, any date.
+  const [dateFrom, setDateFrom] = useState(() => (urlQuery() ? "" : thirtyDaysAgo()));
   const [dateTo, setDateTo] = useState(() => isoDate(new Date()));
-  const [shipment, setShipment] = useState("");
-  const [query, setQuery] = useState("");
+  const [shipment, setShipment] = useState(urlQuery);
+  const [query, setQuery] = useState(urlQuery);
   const [personKey, setPersonKey] = useState(null);
   const [status, setStatus] = useState("");
   const [data, setData] = useState(null);

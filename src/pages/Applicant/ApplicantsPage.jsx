@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { urlQuery } from "../../utils/search";
 import toast from "react-hot-toast";
 import {
   addApplicantRemark,
@@ -1750,7 +1751,7 @@ function ImagePreviewModal({ isOpen, imageUrl, onClose }) {
 export default function ApplicantsPage() {
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlQuery);
   // Board (cards by stage) or one list of every applicant.
   const [viewType, setViewType] = useViewType("applicants_view");
 

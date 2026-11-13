@@ -52,7 +52,7 @@ import {
 import { toast } from "react-hot-toast";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
-import { matchesSearch } from "../../utils/search";
+import { matchesSearch, urlQuery } from "../../utils/search";
 
 // Remembers the user's Cards/List preference for the Vehicle List tab
 // across visits -- purely a per-browser UI convenience, not synced.
@@ -501,7 +501,7 @@ export default function TripMaintenance() {
   };
 
   // One search box per tab.
-  const [unitSearch, setUnitSearch] = useState("");
+  const [unitSearch, setUnitSearch] = useState(urlQuery);
   const [recordSearch, setRecordSearch] = useState("");
   const [truckTypeSearch, setTruckTypeSearch] = useState("");
   const filteredUnits = vehicleUnits.filter((unit) =>
