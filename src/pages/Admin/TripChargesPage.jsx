@@ -16,6 +16,7 @@ import {
   recordTripChargeNotice,
   updateTripCharge,
 } from "../../api/tripCharges";
+import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
 const EDIT_ROLES = ["coordinator_admin", "office_admin"];
 
@@ -1056,7 +1057,9 @@ export default function TripChargesPage() {
   const viewing = charges.find((c) => c.id === viewingId);
 
   return (
-    <div className="space-y-4 p-4 sm:p-6">
+    <div className="space-y-5">
+      <SectionTabs group="Trip Management" />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-fg">Trip Charges</h1>
