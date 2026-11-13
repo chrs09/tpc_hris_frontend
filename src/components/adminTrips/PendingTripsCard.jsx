@@ -299,7 +299,9 @@ const PendingTripsCard = ({
 
     if (
       !(await confirmDialog(
-        `Approve ${selectedTrip.trip_code || selectedTrip.ticket_no} and send it to Office Personnel? This cannot be undone.`,
+        `Approve ${selectedTrip.trip_code || selectedTrip.ticket_no} and send it ${
+          selectedTrip.returned_from === "finance" ? "back to Finance" : "to Office Personnel"
+        }? This cannot be undone.`,
       ))
     ) {
       return;
@@ -323,7 +325,9 @@ const PendingTripsCard = ({
       setRemarks("");
 
       toast.success(
-        `Approved by ${res?.data?.coordinator_name || "you"} and sent to Office Personnel.`,
+        `Approved by ${res?.data?.coordinator_name || "you"} and sent ${
+          res?.data?.sent_to === "finance" ? "back to Finance" : "to Office Personnel"
+        }.`,
       );
 
       await refreshTrips();
@@ -491,10 +495,10 @@ const PendingTripsCard = ({
                     {trip.awaiting_manual_approval && <AwaitingSuperadminBadge />}
                     {trip.return_reason && (
                       <span
-                        title={`Sent back for correction: ${trip.return_reason}`}
+                        title={`Sent back by ${trip.returned_from === "finance" ? "Finance" : "Office"}: ${trip.return_reason}`}
                         className="rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold normal-case text-danger"
                       >
-                        Correction Requested
+                        {trip.returned_from === "finance" ? "Returned by Finance" : "Correction Requested"}
                       </span>
                     )}
                   </div>
@@ -568,7 +572,7 @@ const PendingTripsCard = ({
                   title={trip.return_reason}
                   className="inline-block rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger"
                 >
-                  Correction Requested
+                  {trip.returned_from === "finance" ? "Returned by Finance" : "Correction Requested"}
                 </span>
               )}
             </div>
@@ -1236,11 +1240,16 @@ const PendingTripsCard = ({
                 {selectedTrip.return_reason && (
                   <div className="mb-6 rounded-xl border border-danger/30 bg-danger/10 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wide text-danger">
-                      Sent Back by Office for Correction
+                      Sent Back by {selectedTrip.returned_from === "finance" ? "Finance" : "Office"} for Correction
                       {selectedTrip.returned_at && ` -- ${selectedTrip.returned_at}`}
                     </p>
                     <p className="mt-2 whitespace-pre-wrap text-sm text-fg">
                       {selectedTrip.return_reason}
+                    </p>
+                    <p className="mt-2 text-xs text-fg-muted">
+                      Replace the wrong document photo above (edit icon on the photo), then approve.
+                      {selectedTrip.returned_from === "finance" &&
+                        " It goes straight back to Finance -- Office already verified it."}
                     </p>
                   </div>
                 )}
@@ -1466,7 +1475,9 @@ const PendingTripsCard = ({
                     >
                       {submitting
                         ? "Approving..."
-                        : "Approve & Send to Office Review"}
+                        : selectedTrip.returned_from === "finance"
+                          ? "Approve & Send Back to Finance"
+                          : "Approve & Send to Office Review"}
                     </button>
                     )}
                   </>

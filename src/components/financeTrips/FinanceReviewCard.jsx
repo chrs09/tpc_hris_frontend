@@ -17,6 +17,7 @@ import {
   getFinanceTripDetail,
   approveFinanceTrip,
   blockFinanceTrip,
+  returnFinanceTrip,
   unblockFinanceTrip,
 } from "../../api/financeTrips/index";
 import usePagination from "../../hooks/usePagination";
@@ -97,6 +98,9 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips, 
   const [blocking, setBlocking] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [savingBlock, setSavingBlock] = useState(false);
+  // Return to coordinator (document issue to fix): reason box open + text.
+  const [returning, setReturning] = useState(false);
+  const [returnReason, setReturnReason] = useState("");
 
   const [search, setSearch] = useState("");
   const filteredTrips = trips.filter((trip) =>
@@ -182,6 +186,72 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips, 
       setSavingBlock(false);
     }
   };
+
+  const handleReturn = async () => {
+    if (!selectedTrip || !returnReason.trim()) return;
+    try {
+      setSavingBlock(true);
+      await returnFinanceTrip(selectedTrip.trip_id, returnReason.trim());
+      toast.success("Returned to the coordinator. It comes back here once they re-submit.");
+      setReturning(false);
+      setReturnReason("");
+      handleCloseModal();
+      if (onChanged) await onChanged();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to return the trip.");
+    } finally {
+      setSavingBlock(false);
+    }
+  };
+
+  // The "Return to coordinator" button, or its reason box when open.
+  const returnControls = () =>
+    returning ? (
+      <div className="space-y-2 rounded-xl border border-warning/40 p-3">
+        <label htmlFor="return-reason" className="block text-sm font-medium text-fg">
+          What does the coordinator need to fix or re-upload?
+        </label>
+        <textarea
+          id="return-reason"
+          value={returnReason}
+          onChange={(e) => setReturnReason(e.target.value)}
+          maxLength={1000}
+          placeholder="e.g. LM quantity doesn't match the invoice -- upload the corrected LM."
+          className="min-h-[72px] w-full rounded-xl border border-border bg-background p-3 text-sm text-fg"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setReturning(false);
+              setReturnReason("");
+            }}
+            className="flex-1 rounded-xl border border-border py-2 text-sm font-medium text-fg-muted hover:bg-surface-hover"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleReturn}
+            disabled={!returnReason.trim() || savingBlock}
+            className="flex-1 rounded-xl bg-warning py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {savingBlock ? "Returning..." : "Return Trip"}
+          </button>
+        </div>
+      </div>
+    ) : (
+      <button
+        type="button"
+        onClick={() => {
+          setBlocking(false);
+          setReturning(true);
+        }}
+        className="w-full rounded-xl border border-warning/60 py-2.5 text-sm font-semibold text-warning hover:bg-warning/10"
+      >
+        Return to coordinator (fix / re-upload document)
+      </button>
+    );
 
   const handleUnblock = async () => {
     if (!selectedTrip) return;
@@ -829,6 +899,7 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips, 
                           {savingBlock ? "Saving..." : "Unblock (back to For Finance Review)"}
                         </button>
                       )}
+                      {canEditPage && <div className="text-fg">{returnControls()}</div>}
                     </div>
                   )}
 
@@ -879,12 +950,16 @@ export default function FinanceReviewCard({ trips: allTrips = [], refreshTrips, 
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setBlocking(true)}
+                          onClick={() => {
+                            setReturning(false);
+                            setBlocking(true);
+                          }}
                           className="w-full rounded-xl border border-danger/50 py-2.5 text-sm font-semibold text-danger hover:bg-danger/10"
                         >
                           Block (documents not valid)
                         </button>
                       )}
+                      {returnControls()}
                       </div>
                     ) : null)
                   )}

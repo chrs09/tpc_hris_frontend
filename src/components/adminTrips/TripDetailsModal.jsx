@@ -146,7 +146,8 @@ export default function TripDetailsModal({ trip, onClose }) {
             <>
               {details.return_reason && (
                 <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
-                  Sent back by Office: {details.return_reason}
+                  Sent back by {details.returned_from === "finance" ? "Finance" : "Office"}:{" "}
+                  {details.return_reason}
                 </p>
               )}
 
