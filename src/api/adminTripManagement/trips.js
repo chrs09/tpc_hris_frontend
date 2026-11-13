@@ -62,6 +62,15 @@ export const replaceTripFile = (fileId, photo) => {
 
 export const getCompletedTrips = () => api.get("/admin/trips/completed");
 
+// A wrong store on a trip in progress: swap a stop that isn't delivered
+// yet for the right store (see change_trip_store in app/api/admin/trips.py).
+export const changeTripStore = (tripId, oldStoreId, newStoreId, reason) =>
+  api.post(`/admin/trips/${tripId}/change-store`, {
+    old_store_id: oldStoreId,
+    new_store_id: newStoreId,
+    reason,
+  });
+
 // A trip Office returned: the coordinator admin hands it to a coordinator
 // to fix (upload the corrected document), who marks it fixed -- back to
 // Trip Approvals. See send_to_coordinator in app/api/admin/trips.py.

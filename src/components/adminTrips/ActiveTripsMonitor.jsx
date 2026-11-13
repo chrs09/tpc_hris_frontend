@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import TripUnitTags from "./TripUnitTags";
 import toast from "react-hot-toast";
 import TripGpsLogsModal from "./TripGpsLogsModal";
+import ChangeStoreModal from "./ChangeStoreModal";
 import { cancelActiveTrip } from "../../api/adminTripManagement/trips";
 import { confirmDialog, promptDialog } from "../ui/dialog/dialogService";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
@@ -63,8 +64,21 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
     }
   };
 
+  // Wrong store on the dispatch: swap a stop not delivered yet.
+  const [changingTrip, setChangingTrip] = useState(null);
+
   const renderCancel = (trip) =>
     canEditPage ? (
+      <>
+      {(trip.stops || []).some((s) => !s.delivered) && (
+        <button
+          type="button"
+          onClick={() => setChangingTrip(trip)}
+          className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-fg-muted transition hover:bg-surface-hover hover:text-fg"
+        >
+          Change store
+        </button>
+      )}
       <button
         onClick={() => handleCancel(trip)}
         disabled={cancellingId === trip.id}
@@ -72,6 +86,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
       >
         {cancellingId === trip.id ? "Cancelling..." : "Cancel"}
       </button>
+      </>
     ) : null;
   const [search, setSearch] = useState("");
   const filteredTrips = trips.filter((trip) =>
@@ -292,7 +307,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
                 {trip.dispatched_by_name || "-"}
               </div>
 
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex justify-end gap-2">
                 {renderCancel(trip)}
               </div>
             </div>
@@ -301,6 +316,14 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
       </div>
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {changingTrip && (
+        <ChangeStoreModal
+          trip={changingTrip}
+          onClose={() => setChangingTrip(null)}
+          onChanged={onChanged}
+        />
+      )}
 
       {selectedTripId && (
         <TripGpsLogsModal
