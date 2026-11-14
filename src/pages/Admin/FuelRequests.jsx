@@ -597,9 +597,36 @@ export function FuelRequestModal({ requestId, onClose, onChanged }) {
                     label="Receipt"
                     onOpen={setZoomUrl}
                   />
-                  <p className="text-xs text-fg-subtle">
-                    Sent {req.receipt_submitted_at}
-                  </p>
+                  <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <Info
+                        label="Actual liters"
+                        value={req.actual_liters != null ? `${req.actual_liters} L` : null}
+                      />
+                      <Info
+                        label="Actual price"
+                        value={
+                          req.actual_price != null
+                            ? `₱${Number(req.actual_price).toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}`
+                            : null
+                        }
+                      />
+                    </div>
+                    {req.actual_liters != null &&
+                      req.liters != null &&
+                      Number(req.actual_liters) > Number(req.liters) && (
+                        <p className="text-xs font-medium text-danger">
+                          {(Number(req.actual_liters) - Number(req.liters)).toFixed(2)} L more
+                          than the {req.liters} L issued.
+                        </p>
+                      )}
+                    <p className="text-xs text-fg-subtle">
+                      Sent {req.receipt_submitted_at}
+                    </p>
+                  </div>
                 </div>
                 {req.status === "receipt_submitted" && (
                   <div className="flex gap-2">
