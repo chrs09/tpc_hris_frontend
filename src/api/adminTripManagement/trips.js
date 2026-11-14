@@ -62,6 +62,19 @@ export const replaceTripFile = (fileId, photo) => {
 
 export const getCompletedTrips = () => api.get("/admin/trips/completed");
 
+// Correcting documents like the driver uploads them: add Invoice / LM
+// pages, or a missing single photo (stopId for a stop's unloading / POD).
+export const addTripFiles = (tripId, documentType, photos, stopId = null) => {
+  const formData = new FormData();
+  formData.append("document_type", documentType);
+  photos.forEach((p) => formData.append("photos", p));
+  if (stopId) formData.append("stop_id", stopId);
+  return api.post(`/admin/trips/${tripId}/files`, formData);
+};
+
+// Removes an extra Invoice / LM page (at least one stays).
+export const removeTripFile = (fileId) => api.delete(`/admin/trips/files/${fileId}`);
+
 // A wrong store on a trip in progress: swap a stop that isn't delivered
 // yet for the right store (see change_trip_store in app/api/admin/trips.py).
 export const changeTripStore = (tripId, oldStoreId, newStoreId, reason) =>

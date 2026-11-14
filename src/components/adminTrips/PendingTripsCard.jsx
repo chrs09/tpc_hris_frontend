@@ -2,12 +2,14 @@ import React, { useState, useMemo, useCallback, useRef } from "react";
 import TripUnitTags from "./TripUnitTags";
 import ReturnFixBadge from "./ReturnFixBadge";
 import SendToCoordinatorPanel from "./SendToCoordinatorPanel";
+import AddDocButton from "./AddDocButton";
 import { StopShipments } from "./ShipmentStorePairing";
 import {
   approveTrip,
   archiveTrip,
   reviewTrip,
   replaceTripFile,
+  removeTripFile,
   addTripRemark,
 } from "../../api/adminTripManagement/trips";
 import {
@@ -216,6 +218,26 @@ const PendingTripsCard = ({
       toast.error(error.response?.data?.detail || "Failed to add remark.");
     } finally {
       setAddingRemark(false);
+    }
+  };
+
+  // Documents changed (page added / removed / uploaded): reload the trip.
+  const reloadSelected = async () => {
+    const res = await reviewTrip(selectedTrip.trip_id);
+    setSelectedTrip(res.data);
+  };
+
+  const removePage = async (fileId, label, pageNo) => {
+    const ok = await confirmDialog(`Remove ${label} page ${pageNo}? The removal is logged on the trip.`, {
+      confirmText: "Remove",
+    });
+    if (!ok) return;
+    try {
+      await removeTripFile(fileId);
+      toast.success(`${label} page removed.`);
+      await reloadSelected();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to remove the page.");
     }
   };
 
@@ -828,9 +850,36 @@ const PendingTripsCard = ({
                                 </button>
                                 ) : null)
                                 )}
+                                {canReplacePhotos && canEditPage && selectedTrip.invoice_photos.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removePage(photo.id, "Invoice", i + 1)}
+                                    title="Remove this page"
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-fg-subtle hover:border-danger/50 hover:text-danger"
+                                  >
+                                    &times;
+                                  </button>
+                                )}
                               </div>
                             ))}
+                            {canReplacePhotos && canEditPage && (
+                              <AddDocButton
+                                tripId={selectedTrip.trip_id}
+                                documentType="INVOICE_PHOTO"
+                                multiple
+                                label="+ Page"
+                                onDone={reloadSelected}
+                              />
+                            )}
                           </div>
+                        ) : canReplacePhotos && canEditPage ? (
+                          <AddDocButton
+                            tripId={selectedTrip.trip_id}
+                            documentType="INVOICE_PHOTO"
+                            multiple
+                            label="Upload pages"
+                            onDone={reloadSelected}
+                          />
                         ) : (
                           <span className="text-xs text-fg-subtle">
                             No Photo
@@ -876,9 +925,36 @@ const PendingTripsCard = ({
                                 </button>
                                 ) : null)
                                 )}
+                                {canReplacePhotos && canEditPage && selectedTrip.lm_photos.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removePage(photo.id, "LM", i + 1)}
+                                    title="Remove this page"
+                                    className="flex h-7 w-7 items-center justify-center rounded-lg border border-border text-fg-subtle hover:border-danger/50 hover:text-danger"
+                                  >
+                                    &times;
+                                  </button>
+                                )}
                               </div>
                             ))}
+                            {canReplacePhotos && canEditPage && (
+                              <AddDocButton
+                                tripId={selectedTrip.trip_id}
+                                documentType="LM_MANIFEST_PHOTO"
+                                multiple
+                                label="+ Page"
+                                onDone={reloadSelected}
+                              />
+                            )}
                           </div>
+                        ) : canReplacePhotos && canEditPage ? (
+                          <AddDocButton
+                            tripId={selectedTrip.trip_id}
+                            documentType="LM_MANIFEST_PHOTO"
+                            multiple
+                            label="Upload pages"
+                            onDone={reloadSelected}
+                          />
                         ) : (
                           <span className="text-xs text-fg-subtle">
                             No Photo
@@ -928,6 +1004,13 @@ const PendingTripsCard = ({
                             ) : null)
                             )}
                           </div>
+                        ) : canReplacePhotos && canEditPage ? (
+                          <AddDocButton
+                            tripId={selectedTrip.trip_id}
+                            documentType="LM_CHECKOUT_STAMPED_PHOTO"
+                            label="Upload"
+                            onDone={reloadSelected}
+                          />
                         ) : (
                           <span className="text-xs text-fg-subtle">
                             No Photo
@@ -985,6 +1068,13 @@ const PendingTripsCard = ({
                         ) : null)
                         )}
                       </div>
+                    ) : canReplacePhotos && canEditPage ? (
+                      <AddDocButton
+                        tripId={selectedTrip.trip_id}
+                        documentType="STAMPED_INVOICE_PHOTO"
+                        label="Upload"
+                        onDone={reloadSelected}
+                      />
                     ) : (
                       <span className="text-xs text-fg-subtle">No Photo</span>
                     )}
@@ -1106,6 +1196,14 @@ const PendingTripsCard = ({
                                 ) : null)
                                 )}
                               </div>
+                            ) : canReplacePhotos && canEditPage && stop.id ? (
+                              <AddDocButton
+                                tripId={selectedTrip.trip_id}
+                                documentType="UNLOADING_PHOTO"
+                                stopId={stop.id}
+                                label="Upload unloading"
+                                onDone={reloadSelected}
+                              />
                             ) : (
                               <span className="text-xs text-fg-subtle">
                                 No Unload Photo
@@ -1148,6 +1246,14 @@ const PendingTripsCard = ({
                                 ) : null)
                                 )}
                               </div>
+                            ) : canReplacePhotos && canEditPage && stop.id ? (
+                              <AddDocButton
+                                tripId={selectedTrip.trip_id}
+                                documentType="DELIVERY_PROOF_PHOTO"
+                                stopId={stop.id}
+                                label="Upload POD"
+                                onDone={reloadSelected}
+                              />
                             ) : (
                               <span className="text-xs text-fg-subtle">
                                 No POD
