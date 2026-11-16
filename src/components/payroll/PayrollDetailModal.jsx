@@ -254,7 +254,12 @@ const PayrollDetailModal = ({
       });
 
       totals.rendered += result.renderedHours || 0;
-      totals.regular += result.regularHours || 0;
+      // Rest-day hours are paid separately (130%), like PayrollList.
+      if (result.isRestDay) {
+        totals.restDay += result.restDayHours || 0;
+      } else {
+        totals.regular += result.regularHours || 0;
+      }
 
       totals.tardiness += result.tardinessMinutes || 0;
       totals.undertime += result.undertimeMinutes || 0;
@@ -279,6 +284,7 @@ const PayrollDetailModal = ({
     {
       rendered: 0,
       regular: 0,
+      restDay: 0,
 
       tardiness: 0,
       undertime: 0,
@@ -460,6 +466,19 @@ const PayrollDetailModal = ({
                     {Number(payroll.regularHours || 0).toFixed(2)}
                   </p>
                 </div>
+
+                {Number(payroll.restDayHours || 0) > 0 && (
+                  <div className="border border-border rounded-lg p-3">
+                    <p className="text-xs text-fg-subtle">Rest Day Hours (130%)</p>
+
+                    <p className="font-bold">
+                      {Number(payroll.restDayHours).toFixed(2)}
+                    </p>
+                    <p className="text-xs text-fg-subtle">
+                      ₱{Number(payroll.restDayPay || 0).toFixed(2)}
+                    </p>
+                  </div>
+                )}
 
                 <div className="border border-border rounded-lg p-3">
                   <p className="text-xs text-fg-subtle">Undertime</p>
@@ -869,6 +888,11 @@ const PayrollDetailModal = ({
                             : "2nd Half Absent"}
                         </p>
                       )}
+                      {result.isRestDay && (
+                        <p className="mt-2 font-semibold text-primary text-sm">
+                          Rest Day worked (130%)
+                        </p>
+                      )}
 
                       <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
                         <div>
@@ -984,6 +1008,11 @@ const PayrollDetailModal = ({
                     <span>
                       Regular Hours: {Number(tableTotals.regular || 0).toFixed(2)}
                     </span>
+                    {tableTotals.restDay > 0 && (
+                      <span>
+                        Rest Day Hours: {tableTotals.restDay.toFixed(2)}
+                      </span>
+                    )}
                     <span>
                       OT: {Number(payroll.otHours || 0).toFixed(2)}
                     </span>
@@ -1120,6 +1149,10 @@ const PayrollDetailModal = ({
                               <span className="font-semibold text-orange-600">
                                 2nd Half Absent
                               </span>
+                            ) : result.isRestDay ? (
+                              <span className="font-semibold text-primary">
+                                Rest Day (130%)
+                              </span>
                             ) : (
                               <span className="text-fg-subtle">--</span>
                             )}
@@ -1231,6 +1264,11 @@ const PayrollDetailModal = ({
                       {/* Regular Hours */}
                       <td className="border border-border px-3 py-2">
                         {Number(tableTotals.regular || 0).toFixed(2)}
+                        {tableTotals.restDay > 0 && (
+                          <span className="block text-xs text-primary">
+                            + {tableTotals.restDay.toFixed(2)} rest day
+                          </span>
+                        )}
                       </td>
 
                       {/* OT */}

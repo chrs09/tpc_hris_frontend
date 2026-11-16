@@ -73,6 +73,7 @@ export const exportPayrollExcel = async (
     "OT",
     "RH",
     "SH",
+    "Rest Day",
     "Leave",
     "Others",
     "Gross",
@@ -142,6 +143,8 @@ export const exportPayrollExcel = async (
 
       row.shPay,
 
+      row.restDayPay || 0,
+
       row.leavePay,
 
       row.others,
@@ -184,7 +187,7 @@ export const exportPayrollExcel = async (
   // Currency
   ////////////////////////////////////////////
 
-  for (let i = 2; i <= 23; i++) {
+  for (let i = 2; i <= 24; i++) {
     payroll.getColumn(i).numFmt = "₱#,##0.00";
   }
 

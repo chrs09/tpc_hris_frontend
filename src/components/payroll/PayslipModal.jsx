@@ -224,6 +224,10 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
   const rhPay = Number(payroll.rhPay ?? 0);
 
+  // Rest day worked (e.g. Sunday), 130%. Older payslips don't have it.
+  const restDayPay = Number(payroll.restDayPay ?? 0);
+  const restDayHours = Number(payroll.restDayHours ?? 0);
+
   const leavePay = Number(payroll.leavePay ?? 0);
 
   const otherEarnings = Number(payroll.others ?? 0);
@@ -239,7 +243,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // ===================================================
 
   const totalOtherEarnings =
-    allowancePay + otPay + shPay + rhPay + leavePay + otherEarnings;
+    allowancePay + otPay + shPay + rhPay + restDayPay + leavePay + otherEarnings;
 
   // ===================================================
   // TOTAL EARNINGS
@@ -754,6 +758,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           <PayslipValue label="Special Holiday Premium" value={shPay} isMoney />
 
           <PayslipValue label="Regular Holiday Premium" value={rhPay} isMoney />
+
+          {restDayPay > 0 && (
+            <PayslipValue
+              label={`Rest Day Pay (${formatNumber(restDayHours)} hrs @ 130%)`}
+              value={restDayPay}
+              isMoney
+            />
+          )}
 
           <PayslipValue label="Allowance" value={allowancePay} isMoney />
 

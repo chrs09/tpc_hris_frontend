@@ -794,6 +794,10 @@ const PayrollList = () => {
         let regularHours = 0;
         let otHours = 0;
         let daysWorked = 0;
+        // Worked on a day with no schedule (e.g. Sunday) -- paid 130%
+        // below, kept out of regularHours so it isn't paid twice.
+        let restDayHours = 0;
+        let restDaysWorked = 0;
 
         let undertimeHours = 0;
         let tardinessHours = 0;
@@ -879,7 +883,12 @@ const PayrollList = () => {
 
           renderedHours += result.renderedHours;
 
-          regularHours += result.regularHours;
+          if (result.isRestDay) {
+            restDayHours += result.restDayHours || 0;
+            restDaysWorked++;
+          } else {
+            regularHours += result.regularHours;
+          }
 
           otHours += result.overtimeHours;
 
@@ -1282,6 +1291,15 @@ const PayrollList = () => {
         // 200% of the daily rate
         const rhPay = rate * 1.0 * rhDaysWorked;
 
+        // ===== Rest day worked =====
+        // Hours on a day with no schedule (e.g. Sunday), 130% of the
+        // hourly rate (100% + 30% rest-day premium). Not part of basic
+        // pay for any payroll type: Daily/Weekly basic only counts
+        // scheduled hours, and the Monthly salary (factor 313) doesn't
+        // cover rest days.
+        const REST_DAY_RATE = 1.3;
+        const restDayPay = restDayHours * hourlyRate * REST_DAY_RATE;
+
         // ===== Leave pay =====
         // Only pays out for leave explicitly marked paid on the record
         // (e.g. record.is_paid_leave === true). Your sheet shows "no leave
@@ -1319,11 +1337,19 @@ const PayrollList = () => {
             otPay +
             shPay +
             rhPay +
+            restDayPay +
             leavePay +
             others;
         } else {
           grossPay =
-            basicPay + allowancePay + otPay + shPay + rhPay + leavePay + others;
+            basicPay +
+            allowancePay +
+            otPay +
+            shPay +
+            rhPay +
+            restDayPay +
+            leavePay +
+            others;
         }
 
         // ===== Statutory deductions =====
@@ -1539,6 +1565,9 @@ const PayrollList = () => {
             allowancePay: 0,
             shPay: 0,
             rhPay: 0,
+            restDayHours: 0,
+            restDaysWorked: 0,
+            restDayPay: 0,
             leavePay: 0,
             others: 0,
             sssDeduction: 0,
@@ -1629,6 +1658,9 @@ const PayrollList = () => {
           rhDaysWorked,
           shPay,
           rhPay,
+          restDayHours,
+          restDaysWorked,
+          restDayPay,
           paidLeaveDays,
           leavePay,
           others,
@@ -2447,6 +2479,10 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
                   <th className="px-4 py-3 text-left">RH Pay</th>
 
+                  <th className="px-4 py-3 text-left" title="Rest day worked (e.g. Sunday), 130%">
+                    RD Pay
+                  </th>
+
                   <th className="px-4 py-3 text-left">Leave Pay</th>
 
                   <th className="px-4 py-3 text-left">Others</th>
@@ -2669,6 +2705,23 @@ Next: Submit for Review. You can generate again after corrections until it's app
                       {row.isTripBasedEmployee
                         ? "--"
                         : `₱${row.rhPay.toFixed(2)}`}
+                    </td>
+
+                    {/* RD -- rest day worked, 130% */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {row.isTripBasedEmployee ? (
+                        "--"
+                      ) : (
+                        <>
+                          ₱{(row.restDayPay || 0).toFixed(2)}
+                          {row.restDayHours > 0 && (
+                            <span className="block text-xs text-fg-subtle">
+                              {row.restDayHours.toFixed(2)} hrs · {row.restDaysWorked}{" "}
+                              {row.restDaysWorked === 1 ? "day" : "days"}
+                            </span>
+                          )}
+                        </>
+                      )}
                     </td>
 
                     {/* Leave */}

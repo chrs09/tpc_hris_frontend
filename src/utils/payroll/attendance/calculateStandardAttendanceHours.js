@@ -25,6 +25,51 @@ import { scheduleTimesForDate } from "./scheduleOverrides";
 //
 // =====================================================
 
+// Hours paid as rest-day work in one day (anything past is OT).
+export const REST_DAY_MAX_HOURS = 8;
+
+function calculateRestDayHours(checkIn, checkOut) {
+  const actualInMinutes = toLocalMinutes(
+    checkIn.getHours() * 60 + checkIn.getMinutes(),
+  );
+  const elapsedMinutes = Math.max(
+    Math.round((checkOut.getTime() - checkIn.getTime()) / 60000),
+    0,
+  );
+
+  let workedMinutes = elapsedMinutes;
+  if (crossesLunchBreak(actualInMinutes, actualInMinutes + elapsedMinutes)) {
+    workedMinutes -= 60;
+  }
+  workedMinutes = Math.max(workedMinutes, 0);
+
+  const restDayHours = Math.min(workedMinutes / 60, REST_DAY_MAX_HOURS);
+  const overtimeMinutes = workedMinutes - REST_DAY_MAX_HOURS * 60;
+  const overtimeHours = overtimeMinutes >= 60 ? Math.floor(overtimeMinutes / 60) : 0;
+
+  return {
+    // Shown in the hours columns like any worked day.
+    scheduledTimeIn: "--",
+    scheduledTimeOut: "--",
+    expectedHours: 0,
+    renderedHours: Number((elapsedMinutes / 60).toFixed(2)),
+    regularHours: Number(restDayHours.toFixed(2)),
+    overtimeHours,
+
+    tardinessMinutes: 0,
+    tardinessHours: 0,
+    undertimeMinutes: 0,
+    undertimeHours: 0,
+
+    firstHalfAbsent: false,
+    secondHalfAbsent: false,
+
+    // PayrollList keeps these apart from regular hours and pays 130%.
+    isRestDay: true,
+    restDayHours: Number(restDayHours.toFixed(2)),
+  };
+}
+
 export function calculateStandardAttendanceHours({
   checkIn,
   checkOut,
@@ -67,28 +112,23 @@ export function calculateStandardAttendanceHours({
   );
 
   // ===================================================
-  // NO SCHEDULE
+  // NO SCHEDULE THAT DAY = REST DAY WORKED
+  // ===================================================
+  //
+  // The schedule has no time in/out for this weekday (e.g. Sunday), yet
+  // the employee clocked in and out. Those hours are paid as rest-day
+  // work (130%, see PayrollList), not dropped as 0:
+  //
+  //   worked = time in -> time out, less the 12-1 lunch when spanned
+  //   rest-day hours = worked, up to 8
+  //   OT = whole hours past 8 (still needs approval, like any OT)
+  //
+  // No tardiness / undertime / half-day -- there's no schedule to be
+  // late against.
   // ===================================================
 
   if (!scheduleInStr || !scheduleOutStr) {
-    return {
-      expectedHours: 0,
-      renderedHours: 0,
-      regularHours: 0,
-      overtimeHours: 0,
-
-      tardinessMinutes: 0,
-      tardinessHours: 0,
-
-      undertimeMinutes: 0,
-      undertimeHours: 0,
-
-      firstHalfAbsent: false,
-      secondHalfAbsent: false,
-
-      scheduledTimeIn: "--",
-      scheduledTimeOut: "--",
-    };
+    return calculateRestDayHours(checkIn, checkOut);
   }
 
   // ===================================================
