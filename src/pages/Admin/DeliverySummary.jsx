@@ -6,6 +6,7 @@ import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch } from "../../utils/search";
 import { exportDeliverySummaryExcel } from "../../utils/trips/deliverySummaryExcel";
+import { downloadBlockedReason } from "../../utils/downloadLimit";
 import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
 import { toISODate } from "../../utils/isoDate";
 
@@ -180,8 +181,14 @@ export default function DeliverySummary() {
   }, [data]);
 
   const [exporting, setExporting] = useState(false);
+  // Non-superadmins: current and previous month only.
+  const exportBlocked = downloadBlockedReason(range.from);
   const exportExcel = async () => {
     if (!data) return;
+    if (exportBlocked) {
+      toast.error(exportBlocked);
+      return;
+    }
     try {
       setExporting(true);
       await exportDeliverySummaryExcel({
@@ -227,11 +234,15 @@ export default function DeliverySummary() {
           <button
             type="button"
             onClick={exportExcel}
-            disabled={!data || loading || exporting}
+            disabled={!data || loading || exporting || Boolean(exportBlocked)}
+            title={exportBlocked || undefined}
             className="rounded-lg bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:opacity-50"
           >
             {exporting ? "Exporting..." : "Export Excel"}
           </button>
+          {exportBlocked && (
+            <p className="w-full text-right text-xs text-warning">{exportBlocked}</p>
+          )}
         </div>
       </div>
 

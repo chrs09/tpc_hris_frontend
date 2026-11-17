@@ -28,6 +28,7 @@ import {
 import PayslipModal from "../../components/payroll/PayslipModal";
 import usePagination from "../../hooks/usePagination";
 import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
+import { downloadBlockedReason } from "../../utils/downloadLimit";
 import {
   formatMissingDates,
   getCutoffCompleteness,
@@ -2047,6 +2048,13 @@ Next: Submit for Review. You can generate again after corrections until it's app
   };
 
   const handleExportExcel = async () => {
+    // Non-superadmins: current and previous month only. A cutoff counts
+    // as the month it ends in (Sep 26 - Oct 10 is October's payroll).
+    const blocked = downloadBlockedReason(activePeriod.cutoffEnd);
+    if (blocked) {
+      alertDialog(blocked);
+      return;
+    }
     setIsExporting(true);
 
     await saveAllDeductions({
@@ -3190,6 +3198,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
         isOpen={selectedPayslips.length > 0}
         payrolls={selectedPayslips}
         activePeriod={activePeriod}
+        limitDownloads
         onClose={() => setSelectedPayslips([])}
       />
     </div>

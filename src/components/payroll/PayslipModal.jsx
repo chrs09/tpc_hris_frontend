@@ -1,4 +1,5 @@
 import React from "react";
+import { downloadBlockedReason } from "../../utils/downloadLimit";
 
 // =====================================================
 // FORMATTERS
@@ -960,10 +961,18 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 // PAYSLIP MODAL
 // =====================================================
 
-const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
+// limitDownloads: printing / saving as PDF follows the download limit
+// (utils/downloadLimit.js) -- used for the Payroll page's payslips. An
+// employee's own payslips (My Payslips) aren't limited.
+const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod, limitDownloads = false }) => {
   if (!isOpen || !payrolls?.length || !activePeriod) {
     return null;
   }
+
+  // A cutoff counts as the month it ends in.
+  const printBlocked = limitDownloads
+    ? downloadBlockedReason(activePeriod.cutoffEnd)
+    : null;
 
   // ===================================================
   // THREE PAYSLIPS PER LONG BOND PAPER
@@ -1207,6 +1216,19 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
           line-height: 1.1 !important;
         }
 
+        /* Download limit: Ctrl+P prints the notice, not the slips. */
+        @media print {
+          .payslip-list.print-blocked {
+            display: none !important;
+          }
+
+          .print-blocked-note {
+            display: block !important;
+            padding: 0.5in;
+            font-size: 14px;
+          }
+        }
+
       `}</style>
 
       {/* =================================================
@@ -1259,10 +1281,15 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
 
           {/* ACTIONS */}
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {printBlocked && (
+              <p className="max-w-xs text-right text-xs text-warning">{printBlocked}</p>
+            )}
             <button
               type="button"
               onClick={() => window.print()}
+              disabled={Boolean(printBlocked)}
+              title={printBlocked || undefined}
               className="
                 rounded-lg
                 bg-blue-600
@@ -1272,6 +1299,8 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
                 font-medium
                 text-white
                 hover:bg-blue-700
+                disabled:cursor-not-allowed
+                disabled:opacity-50
               "
             >
               Print / Save PDF
@@ -1301,14 +1330,17 @@ const PayslipModal = ({ isOpen, onClose, payrolls, activePeriod }) => {
             PAYSLIP LIST
         ================================================= */}
 
+        {printBlocked && <p className="print-blocked-note hidden">{printBlocked}</p>}
+
         <div
-          className="
+          className={`
             payslip-list
+            ${printBlocked ? "print-blocked" : ""}
             flex
             flex-col
             gap-2
             p-2
-          "
+          `}
         >
           {payslipPages.map((page, pageIndex) => (
             <section
