@@ -41,6 +41,14 @@ function PhotoPicker({ label, file, onChange }) {
 
 // Today in the Philippines, "YYYY-MM-DD".
 const todayPH = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Manila" });
+// Now in the Philippines, "HH:MM" (24h) -- compares with <input type="time">.
+const nowPH = () =>
+  new Date().toLocaleTimeString("en-GB", {
+    timeZone: "Asia/Manila",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 
 // File a time correction: the day, the time in and/or time out it should
 // be, and why. Goes to the attendance approvers; nothing changes until
@@ -64,6 +72,21 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
     if (!timeIn && !timeOut) {
       toast.error("Enter the time in, the time out, or both.");
       return;
+    }
+    // Same day: a time later than now hasn't happened yet (the server
+    // rejects it too -- this just says so before sending).
+    if (day === todayPH()) {
+      const now = nowPH();
+      if (timeIn && timeIn > now) {
+        toast.error("That time in hasn't happened yet.");
+        return;
+      }
+      if (timeOut && timeOut > now && (!timeIn || timeOut > timeIn)) {
+        toast.error(
+          "That time out hasn't happened yet. Leave Time out blank -- time out as usual, or file it after.",
+        );
+        return;
+      }
     }
     try {
       setSubmitting(true);
@@ -156,6 +179,12 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
             Leave one blank to keep what&apos;s recorded. A time out earlier than the time in
             counts as the next morning.
           </p>
+          {day === todayPH() && (
+            <p className="-mt-2 rounded-lg bg-warning/10 px-3 py-2 text-[11px] text-warning">
+              Fixing today&apos;s time in? Fill in <b>Time in</b> only and leave Time out blank
+              until you&apos;ve timed out.
+            </p>
+          )}
           <div>
             <label className="mb-1 block text-sm font-medium text-fg-muted">Reason</label>
             <textarea
