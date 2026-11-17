@@ -66,7 +66,7 @@ const AttendanceList = () => {
   // modes below instead of the whole page. Unset (not customized) always
   // means both are open, same fallback rule useModuleAccess.isVisible uses
   // for every other nav item.
-  const { hasCustomAccess, grantedModules, canEditModule } = useModuleAccess();
+  const { usesGrants, grantedModules, canEditModule } = useModuleAccess();
   // Neither view-specific key granted (even though this employee's
   // access is otherwise customized) means the superadmin never bothered
   // narrowing it down -- granting "Attendance" alone still opens both
@@ -75,11 +75,11 @@ const AttendanceList = () => {
     grantedModules.has("hris.attendance_list_view") ||
     grantedModules.has("hris.attendance_grid_view");
   const canSeeListView =
-    !hasCustomAccess ||
+    !usesGrants ||
     !hasAnyAttendanceViewGrant ||
     grantedModules.has("hris.attendance_list_view");
   const canSeeGridView =
-    !hasCustomAccess ||
+    !usesGrants ||
     !hasAnyAttendanceViewGrant ||
     grantedModules.has("hris.attendance_grid_view");
 

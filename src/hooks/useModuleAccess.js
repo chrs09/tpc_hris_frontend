@@ -17,6 +17,9 @@ export default function useModuleAccess() {
   // Granted keys set to "Can edit: No" (view-only) on the Org Chart.
   const [readOnlyModules, setReadOnlyModules] = useState(new Set());
   const [hasCustomAccess, setHasCustomAccess] = useState(false);
+  // No custom access, but their role's defaults are set on Administrator
+  // -> Role Access: grantedModules then holds the role's modules.
+  const [usesRoleDefaults, setUsesRoleDefaults] = useState(false);
   // Whether the logged-in user is set as an immediate head for any
   // department (Administrator -> Hierarchy) -- gates the OT Approvals nav
   // item, since only a department's immediate head (or a request's
@@ -34,10 +37,12 @@ export default function useModuleAccess() {
         setGrantedModules(new Set(data.module_keys || []));
         setReadOnlyModules(new Set(data.read_only_keys || []));
         setHasCustomAccess(Boolean(data.has_custom_access));
+        setUsesRoleDefaults(Boolean(data.uses_role_defaults));
       })
       .catch(() => {
         setGrantedModules(new Set());
         setHasCustomAccess(false);
+        setUsesRoleDefaults(false);
       });
     getAmIDepartmentHead()
       .then((data) => setIsDepartmentHead(Boolean(data.is_department_head)))
@@ -46,6 +51,11 @@ export default function useModuleAccess() {
       .then((data) => setApproverOf(data || {}))
       .catch(() => setApproverOf({}));
   }, [isSuperAdmin]);
+
+  // Access to module pages comes from grantedModules (their own custom
+  // grants, or their role's saved defaults) instead of the built-in role
+  // lists below.
+  const usesGrants = hasCustomAccess || usesRoleDefaults;
 
   // approverKind can be one kind or a list of kinds.
   const approvesAny = (kind) =>
@@ -57,13 +67,14 @@ export default function useModuleAccess() {
     if (item.approverKind && approvesAny(item.approverKind)) return true;
     if (item.requiresDepartmentHead) return isDepartmentHead;
     if (!item.moduleKey) return item.roles.includes(role);
-    if (hasCustomAccess) return grantedModules.has(item.moduleKey);
+    if (usesGrants) return grantedModules.has(item.moduleKey);
     return item.roles.includes(role);
   };
 
   // Explicitly granted with "Can edit: Yes" -- for actions that are
   // otherwise superadmin-only (the backend checks the same rule, see
-  // has_editable_grant in app/core/dependencies.py).
+  // has_editable_grant in app/core/dependencies.py). A person's own
+  // grant only: role defaults never count here.
   const canEditModule = (key) =>
     isSuperAdmin ||
     (hasCustomAccess && grantedModules.has(key) && !readOnlyModules.has(key));
@@ -74,9 +85,9 @@ export default function useModuleAccess() {
   // (`defaultRoles`, same list the backend endpoint uses) or a grant.
   const canEdit = (key, defaultRoles = []) => {
     if (isSuperAdmin) return true;
-    if (hasCustomAccess && readOnlyModules.has(key)) return false;
+    if (usesGrants && readOnlyModules.has(key)) return false;
     if (defaultRoles.includes(role)) return true;
-    return hasCustomAccess && grantedModules.has(key);
+    return usesGrants && grantedModules.has(key);
   };
 
   return {
@@ -86,6 +97,8 @@ export default function useModuleAccess() {
     canEditModule,
     grantedModules,
     hasCustomAccess,
+    usesRoleDefaults,
+    usesGrants,
     isDepartmentHead,
     approverOf,
     approvesAny,

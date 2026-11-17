@@ -23,12 +23,13 @@ import {
 } from "../../api/orgHierarchy";
 import { getAssignableUsers } from "../../api/users";
 import {
+  getRoleDefaults,
   resetEmployeeModuleAccess,
   setEmployeeModuleAccess,
 } from "../../api/employeeModuleAccess";
 import { MODULE_GROUPS, moduleKey } from "../../constants/modules";
 import { getPayrollGroups } from "../../api/payroll/payrollGroups";
-import { getNavGroups } from "../../constants/navGroups";
+import { effectiveRoleKeys, effectiveRoleReadOnly } from "../../utils/roleDefaults";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -55,19 +56,6 @@ const initials = (name = "") =>
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("") || "?";
-
-// Module keys a role gets by default (no custom Module Assignment saved)
-// -- read from the same nav config the Sidebar uses.
-const roleDefaultKeys = (role) => {
-  const keys = new Set();
-  if (!role) return keys;
-  getNavGroups(role).forEach((group) =>
-    (group.children || []).forEach((item) => {
-      if (item.moduleKey && item.roles?.includes(role)) keys.add(item.moduleKey);
-    }),
-  );
-  return keys;
-};
 
 const groupKeys = (group) =>
   group.submodules.flatMap((sub) => [
@@ -909,7 +897,17 @@ const ChipPicker = ({ label, options, selected, onToggle, format = (v) => v }) =
 // Assignment. Starts from their current access (custom grants, or their
 // role's defaults) so saving never silently removes pages they had.
 function AccessPanel({ person, onClose, onSaved }) {
-  const defaults = useMemo(() => roleDefaultKeys(person.role), [person.role]);
+  // The role's defaults: saved on Role Access, else the built-in ones.
+  const [savedRoleDefaults, setSavedRoleDefaults] = useState(undefined);
+  useEffect(() => {
+    getRoleDefaults()
+      .then((data) => setSavedRoleDefaults(data?.roles?.[person.role] || null))
+      .catch(() => setSavedRoleDefaults(null));
+  }, [person.role]);
+  const defaults = useMemo(
+    () => effectiveRoleKeys(person.role, savedRoleDefaults),
+    [person.role, savedRoleDefaults],
+  );
   const initialKeys = useMemo(
     () =>
       person.has_custom_access ? new Set(person.module_keys) : new Set(defaults),
@@ -918,8 +916,11 @@ function AccessPanel({ person, onClose, onSaved }) {
   const [keys, setKeys] = useState(initialKeys);
   // Granted modules that are view-only ("Can edit: No").
   const initialReadOnly = useMemo(
-    () => new Set(person.has_custom_access ? person.read_only_keys || [] : []),
-    [person],
+    () =>
+      person.has_custom_access
+        ? new Set(person.read_only_keys || [])
+        : effectiveRoleReadOnly(savedRoleDefaults),
+    [person, savedRoleDefaults],
   );
   const [readOnly, setReadOnly] = useState(initialReadOnly);
   const [saving, setSaving] = useState(false);
@@ -1073,7 +1074,7 @@ function AccessPanel({ person, onClose, onSaved }) {
                     ? "Custom access (same as Module Assignment)."
                     : `Using the ${
                         ROLE_LABELS[person.role] || person.role
-                      } role's defaults. Changing anything saves custom access.`}
+                      } role's defaults (set on Role Access). Changing anything here saves custom access for this person only.`}
           </p>
 
           {canEdit &&

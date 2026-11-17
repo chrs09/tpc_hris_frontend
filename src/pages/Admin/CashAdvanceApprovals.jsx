@@ -103,12 +103,12 @@ const ApproverCell = ({ req }) => {
 
 export default function CashAdvanceApprovals({ embedded = false }) {
   const canEditPage = usePageCanEdit();
-  const { isSuperAdmin, hasCustomAccess, grantedModules, canEdit } = useModuleAccess();
+  const { isSuperAdmin, usesGrants, grantedModules, canEdit } = useModuleAccess();
   // Full history + balances are Finance's; an Org Chart head only gets
   // the requests waiting on them.
   const hasFinanceAccess =
     isSuperAdmin ||
-    (hasCustomAccess && grantedModules.has("finance.cash_advance"));
+    (usesGrants && grantedModules.has("finance.cash_advance"));
   // Outstanding Balances actions (Adjust, Release, opening balance):
   // superadmin, or Finance -> Cash Advances with "Can edit: Yes".
   const canEditLedger = canEdit("finance.cash_advance");
