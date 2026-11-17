@@ -15,8 +15,10 @@ import {
   periodLabel,
   periodParams,
   recentCutoffs,
+  toCutoffOptions,
 } from "../../utils/tripPeriod";
 import TripPeriodFilter from "../../components/adminTrips/TripPeriodFilter";
+import { getTripPeriods } from "../../api/payroll/payrollCutoffs";
 
 // Trip Approvals -- the coordinator's pending/completed approval queue
 // plus unknown check-ins needing review. Assigned/Active trip
@@ -34,9 +36,25 @@ const AdminTrips = () => {
   const [successMessage, setSuccessMessage] = useState("");
 
   // Period filter for the Pending / Completed lists: all dates (default,
-  // so nothing waiting is hidden), a cutoff going back a year, or custom
-  // dates. A ref so the background refresh uses the current pick.
-  const cutoffs = useMemo(() => recentCutoffs(24), []);
+  // so nothing waiting is hidden), a payroll cutoff with its payday (per
+  // payroll group -- driver groups first), or custom dates. A ref so the
+  // background refresh uses the current pick.
+  const [periodGroups, setPeriodGroups] = useState([]); // [{ group, periods }]
+  const [periodGroup, setPeriodGroup] = useState("");
+  useEffect(() => {
+    getTripPeriods()
+      .then((data) => {
+        const groups = data?.groups || [];
+        setPeriodGroups(groups);
+        const driverGroup = groups.find((g) => /driver/i.test(g.group)) || groups[0];
+        setPeriodGroup(driverGroup?.group || "");
+      })
+      .catch(() => setPeriodGroups([]));
+  }, []);
+  const cutoffs = useMemo(() => {
+    const chosen = periodGroups.find((g) => g.group === periodGroup);
+    return chosen ? toCutoffOptions(chosen.periods) : recentCutoffs(24);
+  }, [periodGroups, periodGroup]);
   const [period, setPeriod] = useState(ALL_DATES);
   const periodRef = useRef(ALL_DATES);
   const [filtering, setFiltering] = useState(false);
@@ -164,6 +182,13 @@ const AdminTrips = () => {
             value={period}
             cutoffs={cutoffs}
             onChange={changePeriod}
+            groups={periodGroups.map((g) => g.group)}
+            group={periodGroup}
+            onGroupChange={(name) => {
+              setPeriodGroup(name);
+              // A cutoff from the old group doesn't apply to the new one.
+              if (period.mode === "cutoff") changePeriod(ALL_DATES);
+            }}
           />
           <span className="text-xs text-fg-subtle">
             {filtering

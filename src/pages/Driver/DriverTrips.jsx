@@ -5,7 +5,6 @@ import {
   getTripSummary,
   getActiveTrip,
   getMyTrips,
-  getWalletCutoffs,
 } from "../../api/driver/trips";
 
 import SummaryCard from "../../components/driverTrips/SummaryCard";
@@ -16,8 +15,10 @@ import {
   periodLabel,
   periodParams,
   recentCutoffs,
+  toCutoffOptions,
 } from "../../utils/tripPeriod";
 import TripPeriodFilter from "../../components/adminTrips/TripPeriodFilter";
+import { getTripPeriods } from "../../api/payroll/payrollCutoffs";
 
 const DriverTrips = () => {
   const [summary, setSummary] = useState(null);
@@ -26,8 +27,7 @@ const DriverTrips = () => {
   const [loading, setLoading] = useState(true);
 
   // Period filter for the trip lists: all dates, one of the driver's
-  // cutoffs (back to their first trip -- same list as the wallet), or
-  // custom dates.
+  // payroll cutoffs with its payday (the last year), or custom dates.
   const [period, setPeriod] = useState(ALL_DATES);
   const [cutoffs, setCutoffs] = useState([]);
   const [filtering, setFiltering] = useState(false);
@@ -52,10 +52,11 @@ const DriverTrips = () => {
     };
 
     loadDashboard();
-    getWalletCutoffs()
+    // Their payroll group's cutoffs with paydays (same as payroll).
+    getTripPeriods()
       .then((data) => {
-        const list = Array.isArray(data) ? data : data?.data;
-        setCutoffs(list?.length ? list : recentCutoffs(24));
+        const periods = data?.mine?.periods || [];
+        setCutoffs(periods.length ? toCutoffOptions(periods) : recentCutoffs(24));
       })
       .catch(() => setCutoffs(recentCutoffs(24)));
   }, []);

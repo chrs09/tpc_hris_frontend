@@ -636,15 +636,34 @@ const DriverCashAdvance = () => {
             {requests.map((item) => {
               const shownStatus = item.display_status || item.status;
               const style = STATUS_STYLES[shownStatus] || STATUS_STYLES.pending;
+              // Headline = what's actually approved / released (after any
+              // adjustment), tagged with the requested amount when it differs.
+              const decided = item.approved_amount != null || Boolean(item.released_at);
+              const actualAmount = decided
+                ? (item.effective_amount ?? item.approved_amount ?? item.amount)
+                : item.amount;
+              const amountChanged = decided && actualAmount !== item.amount;
               return (
                 <div
                   key={item.id}
                   className="rounded-2xl border border-border bg-surface p-4"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-fg">
-                      ₱{item.amount.toLocaleString()}
-                    </span>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-lg font-bold text-fg">
+                        ₱{actualAmount.toLocaleString()}
+                      </span>
+                      {amountChanged && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-bold text-success">
+                            {item.released_at ? "Actual released" : "Actual approved"}
+                          </span>
+                          <span className="text-xs text-fg-subtle line-through">
+                            Requested ₱{item.amount.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-bold ${style}`}
                     >
@@ -686,14 +705,6 @@ const DriverCashAdvance = () => {
                           Approved: {new Date(item.approved_at).toLocaleDateString()}
                         </p>
                       )}
-                      {item.approved_amount != null &&
-                        item.approved_amount !== item.amount && (
-                          <p className="mt-1 text-xs font-semibold text-fg">
-                            Requested Amount: ₱{item.amount.toLocaleString()}{" "}
-                            · Approved CA: ₱
-                            {item.approved_amount.toLocaleString()}
-                          </p>
-                        )}
                       <p className="mt-1 text-xs text-fg-subtle">
                         {item.is_fully_paid
                           ? "Fully paid"

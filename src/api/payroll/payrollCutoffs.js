@@ -21,3 +21,11 @@ export const deletePayrollCutoffRule = async (department) => {
   );
   return res.data;
 };
+
+// Pay periods with paydays for the trip filters (any login):
+// { mine: { group, periods } | null, groups: [{ group, periods }] }
+// period: { from, to, payout, label: "Oct 16 - Oct 31, 2026 · Payday Nov 15" }
+export const getTripPeriods = async () => {
+  const res = await api.get("/payroll-cutoffs/trip-periods");
+  return res.data;
+};

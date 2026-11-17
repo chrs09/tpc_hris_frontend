@@ -45,6 +45,10 @@ export default function CashAdvanceReleaseModal({
   useEffect(() => () => preview && URL.revokeObjectURL(preview), [preview]);
 
   const showReceipt = mode === "release";
+  // Release: the amount actually going out (approved, after any
+  // adjustment) -- not the requested amount, which can be higher.
+  const releaseAmount = request.effective_amount ?? request.approved_amount ?? request.amount;
+  const releaseChanged = releaseAmount !== request.amount;
 
   const pickFile = (file) => {
     if (!file) return;
@@ -75,9 +79,26 @@ export default function CashAdvanceReleaseModal({
             <h3 className="text-lg font-semibold text-fg">
               {mode === "release" ? "Record Release" : "Approve Cash Advance"}
             </h3>
-            <p className="text-sm text-fg-subtle">
-              {request.employee_name} · requested {peso(request.amount)}
-            </p>
+            {mode === "release" ? (
+              <div className="mt-1 space-y-1">
+                <p className="text-sm text-fg-subtle">{request.employee_name}</p>
+                <p className="text-2xl font-bold text-fg">{peso(releaseAmount)}</p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-bold text-success">
+                    {releaseChanged ? "Actual approved amount" : "Approved amount"}
+                  </span>
+                  {releaseChanged && (
+                    <span className="text-xs text-fg-subtle line-through">
+                      Requested {peso(request.amount)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-fg-subtle">
+                {request.employee_name} · requested {peso(request.amount)}
+              </p>
+            )}
           </div>
           <button type="button" onClick={onClose} className="text-fg-muted hover:text-fg">
             <X size={20} />
