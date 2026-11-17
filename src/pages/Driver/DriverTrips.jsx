@@ -5,17 +5,32 @@ import {
   getTripSummary,
   getActiveTrip,
   getMyTrips,
+  getWalletCutoffs,
 } from "../../api/driver/trips";
 
 import SummaryCard from "../../components/driverTrips/SummaryCard";
 import ActiveTripCard from "../../components/driverTrips/ActiveTripCard";
 import TripTable from "../../components/driverTrips/TripTable";
+import {
+  ALL_DATES,
+  periodLabel,
+  periodParams,
+  recentCutoffs,
+} from "../../utils/tripPeriod";
+import TripPeriodFilter from "../../components/adminTrips/TripPeriodFilter";
 
 const DriverTrips = () => {
   const [summary, setSummary] = useState(null);
   const [activeTrip, setActiveTrip] = useState(null);
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Period filter for the trip lists: all dates, one of the driver's
+  // cutoffs (back to their first trip -- same list as the wallet), or
+  // custom dates.
+  const [period, setPeriod] = useState(ALL_DATES);
+  const [cutoffs, setCutoffs] = useState([]);
+  const [filtering, setFiltering] = useState(false);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -37,7 +52,27 @@ const DriverTrips = () => {
     };
 
     loadDashboard();
+    getWalletCutoffs()
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data?.data;
+        setCutoffs(list?.length ? list : recentCutoffs(24));
+      })
+      .catch(() => setCutoffs(recentCutoffs(24)));
   }, []);
+
+  const changePeriod = async (next) => {
+    setPeriod(next);
+    // Custom dates: wait until both ends are picked.
+    if (next.mode === "custom" && (!next.from || !next.to)) return;
+    try {
+      setFiltering(true);
+      setTrips(await getMyTrips(periodParams(next)));
+    } catch (error) {
+      console.error("Driver trips filter failed:", error);
+    } finally {
+      setFiltering(false);
+    }
+  };
 
   const pendingTrips = useMemo(
     () => trips.filter((t) => t.status === "PENDING_APPROVAL"),
@@ -74,6 +109,21 @@ const DriverTrips = () => {
         <h2 className="text-xl font-semibold mb-4">Active Trip Monitoring</h2>
         <ActiveTripCard activeTrip={activeTrip} />
       </section>
+
+      {/* PERIOD FILTER (trip lists below) */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
+        <TripPeriodFilter
+          id="driver-trips-period"
+          value={period}
+          cutoffs={cutoffs}
+          onChange={changePeriod}
+        />
+        <span className="text-xs text-fg-subtle">
+          {filtering
+            ? "Loading..."
+            : `Showing ${periodLabel(period, cutoffs)} · by trip start date`}
+        </span>
+      </div>
 
       {/* PENDING */}
       <TripTable

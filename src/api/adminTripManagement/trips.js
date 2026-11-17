@@ -2,7 +2,9 @@ import api from "../services/api";
 
 export const getAdminTripSummary = () => api.get("/admin/trips/summary");
 
-export const getPendingTrips = () => api.get("/admin/trips/pending");
+// params (optional): { cutoff } or { date_from, date_to } -- see
+// TripPeriodFilter (components/adminTrips/TripPeriodFilter.jsx).
+export const getPendingTrips = (params = {}) => api.get("/admin/trips/pending", { params });
 
 // Live status per trip: current_step/current_step_label reflect
 // whatever driver-triggered step the trip is on right now (Checkout,
@@ -60,7 +62,8 @@ export const replaceTripFile = (fileId, photo) => {
   return api.post(`/admin/trips/files/${fileId}/replace`, formData);
 };
 
-export const getCompletedTrips = () => api.get("/admin/trips/completed");
+export const getCompletedTrips = (params = {}) =>
+  api.get("/admin/trips/completed", { params });
 
 // Correcting documents like the driver uploads them: add Invoice / LM
 // pages, or a missing single photo (stopId for a stop's unloading / POD).

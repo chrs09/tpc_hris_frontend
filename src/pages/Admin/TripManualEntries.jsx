@@ -94,7 +94,21 @@ export default function TripManualEntries() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // Overlap exemption: the server said this trip overlaps another of the
+  // driver's trips (409). If both really happened -- e.g. the driver
+  // checked in late on the other trip -- allow it with a reason.
+  const [overlapError, setOverlapError] = useState("");
+  const [allowOverlap, setAllowOverlap] = useState(false);
+  const [overlapReason, setOverlapReason] = useState("");
+
   const [form, setForm] = useState(emptyForm);
+
+  // A different driver or times: check the overlap again from scratch.
+  useEffect(() => {
+    setOverlapError("");
+    setAllowOverlap(false);
+    setOverlapReason("");
+  }, [form.driverId, form.startTime, form.endTime]);
   const [shipmentInput, setShipmentInput] = useState("");
   const [shipments, setShipments] = useState([]);
   // Special trip: no shipment numbers -- the server gives it an
@@ -208,6 +222,7 @@ export default function TripManualEntries() {
     form.endTime &&
     form.reason.trim() &&
     stops.length > 0 &&
+    (!allowOverlap || overlapReason.trim().length >= 5) &&
     (isSpecial ||
       (shipments.length > 0 &&
         shipmentStoresComplete(
@@ -226,6 +241,9 @@ export default function TripManualEntries() {
     setHelperIds([]);
     setHelperAsDriver(false);
     setPhotos({});
+    setOverlapError("");
+    setAllowOverlap(false);
+    setOverlapReason("");
   };
 
   const handleSubmit = async () => {
@@ -247,6 +265,10 @@ export default function TripManualEntries() {
     fd.append("reason", form.reason.trim());
     if (form.odometer) fd.append("odometer_reading", form.odometer);
     fd.append("is_special", isSpecial ? "true" : "false");
+    if (allowOverlap) {
+      fd.append("allow_overlap", "true");
+      fd.append("overlap_reason", overlapReason.trim());
+    }
     fd.append("shipment_numbers", JSON.stringify(isSpecial ? [] : shipments));
     fd.append(
       "shipment_stores",
@@ -284,7 +306,13 @@ export default function TripManualEntries() {
       // A coordinator admin's entry adds to the superadmin's alert bell.
       window.dispatchEvent(new Event("manual-entries-changed"));
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      if (error?.response?.status === 409) {
+        // Overlaps another trip: show the exemption box above Save.
+        setOverlapError(getErrorMessage(error));
+        toast.error("This overlaps another of the driver's trips. See below.");
+      } else {
+        toast.error(getErrorMessage(error));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -696,6 +724,40 @@ export default function TripManualEntries() {
                 placeholder="e.g. Server was down on Sept 20, trip confirmed with the driver and coordinator."
               />
             </Section>
+
+            {overlapError && (
+              <div className="space-y-3 rounded-xl border border-warning/40 bg-warning/10 p-4">
+                <p className="text-sm font-semibold text-warning">Overlaps another trip</p>
+                <p className="text-sm text-fg">{overlapError}</p>
+                <label
+                  htmlFor="allow-overlap"
+                  className="flex cursor-pointer items-start gap-2 text-sm text-fg"
+                >
+                  <input
+                    id="allow-overlap"
+                    type="checkbox"
+                    checked={allowOverlap}
+                    onChange={(e) => setAllowOverlap(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-primary"
+                  />
+                  Allow overlap. Both trips really happened.
+                </label>
+                {allowOverlap && (
+                  <textarea
+                    id="overlap-reason"
+                    rows={2}
+                    className={`${inputStyles} resize-none`}
+                    value={overlapReason}
+                    onChange={(e) => setOverlapReason(e.target.value)}
+                    placeholder="e.g. Deliveries on 202611-00177 finished Nov 14, but the driver only checked in at the hub Nov 16. Special trip done Nov 15."
+                  />
+                )}
+                <p className="text-xs text-fg-subtle">
+                  The reason is added to this entry&apos;s reason, for the superadmin who approves it
+                  and in Trip Document.
+                </p>
+              </div>
+            )}
 
             <button
               type="button"

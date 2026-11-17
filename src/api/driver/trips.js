@@ -6,8 +6,9 @@ export const getTripSummary = () =>
 export const getActiveTrip = () =>
   api.get("/driver/trips/active").then((res) => res.data);
 
-export const getMyTrips = () =>
-  api.get("/driver/trips/my-trips").then((res) => res.data);
+// params (optional): { cutoff } or { date_from, date_to }.
+export const getMyTrips = (params = {}) =>
+  api.get("/driver/trips/my-trips", { params }).then((res) => res.data);
 
 export const getWalletCutoffs = () =>
   api.get("/driver/trips/wallet/cutoffs").then((res) => res.data);

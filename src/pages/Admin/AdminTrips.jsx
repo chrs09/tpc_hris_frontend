@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   getAdminTripSummary,
   getPendingTrips,
@@ -10,6 +10,13 @@ import SummaryCard from "../../components/adminTrips/SummaryCards";
 import PendingTripsCard from "../../components/adminTrips/PendingTripsCard";
 import UnknownStoresCard from "../../components/adminTrips/UnknownStoresCard";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import {
+  ALL_DATES,
+  periodLabel,
+  periodParams,
+  recentCutoffs,
+} from "../../utils/tripPeriod";
+import TripPeriodFilter from "../../components/adminTrips/TripPeriodFilter";
 
 // Trip Approvals -- the coordinator's pending/completed approval queue
 // plus unknown check-ins needing review. Assigned/Active trip
@@ -26,12 +33,21 @@ const AdminTrips = () => {
 
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Period filter for the Pending / Completed lists: all dates (default,
+  // so nothing waiting is hidden), a cutoff going back a year, or custom
+  // dates. A ref so the background refresh uses the current pick.
+  const cutoffs = useMemo(() => recentCutoffs(24), []);
+  const [period, setPeriod] = useState(ALL_DATES);
+  const periodRef = useRef(ALL_DATES);
+  const [filtering, setFiltering] = useState(false);
+
   const loadTrips = async () => {
+    const params = periodParams(periodRef.current);
     try {
       const [s, p, c, u] = await Promise.all([
         getAdminTripSummary(),
-        getPendingTrips(),
-        getCompletedTrips(),
+        getPendingTrips(params),
+        getCompletedTrips(params),
         getUnknownStops(),
       ]);
 
@@ -80,6 +96,16 @@ const AdminTrips = () => {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
+
+  const changePeriod = async (next) => {
+    setPeriod(next);
+    periodRef.current = next;
+    // Custom dates: wait until both ends are picked.
+    if (next.mode === "custom" && (!next.from || !next.to)) return;
+    setFiltering(true);
+    await loadTrips();
+    setFiltering(false);
+  };
 
   const handleTripApproved = async () => {
     await loadTrips();
@@ -131,6 +157,20 @@ const AdminTrips = () => {
         <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
           Pending Trip Approvals
         </h2>
+
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
+          <TripPeriodFilter
+            id="trip-approvals-period"
+            value={period}
+            cutoffs={cutoffs}
+            onChange={changePeriod}
+          />
+          <span className="text-xs text-fg-subtle">
+            {filtering
+              ? "Loading..."
+              : `Showing ${periodLabel(period, cutoffs)} · by trip start date`}
+          </span>
+        </div>
 
         <div className="flex gap-2 mb-4">
           <button
