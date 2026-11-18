@@ -1519,7 +1519,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                                 >
                                   Reversed
                                 </span>
-                              ) : d.entry_type === "deduction" && d.amount > 0 ? (
+                              ) : showReversals && d.entry_type === "deduction" && d.amount > 0 ? (
                                 <button
                                   type="button"
                                   onClick={() => handleReverseHistoryRow(d)}
