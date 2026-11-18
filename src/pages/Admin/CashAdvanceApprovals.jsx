@@ -218,10 +218,23 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const [balancesLoaded, setBalancesLoaded] = useState(false);
   const [recordingId, setRecordingId] = useState(null);
   const [releasingId, setReleasingId] = useState(null);
-  const balancesPagination = usePagination(
-    balances.filter(matchesRequest),
-    10,
-  );
+  const filteredBalances = balances.filter(matchesRequest);
+  const balancesPagination = usePagination(filteredBalances, 10);
+  // While searching: each matched employee's total still owed, across
+  // all their advances.
+  const balanceTotals = search.trim()
+    ? Object.values(
+        filteredBalances.reduce((acc, r) => {
+          const key = r.employee_id ?? r.employee_name;
+          const row = acc[key] || { key, name: r.employee_name, count: 0, remaining: 0, refs: [] };
+          row.count += 1;
+          row.remaining += Number(r.remaining_balance) || 0;
+          if (r.reference_no) row.refs.push(r.reference_no);
+          acc[key] = row;
+          return acc;
+        }, {}),
+      ).sort((a, b) => b.remaining - a.remaining)
+    : [];
 
   const [assignableUsers, setAssignableUsers] = useState([]);
   const [openingBalanceUser, setOpeningBalanceUser] = useState(null);
@@ -1625,6 +1638,27 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                 )}
               </div>
             </div>
+
+            {!loadingBalances && balanceTotals.length > 0 && (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {balanceTotals.map((t) => (
+                  <div
+                    key={t.key}
+                    className="rounded-2xl border border-primary/30 bg-primary/5 p-3"
+                  >
+                    <p className="text-xs text-fg-subtle">Total outstanding</p>
+                    <p className="font-semibold text-fg">{t.name}</p>
+                    <p className="mt-0.5 text-xl font-bold text-primary">
+                      ₱{t.remaining.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="mt-0.5 text-xs text-fg-subtle">
+                      {t.count} {t.count === 1 ? "cash advance" : "cash advances"}
+                      {t.refs.length ? ` · ${t.refs.join(", ")}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="mt-4 space-y-2">
               {loadingBalances ? (
