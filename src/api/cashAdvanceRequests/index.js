@@ -139,6 +139,17 @@ export const getCashAdvanceTransactions = async (requestId) => {
   return res.data;
 };
 
+// Takes back one recorded deduction that was never actually taken from
+// pay (e.g. payroll posted the default amount before payroll was really
+// used). The balance goes back up; what's owed doesn't change.
+export const reverseCashAdvanceDeduction = async (requestId, logId, reason) => {
+  const res = await api.post(
+    `/cash-advance-requests/${requestId}/transactions/${logId}/reverse`,
+    { reason },
+  );
+  return res.data;
+};
+
 // Superadmin: records a pre-existing balance (carried over from before
 // this system was used) as an already-approved request, so it shows up
 // in Outstanding Balances alongside normal requests.

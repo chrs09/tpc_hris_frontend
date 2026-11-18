@@ -16,6 +16,7 @@ import {
   adjustCashAdvance,
   rejectCashAdvanceRequest,
   setCashAdvanceReleaseInfo,
+  reverseCashAdvanceDeduction,
 } from "../../api/cashAdvanceRequests";
 import { getAssignableUsers } from "../../api/users";
 import usePagination from "../../hooks/usePagination";
@@ -512,6 +513,34 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const handleCloseHistory = () => {
     setHistoryRequest(null);
     setTransactions([]);
+  };
+
+  // A deduction that was never actually taken from pay (e.g. payroll
+  // posted the default per-pay amount before payroll was really used):
+  // add it back to the balance. What's owed stays the same.
+  const [reversingId, setReversingId] = useState(null);
+  const handleReverseDeduction = async (tx) => {
+    if (!historyRequest) return;
+    const reason = await promptDialog(
+      `Add ₱${tx.amount.toLocaleString()} back to ${historyRequest.employee_name}'s balance? Use this only if it was never actually taken from their pay. Reason:`,
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("Give the reason for reversing it.");
+      return;
+    }
+    try {
+      setReversingId(tx.id);
+      const updated = await reverseCashAdvanceDeduction(historyRequest.id, tx.id, reason.trim());
+      setHistoryRequest((prev) => (prev ? { ...prev, ...updated } : prev));
+      toast.success(`₱${tx.amount.toLocaleString()} added back to the balance.`);
+      await loadTransactions(historyRequest.id);
+      await loadBalances();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to reverse the deduction.");
+    } finally {
+      setReversingId(null);
+    }
   };
 
   const handleAddDeduction = async () => {
@@ -1317,12 +1346,20 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           </td>
                           <td className="px-4 py-3 font-medium text-fg">{d.employee_name || "—"}</td>
                           <td className="whitespace-nowrap px-4 py-3 font-semibold text-fg">
-                            {d.source === "adjustment" && (d.amount > 0 ? "−" : "+")}₱
+                            {(d.source === "adjustment" || d.amount < 0) && (d.amount > 0 ? "−" : "+")}₱
                             {Math.abs(d.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-4 py-3">
                             {d.source === "adjustment" ? (
                               <span className="font-medium text-warning">Adjustment</span>
+                            ) : d.source === "reversal" ? (
+                              <div>
+                                <span className="font-medium text-success">Added back</span>
+                                <p className="text-xs text-fg-subtle">
+                                  Deduction reversed
+                                  {d.cutoff_period ? ` · ${d.cutoff_period.replace("_", " to ")}` : ""}
+                                </p>
+                              </div>
                             ) : d.source === "payroll" ? (
                               <div>
                                 <span className="font-medium text-fg">Payroll</span>
@@ -1731,19 +1768,47 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                             </span>
                             {tx.amount > 0 ? "−" : "+"}₱{Math.abs(tx.amount).toLocaleString()}
                           </>
+                        ) : tx.entry_type === "reversal" ? (
+                          <>
+                            <span className="mr-1.5 rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                              Added back
+                            </span>
+                            +₱{Math.abs(tx.amount).toLocaleString()}
+                          </>
                         ) : (
-                          <>₱{tx.amount.toLocaleString()}</>
+                          <>
+                            ₱{tx.amount.toLocaleString()}
+                            {tx.reversed && (
+                              <span className="ml-1.5 rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-subtle">
+                                Reversed
+                              </span>
+                            )}
+                          </>
                         )}
                       </span>
-                      <span className="text-xs text-fg-subtle">
+                      <span className="flex items-center gap-2 text-xs text-fg-subtle">
                         {new Date(tx.recorded_at).toLocaleString()}
+                        {canEditLedger &&
+                          (tx.entry_type || "deduction") === "deduction" &&
+                          tx.amount > 0 &&
+                          !tx.reversed && (
+                            <button
+                              type="button"
+                              onClick={() => handleReverseDeduction(tx)}
+                              disabled={reversingId === tx.id}
+                              title="Add this back to the balance -- it was never taken from pay"
+                              className="rounded-md border border-border px-2 py-0.5 font-semibold text-fg-muted hover:bg-surface-active disabled:opacity-50"
+                            >
+                              {reversingId === tx.id ? "Reversing..." : "Reverse"}
+                            </button>
+                          )}
                       </span>
                     </div>
                     <p className="mt-0.5 text-xs text-fg-subtle">
                       {tx.recorded_by_name
                         ? `Recorded by ${tx.recorded_by_name}`
                         : "Recorded"}
-                      {tx.note ? ` · ${tx.note}` : ""}
+                      {tx.note ? ` · ${tx.note.replace(/^\[reverses #\d+\]\s*/, "")}` : ""}
                     </p>
                   </div>
                 ))
