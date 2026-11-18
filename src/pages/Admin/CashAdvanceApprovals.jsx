@@ -144,6 +144,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const matchesRequest = (r) =>
     matchesSearch(
       search,
+      r.reference_no,
       r.employee_name,
       r.reason,
       r.status,
@@ -176,11 +177,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     };
   });
   const [deductionSource, setDeductionSource] = useState("");
+  const [deductionsReload, setDeductionsReload] = useState(0);
   const [deductions, setDeductions] = useState([]);
   const [loadingDeductions, setLoadingDeductions] = useState(false);
   const filteredDeductions = deductions.filter((d) =>
     matchesSearch(
       search,
+      d.reference_no,
       d.employee_name,
       d.note,
       d.cutoff_period,
@@ -328,7 +331,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     return () => {
       cancelled = true;
     };
-  }, [tab, hasFinanceAccess, deductionRange, deductionSource]);
+  }, [tab, hasFinanceAccess, deductionRange, deductionSource, deductionsReload]);
 
   // Same lazy-load pattern for the Balances tab.
   useEffect(() => {
@@ -543,6 +546,31 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
   };
 
+  // Same, straight from a Deduction History row -- also for an advance
+  // that shows Fully paid (it's no longer in Outstanding Balances).
+  const handleReverseHistoryRow = async (d) => {
+    const amount = `₱${d.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
+    const reason = await promptDialog(
+      `Add ${amount} back to ${d.employee_name}'s ${d.reference_no || "cash advance"} balance? Use this only if it was never actually taken from their pay. Reason:`,
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("Give the reason for reversing it.");
+      return;
+    }
+    try {
+      setReversingId(d.id);
+      await reverseCashAdvanceDeduction(d.request_id, d.id, reason.trim());
+      toast.success(`${amount} added back to the balance.`);
+      setDeductionsReload((n) => n + 1);
+      loadBalances();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || "Failed to reverse the deduction.");
+    } finally {
+      setReversingId(null);
+    }
+  };
+
   const handleAddDeduction = async () => {
     if (!historyRequest) return;
     const amount = Number(newDeductionAmount);
@@ -643,6 +671,13 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   // (remembered per browser). default: false = hidden until ticked.
   const shortDate = (value) => (value ? new Date(value).toLocaleDateString() : "—");
   const ALL_COLUMNS = [
+    {
+      key: "reference",
+      label: "CA Ref",
+      locked: true,
+      tdClass: "py-4 whitespace-nowrap font-mono text-xs font-semibold text-primary",
+      render: (req) => req.reference_no || "—",
+    },
     { key: "employee", label: "Employee", locked: true, tdClass: "py-4 font-medium text-fg", render: (req) => req.employee_name },
     { key: "requested", label: "Requested", render: (req) => `₱${req.amount.toLocaleString()}` },
     {
@@ -932,6 +967,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           <td className="px-4 py-3">
                             <p className="font-semibold text-fg">{req.employee_name}</p>
                             <p className="text-xs text-fg-subtle">
+                              {req.reference_no && <span className="font-mono font-semibold text-primary">{req.reference_no} · </span>}
                               Filed {new Date(req.created_at).toLocaleDateString()}
                             </p>
                           </td>
@@ -1033,6 +1069,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         {req.employee_name}
                       </p>
                       <p className="text-sm text-fg-subtle">
+                        {req.reference_no && <span className="font-mono font-semibold text-primary">{req.reference_no} · </span>}
                         Filed {new Date(req.created_at).toLocaleString()}
                       </p>
                     </div>
@@ -1336,6 +1373,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         <th className="px-4 py-3">Cash Advance</th>
                         <th className="px-4 py-3">Recorded By</th>
                         <th className="px-4 py-3">Note</th>
+                        {canEditLedger && <th className="px-4 py-3 text-right">Action</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -1389,11 +1427,35 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                               : <span className="font-semibold text-primary">Fully paid</span>}
                           </td>
                           <td className="px-4 py-3 text-xs text-fg-subtle">
+                            {d.reference_no && (
+                              <p className="whitespace-nowrap font-mono font-semibold text-primary">{d.reference_no}</p>
+                            )}
                             ₱{d.request_amount.toLocaleString()}
                             {d.request_reason ? ` · ${d.request_reason}` : ""}
                           </td>
                           <td className="px-4 py-3 text-xs">{d.recorded_by_name || "—"}</td>
-                          <td className="px-4 py-3 text-xs text-fg-subtle">{d.note || "—"}</td>
+                          <td className="px-4 py-3 text-xs text-fg-subtle">
+                            {(d.note || "").replace(/^\[reverses #\d+\]\s*/, "") || "—"}
+                          </td>
+                          {canEditLedger && (
+                            <td className="whitespace-nowrap px-4 py-3 text-right">
+                              {d.reversed ? (
+                                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                                  Reversed
+                                </span>
+                              ) : d.entry_type === "deduction" && d.amount > 0 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleReverseHistoryRow(d)}
+                                  disabled={reversingId === d.id}
+                                  title="Add this back to the balance -- it was never taken from pay"
+                                  className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-fg-muted hover:bg-surface-active disabled:opacity-50"
+                                >
+                                  {reversingId === d.id ? "Reversing..." : "Reverse"}
+                                </button>
+                              ) : null}
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>
@@ -1519,6 +1581,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         <span className="font-semibold text-fg">
                           {request.employee_name}
                         </span>
+                        {request.reference_no && (
+                          <span className="ml-2 font-mono text-xs font-semibold text-primary">
+                            {request.reference_no}
+                          </span>
+                        )}
                         <span
                           className={`ml-2 rounded-full px-2 py-0.5 text-xs font-semibold ${
                             request.is_opening_balance
@@ -1730,6 +1797,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                   Transaction History
                 </h3>
                 <p className="mt-1 text-sm text-fg-subtle">
+                  {historyRequest.reference_no && (
+                    <span className="font-mono font-semibold text-primary">{historyRequest.reference_no} · </span>
+                  )}
                   {historyRequest.employee_name} · ₱
                   {historyRequest.remaining_balance.toLocaleString()}{" "}
                   remaining of ₱

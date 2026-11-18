@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  fileKioskMissedTimeOut,
+  fileKioskMissedTimeOutWithReference,
   getKioskStatus,
   kioskSelfieAttendance,
 } from "../../api/attendance";
@@ -96,7 +96,8 @@ export default function AttendanceKiosk() {
   const [workProof, setWorkProof] = useState(null);
   const [workProofPreview, setWorkProofPreview] = useState(null);
 
-  // Forgot to time out on earlier days: { [attendance_id]: { time, reason } },
+  // Forgot to time out on earlier days: { [attendance_id]: { time, file } },
+  // file = a reference (photo or PDF) the head checks,
   // all filled in before today's selfie.
   const [missedEntries, setMissedEntries] = useState({});
   // Days already sent this visit (skipped if the time in has to be retried).
@@ -252,7 +253,7 @@ export default function AttendanceKiosk() {
   const selfieStep = ++stepNo;
 
   const entryDone = (day) =>
-    Boolean(missedEntries[day.attendance_id]?.time && missedEntries[day.attendance_id]?.reason?.trim());
+    Boolean(missedEntries[day.attendance_id]?.time && missedEntries[day.attendance_id]?.file);
   const missedDone = missedDays.every(entryDone);
   const workDone = !asksWork || workText.trim();
   const canSubmit = photoFile && locationReady && missedDone && workDone && !submitting;
@@ -261,7 +262,7 @@ export default function AttendanceKiosk() {
     if (!employee) return;
     if (missed && !missedDone) {
       const first = missedDays.find((day) => !entryDone(day));
-      setError(`Step ${missedStep}: enter the time you left on ${first.date_label} and why.`);
+      setError(`Step ${missedStep}: enter the time you left on ${first.date_label} and attach a reference.`);
       return;
     }
     if (asksWork && !workDone) {
@@ -285,11 +286,11 @@ export default function AttendanceKiosk() {
       for (const day of missedDays) {
         if (filedIdsRef.current.has(day.attendance_id)) continue;
         const entry = missedEntries[day.attendance_id];
-        const filed = await fileKioskMissedTimeOut(
+        const filed = await fileKioskMissedTimeOutWithReference(
           employee.employee_id,
           day.attendance_id,
           entry.time,
-          entry.reason.trim(),
+          entry.file,
         );
         filedIdsRef.current.add(day.attendance_id);
         stillOpen = filed.missed_time_out;
@@ -493,9 +494,9 @@ export default function AttendanceKiosk() {
                             ? `Finish ${missedDays[0].date_label}`
                             : `Finish ${missedDays.length} days without a time out`
                         }
-                        hint="When did you leave each day? Your head approves it."
+                        hint="When did you leave each day? Attach a reference (photo or PDF). Your head approves it."
                       />
-                      {missedDays.map((day, index) => {
+                      {missedDays.map((day) => {
                         const entry = missedEntries[day.attendance_id] || {};
                         return (
                           <div
@@ -526,31 +527,44 @@ export default function AttendanceKiosk() {
                                   Past midnight? Enter it as is.
                                 </span>
                               </label>
-                              <label className="block text-sm font-semibold text-slate-700">
-                                Why didn&apos;t you time out?
-                                <textarea
-                                  rows={2}
-                                  maxLength={1000}
-                                  value={entry.reason || ""}
-                                  onChange={(e) => setMissedEntry(day.attendance_id, "reason", e.target.value)}
-                                  placeholder="e.g. Rescue call, phone died, forgot"
-                                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900"
-                                />
-                              </label>
+                              <div className="block text-sm font-semibold text-slate-700">
+                                Reference
+                                <label
+                                  className={`mt-1 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed px-3 py-3 text-base font-normal ${
+                                    entry.file
+                                      ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                                      : "border-slate-300 bg-white text-slate-600 hover:border-amber-400"
+                                  }`}
+                                >
+                                  <span aria-hidden="true" className="text-xl">📎</span>
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {entry.file ? entry.file.name : "Upload a photo or PDF"}
+                                  </span>
+                                  {entry.file && (
+                                    <span className="text-xs font-semibold text-emerald-700 underline">Change</span>
+                                  )}
+                                  <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    className="sr-only"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      e.target.value = "";
+                                      if (!file) return;
+                                      if (file.size > 15 * 1024 * 1024) {
+                                        setError("The reference file is too big (15 MB max).");
+                                        return;
+                                      }
+                                      setError("");
+                                      setMissedEntry(day.attendance_id, "file", file);
+                                    }}
+                                  />
+                                </label>
+                                <span className="mt-1 block text-[11px] font-normal text-slate-500">
+                                  e.g. a screenshot of a message, gate log, or delivery receipt
+                                </span>
+                              </div>
                             </div>
-                            {index === 0 && missedDays.length > 1 && entry.reason?.trim() && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  missedDays.slice(1).forEach((other) =>
-                                    setMissedEntry(other.attendance_id, "reason", entry.reason),
-                                  )
-                                }
-                                className="text-xs font-semibold text-amber-800 underline"
-                              >
-                                Use this reason for all days
-                              </button>
-                            )}
                           </div>
                         );
                       })}

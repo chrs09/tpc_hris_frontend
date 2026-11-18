@@ -575,10 +575,22 @@ export default function AttendanceApprovals() {
                           ? ` Says they left at ${item.missed_time_out.requested_time}.`
                           : " Not filed yet -- you can enter the time out."}
                       </p>
-                      {item.missed_time_out.reason && (
-                        <p className="mt-0.5 text-fg-muted">
-                          Reason: “{item.missed_time_out.reason}”
-                        </p>
+                      {item.missed_time_out.reason &&
+                        !(item.missed_time_out.reference_url &&
+                          item.missed_time_out.reason === "Reference attached.") && (
+                          <p className="mt-0.5 text-fg-muted">
+                            Reason: “{item.missed_time_out.reason}”
+                          </p>
+                        )}
+                      {item.missed_time_out.reference_url && (
+                        <a
+                          href={item.missed_time_out.reference_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 rounded-md border border-border bg-surface px-2 py-1 font-medium text-primary hover:underline"
+                        >
+                          📎 View reference
+                        </a>
                       )}
                       {canEditPage && (
                         <label className="mt-1.5 flex items-center gap-2">

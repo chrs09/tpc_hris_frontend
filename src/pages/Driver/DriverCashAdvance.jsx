@@ -671,6 +671,11 @@ const DriverCashAdvance = () => {
                     </span>
                   </div>
 
+                  {item.reference_no && (
+                    <p className="mt-2 font-mono text-xs font-semibold text-primary">
+                      {item.reference_no}
+                    </p>
+                  )}
                   <p className="mt-2 text-sm text-fg">
                     <span className="text-fg-subtle">Loan Purpose: </span>
                     {item.reason}

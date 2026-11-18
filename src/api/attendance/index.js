@@ -205,6 +205,18 @@ export const fileKioskMissedTimeOut = async (employeeId, attendanceId, timeOut, 
   return res.data;
 };
 
+// Kiosk: the time they left plus a reference file (photo or PDF) instead
+// of a typed reason.
+export const fileKioskMissedTimeOutWithReference = async (employeeId, attendanceId, timeOut, reference) => {
+  const formData = new FormData();
+  formData.append("employee_id", Number(employeeId));
+  formData.append("attendance_id", attendanceId);
+  formData.append("time_out", timeOut);
+  formData.append("reference", reference);
+  const res = await api.post("/attendance/kiosk/missed-time-out/reference", formData);
+  return res.data;
+};
+
 // A head sets a missed time out themselves (before it's filed).
 export const setMissedTimeOut = async (attendanceId, timeOut, remarks) => {
   const res = await api.post(`/attendance/${attendanceId}/set-missed-time-out`, {
