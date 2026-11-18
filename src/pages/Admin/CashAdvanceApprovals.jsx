@@ -194,11 +194,20 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       d.amount,
     ),
   );
-  const deductionsPagination = usePagination(filteredDeductions, 20);
-  const deductionsTotal = filteredDeductions.reduce(
-    (sum, d) => (d.source === "adjustment" ? sum : sum + d.amount),
-    0,
+  // "Added back" rows are hidden unless the switch is on -- the reversed
+  // deduction itself is marked Reversed (with who, when and why) instead.
+  const [showReversals, setShowReversals] = useState(false);
+  const visibleDeductions = showReversals
+    ? filteredDeductions
+    : filteredDeductions.filter((d) => d.source !== "reversal");
+  const deductionsPagination = usePagination(visibleDeductions, 20);
+  // Only deductions that still stand: not adjustments, not reversed ones
+  // or their "Added back" entries.
+  const activeDeductions = filteredDeductions.filter(
+    (d) => d.source !== "adjustment" && d.source !== "reversal" && !d.reversed,
   );
+  const deductionsTotal = activeDeductions.reduce((sum, d) => sum + d.amount, 0);
+  const reversedCount = filteredDeductions.filter((d) => d.reversed).length;
 
   // Finance's: outstanding balances + recording pre-existing
   // ("opening") balances carried over from before this system was
@@ -1339,13 +1348,41 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                   <option value="manual">Recorded by hand</option>
                   <option value="adjustment">Adjustment</option>
                 </select>
+                <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm text-fg">
+                  <input
+                    type="checkbox"
+                    checked={showReversals}
+                    onChange={(e) => setShowReversals(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={`relative h-5 w-9 rounded-full transition-colors ${
+                      showReversals ? "bg-primary" : "bg-border"
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${
+                        showReversals ? "left-[18px]" : "left-0.5"
+                      }`}
+                    />
+                  </span>
+                  Show reversals
+                </label>
               </div>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 sm:max-w-md">
               <div className="rounded-2xl border border-border bg-surface-hover p-3">
                 <p className="text-xs text-fg-subtle">Deductions</p>
-                <p className="text-lg font-bold text-fg">{filteredDeductions.length}</p>
+                <p className="text-lg font-bold text-fg">
+                  {activeDeductions.length}
+                  {reversedCount > 0 && (
+                    <span className="ml-1.5 text-xs font-medium text-fg-subtle">
+                      + {reversedCount} reversed
+                    </span>
+                  )}
+                </p>
               </div>
               <div className="rounded-2xl border border-border bg-surface-hover p-3">
                 <p className="text-xs text-fg-subtle">Total deducted</p>
@@ -1357,7 +1394,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
 
             {loadingDeductions ? (
               <p className="mt-4 text-sm text-fg-subtle">Loading...</p>
-            ) : filteredDeductions.length === 0 ? (
+            ) : visibleDeductions.length === 0 ? (
               <p className="mt-4 text-sm text-fg-subtle">No deductions in this range.</p>
             ) : (
               <>
@@ -1378,12 +1415,21 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                     </thead>
                     <tbody>
                       {deductionsPagination.paginatedItems.map((d) => (
-                        <tr key={d.id} className="border-t border-border">
+                        <tr
+                          key={d.id}
+                          className={`border-t border-border ${
+                            d.reversed ? "bg-surface-hover/60 text-fg-subtle" : ""
+                          } ${d.source === "reversal" ? "bg-success/5" : ""}`}
+                        >
                           <td className="whitespace-nowrap px-4 py-3">
                             {d.recorded_at ? new Date(d.recorded_at).toLocaleString() : "—"}
                           </td>
                           <td className="px-4 py-3 font-medium text-fg">{d.employee_name || "—"}</td>
-                          <td className="whitespace-nowrap px-4 py-3 font-semibold text-fg">
+                          <td
+                            className={`whitespace-nowrap px-4 py-3 font-semibold ${
+                              d.reversed ? "text-fg-subtle line-through" : "text-fg"
+                            }`}
+                          >
                             {(d.source === "adjustment" || d.amount < 0) && (d.amount > 0 ? "−" : "+")}₱
                             {Math.abs(d.amount).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
                           </td>
@@ -1436,11 +1482,28 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                           <td className="px-4 py-3 text-xs">{d.recorded_by_name || "—"}</td>
                           <td className="px-4 py-3 text-xs text-fg-subtle">
                             {(d.note || "").replace(/^\[reverses #\d+\]\s*/, "") || "—"}
+                            {d.reversal && (
+                              <p className="mt-1 rounded-md bg-success/10 px-2 py-1 text-success">
+                                Reversed{" "}
+                                {d.reversal.recorded_at
+                                  ? new Date(d.reversal.recorded_at).toLocaleDateString()
+                                  : ""}
+                                {d.reversal.recorded_by_name ? ` by ${d.reversal.recorded_by_name}` : ""}
+                                {d.reversal.reason ? `: ${d.reversal.reason}` : ""}
+                              </p>
+                            )}
                           </td>
                           {canEditLedger && (
                             <td className="whitespace-nowrap px-4 py-3 text-right">
                               {d.reversed ? (
-                                <span className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success">
+                                <span
+                                  title={
+                                    d.reversal
+                                      ? `Added back${d.reversal.recorded_by_name ? ` by ${d.reversal.recorded_by_name}` : ""}${d.reversal.reason ? `: ${d.reversal.reason}` : ""}`
+                                      : "Added back to the balance"
+                                  }
+                                  className="rounded-full bg-success/15 px-2 py-0.5 text-[10px] font-semibold text-success"
+                                >
                                   Reversed
                                 </span>
                               ) : d.entry_type === "deduction" && d.amount > 0 ? (

@@ -5,6 +5,7 @@ import {
   getPublicSupportCategories,
   submitPublicTicket,
 } from "../../api/publicSupport";
+import { formatServerDateTime } from "../../utils/serverDate";
 
 // Public customer support (no login): customers and stores file a ticket
 // in a public category -- it goes to that category's team -- and check
@@ -324,7 +325,7 @@ export default function SupportPage() {
                   <p className="text-sm text-slate-800">{status.title}</p>
                   <p className="text-xs text-slate-500">
                     {status.category} · filed{" "}
-                    {new Date(`${status.created_at}Z`).toLocaleString()}
+                    {formatServerDateTime(status.created_at)}
                   </p>
                   <div className="space-y-2">
                     <p className="text-sm font-semibold text-slate-800">Replies from our team</p>
@@ -335,7 +336,7 @@ export default function SupportPage() {
                         <div key={i} className="rounded-lg bg-slate-50 p-3 text-sm text-slate-800">
                           <p className="whitespace-pre-wrap">{r.body}</p>
                           <p className="mt-1 text-xs text-slate-500">
-                            {new Date(`${r.created_at}Z`).toLocaleString()}
+                            {formatServerDateTime(r.created_at)}
                           </p>
                         </div>
                       ))

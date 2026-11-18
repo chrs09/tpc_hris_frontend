@@ -24,6 +24,7 @@ import SearchInput from "../../components/ui/searchInput/SearchInput";
 import { matchesSearch, urlQuery } from "../../utils/search";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 import useViewType from "../../hooks/useViewType";
+import { formatServerDateTime } from "../../utils/serverDate";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -1282,7 +1283,7 @@ const CommentThread = ({ thread }) => {
                 </span>
                 <span className="flex items-center gap-2 text-[11px] text-fg-subtle">
                   {comment.created_at
-                    ? new Date(comment.created_at + "Z").toLocaleString()
+                    ? formatServerDateTime(comment.created_at)
                     : ""}
                   {comment.is_mine && (
                     <button
@@ -1385,7 +1386,7 @@ const TicketTimeline = ({ history = [] }) => {
             </p>
             {h.note && <p className="mt-0.5 italic text-fg-muted">“{h.note}”</p>}
             <p className="text-[11px] text-fg-subtle">
-              {h.at ? new Date(`${h.at}Z`).toLocaleString() : ""}
+              {h.at ? formatServerDateTime(h.at) : ""}
             </p>
           </li>
         ))}

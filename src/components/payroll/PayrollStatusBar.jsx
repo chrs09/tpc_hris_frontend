@@ -3,13 +3,15 @@ import { Check, Lock } from "lucide-react";
 import { transitionPayrollRun } from "../../api/payroll/payrollRuns";
 import { alertDialog, confirmDialog, promptDialog } from "../ui/dialog/dialogService";
 import { PAYROLL_STEPS } from "../../utils/payroll/payrollStatus";
+import { parseServerDate } from "../../utils/serverDate";
 
 // Generating is repeatable until Approved; Locked freezes the period's
 // attendance, OT, leave and trips (backend: payroll_runs.py).
 
 const formatStamp = (stamp) =>
   stamp
-    ? `${new Date(`${stamp.at}Z`).toLocaleString("en-PH", {
+    ? `${parseServerDate(stamp.at).toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
         month: "short",
         day: "numeric",
         hour: "numeric",
