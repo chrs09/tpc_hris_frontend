@@ -163,15 +163,19 @@ export default function PayRunPrecheck({
           return (
             <li
               key={item.key}
-              className={`rounded-lg border px-3 py-2 ${
+              className={`flex flex-col overflow-hidden rounded-lg border ${
                 ok ? "border-border" : "border-warning/40 bg-warning/5"
               } ${expanded ? "sm:col-span-2 lg:col-span-4" : ""}`}
             >
+              {/* The whole card opens / closes the list, not just the count. */}
               <button
                 type="button"
                 disabled={ok || loading}
                 onClick={() => setOpenKey(expanded ? null : item.key)}
-                className="flex w-full items-center justify-between gap-2 text-left text-sm disabled:cursor-default"
+                aria-expanded={expanded}
+                className={`flex w-full flex-1 items-center justify-between gap-2 px-3 py-2 text-left text-sm disabled:cursor-default ${
+                  ok || loading ? "" : "cursor-pointer hover:bg-warning/10"
+                }`}
               >
                 <span className={ok ? "text-fg-muted" : "font-medium text-fg"}>
                   <span aria-hidden="true" className={ok ? "text-success" : "text-warning"}>
@@ -190,7 +194,7 @@ export default function PayRunPrecheck({
                 </span>
               </button>
               {expanded && (
-                <div className="mt-2 space-y-1">
+                <div className="space-y-1 px-3 pb-2">
                   <ul className="max-h-56 space-y-1 overflow-y-auto text-xs">
                     {item.entries.map((entry, index) => (
                       <li
