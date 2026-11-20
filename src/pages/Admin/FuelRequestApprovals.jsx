@@ -108,7 +108,17 @@ export default function FuelRequestApprovals() {
               filtered.map((req) => (
                 <tr key={req.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-medium text-fg">{req.driver_name || "—"}</td>
-                  <td className="px-4 py-3 text-fg-muted">{req.plate_number}</td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {req.plate_number}
+                    {req.for_yard && (
+                      <span
+                        title="Filed by the yard head for a unit with no assigned driver"
+                        className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+                      >
+                        Yard
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-fg-muted">{req.city}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">

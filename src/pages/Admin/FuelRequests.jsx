@@ -232,7 +232,15 @@ export default function FuelRequests({ embedded = false }) {
                   </td>
                   <td className="px-4 py-3">
                     {req.plate_number}
-                    {req.unit_reason && (
+                    {req.for_yard && (
+                      <span
+                        title="Filed by the yard head for a unit with no assigned driver"
+                        className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-semibold text-primary"
+                      >
+                        Yard
+                      </span>
+                    )}
+                    {req.unit_reason && !req.for_yard && (
                       <span
                         title={req.unit_reason}
                         className="ml-1.5 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-semibold text-warning"

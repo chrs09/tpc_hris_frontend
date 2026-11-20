@@ -795,6 +795,7 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
                 return (
                   <label
                     key={type.key}
+                    title={type.hint}
                     className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
                       on
                         ? "border-primary bg-primary/10 text-fg"
@@ -858,6 +859,10 @@ const APPROVAL_TYPES = [
   { key: "trip_coordinator", label: "Trip Approvals" },
   { key: "trip_office", label: "Trip Document" },
   { key: "trip_finance", label: "Finance Trips" },
+  // Not an approval: this unit's head may file fuel requests for yard
+  // units with no assigned driver (e.g. Motorpool head). Their request
+  // goes to the nearest head above with Fuel Request ticked.
+  { key: "yard_fuel", label: "Fuel for yard units", hint: "Head files fuel for trucks with no driver" },
 ];
 
 const Field = ({ label, children }) => (
