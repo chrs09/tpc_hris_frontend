@@ -30,7 +30,7 @@ export const REST_DAY_MAX_HOURS = 8;
 
 function calculateRestDayHours(checkIn, checkOut) {
   const actualInMinutes = toLocalMinutes(
-    checkIn.getHours() * 60 + checkIn.getMinutes(),
+    checkIn.getUTCHours() * 60 + checkIn.getUTCMinutes(),
   );
   const elapsedMinutes = Math.max(
     Math.round((checkOut.getTime() - checkIn.getTime()) / 60000),
@@ -151,12 +151,15 @@ export function calculateStandardAttendanceHours({
   // ACTUAL TIME
   // ===================================================
 
+  // UTC clock + 8 = PH, same as the schedule above (stored on the UTC
+  // clock). getUTC*, not get*: the server marks times as UTC ("...Z"), so
+  // get* would already be PH and toLocalMinutes would add 8 hours twice.
   const actualInMinutes = toLocalMinutes(
-    checkIn.getHours() * 60 + checkIn.getMinutes(),
+    checkIn.getUTCHours() * 60 + checkIn.getUTCMinutes(),
   );
 
   let actualOutMinutes = toLocalMinutes(
-    checkOut.getHours() * 60 + checkOut.getMinutes(),
+    checkOut.getUTCHours() * 60 + checkOut.getUTCMinutes(),
   );
 
   // Worked past midnight on a day schedule (e.g. 08:27 AM -> 02:14 AM the
