@@ -108,9 +108,15 @@ export default function PayRunPrecheck({
     return [...(serverItems || []), ...local];
   }, [serverItems, incompleteRows, tripCheck, employeeIds, nameOf]);
 
+  // Report only when the counts actually change: reporting a fresh array
+  // every render re-renders the page, which can loop forever.
+  const reportKey = serverItems
+    ? items.map((item) => `${item.key}:${item.count}`).join("|")
+    : "";
   useEffect(() => {
-    onItems?.(serverItems ? items : null);
-  }, [items, serverItems, onItems]);
+    onItems?.(reportKey ? items : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reportKey stands for items
+  }, [reportKey, onItems]);
 
   const openCount = items.filter((item) => item.count > 0).length;
   const loading = serverItems === null;

@@ -1731,8 +1731,14 @@ const PayrollList = () => {
   }, [allRows, searchEmployee]);
 
   // Employees with scheduled days that have no attendance record at all.
-  const incompleteRows = liveRows.filter(
-    (row) => !row.isTripBasedEmployee && row.completeness?.missingDates.length > 0,
+  // Memoized: the pre-check reports back on every change, so a new array
+  // each render would loop forever (and block navigating away).
+  const incompleteRows = useMemo(
+    () =>
+      liveRows.filter(
+        (row) => !row.isTripBasedEmployee && row.completeness?.missingDates.length > 0,
+      ),
+    [liveRows],
   );
 
   const summary = useMemo(() => {
