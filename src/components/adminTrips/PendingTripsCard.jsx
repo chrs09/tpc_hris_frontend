@@ -281,7 +281,15 @@ const PendingTripsCard = ({
   // the current page's last row is archived/approved away -- see
   // usePagination's render-time clamp.
   const [search, setSearch] = useState("");
+  // Pending tab: All / manual entries awaiting a superadmin / trips Office
+  // sent back for correction (any fix state -- see ReturnFixBadge).
+  const [show, setShow] = useState("all");
+  const awaitingCount = trips.filter((t) => t.awaiting_manual_approval).length;
+  const correctionCount = trips.filter((t) => t.return_reason).length;
   const filteredTrips = trips.filter((trip) =>
+    (mode !== "pending" ||
+      show === "all" ||
+      (show === "awaiting" ? trip.awaiting_manual_approval : Boolean(trip.return_reason))) &&
     matchesSearch(
       search,
       trip.id,
@@ -294,6 +302,7 @@ const PendingTripsCard = ({
       trip.finance_approved_by,
       trip.is_manual_entry ? "manual entry" : "driver app",
       trip.awaiting_manual_approval ? "awaiting superadmin" : null,
+      trip.return_reason ? "correction requested" : null,
     ),
   );
   const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
@@ -476,7 +485,32 @@ const PendingTripsCard = ({
   return (
     <>
       <ApprovalScopeToggle {...scopeProps} className="mb-3" />
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        {mode === "pending" ? (
+          <div className="flex flex-wrap rounded-lg border border-border p-0.5 text-sm">
+            {[
+              ["all", `All (${trips.length})`],
+              ["awaiting", `Awaiting Superadmin (${awaitingCount})`],
+              ["correction", `Correction Requested (${correctionCount})`],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => {
+                  setShow(key);
+                  setPage(1);
+                }}
+                className={`rounded-md px-3 py-1.5 ${
+                  show === key ? "bg-surface-active font-semibold text-fg" : "text-fg-muted"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span />
+        )}
         <SearchInput value={search} onChange={setSearch} placeholder="Search trip, driver, shipment, store..." />
       </div>
       {/* ======================= DESKTOP TABLE ======================= */}

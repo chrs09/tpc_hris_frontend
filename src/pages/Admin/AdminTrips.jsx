@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   getAdminTripSummary,
   getPendingTrips,
@@ -10,15 +10,6 @@ import SummaryCard from "../../components/adminTrips/SummaryCards";
 import PendingTripsCard from "../../components/adminTrips/PendingTripsCard";
 import UnknownStoresCard from "../../components/adminTrips/UnknownStoresCard";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
-import {
-  ALL_DATES,
-  periodLabel,
-  periodParams,
-  recentCutoffs,
-  toCutoffOptions,
-} from "../../utils/tripPeriod";
-import TripPeriodFilter from "../../components/adminTrips/TripPeriodFilter";
-import { getTripPeriods } from "../../api/payroll/payrollCutoffs";
 
 // Trip Approvals -- the coordinator's pending/completed approval queue
 // plus unknown check-ins needing review. Assigned/Active trip
@@ -35,37 +26,14 @@ const AdminTrips = () => {
 
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Period filter for the Pending / Completed lists: all dates (default,
-  // so nothing waiting is hidden), a payroll cutoff with its payday (per
-  // payroll group -- driver groups first), or custom dates. A ref so the
-  // background refresh uses the current pick.
-  const [periodGroups, setPeriodGroups] = useState([]); // [{ group, periods }]
-  const [periodGroup, setPeriodGroup] = useState("");
-  useEffect(() => {
-    getTripPeriods()
-      .then((data) => {
-        const groups = data?.groups || [];
-        setPeriodGroups(groups);
-        const driverGroup = groups.find((g) => /driver/i.test(g.group)) || groups[0];
-        setPeriodGroup(driverGroup?.group || "");
-      })
-      .catch(() => setPeriodGroups([]));
-  }, []);
-  const cutoffs = useMemo(() => {
-    const chosen = periodGroups.find((g) => g.group === periodGroup);
-    return chosen ? toCutoffOptions(chosen.periods) : recentCutoffs(24);
-  }, [periodGroups, periodGroup]);
-  const [period, setPeriod] = useState(ALL_DATES);
-  const periodRef = useRef(ALL_DATES);
-  const [filtering, setFiltering] = useState(false);
-
+  // All dates -- the payroll group / period filter was removed so nothing
+  // waiting is hidden; use the search and the Pending filters instead.
   const loadTrips = async () => {
-    const params = periodParams(periodRef.current);
     try {
       const [s, p, c, u] = await Promise.all([
         getAdminTripSummary(),
-        getPendingTrips(params),
-        getCompletedTrips(params),
+        getPendingTrips(),
+        getCompletedTrips(),
         getUnknownStops(),
       ]);
 
@@ -114,16 +82,6 @@ const AdminTrips = () => {
       document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
-
-  const changePeriod = async (next) => {
-    setPeriod(next);
-    periodRef.current = next;
-    // Custom dates: wait until both ends are picked.
-    if (next.mode === "custom" && (!next.from || !next.to)) return;
-    setFiltering(true);
-    await loadTrips();
-    setFiltering(false);
-  };
 
   const handleTripApproved = async () => {
     await loadTrips();
@@ -175,27 +133,6 @@ const AdminTrips = () => {
         <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
           Pending Trip Approvals
         </h2>
-
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
-          <TripPeriodFilter
-            id="trip-approvals-period"
-            value={period}
-            cutoffs={cutoffs}
-            onChange={changePeriod}
-            groups={periodGroups.map((g) => g.group)}
-            group={periodGroup}
-            onGroupChange={(name) => {
-              setPeriodGroup(name);
-              // A cutoff from the old group doesn't apply to the new one.
-              if (period.mode === "cutoff") changePeriod(ALL_DATES);
-            }}
-          />
-          <span className="text-xs text-fg-subtle">
-            {filtering
-              ? "Loading..."
-              : `Showing ${periodLabel(period, cutoffs)} · by trip start date`}
-          </span>
-        </div>
 
         <div className="flex gap-2 mb-4">
           <button
