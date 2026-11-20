@@ -30,11 +30,13 @@ export default function PayRunPrecheck({
   start,
   end,
   employees,
+  tripBasedIds = [],
   incompleteRows,
   tripCheck,
   loadServerItems,
   onItems,
 }) {
+  const tripBasedKey = [...new Set(tripBasedIds)].sort((a, b) => a - b).join(",");
   const [serverItems, setServerItems] = useState(null);
   const [failed, setFailed] = useState(false);
   const [openKey, setOpenKey] = useState(null);
@@ -53,7 +55,12 @@ export default function PayRunPrecheck({
   useEffect(() => {
     if (!start || !end || !idsKey) return;
     let cancelled = false;
-    loadServerItems({ start, end, employeeIds: idsKey.split(",").map(Number) })
+    loadServerItems({
+      start,
+      end,
+      employeeIds: idsKey.split(",").map(Number),
+      tripBasedIds: tripBasedKey ? tripBasedKey.split(",").map(Number) : [],
+    })
       .then((data) => {
         if (cancelled) return;
         setServerItems(data.items || []);
@@ -68,7 +75,7 @@ export default function PayRunPrecheck({
     return () => {
       cancelled = true;
     };
-  }, [start, end, idsKey, loadServerItems, reload]);
+  }, [start, end, idsKey, tripBasedKey, loadServerItems, reload]);
 
   const items = useMemo(() => {
     const ids = new Set(employeeIds);
@@ -79,7 +86,12 @@ export default function PayRunPrecheck({
         .map((t) => ({
           name: nameOf[t.employee_id],
           date: t.date,
-          detail: `${t.ticket_no || `Trip #${t.trip_id}`} · ${TRIP_STATUS_LABEL[t.status] || t.status}`,
+          detail: `${t.ticket_no || `Trip #${t.trip_id}`} · ${t.step || TRIP_STATUS_LABEL[t.status] || t.status}`,
+          // Who it's waiting on (Org Chart approver at this step, or the
+          // coordinator it was handed to) and, in Trip Document, the
+          // photos still missing.
+          responsible: t.responsible,
+          missing: t.missing_docs || [],
         }));
     const local = [
       {
@@ -188,6 +200,14 @@ export default function PayRunPrecheck({
                         <span className="font-medium text-fg">{entry.name || "—"}</span>
                         <span className="tabular-nums">{entry.date}</span>
                         {entry.detail && <span className="text-fg-subtle">{entry.detail}</span>}
+                        {entry.responsible && (
+                          <span className="text-fg-muted">
+                            · Waiting on <b className="font-semibold text-fg">{entry.responsible}</b>
+                          </span>
+                        )}
+                        {entry.missing?.length > 0 && (
+                          <span className="text-warning">· Missing: {entry.missing.join(", ")}</span>
+                        )}
                       </li>
                     ))}
                   </ul>

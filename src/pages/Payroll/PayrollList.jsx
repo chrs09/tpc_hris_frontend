@@ -709,6 +709,12 @@ const PayrollList = () => {
     loadSavedDeductions();
   }, [activePeriod, department, employees]);
 
+  // Paid per trip: left out of the pre-check's time out / face checks.
+  const tripBasedIds = useMemo(
+    () => departmentEntries.filter((emp) => tripPaid(emp.department)).map((emp) => emp.id),
+    [departmentEntries, tripPaid],
+  );
+
   const departmentEmployeeIds = useMemo(
     () => [...new Set(departmentEntries.map((emp) => emp.id))],
     [departmentEntries],
@@ -2150,6 +2156,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
           start={activePeriod.cutoffStart}
           end={activePeriod.cutoffEnd}
           employees={departmentEntries}
+          tripBasedIds={tripBasedIds}
           incompleteRows={incompleteRows}
           tripCheck={tripCheck}
           loadServerItems={payRunPrecheck}

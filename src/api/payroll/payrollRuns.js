@@ -43,11 +43,14 @@ export const getPayRunSnapshot = async (department, cutoffPeriod) => {
 
 // Before generating: what's still open for these employees in start..end.
 // { items: [{ key, label, count, entries: [{ name, date, detail }], fix }] }
-export const payRunPrecheck = async ({ start, end, employeeIds }) => {
+// tripBasedIds: paid per trip -- left out of the missing time out and
+// attendance review checks.
+export const payRunPrecheck = async ({ start, end, employeeIds, tripBasedIds = [] }) => {
   const res = await api.post("/payroll-runs/precheck", {
     start,
     end,
     employee_ids: employeeIds,
+    trip_based_ids: tripBasedIds,
   });
   return res.data;
 };
