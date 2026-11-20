@@ -17,6 +17,41 @@ export const getPayrollRunStatuses = async (department) => {
   return res.data;
 };
 
+// Pay Runs: every run (any status), newest cutoff first.
+export const listPayRuns = async () => {
+  const res = await api.get("/payroll-runs/all");
+  return res.data;
+};
+
+// New pay run (Draft) for a payroll group + cutoff ("start_end").
+export const createPayRun = async (department, cutoffPeriod, payDate) => {
+  const res = await api.post("/payroll-runs/create", {
+    department,
+    cutoff_period: cutoffPeriod,
+    pay_date: payDate || null,
+  });
+  return res.data;
+};
+
+// The snapshot saved at Generate: { rows, period, group, taken_at } or null.
+export const getPayRunSnapshot = async (department, cutoffPeriod) => {
+  const res = await api.get("/payroll-runs/snapshot", {
+    params: { department, cutoff_period: cutoffPeriod },
+  });
+  return res.data;
+};
+
+// Before generating: what's still open for these employees in start..end.
+// { items: [{ key, label, count, entries: [{ name, date, detail }], fix }] }
+export const payRunPrecheck = async ({ start, end, employeeIds }) => {
+  const res = await api.post("/payroll-runs/precheck", {
+    start,
+    end,
+    employee_ids: employeeIds,
+  });
+  return res.data;
+};
+
 export const markPayrollGenerated = async (payload) => {
   const res = await api.post("/payroll-runs/generate", payload);
   return res.data;

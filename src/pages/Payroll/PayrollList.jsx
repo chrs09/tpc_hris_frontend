@@ -27,14 +27,15 @@ import {
 } from "../../utils/payroll/sssContributionTable";
 import PayslipModal from "../../components/payroll/PayslipModal";
 import usePagination from "../../hooks/usePagination";
-import { alertDialog, confirmDialog } from "../../components/ui/dialog/dialogService";
+import { alertDialog, confirmDialog, promptDialog } from "../../components/ui/dialog/dialogService";
+import { Link } from "react-router-dom";
+import PayRunPrecheck from "../../components/payroll/PayRunPrecheck";
 import { downloadBlockedReason } from "../../utils/downloadLimit";
 import {
   formatMissingDates,
   getCutoffCompleteness,
 } from "../../utils/payroll/cutoffCompleteness";
 import Pagination from "../../components/ui/pagination/Pagination";
-import SearchSelect from "../../components/SearchSelect";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import {
   savePayrollDeduction,
@@ -47,7 +48,8 @@ import PayrollStatusBar from "../../components/payroll/PayrollStatusBar";
 import { payrollStatusLabel } from "../../utils/payroll/payrollStatus";
 import {
   getPayrollRun,
-  getPayrollRunStatuses,
+  getPayRunSnapshot,
+  payRunPrecheck,
   getJobSegments,
   getPayslipReleases,
   getTripCheck,
@@ -276,15 +278,6 @@ const PayrollList = () => {
     () => (payrollGroups || []).find((g) => g.name === department) || null,
     [payrollGroups, department],
   );
-  // The payroll groups only. A department payroll from before groups
-  // (opened from Locked Payrolls) shows while it's the one open.
-  const payrollOptions = useMemo(() => {
-    const options = (payrollGroups || []).map((g) => ({ value: g.name, label: g.name }));
-    if (payrollGroups && department && !options.some((o) => o.value === department)) {
-      options.push({ value: department, label: `${department} (department, before groups)` });
-    }
-    return options;
-  }, [payrollGroups, department]);
   // Who's in this payroll: the group's departments (and payroll type), or
   // the one department.
   const inThisPayroll = useCallback(
@@ -325,16 +318,25 @@ const PayrollList = () => {
   );
 
   const periods = useMemo(() => periodsFromRule(cutoffRule, 24), [cutoffRule]);
-  const activePeriod = periods[selectedPeriod] || periods[0] || NO_PERIOD;
-  const pendingCutoffRef = useRef(openTarget.cutoff);
-  useEffect(() => {
-    if (!pendingCutoffRef.current || !periods.length) return;
-    const index = periods.findIndex(
-      (period) => `${period.cutoffStart}_${period.cutoffEnd}` === pendingCutoffRef.current,
-    );
-    pendingCutoffRef.current = null;
-    if (index >= 0) setSelectedPeriod(index);
-  }, [periods]);
+  // The pay run's own cutoff (?cutoff=start_end): the rule's period that
+  // starts there (for its label and payday), however far back it is.
+  const runPeriod = useMemo(() => {
+    if (!openTarget.cutoff) return null;
+    const [start, end] = openTarget.cutoff.split("_");
+    if (!start || !end) return null;
+    const fromRule = cutoffRule
+      ? periodsFromRule(cutoffRule, 1, new Date(`${start}T00:00:00`))[0]
+      : null;
+    if (fromRule && fromRule.cutoffStart === start && fromRule.cutoffEnd === end) return fromRule;
+    return { ...NO_PERIOD, label: `${start} to ${end}`, cutoffStart: start, cutoffEnd: end };
+  }, [openTarget.cutoff, cutoffRule]);
+  // Payroll status for this department + cutoff (Draft -> ... -> Paid).
+  const [payrollRun, setPayrollRun] = useState(null);
+  // The pay date saved on the pay run (New Pay Run) wins over the rule's.
+  const activePeriod = useMemo(() => {
+    const base = runPeriod || periods[selectedPeriod] || periods[0] || NO_PERIOD;
+    return payrollRun?.pay_date ? { ...base, payoutDate: payrollRun.pay_date } : base;
+  }, [runPeriod, periods, selectedPeriod, payrollRun?.pay_date]);
 
   // "Filed OT" column: overtime requests filed in this cutoff.
   const [filedOvertime, setFiledOvertime] = useState([]);
@@ -499,10 +501,22 @@ const PayrollList = () => {
     ? `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`
     : "";
 
-  // Payroll status for this department + cutoff (Draft -> ... -> Paid),
-  // and every cutoff's status for the period picker labels.
-  const [payrollRun, setPayrollRun] = useState(null);
-  const [runStatuses, setRunStatuses] = useState({});
+
+  // Pay run snapshot (saved at Generate): what the page shows once
+  // generated, so figures don't move. "Edit & regenerate" switches back to
+  // live figures until it's generated again (Draft / Generated only).
+  const [snapshot, setSnapshot] = useState(null);
+  const [editingLive, setEditingLive] = useState(false);
+  useEffect(() => {
+    setEditingLive(false);
+    if (!payrollRun?.has_snapshot || !department || !cutoffKey) {
+      setSnapshot(null);
+      return;
+    }
+    getPayRunSnapshot(department, cutoffKey)
+      .then(setSnapshot)
+      .catch(() => setSnapshot(null));
+  }, [payrollRun?.has_snapshot, payrollRun?.snapshot_at, department, cutoffKey]);
 
   const loadPayrollRun = useCallback(async () => {
     if (!department || !cutoffKey) {
@@ -510,12 +524,8 @@ const PayrollList = () => {
       return;
     }
     try {
-      const [run, statuses] = await Promise.all([
-        getPayrollRun(department, cutoffKey),
-        getPayrollRunStatuses(department),
-      ]);
+      const run = await getPayrollRun(department, cutoffKey);
       setPayrollRun(run);
-      setRunStatuses(statuses || {});
     } catch (err) {
       console.error("Failed to load payroll status", err);
       setPayrollRun(null);
@@ -634,22 +644,14 @@ const PayrollList = () => {
     );
   };
 
-  // Period picker: each cutoff labelled with its payroll status.
-  const periodOptions = periods.map((period, index) => {
-    const status = runStatuses[`${period.cutoffStart}_${period.cutoffEnd}`];
-    return {
-      index,
-      label:
-        status && status !== "DRAFT"
-          ? `${period.label} · ${payrollStatusLabel(status)}`
-          : period.label,
-    };
-  });
-
   // Figures can be saved only by someone with Org Chart -> Payroll ->
   // Prepare & Submit, and only until the payroll is approved.
   const canPrepare = Boolean(payrollRun?.my_steps?.prepare);
-  const payrollEditable = Boolean(payrollRun?.can_generate);
+  // The run can still be generated (Draft / Generated) ...
+  const runEditable = Boolean(payrollRun?.can_generate);
+  // ... and the page shows the saved snapshot unless editing live figures.
+  const showSnapshot = Boolean(snapshot?.rows) && !(editingLive && runEditable);
+  const payrollEditable = runEditable && !showSnapshot;
   payrollEditableRef.current = payrollEditable;
 
   // Re-hydrates the manual SSS/PhilHealth/Pag-IBIG override inputs from
@@ -741,17 +743,10 @@ const PayrollList = () => {
     loadCashAdvanceInfo();
   }, [loadCashAdvanceInfo]);
 
-  const payrollRows = useMemo(() => {
+  // Everyone in this pay run, calculated live from attendance / trips.
+  // Generate saves these as the snapshot.
+  const liveRows = useMemo(() => {
     return departmentEntries
-
-      .filter((emp) => {
-        const fullName = `${emp.first_name || ""} ${
-          emp.last_name || ""
-        }`.toLowerCase();
-
-        return fullName.includes(searchEmployee.toLowerCase());
-      })
-
       .map((employee) => {
         const records = attendance
           .filter(
@@ -1699,7 +1694,6 @@ const PayrollList = () => {
     holidays,
     activePeriod,
     otApprovals,
-    searchEmployee,
     adjustments,
     cashAdvanceInfo,
     tripChargeInfo,
@@ -1726,12 +1720,23 @@ const PayrollList = () => {
     [holidays, activePeriod.cutoffStart, activePeriod.cutoffEnd],
   );
 
+  // What the page shows: the snapshot once generated, else live figures.
+  const allRows = showSnapshot ? snapshot.rows : liveRows;
+  const payrollRows = useMemo(() => {
+    const q = searchEmployee.trim().toLowerCase();
+    if (!q) return allRows;
+    return allRows.filter((row) =>
+      `${row.employee?.first_name || ""} ${row.employee?.last_name || ""}`.toLowerCase().includes(q),
+    );
+  }, [allRows, searchEmployee]);
+
   // Employees with scheduled days that have no attendance record at all.
-  const incompleteRows = payrollRows.filter(
+  const incompleteRows = liveRows.filter(
     (row) => !row.isTripBasedEmployee && row.completeness?.missingDates.length > 0,
   );
 
   const summary = useMemo(() => {
+    const payrollRows = allRows;
     return {
       employees: payrollRows.length,
 
@@ -1761,7 +1766,7 @@ const PayrollList = () => {
         0,
       ),
     };
-  }, [payrollRows]);
+  }, [allRows]);
 
   const {
     page: payrollPage,
@@ -1899,7 +1904,7 @@ const PayrollList = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingPayroll, setIsGeneratingPayroll] = useState(false);
 
-  const buildDeductionRows = () => payrollRows.map(toDeductionPayload);
+  const buildDeductionRows = () => liveRows.map(toDeductionPayload);
 
   // Bulk-saves every row's deductions for the active cutoff to
   // `payroll_deductions`. Shared by "Generate Payroll" and "Export Excel"
@@ -1935,8 +1940,8 @@ const PayrollList = () => {
   // message after.
   const postingsSummary = () => {
     const total = (key) =>
-      Math.round(payrollRows.reduce((acc, row) => acc + Number(row[key] || 0), 0) * 100) / 100;
-    const count = (key) => payrollRows.filter((row) => Number(row[key] || 0) > 0).length;
+      Math.round(liveRows.reduce((acc, row) => acc + Number(row[key] || 0), 0) * 100) / 100;
+    const count = (key) => liveRows.filter((row) => Number(row[key] || 0) > 0).length;
     const peso = (n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
     const parts = [];
     if (count("cashAdvance")) {
@@ -1950,21 +1955,28 @@ const PayrollList = () => {
       : "No cash advance or trip charge deductions this cutoff -- no balances change.";
   };
 
+  // Pre-check: what's still open before generating (PayRunPrecheck).
+  // Server items + the ones worked out here (days with no attendance,
+  // trips not cleared).
+  const [precheckItems, setPrecheckItems] = useState(null);
   const handleGeneratePayroll = async () => {
-    const incompleteNote =
-      incompleteRows.length > 0
-        ? `\n\n${incompleteRows.length} employee(s) have scheduled days with no attendance record in this cutoff (e.g. ${incompleteRows
-            .slice(0, 3)
-            .map(
-              (row) =>
-                `${row.employee.first_name}: ${formatMissingDates(row.completeness.missingDates)}`,
-            )
-            .join("; ")}). Those days are not paid or deducted until a record is added.`
-        : "";
+    const open = (precheckItems || []).filter((item) => item.count > 0);
+    let note = "";
+    if (open.length > 0) {
+      const answer = await promptDialog(
+        `${open.length} pre-check item${open.length === 1 ? " is" : "s are"} still open: ${open
+          .map((item) => `${item.label} (${item.count})`)
+          .join(", ")}.\n\nGenerate anyway? Anything not captured goes in the next pay run. Add a note for the record (optional):`,
+        "",
+        { confirmText: "Generate anyway" },
+      );
+      if (answer === null) return;
+      note = answer.trim();
+    }
     // Confirm first (Cancel = nothing saved or posted).
     if (
       !(await confirmDialog(
-        `Generate payroll for ${payrollRows.length} employee(s)? ${postingsSummary()} Generating again later replaces these, it doesn't deduct twice.${incompleteNote}`,
+        `Generate payroll for ${liveRows.length} employee(s)? ${postingsSummary()} This saves a snapshot of everyone's figures -- the pay run shows it from now on. Generating again later replaces it, it doesn't deduct twice.`,
       ))
     ) {
       return;
@@ -1979,25 +1991,47 @@ const PayrollList = () => {
 
     try {
       const sum = (key) =>
-        Math.round(payrollRows.reduce((acc, row) => acc + Number(row[key] || 0), 0) * 100) / 100;
+        Math.round(liveRows.reduce((acc, row) => acc + Number(row[key] || 0), 0) * 100) / 100;
       const run = await markPayrollGenerated({
         department,
         cutoff_period: cutoffKey,
-        employee_count: payrollRows.length,
+        employee_count: liveRows.length,
         total_gross: sum("grossPay"),
         total_net: sum("netPay"),
+        snapshot: buildSnapshot(),
+        precheck: {
+          items: (precheckItems || []).map(({ key, label, count }) => ({ key, label, count })),
+          note: note || null,
+        },
       });
       setPayrollRun(run);
-      setRunStatuses((prev) => ({ ...prev, [cutoffKey]: run.status }));
+      setEditingLive(false);
       alertDialog(
-        `Payroll generated for ${payrollRows.length} employee(s). ${postingsSummary().replace("This deducts", "Deducted")}
+        `Payroll generated for ${liveRows.length} employee(s). ${postingsSummary().replace("This deducts", "Deducted")}
 
-Next: Submit for Review. You can generate again after corrections until it's approved.`,
+The pay run now shows this snapshot. Next: Submit for Review. Until it's submitted you can still edit and generate again.`,
       );
     } catch (err) {
       alertDialog(err?.response?.data?.detail || "Figures were saved, but the payroll status could not be updated.");
     }
   };
+
+  // The pay run snapshot: every row as calculated now, with the period and
+  // group. Very long text values (e.g. photos as data) are left out.
+  const buildSnapshot = () =>
+    JSON.parse(
+      JSON.stringify(
+        {
+          rows: liveRows,
+          period: activePeriod,
+          group: selectedGroup
+            ? { name: selectedGroup.name, pay_basis: selectedGroup.pay_basis }
+            : null,
+          taken_at: new Date().toISOString(),
+        },
+        (key, value) => (typeof value === "string" && value.length > 5000 ? undefined : value),
+      ),
+    );
 
   // Takes back this cutoff's cash advance / trip charge deductions for
   // everyone in this payroll (e.g. after a test Generate): saves them as 0,
@@ -2007,10 +2041,10 @@ Next: Submit for Review. You can generate again after corrections until it's app
   const [isDiscarding, setIsDiscarding] = useState(false);
   const handleDiscardDeductions = async () => {
     const ok = await confirmDialog(
-      `Discard this cutoff's cash advance and trip charge deductions for all ${payrollRows.length} employee(s)? Their balances go back to before this cutoff, and the Cash Advance / Trip Charges columns become 0. Net pay goes up by the same amount. You can enter amounts again and Generate again.`,
+      `Discard this cutoff's cash advance and trip charge deductions for all ${liveRows.length} employee(s)? Their balances go back to before this cutoff, and the Cash Advance / Trip Charges columns become 0. Net pay goes up by the same amount. You can enter amounts again and Generate again.`,
     );
     if (!ok) return;
-    const rows = payrollRows.map((row) => {
+    const rows = liveRows.map((row) => {
       const payload = toDeductionPayload(row);
       let net = Number(row.netPay || 0);
       // Parts without the key (earlier Work History parts) don't carry
@@ -2030,7 +2064,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
       await savePayrollDeductionsBulk(rows);
       setAdjustments((prev) => {
         const next = { ...prev };
-        payrollRows.forEach((row) => {
+        liveRows.forEach((row) => {
           const key = getAdjustmentKey(row.employee.adjId ?? row.employee.id, activePeriod);
           next[key] = { ...next[key], cashAdvance: 0, tripCharge: 0 };
         });
@@ -2063,7 +2097,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
 
     setIsExporting(false);
 
-    exportPayrollExcel(payrollRows, activePeriod, department);
+    exportPayrollExcel(allRows, activePeriod, department);
   };
 
   return (
@@ -2105,7 +2139,27 @@ Next: Submit for Review. You can generate again after corrections until it's app
         </div>
       )}
 
-      {incompleteRows.length > 0 && (
+      {runEditable && !showSnapshot && cutoffKey && (
+        <PayRunPrecheck
+          start={activePeriod.cutoffStart}
+          end={activePeriod.cutoffEnd}
+          employees={departmentEntries}
+          incompleteRows={incompleteRows}
+          tripCheck={tripCheck}
+          loadServerItems={payRunPrecheck}
+          onItems={setPrecheckItems}
+        />
+      )}
+      {payrollRun?.precheck?.items?.length > 0 && (showSnapshot || !runEditable) && (
+        <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-xs text-warning">
+          Generated with open pre-check items:{" "}
+          {payrollRun.precheck.items.map((item) => `${item.label} (${item.count})`).join(", ")}
+          {payrollRun.precheck.note ? ` · Note: ${payrollRun.precheck.note}` : ""}
+          {payrollRun.precheck.by ? ` · ${payrollRun.precheck.by}` : ""}
+        </div>
+      )}
+
+      {incompleteRows.length > 0 && !showSnapshot && (
         <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
           <p className="font-semibold">
             {incompleteRows.length} employee
@@ -2129,35 +2183,31 @@ Next: Submit for Review. You can generate again after corrections until it's app
         </div>
       )}
 
-      {/* HEADER */}
+      {/* HEADER: this pay run (picked on Pay Runs) */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Payroll</h1>
-          <p className="text-sm text-fg-subtle">
-            Showing {payrollRows.length} employees
+        <div className="min-w-0">
+          <Link
+            to="/dashboard/payroll"
+            className="text-xs font-semibold text-primary hover:underline"
+          >
+            &larr; Pay Runs
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold">{department}</h1>
+          <p className="text-sm text-fg-muted">
+            {activePeriod.label || "No cutoff"}
+            {activePeriod.payoutDate ? ` · Payday ${activePeriod.payoutDate}` : ""}
+            {` · ${allRows.length} employee${allRows.length === 1 ? "" : "s"}`}
           </p>
-
-          <p className="text-fg-subtle">Payroll Preview</p>
+          <p className="text-xs text-fg-subtle">
+            {showSnapshot
+              ? `Snapshot from ${new Date(payrollRun?.snapshot_at || snapshot?.taken_at).toLocaleString("en-PH", { timeZone: "Asia/Manila" })}${payrollRun?.snapshot_by ? ` by ${payrollRun.snapshot_by}` : ""} -- figures don't change`
+              : runEditable
+                ? "Live figures -- they change until you generate"
+                : "Live figures (generated before snapshots were kept)"}
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <div className="w-56">
-            <SearchSelect
-              value={periodOptions.find((option) => option.index === selectedPeriod) || null}
-              options={periodOptions}
-              getOptionValue={(option) => option.index}
-              onChange={(option) => setSelectedPeriod(Number(option.index))}
-              placeholder="Select period"
-            />
-          </div>
-          <div className="w-64">
-            <SearchSelect
-              value={payrollOptions.find((option) => option.value === department) || null}
-              options={payrollOptions}
-              onChange={(option) => setDepartment(option.value)}
-              placeholder="Select payroll group"
-            />
-          </div>
           <input
             type="text"
             placeholder="Search employee..."
@@ -2166,7 +2216,26 @@ Next: Submit for Review. You can generate again after corrections until it's app
             className="border border-border rounded-lg px-3 h-10 bg-surface text-fg w-full sm:w-auto"
           />
 
-          {canPrepare && (
+          {canPrepare && runEditable && showSnapshot && (
+            <button
+              type="button"
+              className="rounded-lg border border-primary px-4 text-primary transition hover:bg-primary/10"
+              title="Switch to live figures to make corrections, then generate again"
+              onClick={() => setEditingLive(true)}
+            >
+              Edit &amp; regenerate
+            </button>
+          )}
+          {canPrepare && runEditable && editingLive && snapshot?.rows && (
+            <button
+              type="button"
+              className="rounded-lg border border-border px-4 text-fg-muted transition hover:bg-surface-hover"
+              onClick={() => setEditingLive(false)}
+            >
+              Back to snapshot
+            </button>
+          )}
+          {canPrepare && !showSnapshot && (
             <button
             className="bg-blue-600 text-white px-4 rounded-lg disabled:opacity-60"
             disabled={isGeneratingPayroll || !cutoffRule || !payrollEditable}
@@ -2251,10 +2320,7 @@ Next: Submit for Review. You can generate again after corrections until it's app
           run={payrollRun}
           department={department}
           cutoffPeriod={cutoffKey}
-          onChange={(run) => {
-            setPayrollRun(run);
-            setRunStatuses((prev) => ({ ...prev, [cutoffKey]: run.status }));
-          }}
+          onChange={(run) => setPayrollRun(run)}
         />
       )}
 

@@ -32,7 +32,7 @@ import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
 import AttendanceLocationsPage from "../Admin/AttendanceLocationsPage";
-import PayrollList from "../Payroll/PayrollList";
+import PayrollGate from "../Payroll/PayrollGate";
 import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
 import LockedPayrollsPage from "../Payroll/LockedPayrollsPage";
 import IncentivePoliciesPage from "../Payroll/IncentivePoliciesPage";
@@ -129,7 +129,7 @@ const Dashboard = () => {
           <Route path="leave" element={<Navigate to="/dashboard/approvals?tab=leave" replace />} />
           <Route path="employees" element={<EmployeeListPage />} />
           <Route path="hr-dashboard" element={<HrDashboardPage />} />
-          <Route path="payroll" element={<PayrollList />} />
+          <Route path="payroll" element={<PayrollGate />} />
           <Route path="payroll-cutoffs" element={<PayrollCutoffsPage />} />
           <Route path="payroll-locked" element={<LockedPayrollsPage />} />
           <Route path="incentive-policies" element={<IncentivePoliciesPage />} />

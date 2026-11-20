@@ -35,11 +35,14 @@ const ordinal = (n) => {
   return `${n}${suffix}`;
 };
 
+// Paydays are Monday to Saturday: a Sunday moves to the Saturday before.
+export const notSunday = (date) => (date.getDay() === 0 ? addDays(date, -1) : date);
+
 const period = (start, end, payout, rule) => ({
   label: `${format(start, "MMM dd")} - ${format(end, "MMM dd, yyyy")}`,
   cutoffStart: ymd(start),
   cutoffEnd: ymd(end),
-  payoutDate: ymd(payout),
+  payoutDate: ymd(notSunday(payout)),
   payrollType: TYPE_LABELS[rule.schedule_type] || rule.schedule_type,
 });
 

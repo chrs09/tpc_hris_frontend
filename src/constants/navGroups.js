@@ -80,7 +80,8 @@ export function getNavGroups(role) {
       label: "Payroll",
       children: [
         {
-          label: "Payroll",
+          // Pay runs list; opening one shows its payroll (PayrollGate).
+          label: "Pay Runs",
           path: "/dashboard/payroll",
           roles: ["superadmin", "payroll_admin"],
           moduleKey: "payroll.payroll",
@@ -120,7 +121,7 @@ export function getNavGroups(role) {
           label: "Incentive Runs",
           path: "/dashboard/incentive-runs",
           roles: ["superadmin", "payroll_admin", "admin"],
-          moduleKey: "payroll.incentive_policies",
+          moduleKey: "payroll.incentive_runs",
         },
       ],
     },

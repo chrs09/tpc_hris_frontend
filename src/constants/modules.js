@@ -76,6 +76,13 @@ export const MODULE_GROUPS = [
         label: "Incentive Policies",
         path: "/dashboard/incentive-policies",
       },
+      {
+        // Steps on a run (submit / approve / release) still follow the
+        // Payroll ticks above.
+        key: "incentive_runs",
+        label: "Incentive Runs",
+        path: "/dashboard/incentive-runs",
+      },
     ],
   },
   {
