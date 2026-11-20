@@ -74,6 +74,13 @@ export function getNavGroups(role) {
           roles: ["superadmin"],
           moduleKey: "hris.attendance_locations",
         },
+        {
+          // Which contributions payroll deducts per employee.
+          label: "Government Contributions",
+          path: "/dashboard/government-contributions",
+          roles: ["superadmin", "admin"],
+          moduleKey: "hris.government_contributions",
+        },
       ],
     },
     {

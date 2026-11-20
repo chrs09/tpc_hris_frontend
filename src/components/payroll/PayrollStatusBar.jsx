@@ -31,11 +31,33 @@ const ACTIONS = [
     confirm: "Submit this payroll for review? Generating again sends it back to Generated.",
   },
   {
+    action: "forward",
+    flag: "can_forward",
+    label: "Forward to Contributions",
+    className: "bg-primary text-primary-foreground hover:bg-primary-hover",
+    confirm:
+      "Reviewed? Forward it to the person handling government contributions (SSS, PhilHealth, Pag-IBIG, tax).",
+  },
+  {
+    action: "submit_contributions",
+    flag: "can_submit_contributions",
+    label: "Submit to Head",
+    className: "bg-primary text-primary-foreground hover:bg-primary-hover",
+    confirm: "Government contributions done? Send this payroll to the head for approval.",
+  },
+  {
     action: "approve",
     flag: "can_approve",
     label: "Approve",
     className: "bg-success text-white hover:opacity-90",
     confirm: "Approve this payroll? It can no longer be generated again unless returned for correction.",
+  },
+  {
+    action: "return_contributions",
+    flag: "can_return_contributions",
+    label: "Back to Contributions",
+    className: "border border-primary text-primary hover:bg-primary/10",
+    prompt: "What should be changed in the contributions?",
   },
   {
     action: "return",
@@ -73,6 +95,8 @@ const WAITING_FOR = {
   DRAFT: "Prepare & Submit",
   GENERATED: "Prepare & Submit",
   FOR_REVIEW: "Approve & Return",
+  CONTRIBUTIONS: "Government Contributions",
+  HEAD_REVIEW: "Approve & Return",
   APPROVED: "Lock & Mark as Paid",
   LOCKED: "Lock & Mark as Paid",
 };
@@ -139,7 +163,7 @@ export default function PayrollStatusBar({ run, department, cutoffPeriod, onChan
         </div>
       </div>
 
-      <ol className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+      <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
         {PAYROLL_STEPS.map((step, index) => {
           const done = index < currentIndex;
           const current = index === currentIndex;
@@ -175,6 +199,17 @@ export default function PayrollStatusBar({ run, department, cutoffPeriod, onChan
         <p className="text-xs text-fg-muted">
           Last generated: {run.employee_count} employee(s) · Gross {peso(run.total_gross)} · Net{" "}
           {peso(run.total_net)}
+        </p>
+      )}
+      {run.return_note && run.status === "CONTRIBUTIONS" && (
+        <p className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-fg">
+          <span className="font-semibold text-primary">Sent back by the head:</span> {run.return_note}
+        </p>
+      )}
+      {run.status === "CONTRIBUTIONS" && (
+        <p className="text-xs text-fg-subtle">
+          Only SSS, PhilHealth, Pag-IBIG and tax can be changed now (Government contributions,
+          below). Everything else is as generated.
         </p>
       )}
       {run.return_note && run.status === "GENERATED" && (

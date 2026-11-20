@@ -30,6 +30,7 @@ import usePagination from "../../hooks/usePagination";
 import { alertDialog, confirmDialog, promptDialog } from "../../components/ui/dialog/dialogService";
 import { Link } from "react-router-dom";
 import PayRunPrecheck from "../../components/payroll/PayRunPrecheck";
+import GovContributionsStep from "../../components/payroll/GovContributionsStep";
 import { downloadBlockedReason } from "../../utils/downloadLimit";
 import {
   formatMissingDates,
@@ -681,18 +682,15 @@ const PayrollList = () => {
 
             next[key] = {
               // Seed from the DB first...
-              sssDeduction:
-                employees.find((e) => e.id === record.employee_id)?.payroll_type === "Monthly"
-                  ? record.sss_deduction
-                  : 0,
-              philhealthDeduction:
-                employees.find((e) => e.id === record.employee_id)?.payroll_type === "Monthly"
-                  ? record.philhealth_deduction
-                  : 0,
-              pagibigDeduction:
-                employees.find((e) => e.id === record.employee_id)?.payroll_type === "Monthly"
-                  ? record.pagibig_deduction
-                  : 0,
+              // Unticked contributions are zeroed in the row calculation
+              // anyway (HRIS -> Government Contributions).
+              sssDeduction: record.sss_deduction,
+              philhealthDeduction: record.philhealth_deduction,
+              pagibigDeduction: record.pagibig_deduction,
+              // Saved only once edited (e.g. at the Contributions step).
+              ...(record.withholding_tax != null
+                ? { withholdingTax: record.withholding_tax }
+                : {}),
               // ...but let any value already edited locally this session
               // (e.g. the user just typed something) win.
               ...prev[key],
@@ -1380,33 +1378,37 @@ const PayrollList = () => {
         // pay falls into (shown next to the deduction).
         const sssBracket = getSSSBracket(grossPay);
 
-        sssDeduction =
-          adj.sssDeduction !== undefined
+        // Which contributions this employee has (HRIS -> Government
+        // Contributions). Unticked = never deducted, even if a value was
+        // saved earlier. Older data without ticks: Monthly-paid only.
+        const has = (key) =>
+          employee.contributions
+            ? Boolean(employee.contributions[key])
+            : payrollType === "Monthly";
+
+        sssDeduction = !has("sss")
+          ? 0
+          : adj.sssDeduction !== undefined
             ? Number(adj.sssDeduction)
-            : payrollType === "Monthly"
-              ? computedSSS
-              : 0;
+            : computedSSS;
 
-        philhealthDeduction =
-          adj.philhealthDeduction !== undefined
+        philhealthDeduction = !has("philhealth")
+          ? 0
+          : adj.philhealthDeduction !== undefined
             ? Number(adj.philhealthDeduction)
-            : payrollType === "Monthly"
-              ? computedPhilhealth
-              : 0;
+            : computedPhilhealth;
 
-        pagibigDeduction =
-          adj.pagibigDeduction !== undefined
+        pagibigDeduction = !has("pagibig")
+          ? 0
+          : adj.pagibigDeduction !== undefined
             ? Number(adj.pagibigDeduction)
-            : payrollType === "Monthly"
-              ? computedPagibig
-              : 0;
+            : computedPagibig;
 
-        withholdingTax =
-          adj.withholdingTax !== undefined
+        withholdingTax = !has("tax")
+          ? 0
+          : adj.withholdingTax !== undefined
             ? Number(adj.withholdingTax)
-            : payrollType === "Monthly"
-              ? computedWithholdingTax
-              : 0;
+            : computedWithholdingTax;
 
         // Split cutoff: contributions are taken once, in the last part.
         if (employee._segment && !employee._segment.is_last) {
@@ -1668,7 +1670,7 @@ const PayrollList = () => {
           others,
           sssDeduction,
           sssBracket,
-          sssComputed: payrollType === "Monthly" ? computedSSS : 0,
+          sssComputed: has("sss") ? computedSSS : 0,
           philhealthDeduction,
           pagibigDeduction,
           withholdingTax,
@@ -1873,6 +1875,7 @@ const PayrollList = () => {
     sss_deduction: row.isTripBasedEmployee ? 0 : row.sssDeduction,
     philhealth_deduction: row.isTripBasedEmployee ? 0 : row.philhealthDeduction,
     pagibig_deduction: row.isTripBasedEmployee ? 0 : row.pagibigDeduction,
+    withholding_tax: row.isTripBasedEmployee ? 0 : row.withholdingTax || 0,
     tardiness_deduction: row.isTripBasedEmployee ? 0 : row.tardinessDeduction,
     undertime_deduction: row.isTripBasedEmployee ? 0 : row.undertimeDeduction,
     absent_deduction: row.isTripBasedEmployee ? 0 : row.absentDeduction || 0,
@@ -2287,14 +2290,17 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
             {isExporting ? "Saving..." : "Export Excel"}
           </button>
 
-          <button
-            type="button"
-            className="bg-violet-600 text-white px-4 rounded-lg hover:bg-violet-700 transition disabled:cursor-not-allowed disabled:bg-violet-300"
-            onClick={() => setSelectedPayslips(payrollRows)}
-            disabled={payrollRows.length === 0}
-          >
-            Generate Bulk Payslips
-          </button>
+          {/* Payslips for everyone only once the run is Paid. */}
+          {payrollRun?.status === "PAID" && (
+            <button
+              type="button"
+              className="bg-violet-600 text-white px-4 rounded-lg hover:bg-violet-700 transition disabled:cursor-not-allowed disabled:bg-violet-300"
+              onClick={() => setSelectedPayslips(payrollRows)}
+              disabled={payrollRows.length === 0}
+            >
+              Generate Bulk Payslips
+            </button>
+          )}
 
           {canRelease &&
             (() => {
@@ -2334,6 +2340,20 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
           department={department}
           cutoffPeriod={cutoffKey}
           onChange={(run) => setPayrollRun(run)}
+        />
+      )}
+
+      {/* Contributions step: SSS / PhilHealth / Pag-IBIG / tax only. */}
+      {["CONTRIBUTIONS", "HEAD_REVIEW"].includes(payrollRun?.status) && snapshot?.rows && (
+        <GovContributionsStep
+          rows={snapshot.rows}
+          editable={Boolean(payrollRun?.can_edit_contributions)}
+          department={department}
+          cutoffPeriod={cutoffKey}
+          onSaved={async (run) => {
+            setPayrollRun(run);
+            setSnapshot(await getPayRunSnapshot(department, cutoffKey));
+          }}
         />
       )}
 

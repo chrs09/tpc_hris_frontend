@@ -42,6 +42,13 @@ export const MODULE_GROUPS = [
         label: "Attendance Locations",
         path: "/dashboard/attendance-locations",
       },
+      {
+        // Every employee's SSS / PhilHealth / Pag-IBIG / TIN and which
+        // contributions payroll deducts.
+        key: "government_contributions",
+        label: "Government Contributions",
+        path: "/dashboard/government-contributions",
+      },
     ],
   },
   {
@@ -58,6 +65,10 @@ export const MODULE_GROUPS = [
         children: [
           { key: "payroll_prepare", label: "Prepare & Submit (generate, edit figures)" },
           { key: "payroll_approve", label: "Approve & Return for correction" },
+          {
+            key: "payroll_contributions",
+            label: "Government Contributions (edit SSS / PhilHealth / Pag-IBIG / tax after review)",
+          },
           { key: "payroll_release", label: "Lock & Mark as Paid" },
         ],
       },

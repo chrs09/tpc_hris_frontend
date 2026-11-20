@@ -34,6 +34,17 @@ export const createPayRun = async (department, cutoffPeriod, payDate) => {
 };
 
 // The snapshot saved at Generate: { rows, period, group, taken_at } or null.
+// Contributions step: [{ employee_id, segment, sssDeduction,
+// philhealthDeduction, pagibigDeduction, withholdingTax }] -> { run, changed }.
+export const savePayRunContributions = async (department, cutoffPeriod, lines) => {
+  const res = await api.post("/payroll-runs/contributions", {
+    department,
+    cutoff_period: cutoffPeriod,
+    lines,
+  });
+  return res.data;
+};
+
 export const getPayRunSnapshot = async (department, cutoffPeriod) => {
   const res = await api.get("/payroll-runs/snapshot", {
     params: { department, cutoff_period: cutoffPeriod },

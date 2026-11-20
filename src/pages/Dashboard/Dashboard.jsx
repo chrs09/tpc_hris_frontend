@@ -32,6 +32,7 @@ import ApplicantsPage from "../Applicant/ApplicantsPage";
 import Questionaire from "../ApplicantQuestionaire/Questionaire";
 import ScheduleTemplatesPage from "../Admin/ScheduleTemplatesPage";
 import AttendanceLocationsPage from "../Admin/AttendanceLocationsPage";
+import GovContributionsPage from "../Admin/GovContributionsPage";
 import PayrollGate from "../Payroll/PayrollGate";
 import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
 import LockedPayrollsPage from "../Payroll/LockedPayrollsPage";
@@ -188,6 +189,7 @@ const Dashboard = () => {
             path="attendance-locations"
             element={<AttendanceLocationsPage />}
           />
+          <Route path="government-contributions" element={<GovContributionsPage />} />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
           {/* Moved to Approvals -> Fuel Request */}
           <Route path="admin/fuel-requests" element={<FuelRequestsRedirect />} />

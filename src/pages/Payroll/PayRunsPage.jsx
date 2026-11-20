@@ -32,6 +32,8 @@ const STATUS_STYLE = {
   DRAFT: "bg-surface-hover text-fg-muted",
   GENERATED: "bg-primary/15 text-primary",
   FOR_REVIEW: "bg-warning/15 text-warning",
+  CONTRIBUTIONS: "bg-primary/15 text-primary",
+  HEAD_REVIEW: "bg-warning/15 text-warning",
   APPROVED: "bg-success/15 text-success",
   LOCKED: "bg-success/15 text-success",
   PAID: "bg-success/20 text-success",
@@ -52,7 +54,17 @@ const payDateLabel = (iso) =>
 const shiftOffSunday = (iso) =>
   iso ? format(notSunday(new Date(`${iso}T00:00:00`)), "yyyy-MM-dd") : iso;
 
-const STATUS_FILTERS = ["ALL", "DRAFT", "GENERATED", "FOR_REVIEW", "APPROVED", "LOCKED", "PAID"];
+const STATUS_FILTERS = [
+  "ALL",
+  "DRAFT",
+  "GENERATED",
+  "FOR_REVIEW",
+  "CONTRIBUTIONS",
+  "HEAD_REVIEW",
+  "APPROVED",
+  "LOCKED",
+  "PAID",
+];
 
 const openRunPath = (department, cutoffPeriod) =>
   `/dashboard/payroll?payroll=${encodeURIComponent(department)}&cutoff=${encodeURIComponent(cutoffPeriod)}`;
