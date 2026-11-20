@@ -44,6 +44,19 @@ export const deleteIncentiveProgram = async (id) => {
   return res.data;
 };
 
+// Long Distance: every completed trip in the period with its level and,
+// for zero, why; plus trips not completed yet ({ waiting }).
+export const getIncentiveTripCheck = async (id) => {
+  const res = await api.get(`/incentive-programs/${id}/trip-check`);
+  return res.data;
+};
+
+// Long Distance: every store's route city, location and trips this period.
+export const getIncentiveStoreCheck = async (id) => {
+  const res = await api.get(`/incentive-programs/${id}/store-check`);
+  return res.data;
+};
+
 // What everyone earns under the program so far (nothing is saved).
 export const getIncentiveProgramResults = async (id) => {
   const res = await api.get(`/incentive-programs/${id}/results`);

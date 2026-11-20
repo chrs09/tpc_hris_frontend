@@ -18,6 +18,7 @@ import {
   getIncentiveRuleTypes,
   updateIncentiveProgram,
 } from "../../api/payroll/incentivePrograms";
+import { LongDistanceStoreCheck, LongDistanceTripCheck } from "../../components/payroll/LongDistanceChecks";
 
 // Incentive Policies: the incentive programs (rules + amounts) for each
 // period -- trip tiers, daily cash, long distance, complete attendance.
@@ -52,6 +53,13 @@ const iconBtn = "rounded-lg p-1.5 text-fg-muted hover:bg-surface-hover hover:tex
 
 // Long-distance rate sheet (Consolacion base / Cebu Plant): destination
 // cities and their level. Filled into the route list on request.
+// Daily cash: limit to one hub's people by department (backend
+// HUB_DEPARTMENTS in app/services/incentives.py).
+const DAILY_CASH_HUBS = [
+  { key: "cdc", label: "CdcDriver", helper: "CdcHelper" },
+  { key: "cpdc", label: "CpdcDriver", helper: "CpdcHelper" },
+];
+
 const RATE_SHEET = [
   { hub: "consol", cities: "Sogod", level: 1, direction: "north" },
   { hub: "consol", cities: "Car-Car/Sibonga", level: 2, direction: "north" },
@@ -159,7 +167,7 @@ function TiersEditor({ s, set }) {
   );
 }
 
-function DailyCashEditor({ s, set }) {
+function DailyCashEditor({ s, set, hubs = [] }) {
   const amounts = s.trip_amounts || [];
   return (
     <div className="space-y-3">
@@ -212,6 +220,44 @@ function DailyCashEditor({ s, set }) {
             className="rounded-lg border border-border bg-background px-2 py-1 text-sm text-fg"
           />
         )}
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-medium text-fg-muted">For departments — none ticked = everyone</p>
+          <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
+            {DAILY_CASH_HUBS.map((dept) => {
+              const picked = s.hubs || [];
+              return (
+                <Check
+                  key={dept.key}
+                  checked={picked.includes(dept.key)}
+                  onChange={(v) =>
+                    set({ hubs: v ? [...picked, dept.key] : picked.filter((h) => h !== dept.key) })
+                  }
+                >
+                  {dept.label} <span className="text-fg-subtle">(helpers: {dept.helper})</span>
+                </Check>
+              );
+            })}
+          </div>
+        </div>
+        <Field label="Origin — only trips that start from this hub">
+          <select
+            value={s.origin_store_id ?? ""}
+            onChange={(e) => {
+              const id = e.target.value ? Number(e.target.value) : null;
+              set({ origin_store_id: id, origin: hubs.find((h) => h.id === id)?.name || null });
+            }}
+            className={inputClass}
+          >
+            <option value="">Any origin</option>
+            {hubs.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name}
+              </option>
+            ))}
+          </select>
+        </Field>
       </div>
       <Field label="Trip categories not counted (special trips) — comma separated">
         <input
@@ -375,6 +421,11 @@ function LongDistanceEditor({ s, set, hubs }) {
       <Check checked={s.use_gps_distance} onChange={(v) => set({ use_gps_distance: v })}>
         City not in the list → use the GPS distance from the hub (straight line)
       </Check>
+      <p className="text-xs text-fg-subtle">
+        The city is looked up in the store&apos;s name, address and area. Each stop is measured from the start hub on its
+        own and the farthest one counts (distances aren&apos;t added up). Stores saved at 0,0 have no location. Check
+        trips and stores with Preview → Trip check / Store check.
+      </p>
     </div>
   );
 }
@@ -440,7 +491,11 @@ const settingsSummary = (p) => {
     case "daily_cash":
       return `${(s.trip_amounts || []).map((a, i) => `${ordinal(i + 1)} ${peso(a)}`).join(", ")}${
         s.repeat_last ? " (then repeats)" : ""
-      }${s.first_trip_before ? ` · 1st before ${s.first_trip_before}` : ""}`;
+      }${s.first_trip_before ? ` · 1st before ${s.first_trip_before}` : ""}${
+        (s.hubs || []).length
+          ? ` · ${DAILY_CASH_HUBS.filter((h) => s.hubs.includes(h.key)).map((h) => h.label).join(" + ")}`
+          : ""
+      }${s.origin_store_id ? ` · from ${s.origin || "one hub"}` : ""}`;
     case "long_distance":
       return `${peso(s.driver_per_step)} / ${peso(s.helper_per_step)} per level · ${(s.routes || []).length} routes`;
     case "complete_attendance":
@@ -738,6 +793,9 @@ const resultBasis = (ruleType, r) => {
 function Preview({ program, onClose }) {
   const [data, setData] = useState(null);
   const [search, setSearch] = useState("");
+  // Long Distance also gets the Trip check and Store check tabs.
+  const isLongDistance = program.rule_type === "long_distance";
+  const [tab, setTab] = useState("earnings");
 
   useEffect(() => {
     let cancelled = false;
@@ -756,7 +814,9 @@ function Preview({ program, onClose }) {
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center sm:p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-t-2xl border border-border bg-surface text-fg sm:rounded-2xl">
+      <div
+        className={`flex max-h-[92vh] w-full ${isLongDistance ? "max-w-5xl" : "max-w-3xl"} flex-col rounded-t-2xl border border-border bg-surface text-fg sm:rounded-2xl`}
+      >
         <div className="flex items-start justify-between border-b border-border px-5 py-4">
           <div>
             <h3 className="text-lg font-bold">Preview: {program.name}</h3>
@@ -770,8 +830,32 @@ function Preview({ program, onClose }) {
             <X size={20} />
           </button>
         </div>
+        {isLongDistance && (
+          <div className="flex gap-1 border-b border-border px-5">
+            {[
+              ["earnings", "Earnings"],
+              ["trips", "Trip check"],
+              ["stores", "Store check"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key)}
+                className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+                  tab === key ? "border-primary font-semibold text-primary" : "border-transparent text-fg-muted hover:text-fg"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="space-y-3 overflow-y-auto p-5">
-          {!data ? (
+          {isLongDistance && tab === "trips" ? (
+            <LongDistanceTripCheck programId={program.id} />
+          ) : isLongDistance && tab === "stores" ? (
+            <LongDistanceStoreCheck programId={program.id} />
+          ) : !data ? (
             <p className="text-sm text-fg-subtle">Computing...</p>
           ) : (
             <>
