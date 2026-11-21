@@ -34,6 +34,27 @@ export const createPayRun = async (department, cutoffPeriod, payDate) => {
 };
 
 // The snapshot saved at Generate: { rows, period, group, taken_at } or null.
+// Deductions step (at Generated): [{ employee_id, segment, sssLoan,
+// cashAdvance, tripCharge, personalDeduction, personalDeductionNote }]
+// -> { run, changed }. Cash advance / trip charges post to the balances.
+export const savePayRunDeductions = async (department, cutoffPeriod, lines) => {
+  const res = await api.post("/payroll-runs/deductions", {
+    department,
+    cutoff_period: cutoffPeriod,
+    lines,
+  });
+  return res.data;
+};
+
+// Deductions checked -> Submit for Review becomes possible. Returns the run.
+export const confirmPayRunDeductions = async (department, cutoffPeriod) => {
+  const res = await api.post("/payroll-runs/deductions/confirm", {
+    department,
+    cutoff_period: cutoffPeriod,
+  });
+  return res.data;
+};
+
 // Contributions step: [{ employee_id, segment, sssDeduction,
 // philhealthDeduction, pagibigDeduction, withholdingTax }] -> { run, changed }.
 export const savePayRunContributions = async (department, cutoffPeriod, lines) => {

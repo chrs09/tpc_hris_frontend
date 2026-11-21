@@ -201,6 +201,12 @@ export default function PayrollStatusBar({ run, department, cutoffPeriod, onChan
           {peso(run.total_net)}
         </p>
       )}
+      {run.status === "GENERATED" && run.deductions_needed && (
+        <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-fg">
+          <span className="font-semibold text-warning">Deductions not confirmed.</span> Check them in
+          the Deductions panel below and click Confirm deductions; then Submit for Review appears.
+        </p>
+      )}
       {run.return_note && run.status === "CONTRIBUTIONS" && (
         <p className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-xs text-fg">
           <span className="font-semibold text-primary">Sent back by the head:</span> {run.return_note}

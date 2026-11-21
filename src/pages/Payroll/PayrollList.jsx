@@ -31,6 +31,7 @@ import { alertDialog, confirmDialog, promptDialog } from "../../components/ui/di
 import { Link } from "react-router-dom";
 import PayRunPrecheck from "../../components/payroll/PayRunPrecheck";
 import GovContributionsStep from "../../components/payroll/GovContributionsStep";
+import DeductionsStep from "../../components/payroll/DeductionsStep";
 import { downloadBlockedReason } from "../../utils/downloadLimit";
 import {
   formatMissingDates,
@@ -690,6 +691,11 @@ const PayrollList = () => {
               // Saved only once edited (e.g. at the Contributions step).
               ...(record.withholding_tax != null
                 ? { withholdingTax: record.withholding_tax }
+                : {}),
+              // Set at the Deductions step.
+              ...(record.sss_loan != null ? { sssLoan: record.sss_loan } : {}),
+              ...(record.other_deduction != null
+                ? { personalDeduction: record.other_deduction }
                 : {}),
               // ...but let any value already edited locally this session
               // (e.g. the user just typed something) win.
@@ -1876,6 +1882,8 @@ const PayrollList = () => {
     philhealth_deduction: row.isTripBasedEmployee ? 0 : row.philhealthDeduction,
     pagibig_deduction: row.isTripBasedEmployee ? 0 : row.pagibigDeduction,
     withholding_tax: row.isTripBasedEmployee ? 0 : row.withholdingTax || 0,
+    sss_loan: row.sssLoan || 0,
+    other_deduction: row.personalDeduction || 0,
     tardiness_deduction: row.isTripBasedEmployee ? 0 : row.tardinessDeduction,
     undertime_deduction: row.isTripBasedEmployee ? 0 : row.undertimeDeduction,
     absent_deduction: row.isTripBasedEmployee ? 0 : row.absentDeduction || 0,
@@ -2340,6 +2348,20 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
           department={department}
           cutoffPeriod={cutoffKey}
           onChange={(run) => setPayrollRun(run)}
+        />
+      )}
+
+      {/* Deductions step (at Generated, on the snapshot). */}
+      {payrollRun?.status === "GENERATED" && showSnapshot && snapshot?.rows && (
+        <DeductionsStep
+          rows={snapshot.rows}
+          run={payrollRun}
+          department={department}
+          cutoffPeriod={cutoffKey}
+          onSaved={async (run, reloadSnapshot) => {
+            setPayrollRun(run);
+            if (reloadSnapshot) setSnapshot(await getPayRunSnapshot(department, cutoffKey));
+          }}
         />
       )}
 
@@ -2872,7 +2894,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                       ) : (
                         <div>
                           <input
-                            disabled={!payrollEditable}
+                            disabled title="Set at the Contributions step"
                             type="number"
                             className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                             value={row.sssDeduction || ""}
@@ -2907,7 +2929,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                         "--"
                       ) : (
                         <input
-                          disabled={!payrollEditable}
+                          disabled title="Set at the Contributions step"
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.philhealthDeduction || ""}
@@ -2929,7 +2951,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                         "--"
                       ) : (
                         <input
-                          disabled={!payrollEditable}
+                          disabled title="Set at the Contributions step"
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.pagibigDeduction || ""}
@@ -2951,7 +2973,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                         "--"
                       ) : (
                         <input
-                          disabled={!payrollEditable}
+                          disabled title="Set at the Contributions step"
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.withholdingTax || ""}
@@ -2973,7 +2995,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                         "--"
                       ) : (
                         <input
-                          disabled={!payrollEditable}
+                          disabled title="Set in the Deductions panel"
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.sssLoan || ""}
@@ -2992,7 +3014,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
 
                     <td className="px-4 py-3">
                       <input
-                        disabled={!payrollEditable}
+                        disabled title="Set in the Deductions panel"
                         type="number"
                         min="0"
                         className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
@@ -3020,7 +3042,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
 
                     <td className="px-4 py-3">
                       <input
-                        disabled={!payrollEditable}
+                        disabled title="Set in the Deductions panel"
                         type="number"
                         min="0"
                         className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
@@ -3059,7 +3081,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                         "--"
                       ) : (
                         <input
-                          disabled={!payrollEditable}
+                          disabled title="Set in the Deductions panel"
                           type="number"
                           className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                           value={row.personalDeduction || ""}
