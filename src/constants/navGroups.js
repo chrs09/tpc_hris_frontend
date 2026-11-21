@@ -406,6 +406,13 @@ export function getNavGroups(role) {
           roles: ["superadmin"],
           moduleKey: "finance.bank_master",
         },
+        {
+          // SSS / Pag-IBIG loans payroll pays down every cutoff.
+          label: "Loan Amortization",
+          path: "/dashboard/finance/loans",
+          roles: ["superadmin", "admin"],
+          moduleKey: "finance.loan_amortization",
+        },
       ],
     },
     {

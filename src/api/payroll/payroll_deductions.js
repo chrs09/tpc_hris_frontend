@@ -67,6 +67,21 @@ export const getTripChargesForCutoff = async (cutoffPeriod, employeeIds) => {
   return res.data || {};
 };
 
+// SSS / Pag-IBIG loan amortization due this cutoff (Finance -> Loan
+// Amortization): { "<id>": { SSS: {suggested, posted, balance_before},
+// PAGIBIG: {...} } } -- see app/services/loan_payroll.py.
+export const getLoansForCutoff = async (cutoffPeriod, employeeIds) => {
+  if (!employeeIds.length) return {};
+  const res = await api.get("/payroll-deductions/loans", {
+    params: {
+      cutoff_period: cutoffPeriod,
+      employee_ids: employeeIds.join(","),
+    },
+  });
+
+  return res.data || {};
+};
+
 export const getEmployeePayrollDeductions = async (employeeId) => {
   const res = await api.get(`/payroll-deductions/employee/${employeeId}`);
 

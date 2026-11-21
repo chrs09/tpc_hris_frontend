@@ -289,6 +289,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // ===================================================
 
   const sssLoan = Number(payroll.sssLoan ?? 0);
+  const pagibigLoan = Number(payroll.pagibigLoan ?? 0);
 
   const cashAdvance = Number(payroll.cashAdvance ?? 0);
   // Cash advance still owed after this payslip's deduction (null if the
@@ -318,7 +319,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
   // ===================================================
 
   const totalOtherDeductions =
-    sssLoan + cashAdvance + tripCharge + personalDeduction;
+    sssLoan + pagibigLoan + cashAdvance + tripCharge + personalDeduction;
 
   // ===================================================
   // TOTAL DEDUCTIONS
@@ -824,6 +825,10 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           <SectionHeader>Other Deductions</SectionHeader>
 
           <PayslipValue label="SSS Loan" value={sssLoan} isMoney negative />
+
+          {pagibigLoan > 0 && (
+            <PayslipValue label="Pag-IBIG Loan" value={pagibigLoan} isMoney negative />
+          )}
 
           <PayslipValue
             label="Cash Advance"

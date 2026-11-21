@@ -44,6 +44,7 @@ import {
   savePayrollDeductionsBulk,
   getPayrollDeductions,
   getCashAdvanceForCutoff,
+  getLoansForCutoff,
   getTripChargesForCutoff,
 } from "../../api/payroll/payroll_deductions";
 import PayrollStatusBar from "../../components/payroll/PayrollStatusBar";
@@ -131,6 +132,23 @@ const getTripCharge = (info, adj, availablePay) => {
   };
 };
 
+// SSS / Pag-IBIG loan (Finance -> Loan Amortization): a value typed this
+// session wins, else what was posted for this cutoff, else the
+// amortization due -- capped at what's left on the loan. No loan on file:
+// the amount saved before (typed by hand), untracked.
+const getLoan = (info, typed, saved, availablePay) => {
+  if (!info) {
+    const amount = Number((typed !== undefined ? typed : saved) || 0);
+    return { amount, before: null, after: null };
+  }
+  const result = getCashAdvance(info, typed !== undefined ? { cashAdvance: typed } : {}, availablePay);
+  return {
+    amount: result.cashAdvance,
+    before: result.cashAdvanceBalanceBefore,
+    after: result.cashAdvanceBalanceAfter,
+  };
+};
+
 // Placeholder while a department has no cutoff rule (nothing matches it).
 const HOLIDAY_TYPE_LABELS = {
   regular: "Regular",
@@ -188,6 +206,7 @@ const PayrollList = () => {
   // Advance column. Posted to the cash advance balance on save.
   const [cashAdvanceInfo, setCashAdvanceInfo] = useState({});
   const [tripChargeInfo, setTripChargeInfo] = useState({});
+  const [loanInfo, setLoanInfo] = useState({});
 
   const getAdjustmentKey = (employeeId, period) =>
     `${employeeId}_${period.cutoffStart}_${period.cutoffEnd}`;
@@ -693,7 +712,10 @@ const PayrollList = () => {
                 ? { withholdingTax: record.withholding_tax }
                 : {}),
               // Set at the Deductions step.
-              ...(record.sss_loan != null ? { sssLoan: record.sss_loan } : {}),
+              // Loans: kept apart -- a loan on file (Loan Amortization)
+              // decides the amount; this is only the hand-typed fallback.
+              ...(record.sss_loan != null ? { savedSssLoan: record.sss_loan } : {}),
+              ...(record.pagibig_loan != null ? { savedPagibigLoan: record.pagibig_loan } : {}),
               ...(record.other_deduction != null
                 ? { personalDeduction: record.other_deduction }
                 : {}),
@@ -746,6 +768,17 @@ const PayrollList = () => {
     } catch (err) {
       console.error("Failed to load trip charges", err);
       setTripChargeInfo({});
+    }
+    try {
+      setLoanInfo(
+        await getLoansForCutoff(
+          `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+          departmentEmployeeIds,
+        ),
+      );
+    } catch (err) {
+      console.error("Failed to load loans", err);
+      setLoanInfo({});
     }
   }, [activePeriod, departmentEmployeeIds]);
 
@@ -1424,7 +1457,6 @@ const PayrollList = () => {
           withholdingTax = 0;
         }
 
-        const sssLoan = Number(adj.sssLoan || 0);
         const personalDeduction = Number(adj.personalDeduction || 0);
 
         const govtDeductions =
@@ -1433,14 +1465,35 @@ const PayrollList = () => {
           pagibigDeduction +
           withholdingTax;
 
+        // Loans: once per cutoff, in the last part.
+        const loanPart = !employee._segment || employee._segment.is_last;
+        const loans = loanInfo[String(employee.id)] || {};
+        const loanBase = isTripBasedEmployee ? tripPay : grossPay - govtDeductions - personalDeduction;
+        const sssLoanCalc = loanPart
+          ? getLoan(loans.SSS, adj.sssLoan, adj.savedSssLoan, loanBase)
+          : { amount: 0, before: null, after: null };
+        const sssLoan = sssLoanCalc.amount;
+        const pagibigLoanCalc = loanPart
+          ? getLoan(loans.PAGIBIG, adj.pagibigLoan, adj.savedPagibigLoan, loanBase - sssLoan)
+          : { amount: 0, before: null, after: null };
+        const pagibigLoan = pagibigLoanCalc.amount;
+        const loanFields = {
+          sssLoan,
+          sssLoanBalanceBefore: sssLoanCalc.before,
+          sssLoanBalanceAfter: sssLoanCalc.after,
+          pagibigLoan,
+          pagibigLoanBalanceBefore: pagibigLoanCalc.before,
+          pagibigLoanBalanceAfter: pagibigLoanCalc.after,
+        };
+
         const ca = getCashAdvance(
           employee._segment && !employee._segment.is_last
             ? null
             : cashAdvanceInfo[String(employee.id)],
           employee._segment && !employee._segment.is_last ? {} : adj,
           isTripBasedEmployee
-            ? tripPay
-            : grossPay - govtDeductions - sssLoan - personalDeduction,
+            ? tripPay - sssLoan - pagibigLoan
+            : grossPay - govtDeductions - sssLoan - pagibigLoan - personalDeduction,
         );
         const cashAdvance = ca.cashAdvance;
 
@@ -1450,13 +1503,13 @@ const PayrollList = () => {
             : tripChargeInfo[String(employee.id)],
           employee._segment && !employee._segment.is_last ? {} : adj,
           (isTripBasedEmployee
-            ? tripPay
-            : grossPay - govtDeductions - sssLoan - personalDeduction) - cashAdvance,
+            ? tripPay - sssLoan - pagibigLoan
+            : grossPay - govtDeductions - sssLoan - pagibigLoan - personalDeduction) - cashAdvance,
         );
         const tripCharge = charge.tripCharge;
 
         const otherDeductions =
-          sssLoan + cashAdvance + tripCharge + personalDeduction;
+          sssLoan + pagibigLoan + cashAdvance + tripCharge + personalDeduction;
 
         const totalDeductions = govtDeductions + otherDeductions;
 
@@ -1584,14 +1637,14 @@ const PayrollList = () => {
             philhealthDeduction: 0,
             pagibigDeduction: 0,
             withholdingTax: 0,
-            sssLoan: 0,
+            ...loanFields,
             cashAdvance,
             cashAdvanceBalanceBefore: ca.cashAdvanceBalanceBefore,
             cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
             ...charge,
             personalDeduction: 0,
-            totalDeductions: cashAdvance + tripCharge,
-            netPay: tripPay - cashAdvance - tripCharge,
+            totalDeductions: sssLoan + pagibigLoan + cashAdvance + tripCharge,
+            netPay: tripPay - sssLoan - pagibigLoan - cashAdvance - tripCharge,
 
             attendanceCount: records.length,
 
@@ -1680,7 +1733,7 @@ const PayrollList = () => {
           philhealthDeduction,
           pagibigDeduction,
           withholdingTax,
-          sssLoan,
+          ...loanFields,
           cashAdvance,
           cashAdvanceBalanceBefore: ca.cashAdvanceBalanceBefore,
           cashAdvanceBalanceAfter: ca.cashAdvanceBalanceAfter,
@@ -1711,6 +1764,7 @@ const PayrollList = () => {
     adjustments,
     cashAdvanceInfo,
     tripChargeInfo,
+    loanInfo,
     tripCheck,
     departmentEntries,
     incentivesByEmployee,
@@ -1883,6 +1937,7 @@ const PayrollList = () => {
     pagibig_deduction: row.isTripBasedEmployee ? 0 : row.pagibigDeduction,
     withholding_tax: row.isTripBasedEmployee ? 0 : row.withholdingTax || 0,
     sss_loan: row.sssLoan || 0,
+    pagibig_loan: row.pagibigLoan || 0,
     other_deduction: row.personalDeduction || 0,
     tardiness_deduction: row.isTripBasedEmployee ? 0 : row.tardinessDeduction,
     undertime_deduction: row.isTripBasedEmployee ? 0 : row.undertimeDeduction,
@@ -1894,7 +1949,12 @@ const PayrollList = () => {
     // Cash advance and trip charges are posted once per cutoff, from the
     // last part only.
     ...(row.employee._segment && !row.employee._segment.is_last
-      ? { cash_advance_deduction: undefined, trip_charge_deduction: undefined }
+      ? {
+          cash_advance_deduction: undefined,
+          trip_charge_deduction: undefined,
+          sss_loan: undefined,
+          pagibig_loan: undefined,
+        }
       : {}),
   });
 
@@ -1973,9 +2033,16 @@ const PayrollList = () => {
     if (count("tripCharge")) {
       parts.push(`${peso(total("tripCharge"))} trip charges from ${count("tripCharge")} employee(s)`);
     }
+    const loanCount = liveRows.filter(
+      (row) => Number(row.sssLoan || 0) + Number(row.pagibigLoan || 0) > 0,
+    ).length;
+    if (loanCount) {
+      const loanTotal = Math.round((total("sssLoan") + total("pagibigLoan")) * 100) / 100;
+      parts.push(`${peso(loanTotal)} SSS / Pag-IBIG loans from ${loanCount} employee(s)`);
+    }
     return parts.length
       ? `This deducts ${parts.join(" and ")} from their balances for this cutoff.`
-      : "No cash advance or trip charge deductions this cutoff -- no balances change.";
+      : "No cash advance, trip charge or loan deductions this cutoff -- no balances change.";
   };
 
   // Pre-check: what's still open before generating (PayRunPrecheck).
@@ -2080,6 +2147,16 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
         net += Number(row.tripCharge || 0);
         payload.trip_charge_deduction = 0;
       }
+      // Loans on file (Loan Amortization) too; a hand-typed one stays.
+      [
+        ["sss_loan", "sssLoan"],
+        ["pagibig_loan", "pagibigLoan"],
+      ].forEach(([field, key]) => {
+        if (payload[field] !== undefined && row[`${key}BalanceBefore`] != null) {
+          net += Number(row[key] || 0);
+          payload[field] = 0;
+        }
+      });
       return { ...payload, net_pay: Math.round(net * 100) / 100 };
     });
     try {
@@ -2628,6 +2705,13 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
 
                   <th className="px-4 py-3 text-left">SSS Loan</th>
 
+                  <th
+                    className="px-4 py-3 text-left"
+                    title="From Finance -> Loan Amortization"
+                  >
+                    Pag-IBIG Loan
+                  </th>
+
                   <th className="px-4 py-3 text-left">Cash Advance</th>
 
                   <th
@@ -2990,27 +3074,32 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                       )}
                     </td>
 
-                    <td className="px-4 py-3">
-                      {row.isTripBasedEmployee ? (
-                        "--"
-                      ) : (
+                    {[
+                      ["sssLoan", "SSS loan"],
+                      ["pagibigLoan", "Pag-IBIG loan"],
+                    ].map(([key, label]) => (
+                      <td key={key} className="px-4 py-3">
                         <input
-                          disabled title="Set in the Deductions panel"
+                          disabled
+                          title="Set in the Deductions panel (Finance -> Loan Amortization)"
+                          aria-label={label}
                           type="number"
                           className="w-20 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
-                          value={row.sssLoan || ""}
+                          value={row[key] || ""}
                           placeholder="0"
-                          onChange={(e) =>
-                            updateAdjustment(
-                              row.employee.adjId ?? row.employee.id,
-                              activePeriod,
-                              "sssLoan",
-                              e.target.value,
-                            )
-                          }
+                          readOnly
                         />
-                      )}
-                    </td>
+                        {row[`${key}BalanceBefore`] != null && (
+                          <p
+                            className="mt-1 text-[11px] text-fg-subtle"
+                            title={`${label} left before this cutoff -> after this deduction`}
+                          >
+                            Bal ₱{row[`${key}BalanceBefore`].toFixed(2)} → ₱
+                            {row[`${key}BalanceAfter`].toFixed(2)}
+                          </p>
+                        )}
+                      </td>
+                    ))}
 
                     <td className="px-4 py-3">
                       <input

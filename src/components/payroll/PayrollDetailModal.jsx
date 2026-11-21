@@ -574,6 +574,13 @@ const PayrollDetailModal = ({
                 </div>
 
                 <div className="border border-border rounded-lg p-3">
+                  <p className="text-xs text-fg-subtle">Pag-IBIG Loan</p>
+                  <p className="font-bold text-red-600">
+                    ₱{Number(payroll.pagibigLoan || 0).toFixed(2)}
+                  </p>
+                </div>
+
+                <div className="border border-border rounded-lg p-3">
                   <p className="text-xs text-fg-subtle">Cash Advance</p>
                   <p className="font-bold text-red-600">
                     ₱{Number(payroll.cashAdvance || 0).toFixed(2)}

@@ -229,6 +229,12 @@ export const MODULE_GROUPS = [
         path: "/dashboard/finance/banks",
       },
       {
+        // SSS / Pag-IBIG loans: amount, monthly amortization, terms.
+        key: "loan_amortization",
+        label: "Loan Amortization",
+        path: "/dashboard/finance/loans",
+      },
+      {
         // Drivers' trip budgets / expense reports: release, review, settle.
         key: "trip_expenses",
         label: "Trip Expenses",

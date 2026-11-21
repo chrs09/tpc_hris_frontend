@@ -7,14 +7,16 @@ import { confirmPayRunDeductions, savePayRunDeductions } from "../../api/payroll
 
 // Pay run -> Deductions step (at Generated; backend POST
 // /payroll-runs/deductions and /deductions/confirm). After Generate, the
-// preparer sets cash advance, trip charges, SSS loan and other deductions
+// preparer sets cash advance, trip charges, SSS / Pag-IBIG loans (amounts
+// come from Finance -> Loan Amortization) and other deductions
 // on the snapshot, then confirms. Submit for Review needs them confirmed.
 // Government contributions are the later Contributions step.
 
 const FIELDS = [
-  { key: "sssLoan", label: "SSS loan" },
-  { key: "cashAdvance", label: "Cash advance", balance: "cashAdvanceBalanceBefore" },
-  { key: "tripCharge", label: "Trip charges", balance: "tripChargeBalanceBefore" },
+  { key: "sssLoan", label: "SSS loan", balance: "sssLoanBalanceBefore", once: true },
+  { key: "pagibigLoan", label: "Pag-IBIG loan", balance: "pagibigLoanBalanceBefore", once: true },
+  { key: "cashAdvance", label: "Cash advance", balance: "cashAdvanceBalanceBefore", once: true },
+  { key: "tripCharge", label: "Trip charges", balance: "tripChargeBalanceBefore", once: true },
   { key: "personalDeduction", label: "Other" },
 ];
 
@@ -150,7 +152,7 @@ export default function DeductionsStep({ rows, run, department, cutoffPeriod, on
           <p className="mt-0.5 text-xs text-fg-subtle">
             {confirmed
               ? `Confirmed ${stampText(run.deductions_confirmed)}. Submit for Review is open.`
-              : "Set cash advance, trip charges, SSS loan and other deductions, Save, then Confirm deductions. Submit for Review opens after that."}{" "}
+              : "Set cash advance, trip charges, SSS / Pag-IBIG loans and other deductions, Save, then Confirm deductions. Submit for Review opens after that. Loan amounts come from Finance → Loan Amortization."}{" "}
             Government contributions are set at the Contributions step.
           </p>
         </div>
@@ -208,7 +210,7 @@ export default function DeductionsStep({ rows, run, department, cutoffPeriod, on
       </div>
 
       <div className="max-h-[30rem] overflow-auto rounded-lg border border-border">
-        <table className="w-full min-w-[980px] text-sm">
+        <table className="w-full min-w-[1080px] text-sm">
           <thead className="sticky top-0 z-10 bg-surface-hover text-xs text-fg-subtle">
             <tr>
               <th className="px-3 py-2 text-left font-medium">Employee</th>
@@ -244,7 +246,7 @@ export default function DeductionsStep({ rows, run, department, cutoffPeriod, on
                     {peso(GOV.reduce((s, f) => s + Number(row[f] || 0), 0))}
                   </td>
                   {FIELDS.map((f) => {
-                    const locked = notLast && (f.key === "cashAdvance" || f.key === "tripCharge");
+                    const locked = notLast && f.once;
                     const owed = f.balance ? row[f.balance] : null;
                     const typed = Number(valueOf(row, f.key)) || 0;
                     return (
@@ -299,7 +301,7 @@ export default function DeductionsStep({ rows, run, department, cutoffPeriod, on
             })}
             {list.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-6 text-center text-sm text-fg-subtle">
+                <td colSpan={9} className="px-4 py-6 text-center text-sm text-fg-subtle">
                   {show === "with" ? "Nobody has deductions or balances." : "No employees match."}
                 </td>
               </tr>
