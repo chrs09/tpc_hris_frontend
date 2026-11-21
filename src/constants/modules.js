@@ -197,6 +197,12 @@ export const MODULE_GROUPS = [
         path: "/dashboard/admin/trip-maintenance?tab=maintenance",
       },
       {
+        // Base days per month for Truck Utilization.
+        key: "utilization_settings",
+        label: "Utilization Settings",
+        path: "/dashboard/admin/utilization-settings",
+      },
+      {
         key: "fuel_requests",
         label: "Fuel Requests",
         // Lives in Approvals -> Fuel Request now (same access key).

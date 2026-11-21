@@ -4,7 +4,8 @@ import UnitStatusBadge from "./UnitStatusBadge";
 
 // Fleet Management -> Truck Utilization: per truck for a period -- trips,
 // days used, hours on trips, downtime (breakdown / maintenance / hold /
-// repairs), idle days, and utilization = days used / days in service.
+// repairs), idle days, and utilization = days used / base days (Fleet
+// Management -> Utilization Settings).
 const pad = (n) => String(n).padStart(2, "0");
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const monthStart = () => {
@@ -108,8 +109,11 @@ export default function TruckUtilization() {
             ))}
           </div>
           <p className="text-xs text-fg-subtle">
-            {data.period_days} days · Utilization = days a truck went out on a trip ÷ days it was in
-            service (period minus breakdown, maintenance, hold and repair days).
+            {`${data.period_days} days · Utilization = days a truck went out on a trip ÷ base days (${
+              data.settings?.base_days
+            } a month${
+              data.settings?.partial_month === "prorate" ? ", prorated for part of a month" : ""
+            } = ${data.base_days} for this period). Set it in Fleet Management → Utilization Settings.`}
           </p>
 
           <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
@@ -142,7 +146,7 @@ export default function TruckUtilization() {
                       <td className="px-4 py-3 text-fg-muted">{u.truck_type || "-"}</td>
                       <td className="px-4 py-3"><UnitStatusBadge unit={u} /></td>
                       <td className="px-4 py-3 text-right tabular-nums">{u.trips}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{u.days_used} / {u.days_in_service}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">{u.days_used} / {u.base_days}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{u.hours_on_trips}</td>
                       <td className="px-4 py-3 text-right tabular-nums">{u.downtime_days}d</td>
                       <td className="px-4 py-3 text-right tabular-nums">{u.idle_days}d</td>

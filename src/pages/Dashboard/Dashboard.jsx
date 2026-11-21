@@ -20,6 +20,7 @@ import StoreManagement from "../Admin/StoreManagement";
 import CustomerChart from "../Admin/CustomerChart";
 import TripCorrections from "../Admin/TripCorrections";
 import TripMaintenance from "../Admin/TripMaintenance";
+import UtilizationSettings from "../Admin/UtilizationSettings";
 import TripCategoriesPage from "../Admin/TripCategoriesPage";
 import OriginsPage from "../Admin/OriginsPage";
 import SuppliersPage from "../Admin/SuppliersPage";
@@ -192,6 +193,7 @@ const Dashboard = () => {
           />
           <Route path="government-contributions" element={<GovContributionsPage />} />
           <Route path="admin/trip-maintenance" element={<TripMaintenance />} />
+          <Route path="admin/utilization-settings" element={<UtilizationSettings />} />
           {/* Moved to Approvals -> Fuel Request */}
           <Route path="admin/fuel-requests" element={<FuelRequestsRedirect />} />
           <Route path="admin/trip-categories" element={<TripCategoriesPage />} />

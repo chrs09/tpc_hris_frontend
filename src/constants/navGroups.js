@@ -351,6 +351,13 @@ export function getNavGroups(role) {
           roles: ["superadmin", "coordinator_admin"],
           moduleKey: "fleet_management.vehicle_list",
         },
+        {
+          // Base days per month -- Truck Utilization's denominator.
+          label: "Utilization Settings",
+          path: "/dashboard/admin/utilization-settings",
+          roles: ["superadmin"],
+          moduleKey: "fleet_management.utilization_settings",
+        },
       ],
     },
     {

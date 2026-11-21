@@ -23,3 +23,10 @@ export const getTruckUtilization = async (dateFrom, dateTo) =>
       params: { date_from: dateFrom, date_to: dateTo },
     })
   ).data;
+
+// Utilization Settings: { base_days, partial_month: "full" | "prorate" }.
+export const getUtilizationSettings = async () =>
+  (await api.get("/trip-maintenance/utilization-settings")).data;
+
+export const saveUtilizationSettings = async (settings) =>
+  (await api.put("/trip-maintenance/utilization-settings", settings)).data;
