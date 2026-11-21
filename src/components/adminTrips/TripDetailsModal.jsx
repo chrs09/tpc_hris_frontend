@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { markTripFixed, removeTripFile, replaceTripFile, reviewTrip } from "../../api/adminTripManagement/trips";
-import { confirmDialog } from "../ui/dialog/dialogService";
+import { markTripFixed, reviewTrip } from "../../api/adminTripManagement/trips";
 import AddDocButton from "./AddDocButton";
 
 // Trip Dashboard -> Trip Approval Status -> View: one trip's details at any
@@ -9,7 +8,8 @@ import AddDocButton from "./AddDocButton";
 // remarks. Same data the approval screens review.
 //
 // fixMode (Trip Dashboard -> Trips to fix): a coordinator handed this
-// returned trip can replace document photos and mark it fixed.
+// returned trip can add missing pages / photos and mark it fixed. Photos
+// already attached can't be replaced or removed here.
 
 // Rebuilds a localhost URL with the current API base; a relative path gets
 // the base added (same as the approval screens).
@@ -41,56 +41,31 @@ const Section = ({ title, children }) => (
   </section>
 );
 
-const PhotoButton = ({ label, photo, onOpen, onReplace }) =>
+const PhotoButton = ({ label, photo, onOpen }) =>
   photo?.url ? (
-    <span className="inline-flex items-center gap-1">
-      <button
-        type="button"
-        onClick={() => onOpen({ url: resolvePhotoUrl(photo.url), label })}
-        className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
-      >
-        {label}
-      </button>
-      {onReplace && photo.id && (
-        <button
-          type="button"
-          onClick={() => onReplace(photo.id)}
-          className="rounded-lg border border-warning/60 px-2 py-1 text-xs font-semibold text-warning hover:bg-warning/10"
-          title="Upload the corrected photo in place of this one"
-        >
-          Replace
-        </button>
-      )}
-    </span>
+    <button
+      type="button"
+      onClick={() => onOpen({ url: resolvePhotoUrl(photo.url), label })}
+      className="rounded-lg bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary-hover"
+    >
+      {label}
+    </button>
   ) : null;
 
 // One document's pages: "LM  [Page 1] [Page 2]", or "No photo".
-// Fix mode adds: onRemove (an extra Invoice / LM page; one always stays)
-// and `add` (the "+ Page" / "Upload" button).
-const PhotoRow = ({ label, photos, onOpen, onReplace, onRemove, add }) => (
+// Fix mode adds `add` (the "+ Page" / "Upload" button).
+const PhotoRow = ({ label, photos, onOpen, add }) => (
   <div className="flex flex-wrap items-center justify-between gap-2 py-1.5">
     <span className="text-sm text-fg-muted">{label}</span>
     {photos.length ? (
       <div className="flex flex-wrap items-center justify-end gap-1.5">
         {photos.map((photo, index) => (
-          <span key={photo.id} className="inline-flex items-center gap-1">
-            <PhotoButton
-              label={photos.length > 1 ? `Page ${index + 1}` : "View"}
-              photo={photo}
-              onOpen={(p) => onOpen({ ...p, label: photos.length > 1 ? `${label} - Page ${index + 1}` : label })}
-              onReplace={onReplace}
-            />
-            {onRemove && photos.length > 1 && (
-              <button
-                type="button"
-                onClick={() => onRemove(photo.id, label, index + 1)}
-                title="Remove this page"
-                className="rounded-lg border border-border px-2 py-1 text-xs text-fg-subtle hover:border-danger/50 hover:text-danger"
-              >
-                &times;
-              </button>
-            )}
-          </span>
+          <PhotoButton
+            key={photo.id}
+            label={photos.length > 1 ? `Page ${index + 1}` : "View"}
+            photo={photo}
+            onOpen={(p) => onOpen({ ...p, label: photos.length > 1 ? `${label} - Page ${index + 1}` : label })}
+          />
         ))}
         {add}
       </div>
@@ -103,9 +78,7 @@ const PhotoRow = ({ label, photos, onOpen, onReplace, onRemove, add }) => (
 export default function TripDetailsModal({ trip, onClose, fixMode = false, onFixed }) {
   const [details, setDetails] = useState(null);
   const [failed, setFailed] = useState(false);
-  // Fix mode: which photo is being replaced, the note, saving.
-  const fileInput = useRef(null);
-  const [replacingId, setReplacingId] = useState(null);
+  // Fix mode: how many documents were added, the note, saving.
   const [replacedCount, setReplacedCount] = useState(0);
   const [fixNote, setFixNote] = useState("");
   const [savingFix, setSavingFix] = useState(false);
@@ -113,27 +86,6 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
   const reload = async () => {
     const res = await reviewTrip(trip.id);
     setDetails(res.data);
-  };
-
-  const startReplace = (fileId) => {
-    setReplacingId(fileId);
-    fileInput.current?.click();
-  };
-
-  const onFilePicked = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !replacingId) return;
-    try {
-      await replaceTripFile(replacingId, file);
-      toast.success("Photo replaced.");
-      setReplacedCount((n) => n + 1);
-      await reload();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to replace the photo.");
-    } finally {
-      setReplacingId(null);
-    }
   };
 
   const markFixed = async () => {
@@ -146,23 +98,6 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
       toast.error(err.response?.data?.detail || "Failed to mark it fixed.");
     } finally {
       setSavingFix(false);
-    }
-  };
-  const replace = fixMode ? startReplace : undefined;
-
-  // Fix mode: remove an extra Invoice / LM page.
-  const removePage = async (fileId, label, pageNo) => {
-    const ok = await confirmDialog(`Remove ${label} page ${pageNo}? The removal is logged on the trip.`, {
-      confirmText: "Remove",
-    });
-    if (!ok) return;
-    try {
-      await removeTripFile(fileId);
-      toast.success(`${label} page removed.`);
-      setReplacedCount((n) => n + 1);
-      await reload();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Failed to remove the page.");
     }
   };
   const onDocAdded = async () => {
@@ -254,8 +189,8 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                   </p>
                   <p className="whitespace-pre-wrap text-fg">{details.resolver_note}</p>
                   <p className="mt-1 text-xs text-fg-muted">
-                    Replace a wrong photo, add missing Invoice / LM pages (+ Page) or remove an extra
-                    one (&times;), then mark it fixed.
+                    Add the missing Invoice / LM pages (+ Page) or photos, then mark it fixed.
+                    Photos already attached can&apos;t be replaced or removed.
                   </p>
                 </div>
               )}
@@ -305,30 +240,24 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                     label="Invoice"
                     photos={details.invoice_photos || []}
                     onOpen={openPhoto}
-                    onReplace={replace}
-                    onRemove={fixMode ? removePage : undefined}
                     add={addBtn("INVOICE_PHOTO", (details.invoice_photos || []).length ? "+ Page" : "Upload pages", { multiple: true })}
                   />
                   <PhotoRow
                     label="LM"
                     photos={details.lm_photos || []}
                     onOpen={openPhoto}
-                    onReplace={replace}
-                    onRemove={fixMode ? removePage : undefined}
                     add={addBtn("LM_MANIFEST_PHOTO", (details.lm_photos || []).length ? "+ Page" : "Upload pages", { multiple: true })}
                   />
                   <PhotoRow
                     label="Stamped LM (checkout)"
                     photos={details.lm_checkout_stamped_photo ? [details.lm_checkout_stamped_photo] : []}
                     onOpen={openPhoto}
-                    onReplace={replace}
                     add={details.lm_checkout_stamped_photo ? null : addBtn("LM_CHECKOUT_STAMPED_PHOTO", "Upload")}
                   />
                   <PhotoRow
                     label="Stamped Invoice"
                     photos={details.stamped_invoice_photo ? [details.stamped_invoice_photo] : []}
                     onOpen={openPhoto}
-                    onReplace={replace}
                     add={details.stamped_invoice_photo ? null : addBtn("STAMPED_INVOICE_PHOTO", "Upload")}
                   />
                 </div>
@@ -354,7 +283,6 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                               label="Unloading"
                               photo={stop.unloading_photo}
                               onOpen={(p) => openPhoto({ ...p, label: `${stop.store_name} - Unloading` })}
-                              onReplace={replace}
                             />
                             {!stop.unloading_photo &&
                               stop.id &&
@@ -363,7 +291,6 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                               label="Proof of Delivery"
                               photo={stop.delivery_proof_photo}
                               onOpen={(p) => openPhoto({ ...p, label: `${stop.store_name} - Proof of Delivery` })}
-                              onReplace={replace}
                             />
                             {!stop.delivery_proof_photo &&
                               stop.id &&
@@ -404,14 +331,6 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
 
         {fixMode && details && (
           <div className="space-y-2 border-t border-border px-5 py-3">
-            <input
-              ref={fileInput}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={onFilePicked}
-              aria-label="Corrected photo"
-            />
             <label htmlFor="fix-done-note" className="block text-xs font-medium text-fg-muted">
               What did you fix? (optional)
             </label>
@@ -425,7 +344,7 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
               className="w-full rounded-lg border border-border bg-background p-2.5 text-sm text-fg"
             />
             {replacedCount === 0 && (
-              <p className="text-xs text-fg-subtle">You haven&apos;t changed any document yet.</p>
+              <p className="text-xs text-fg-subtle">You haven&apos;t added any document yet.</p>
             )}
           </div>
         )}
@@ -442,7 +361,7 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
             <button
               type="button"
               onClick={markFixed}
-              disabled={savingFix || replacingId !== null}
+              disabled={savingFix}
               className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-60"
             >
               {savingFix ? "Saving..." : "Mark fixed"}

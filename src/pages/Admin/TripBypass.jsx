@@ -100,8 +100,8 @@ const TripBypass = () => {
   const [checkInStoreId, setCheckInStoreId] = useState("");
   const [overrideStoreId, setOverrideStoreId] = useState("");
   const [podPhoto, setPodPhoto] = useState(null);
-  const [invoicePhoto, setInvoicePhoto] = useState(null);
-  const [lmPhoto, setLmPhoto] = useState(null);
+  const [invoicePhotos, setInvoicePhotos] = useState([]);
+  const [lmPhotos, setLmPhotos] = useState([]);
   const [lmStampedPhoto, setLmStampedPhoto] = useState(null);
   const [forceCheckin, setForceCheckin] = useState(false);
   const [assignStoreId, setAssignStoreId] = useState("");
@@ -150,8 +150,8 @@ const TripBypass = () => {
     setCheckInStoreId("");
     setOverrideStoreId("");
     setPodPhoto(null);
-    setInvoicePhoto(null);
-    setLmPhoto(null);
+    setInvoicePhotos([]);
+    setLmPhotos([]);
     setLmStampedPhoto(null);
     setForceCheckin(false);
     setAssignStoreId("");
@@ -164,8 +164,8 @@ const TripBypass = () => {
     // Photos belong to the step just submitted -- clear them so the next
     // step (e.g. the next store's Delivered) doesn't re-send them.
     setPodPhoto(null);
-    setInvoicePhoto(null);
-    setLmPhoto(null);
+    setInvoicePhotos([]);
+    setLmPhotos([]);
     setLmStampedPhoto(null);
   };
 
@@ -350,34 +350,34 @@ const TripBypass = () => {
             value={odometerReading}
             onChange={(e) => setOdometerReading(e.target.value)}
           />
-          <PhotoField
-            label="Invoice photo (optional)"
-            file={invoicePhoto}
-            onFile={setInvoicePhoto}
+          <PagesField
+            label="Invoice photo (required, add a page for each sheet)"
+            files={invoicePhotos}
+            onFiles={setInvoicePhotos}
+          />
+          <PagesField
+            label="LM photo (required, add a page for each sheet)"
+            files={lmPhotos}
+            onFiles={setLmPhotos}
           />
           <PhotoField
-            label="LM photo (optional)"
-            file={lmPhoto}
-            onFile={setLmPhoto}
-          />
-          <PhotoField
-            label="LM stamped 'checkout' photo (optional)"
+            label="LM stamped 'checkout' photo (required)"
             file={lmStampedPhoto}
             onFile={setLmStampedPhoto}
           />
           <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
-            disabled={submitting}
+            disabled={
+              submitting || !invoicePhotos.length || !lmPhotos.length || !lmStampedPhoto
+            }
             onClick={() =>
               runAction("Complete Checkout for this driver", () => {
                 const fd = buildForm();
                 fd.append("odometer_reading", odometerReading || 0);
-                if (invoicePhoto) fd.append("invoice_photo", invoicePhoto);
-                if (lmPhoto) fd.append("lm_photo", lmPhoto);
-                if (lmStampedPhoto) {
-                  fd.append("lm_checkout_stamped_photo", lmStampedPhoto);
-                }
+                invoicePhotos.forEach((f) => fd.append("invoice_photo", f));
+                lmPhotos.forEach((f) => fd.append("lm_photo", f));
+                fd.append("lm_checkout_stamped_photo", lmStampedPhoto);
                 return bypassCheckout(tripDetail.trip_id, fd);
               })
             }
@@ -481,16 +481,16 @@ const TripBypass = () => {
       return (
         <ActionCard
           title={`Start Unloading (at ${stop.store || "stop"})`}
-          description="Marks unloading as started at the driver's current stop. Photo optional."
+          description="Marks unloading as started at the driver's current stop."
           reason={reason}
           setReason={setReason}
           submitting={submitting}
-          photoLabel="Unloading photo (optional)"
+          photoLabel="Unloading photo (required)"
           onSubmit={(photo) =>
             runAction("Mark unloading as started", () => {
               const fd = new FormData();
               fd.append("reason", reason);
-              if (photo) fd.append("photo", photo);
+              fd.append("photo", photo);
               return bypassStartUnloading(tripDetail.trip_id, stop.stop_id, fd);
             })
           }
@@ -525,18 +525,18 @@ const TripBypass = () => {
             />
           )}
           <PhotoField
-            label="Delivery proof photo (optional)"
+            label="Delivery proof photo (required)"
             file={podPhoto}
             onFile={setPodPhoto}
           />
           <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
-            disabled={submitting}
+            disabled={submitting || !podPhoto}
             onClick={() =>
               runAction("Mark this stop as delivered", () => {
                 const fd = buildForm();
-                if (podPhoto) fd.append("proof_photo", podPhoto);
+                fd.append("proof_photo", podPhoto);
                 if (overrideStoreId) fd.append("store_id", overrideStoreId);
                 return bypassCheckOut(tripDetail.trip_id, stop.stop_id, fd);
               })
@@ -566,18 +566,18 @@ const TripBypass = () => {
             title="Checkin (final step, back at the hub)"
             description={
               hasRemainingStores
-                ? "Completes the trip early, skipping the remaining planned stores. Sends it for approval, releasing the vehicle and any helpers. Photo optional."
-                : "Completes the trip and sends it for approval, releasing the vehicle and any helpers. Photo optional."
+                ? "Completes the trip early, skipping the remaining planned stores. Sends it for approval, releasing the vehicle and any helpers."
+                : "Completes the trip and sends it for approval, releasing the vehicle and any helpers."
             }
             reason={reason}
             setReason={setReason}
             submitting={submitting}
-            photoLabel="Stamped invoice photo (optional)"
+            photoLabel="Stamped invoice photo (required)"
             extra={<TimeField value={performedAt} onChange={setPerformedAt} />}
             onSubmit={(photo) =>
               runAction("Complete this trip", () => {
                 const fd = buildForm();
-                if (photo) fd.append("photo", photo);
+                fd.append("photo", photo);
                 return bypassCheckin(tripDetail.trip_id, fd);
               })
             }
@@ -768,6 +768,48 @@ const PhotoField = ({ label, file, onFile }) => (
   </div>
 );
 
+// Invoice / LM: one photo per sheet, like the driver's app. Each page
+// can be swapped or removed before submitting; an empty tile adds the next.
+const PagesField = ({ label, files, onFiles }) => (
+  <div>
+    <label className="mb-1 block text-xs font-medium text-fg-subtle">
+      {label}
+    </label>
+    <div className="space-y-2">
+      {files.map((file, index) => (
+        <div key={`${file.name}-${index}`} className="flex items-center gap-2">
+          <span className="w-14 shrink-0 text-xs text-fg-subtle">Page {index + 1}</span>
+          <div className="min-w-0 flex-1">
+            <PhotoPicker
+              compact
+              file={file}
+              onChange={(next) =>
+                onFiles(
+                  next
+                    ? files.map((f, i) => (i === index ? next : f))
+                    : files.filter((_, i) => i !== index),
+                )
+              }
+            />
+          </div>
+        </div>
+      ))}
+      <div className="flex items-center gap-2">
+        <span className="w-14 shrink-0 text-xs text-fg-subtle">
+          {files.length ? `+ Page ${files.length + 1}` : "Page 1"}
+        </span>
+        <div className="min-w-0 flex-1">
+          <PhotoPicker
+            compact
+            file={null}
+            onChange={(next) => next && onFiles([...files, next])}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 const ActionCard = ({
   title,
   description,
@@ -792,7 +834,7 @@ const ActionCard = ({
       {extra}
       <ReasonField reason={reason} setReason={setReason} />
       <button
-        disabled={submitting}
+        disabled={submitting || (photoLabel && !photo)}
         onClick={() => onSubmit(photo)}
         className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
       >
