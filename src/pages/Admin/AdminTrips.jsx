@@ -4,21 +4,18 @@ import {
   getPendingTrips,
   getCompletedTrips,
 } from "../../api/adminTripManagement/trips";
-import { getUnknownStops } from "../../api/adminTripManagement/stores";
 
 import SummaryCard from "../../components/adminTrips/SummaryCards";
 import PendingTripsCard from "../../components/adminTrips/PendingTripsCard";
-import UnknownStoresCard from "../../components/adminTrips/UnknownStoresCard";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 
-// Trip Approvals -- the coordinator's pending/completed approval queue
-// plus unknown check-ins needing review. Assigned/Active trip
+// Trip Approvals -- the coordinator's pending/completed approval queue.
+// Assigned/Active trip
 // monitoring lives on the Trip Dashboard page instead (see
 // TripDashboard.jsx).
 const AdminTrips = () => {
   const [summary, setSummary] = useState({});
   const [pendingTrips, setPendingTrips] = useState([]);
-  const [unknownStops, setUnknownStops] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [completedTrips, setCompletedTrips] = useState([]);
@@ -30,17 +27,15 @@ const AdminTrips = () => {
   // waiting is hidden; use the search and the Pending filters instead.
   const loadTrips = async () => {
     try {
-      const [s, p, c, u] = await Promise.all([
+      const [s, p, c] = await Promise.all([
         getAdminTripSummary(),
         getPendingTrips(),
         getCompletedTrips(),
-        getUnknownStops(),
       ]);
 
       setSummary(s.data);
       setPendingTrips(p.data);
       setCompletedTrips(c.data);
-      setUnknownStops(u.data);
     } catch (err) {
       console.error(err);
     }
@@ -122,9 +117,8 @@ const AdminTrips = () => {
       )}
 
       {/* SUMMARY */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 gap-4 sm:gap-6">
         <SummaryCard label="Pending Trips" value={summary.pending_trips} />
-        <SummaryCard label="Unknown Check-ins" value={unknownStops.length} />
         <SummaryCard label="Completed Today" value={summary.completed_today} />
       </div>
 
@@ -164,15 +158,6 @@ const AdminTrips = () => {
           onArchived={handleTripArchived}
           mode={activeTab}
         />
-      </div>
-
-      {/* UNKNOWN */}
-      <div>
-        <h2 className="text-lg sm:text-xl font-semibold text-fg mb-4">
-          Unknown Store Check-ins
-        </h2>
-
-        <UnknownStoresCard stops={unknownStops} />
       </div>
     </div>
   );
