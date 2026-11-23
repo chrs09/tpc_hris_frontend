@@ -481,16 +481,17 @@ const TripBypass = () => {
       return (
         <ActionCard
           title={`Start Unloading (at ${stop.store || "stop"})`}
-          description="Marks unloading as started at the driver's current stop."
+          description="Marks unloading as started at the driver's current stop. Photo optional."
           reason={reason}
           setReason={setReason}
           submitting={submitting}
-          photoLabel="Unloading photo (required)"
+          photoLabel="Unloading photo (optional)"
+          photoOptional
           onSubmit={(photo) =>
             runAction("Mark unloading as started", () => {
               const fd = new FormData();
               fd.append("reason", reason);
-              fd.append("photo", photo);
+              if (photo) fd.append("photo", photo);
               return bypassStartUnloading(tripDetail.trip_id, stop.stop_id, fd);
             })
           }
@@ -525,18 +526,18 @@ const TripBypass = () => {
             />
           )}
           <PhotoField
-            label="Delivery proof photo (required)"
+            label="Delivery proof photo (optional)"
             file={podPhoto}
             onFile={setPodPhoto}
           />
           <TimeField value={performedAt} onChange={setPerformedAt} />
           <ReasonField reason={reason} setReason={setReason} />
           <button
-            disabled={submitting || !podPhoto}
+            disabled={submitting}
             onClick={() =>
               runAction("Mark this stop as delivered", () => {
                 const fd = buildForm();
-                fd.append("proof_photo", podPhoto);
+                if (podPhoto) fd.append("proof_photo", podPhoto);
                 if (overrideStoreId) fd.append("store_id", overrideStoreId);
                 return bypassCheckOut(tripDetail.trip_id, stop.stop_id, fd);
               })
@@ -819,6 +820,7 @@ const ActionCard = ({
   photoLabel,
   onSubmit,
   extra,
+  photoOptional = false,
 }) => {
   const [photo, setPhoto] = useState(null);
 
@@ -834,7 +836,7 @@ const ActionCard = ({
       {extra}
       <ReasonField reason={reason} setReason={setReason} />
       <button
-        disabled={submitting || (photoLabel && !photo)}
+        disabled={submitting || (photoLabel && !photoOptional && !photo)}
         onClick={() => onSubmit(photo)}
         className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
       >
