@@ -1,10 +1,11 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { extractFinanceExpenseReceipt } from "../../api/financeExpenses";
 
 import { parseReceiptText } from "../../utils/expenseReceiptParser";
 
 import SearchSelect from "../SearchSelect";
+import { getSuppliers } from "../../api/adminTripManagement/tripMaintenance";
 
 const emptyExpense = {
   expenseNumber: "",
@@ -238,6 +239,28 @@ function Field({
   );
 }
 
+// The Supplier field's match in the Suppliers list: type, category, TIN, VAT.
+function SupplierInfo({ name, suppliers }) {
+  const text = (name || "").trim().toLowerCase();
+  if (!text || !suppliers.length) return null;
+  const match = suppliers.find((sup) => (sup.name || "").trim().toLowerCase() === text);
+  if (!match) {
+    return <p className="text-[11px] text-fg-subtle">Not in the Suppliers list.</p>;
+  }
+  const type = { INDIVIDUAL: "Individual", COMPANY: "Company" }[match.supplier_type];
+  const parts = [
+    type,
+    match.category,
+    match.tin ? `TIN ${match.tin}` : null,
+    match.vat_registered == null ? null : match.vat_registered ? "VAT registered" : "Non-VAT",
+  ].filter(Boolean);
+  return (
+    <p className="text-[11px] text-fg-muted">
+      {parts.length ? parts.join(" · ") : "Type and category not set on the Suppliers page."}
+    </p>
+  );
+}
+
 const fmtDateChip = (iso) => {
   const d = new Date(`${iso}T00:00:00`);
   return Number.isNaN(d.getTime())
@@ -291,6 +314,19 @@ export default function ExpenseDrawer({
   onSave,
   saving = false,
 }) {
+  // Suppliers list (Trip Management -> Suppliers): pick one for the
+  // Supplier field and see its type, category, TIN and VAT status.
+  const [supplierList, setSupplierList] = useState([]);
+  useEffect(() => {
+    if (!open) return undefined;
+    let cancelled = false;
+    getSuppliers()
+      .then((rows) => !cancelled && setSupplierList((rows || []).filter((x) => x.is_active)))
+      .catch(() => !cancelled && setSupplierList([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
   /*
    * The parent should give this component a key based on
    * mode + expense.id.
@@ -888,13 +924,26 @@ export default function ExpenseDrawer({
               />
             )}
 
-            <Field
-              label="Supplier"
-              disabled={isView}
-              value={form.supplier}
-              onChange={(v) => update("supplier", v)}
-              suggestions={ocrSuggestions.supplier}
-            />
+            <div className="flex flex-col gap-1.5">
+              <Field
+                label="Supplier"
+                disabled={isView}
+                value={form.supplier}
+                onChange={(v) => update("supplier", v)}
+                suggestions={ocrSuggestions.supplier}
+              />
+              {!isView && supplierList.length > 0 && (
+                <SearchSelect
+                  value={null}
+                  options={supplierList}
+                  onChange={(sup) => sup && update("supplier", sup.name)}
+                  placeholder="Pick from the Suppliers list..."
+                  getOptionLabel={(sup) => (sup ? `${sup.name}${sup.category ? ` · ${sup.category}` : ""}` : "")}
+                  getOptionValue={(sup) => sup?.id}
+                />
+              )}
+              <SupplierInfo name={form.supplier} suppliers={supplierList} />
+            </div>
 
             <Field
               label="Invoice Number"

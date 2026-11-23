@@ -22,7 +22,52 @@ const EMPTY_FORM = {
   phone: "",
   email: "",
   address: "",
+  supplier_type: "",
+  category: "",
+  category_other: "",
+  tin: "",
+  vat_registered: null, // true | false | null (not answered)
 };
+
+// Finance fields (backend: trip_maintenance.py SUPPLIER_CATEGORIES).
+const SUPPLIER_TYPES = [
+  { key: "INDIVIDUAL", label: "Individual" },
+  { key: "COMPANY", label: "Company" },
+];
+const CATEGORIES = ["Fuel", "Repairs", "Tires", "Parts", "Freight", "Supplies", "Utilities", "Services", "Others"];
+const typeLabel = (key) => SUPPLIER_TYPES.find((t) => t.key === key)?.label;
+
+// Type and category required; a company must say if it's VAT registered;
+// VAT registered needs a TIN (9 or 12 digits). Same rules as the backend.
+const formProblem = (form) => {
+  if (!form.name.trim()) return "Enter the supplier name.";
+  if (!form.supplier_type) return "Pick the supplier type: Individual or Company.";
+  const category = form.category === "Others" ? form.category_other.trim() : form.category;
+  if (!category) return form.category === "Others" ? "Type the category." : "Pick the supplier category.";
+  if (form.supplier_type === "COMPANY" && form.vat_registered === null)
+    return "Say whether this company is VAT registered.";
+  const digits = form.tin.replace(/\D/g, "");
+  if (form.vat_registered && !digits) return "A VAT-registered supplier needs a TIN.";
+  if (digits && ![9, 12].includes(digits.length)) return "TIN must be 9 or 12 digits.";
+  return null;
+};
+
+const toPayload = (form) => ({
+  name: form.name.trim(),
+  contact_person: form.contact_person,
+  phone: form.phone,
+  email: form.email,
+  address: form.address,
+  supplier_type: form.supplier_type,
+  category: form.category === "Others" ? form.category_other.trim() || "Others" : form.category,
+  tin: form.tin,
+  vat_registered: form.vat_registered ? "true" : "false",
+});
+
+const segBtn = (active) =>
+  `flex-1 rounded-md px-3 py-1.5 text-sm ${
+    active ? "bg-primary/10 font-semibold text-primary" : "text-fg-muted hover:bg-surface-hover"
+  }`;
 
 export default function SuppliersPage() {
   const canEditPage = usePageCanEdit();
@@ -69,6 +114,9 @@ export default function SuppliersPage() {
       supplier.phone,
       supplier.email,
       supplier.address,
+      supplier.category,
+      supplier.tin,
+      typeLabel(supplier.supplier_type),
     ),
   );
   const { page, setPage, totalPages, paginatedItems } = usePagination(
@@ -94,8 +142,10 @@ export default function SuppliersPage() {
   }, []);
 
   const handleCreate = async () => {
+    const problem = formProblem(form);
+    if (problem) return toast.error(problem);
     try {
-      await createSupplier(form);
+      await createSupplier(toPayload(form));
       toast.success("Supplier created successfully");
       await loadSuppliers();
       setForm(EMPTY_FORM);
@@ -106,8 +156,10 @@ export default function SuppliersPage() {
   };
 
   const handleUpdate = async () => {
+    const problem = formProblem(form);
+    if (problem) return toast.error(problem);
     try {
-      await updateSupplier(editingSupplier.id, form);
+      await updateSupplier(editingSupplier.id, toPayload(form));
       toast.success("Supplier updated successfully");
       await loadSuppliers();
       setEditingSupplier(null);
@@ -125,6 +177,13 @@ export default function SuppliersPage() {
       phone: supplier.phone || "",
       email: supplier.email || "",
       address: supplier.address || "",
+      supplier_type: supplier.supplier_type || "",
+      // A typed category (not in the list) opens as Others + the text.
+      category: !supplier.category ? "" : CATEGORIES.includes(supplier.category) ? supplier.category : "Others",
+      category_other:
+        supplier.category && !CATEGORIES.includes(supplier.category) ? supplier.category : "",
+      tin: supplier.tin || "",
+      vat_registered: supplier.vat_registered ?? null,
     });
     setShowModal(true);
   };
@@ -170,6 +229,8 @@ export default function SuppliersPage() {
             <thead className="bg-surface-hover text-fg-muted">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
+                <th className="px-4 py-3 text-left font-medium">Type / Category</th>
+                <th className="px-4 py-3 text-left font-medium">TIN / VAT</th>
                 <th className="px-4 py-3 text-left font-medium">
                   Contact Person
                 </th>
@@ -188,6 +249,24 @@ export default function SuppliersPage() {
                   className="border-t border-border hover:bg-surface-hover"
                 >
                   <td className="px-4 py-3 font-medium">{supplier.name}</td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    {supplier.supplier_type ? (
+                      <>
+                        <p>{typeLabel(supplier.supplier_type)}</p>
+                        <p className="text-xs text-fg-subtle">{supplier.category}</p>
+                      </>
+                    ) : (
+                      <span className="text-xs text-warning">Not set</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-fg-muted">
+                    <p>{supplier.tin || "-"}</p>
+                    {supplier.vat_registered != null && (
+                      <p className="text-xs text-fg-subtle">
+                        {supplier.vat_registered ? "VAT registered" : "Non-VAT"}
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-fg-muted">
                     {supplier.contact_person || "-"}
                   </td>
@@ -243,7 +322,32 @@ export default function SuppliersPage() {
                 <Building2 size={20} />
               </div>
 
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {supplier.supplier_type ? (
+                  <>
+                    <span className="rounded-full bg-surface-active px-2 py-0.5 text-xs font-medium text-fg-muted">
+                      {typeLabel(supplier.supplier_type)}
+                    </span>
+                    {supplier.category && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        {supplier.category}
+                      </span>
+                    )}
+                    {supplier.vat_registered != null && (
+                      <span className="rounded-full bg-surface-active px-2 py-0.5 text-xs font-medium text-fg-muted">
+                        {supplier.vat_registered ? "VAT" : "Non-VAT"}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+                    Type and category not set
+                  </span>
+                )}
+              </div>
+
               <div className="mt-3 space-y-1 text-sm text-fg-muted">
+                {supplier.tin && <p>TIN {supplier.tin}</p>}
                 <p>{supplier.contact_person || "No contact person"}</p>
                 <p>{supplier.phone || "No phone"}</p>
                 <p>{supplier.email || "No email"}</p>
@@ -295,6 +399,103 @@ export default function SuppliersPage() {
               className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
               placeholder="Company / Individual name"
             />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-fg">
+                Supplier type <span className="text-danger">*</span>
+              </label>
+              <div className="flex rounded-lg border border-border p-0.5">
+                {SUPPLIER_TYPES.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        supplier_type: t.key,
+                        // Individuals default to non-VAT; a company must answer.
+                        vat_registered:
+                          form.vat_registered ?? (t.key === "INDIVIDUAL" ? false : null),
+                      })
+                    }
+                    className={segBtn(form.supplier_type === t.key)}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label htmlFor="supplier-category" className="block text-sm font-medium mb-1 text-fg">
+                Supplier category <span className="text-danger">*</span>
+              </label>
+              <select
+                id="supplier-category"
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+              >
+                <option value="">Expense type...</option>
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              {form.category === "Others" && (
+                <input
+                  id="supplier-category-other"
+                  value={form.category_other}
+                  onChange={(e) => setForm({ ...form, category_other: e.target.value })}
+                  maxLength={60}
+                  className="mt-2 w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                  placeholder="Type the category"
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-1 text-fg">
+                VAT registered{" "}
+                {form.supplier_type === "COMPANY" && <span className="text-danger">*</span>}
+              </label>
+              <div className="flex rounded-lg border border-border p-0.5">
+                {[
+                  [true, "Yes"],
+                  [false, "No"],
+                ].map(([value, label]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setForm({ ...form, vat_registered: value })}
+                    className={segBtn(form.vat_registered === value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-fg-subtle">Required for a company.</p>
+            </div>
+            <div>
+              <label htmlFor="supplier-tin" className="block text-sm font-medium mb-1 text-fg">
+                TIN {form.vat_registered && <span className="text-danger">*</span>}
+              </label>
+              <input
+                id="supplier-tin"
+                value={form.tin}
+                onChange={(e) => setForm({ ...form, tin: e.target.value })}
+                className="w-full border border-border rounded-lg px-3 py-2 bg-surface text-fg"
+                placeholder="123-456-789-000"
+                inputMode="numeric"
+              />
+              <p className="mt-1 text-xs text-fg-subtle">
+                {form.vat_registered ? "Required: VAT registered." : "Optional unless VAT registered."}
+              </p>
+            </div>
           </div>
 
           <div>
