@@ -420,6 +420,20 @@ export function getNavGroups(role) {
           roles: ["superadmin", "admin"],
           moduleKey: "finance.loan_amortization",
         },
+        {
+          // Cash advance adjustments / deduction reversals: filed by Cash
+          // Advance, approved by admin or the CA Corrections tick.
+          label: "CA Corrections",
+          path: "/dashboard/finance/ca-corrections",
+          roles: ["superadmin", "admin"],
+          moduleKey: ["finance.cash_advance_corrections", "finance.cash_advance"],
+        },
+        {
+          label: "CA Correction History",
+          path: "/dashboard/finance/ca-corrections?view=history",
+          roles: ["superadmin", "admin"],
+          moduleKey: ["finance.cash_advance_corrections", "finance.cash_advance"],
+        },
       ],
     },
     {

@@ -67,7 +67,8 @@ export default function useModuleAccess() {
     if (item.approverKind && approvesAny(item.approverKind)) return true;
     if (item.requiresDepartmentHead) return isDepartmentHead;
     if (!item.moduleKey) return item.roles.includes(role);
-    if (usesGrants) return grantedModules.has(item.moduleKey);
+    // moduleKey: one key, or a list where any one grant shows the page.
+    if (usesGrants) return [].concat(item.moduleKey).some((k) => grantedModules.has(k));
     return item.roles.includes(role);
   };
 
@@ -85,9 +86,11 @@ export default function useModuleAccess() {
   // (`defaultRoles`, same list the backend endpoint uses) or a grant.
   const canEdit = (key, defaultRoles = []) => {
     if (isSuperAdmin) return true;
-    if (usesGrants && readOnlyModules.has(key)) return false;
-    if (defaultRoles.includes(role)) return true;
-    return usesGrants && grantedModules.has(key);
+    // A list of keys (a page several modules share): editable through any
+    // one grant that isn't view-only.
+    const keys = [].concat(key);
+    if (defaultRoles.includes(role) && !(usesGrants && keys.every((k) => readOnlyModules.has(k)))) return true;
+    return usesGrants && keys.some((k) => grantedModules.has(k) && !readOnlyModules.has(k));
   };
 
   return {

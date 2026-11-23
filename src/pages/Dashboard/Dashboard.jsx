@@ -49,6 +49,7 @@ import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
 import BankMaster from "../Finance/BankMaster";
 import LoanAmortization from "../Finance/LoanAmortization";
+import CashAdvanceCorrections from "../Finance/CashAdvanceCorrections";
 import SettingsPage from "../Admin/SettingsPage";
 import VerifyPhotoPage from "../Admin/VerifyPhotoPage";
 import PosRegister from "../POS/PosRegister";
@@ -207,6 +208,7 @@ const Dashboard = () => {
           <Route path="finance/expenses" element={<FinanceExpenses />} />
           <Route path="finance/banks" element={<BankMaster />} />
           <Route path="finance/loans" element={<LoanAmortization />} />
+          <Route path="finance/ca-corrections" element={<CashAdvanceCorrections />} />
           {/* DRIVER */}
           <Route path="driver/trips" element={<DriverTrips />} />
           {/* Not driver-only despite the component's filename -- any

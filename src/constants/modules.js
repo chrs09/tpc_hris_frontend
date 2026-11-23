@@ -241,6 +241,13 @@ export const MODULE_GROUPS = [
         path: "/dashboard/finance/loans",
       },
       {
+        // Approves cash advance adjustments / reversals (anyone with Cash
+        // Advances can file them).
+        key: "cash_advance_corrections",
+        label: "CA Corrections (approve)",
+        path: "/dashboard/finance/ca-corrections",
+      },
+      {
         // Drivers' trip budgets / expense reports: release, review, settle.
         key: "trip_expenses",
         label: "Trip Expenses",

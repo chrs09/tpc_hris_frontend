@@ -8,7 +8,9 @@ export const builtInRoleKeys = (role) => {
   if (!role) return keys;
   getNavGroups(role).forEach((group) =>
     (group.children || []).forEach((item) => {
-      if (item.moduleKey && item.roles?.includes(role)) keys.add(item.moduleKey);
+      // moduleKey can be one key or a list (any of them shows the page).
+      if (item.moduleKey && item.roles?.includes(role))
+        [].concat(item.moduleKey).forEach((k) => keys.add(k));
     }),
   );
   return keys;

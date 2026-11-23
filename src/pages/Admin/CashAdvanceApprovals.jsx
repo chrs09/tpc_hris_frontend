@@ -13,10 +13,8 @@ import {
   getCashAdvanceDeductionHistory,
   getOutstandingBalances,
   recordCashAdvanceDeduction,
-  adjustCashAdvance,
   rejectCashAdvanceRequest,
   setCashAdvanceReleaseInfo,
-  reverseCashAdvanceDeduction,
 } from "../../api/cashAdvanceRequests";
 import { getAssignableUsers } from "../../api/users";
 import usePagination from "../../hooks/usePagination";
@@ -38,6 +36,7 @@ import useViewType from "../../hooks/useViewType";
 import CashAdvanceReleaseModal from "../../components/cashAdvance/CashAdvanceReleaseModal";
 import ReceiptViewer from "../../components/cashAdvance/ReceiptViewer";
 import { matchesSearch } from "../../utils/search";
+import { requestCaAdjustment, requestCaReversal } from "../../api/cashAdvanceCorrections";
 import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
 import { toISODate } from "../../utils/isoDate";
 import useApprovalScope from "../../hooks/useApprovalScope";
@@ -547,7 +546,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const handleReverseDeduction = async (tx) => {
     if (!historyRequest) return;
     const reason = await promptDialog(
-      `Add ₱${tx.amount.toLocaleString()} back to ${historyRequest.employee_name}'s balance? Use this only if it was never actually taken from their pay. Reason:`,
+      `Request to add ₱${tx.amount.toLocaleString()} back to ${historyRequest.employee_name}'s balance? Use this only if it was never actually taken from their pay. It goes to Finance → CA Corrections for approval. Reason:`,
     );
     if (reason === null) return;
     if (!reason.trim()) {
@@ -556,13 +555,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
     try {
       setReversingId(tx.id);
-      const updated = await reverseCashAdvanceDeduction(historyRequest.id, tx.id, reason.trim());
-      setHistoryRequest((prev) => (prev ? { ...prev, ...updated } : prev));
-      toast.success(`₱${tx.amount.toLocaleString()} added back to the balance.`);
+      await requestCaReversal(historyRequest.id, tx.id, reason.trim());
+      toast.success("Reversal sent for approval (Finance → CA Corrections).");
       await loadTransactions(historyRequest.id);
-      await loadBalances();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to reverse the deduction.");
+      toast.error(error.response?.data?.detail || "Couldn't send the reversal request.");
     } finally {
       setReversingId(null);
     }
@@ -573,7 +570,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
   const handleReverseHistoryRow = async (d) => {
     const amount = `₱${d.amount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
     const reason = await promptDialog(
-      `Add ${amount} back to ${d.employee_name}'s ${d.reference_no || "cash advance"} balance? Use this only if it was never actually taken from their pay. Reason:`,
+      `Request to add ${amount} back to ${d.employee_name}'s ${d.reference_no || "cash advance"} balance? Use this only if it was never actually taken from their pay. It goes to Finance → CA Corrections for approval. Reason:`,
     );
     if (reason === null) return;
     if (!reason.trim()) {
@@ -582,12 +579,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
     try {
       setReversingId(d.id);
-      await reverseCashAdvanceDeduction(d.request_id, d.id, reason.trim());
-      toast.success(`${amount} added back to the balance.`);
+      await requestCaReversal(d.request_id, d.id, reason.trim());
+      toast.success("Reversal sent for approval (Finance → CA Corrections).");
       setDeductionsReload((n) => n + 1);
-      loadBalances();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to reverse the deduction.");
+      toast.error(error.response?.data?.detail || "Couldn't send the reversal request.");
     } finally {
       setReversingId(null);
     }
@@ -635,13 +631,11 @@ export default function CashAdvanceApprovals({ embedded = false }) {
     }
     try {
       setSavingAdjust(true);
-      await adjustCashAdvance(request.id, { change, reason: reason.trim() });
-      toast.success("Cash advance adjusted.");
+      await requestCaAdjustment(request.id, change, reason.trim());
+      toast.success("Adjustment sent for approval (Finance → CA Corrections).");
       setAdjustForm(null);
-      await loadBalances();
-      if (allLoaded) await loadAll();
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to adjust.");
+      toast.error(error.response?.data?.detail || "Couldn't send the adjustment request.");
     } finally {
       setSavingAdjust(false);
     }
@@ -1519,15 +1513,19 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                                 >
                                   Reversed
                                 </span>
+                              ) : d.reversal_pending ? (
+                                <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
+                                  Reversal pending
+                                </span>
                               ) : showReversals && d.entry_type === "deduction" && d.amount > 0 ? (
                                 <button
                                   type="button"
                                   onClick={() => handleReverseHistoryRow(d)}
                                   disabled={reversingId === d.id}
-                                  title="Add this back to the balance -- it was never taken from pay"
+                                  title="Ask to add this back to the balance -- it was never taken from pay"
                                   className="rounded-md border border-border px-2 py-1 text-xs font-semibold text-fg-muted hover:bg-surface-active disabled:opacity-50"
                                 >
-                                  {reversingId === d.id ? "Reversing..." : "Reverse"}
+                                  {reversingId === d.id ? "Sending..." : "Request reversal"}
                                 </button>
                               ) : null}
                             </td>
@@ -1718,7 +1716,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                             }
                             className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover"
                           >
-                            Adjust
+                            Request adjustment
                           </button>
                         )}
                         {canEditLedger && !request.released_at && !request.is_opening_balance && (
@@ -1820,7 +1818,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
       {adjustForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-border bg-surface p-5 shadow-lg">
-            <h3 className="text-lg font-bold text-fg">Adjust Cash Advance</h3>
+            <h3 className="text-lg font-bold text-fg">Request Adjustment</h3>
             <p className="mt-1 text-sm text-fg-subtle">
               {adjustForm.request.employee_name} · currently ₱
               {adjustForm.request.effective_amount.toLocaleString()} ·{" "}
@@ -1855,7 +1853,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       Number(adjustForm.actual) - adjustForm.request.effective_amount,
                     ).toLocaleString()}
                   </strong>{" "}
-                  · Balance becomes{" "}
+                  · Balance would become{" "}
                   <strong>
                     ₱
                     {(
@@ -1866,6 +1864,9 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                   </strong>
                 </p>
               )}
+            <p className="mt-3 text-xs text-fg-subtle">
+              Nothing changes until it&apos;s approved on Finance → CA Corrections.
+            </p>
             <div className="mt-4 flex justify-end gap-2">
               <button
                 onClick={() => setAdjustForm(null)}
@@ -1878,7 +1879,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                 disabled={savingAdjust}
                 className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
               >
-                {savingAdjust ? "Saving..." : "Save Adjustment"}
+                {savingAdjust ? "Sending..." : "Send for approval"}
               </button>
             </div>
           </div>
@@ -1955,18 +1956,24 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                       </span>
                       <span className="flex items-center gap-2 text-xs text-fg-subtle">
                         {new Date(tx.recorded_at).toLocaleString()}
+                        {tx.reversal_pending && (
+                          <span className="rounded-full bg-warning/15 px-2 py-0.5 font-semibold text-warning">
+                            Reversal pending
+                          </span>
+                        )}
                         {canEditLedger &&
                           (tx.entry_type || "deduction") === "deduction" &&
                           tx.amount > 0 &&
-                          !tx.reversed && (
+                          !tx.reversed &&
+                          !tx.reversal_pending && (
                             <button
                               type="button"
                               onClick={() => handleReverseDeduction(tx)}
                               disabled={reversingId === tx.id}
-                              title="Add this back to the balance -- it was never taken from pay"
+                              title="Ask to add this back to the balance -- it was never taken from pay"
                               className="rounded-md border border-border px-2 py-0.5 font-semibold text-fg-muted hover:bg-surface-active disabled:opacity-50"
                             >
-                              {reversingId === tx.id ? "Reversing..." : "Reverse"}
+                              {reversingId === tx.id ? "Sending..." : "Request reversal"}
                             </button>
                           )}
                       </span>
