@@ -60,6 +60,90 @@ const PayslipValue = ({
 // SECTION HEADER
 // =====================================================
 
+// =====================================================
+// WATERMARK ("Personal copy")
+//
+// A faint diagonal pattern over the whole slip -- PERSONAL COPY, the
+// employee, the period and a reference code -- so a copy shows whose it
+// is and can't be cropped or edited cleanly, plus a footer line with who
+// printed it and when. The reference is worked out from the employee, the
+// cutoff and the net pay: the same payslip always gets the same code, and
+// it changes if the amounts change.
+// =====================================================
+
+const payslipRef = (employeeId, activePeriod, netPay) => {
+  const text = `${employeeId}|${activePeriod?.cutoffStart}_${activePeriod?.cutoffEnd}|${Number(
+    netPay || 0,
+  ).toFixed(2)}`;
+  // FNV-1a, 32-bit.
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `PS-${hash.toString(36).toUpperCase().padStart(6, "0").slice(-6)}`;
+};
+
+const printedBy = () => {
+  try {
+    return localStorage.getItem("full_name") || localStorage.getItem("username") || "";
+  } catch {
+    return "";
+  }
+};
+
+const printedAt = () =>
+  new Date().toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+const PayslipWatermark = ({ text }) => (
+  <div
+    aria-hidden="true"
+    className="pointer-events-none absolute inset-0 select-none overflow-hidden"
+    style={{ zIndex: 1 }}
+  >
+    <div
+      className="absolute flex flex-col justify-center gap-[14px]"
+      style={{
+        inset: "-60%",
+        transform: "rotate(-22deg)",
+        color: "rgba(0, 0, 0, 0.07)",
+        fontSize: "8px",
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        lineHeight: 1,
+        whiteSpace: "nowrap",
+        textTransform: "uppercase",
+      }}
+    >
+      {Array.from({ length: 22 }, (_, row) => (
+        <span key={row} style={{ marginLeft: row % 2 ? "-60px" : "0" }}>
+          {Array.from({ length: 6 }, () => `${text}     `).join("")}
+        </span>
+      ))}
+    </div>
+  </div>
+);
+
+const WatermarkFooter = ({ reference }) => {
+  const by = printedBy();
+  return (
+    <>
+      {" • "}
+      <span className="font-semibold">Personal copy</span>
+      {" • "}
+      Issued by Tytan Prime System · Ref {reference} · printed {printedAt()}
+      {by ? ` by ${by}` : ""}
+    </>
+  );
+};
+
 const SectionHeader = ({ children }) => (
   <h3
     className="
@@ -342,6 +426,9 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
   const netPay = Number(payroll.netPay ?? grossPay - totalDeductions);
 
+  const reference = payslipRef(employeeId, activePeriod, netPay);
+  const watermarkText = `Personal copy · ${employeeName} · ${activePeriod.label || ""} · ${reference}`;
+
   // ===================================================
   // TRIP-BASED PAYSLIP
   // ===================================================
@@ -351,6 +438,8 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
       <article
         className="
           payslip-card
+          relative
+          overflow-hidden
           border
           border-black
           bg-white
@@ -359,6 +448,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           text-black
         "
       >
+        <PayslipWatermark text={watermarkText} />
         {/* HEADER */}
 
         <div className="bg-[#548235] py-1 text-center text-[10px] font-bold text-white">
@@ -531,6 +621,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
           Payslip #{index + 1}
           {" • "}
           Payout: {activePeriod.payoutDate}
+          <WatermarkFooter reference={reference} />
         </p>
       </article>
     );
@@ -544,6 +635,8 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
     <article
       className="
         payslip-card
+        relative
+        overflow-hidden
         border
         border-black
         bg-white
@@ -552,6 +645,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
         text-black
       "
     >
+      <PayslipWatermark text={watermarkText} />
       {/* =================================================
           COMPANY HEADER
       ================================================= */}
@@ -957,6 +1051,7 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
         Payslip #{index + 1}
         {" • "}
         Payout: {activePeriod.payoutDate}
+        <WatermarkFooter reference={reference} />
       </p>
     </article>
   );
