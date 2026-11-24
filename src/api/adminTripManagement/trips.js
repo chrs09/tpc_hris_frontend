@@ -43,6 +43,14 @@ export const approveTrip = (tripId, remarks) =>
 
 export const reviewTrip = (tripId) => api.get(`/admin/trips/${tripId}/review`);
 
+// Superadmin: fix mistyped shipment number(s). Same count and order as the
+// trip's current numbers; only the numbers change.
+export const editShipmentNumbers = (tripId, shipmentNumbers, reason) =>
+  api.post(`/admin/trips/${tripId}/shipment-numbers`, {
+    shipment_numbers: shipmentNumbers,
+    reason,
+  });
+
 // Remark on an approved trip (its photos are locked): text, an image,
 // or both.
 export const addTripRemark = (tripId, text, image) => {

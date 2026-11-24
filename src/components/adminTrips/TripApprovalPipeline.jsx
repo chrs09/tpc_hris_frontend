@@ -11,7 +11,7 @@ import Pagination from "../ui/pagination/Pagination";
 import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
 import Pill from "../ui/statusPill/StatusPill";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZES = [10, 20, 50, 100];
 
 const STATUSES = [
   { value: "PENDING_MANUAL_APPROVAL", label: "Pending Superadmin (Manual Entry)", classes: "bg-primary/15 text-primary" },
@@ -104,6 +104,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [data, setData] = useState({ items: [], total: 0, counts: {} });
   // All statuses: manual route rides matching the search, shown on top of
   // page 1 (they have no approval chain, so they aren't server-paged).
@@ -130,7 +131,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
             matchesSearch(debouncedSearch, ride.rider_name, ride.trip_category, ride.notes),
         );
         setData((prev) => ({
-          items: rides.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(manualRideRow),
+          items: rides.slice((page - 1) * pageSize, page * pageSize).map(manualRideRow),
           total: rides.length,
           counts: prev.counts,
         }));
@@ -141,8 +142,8 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           status,
           search: debouncedSearch,
           truckTypeId,
-          limit: PAGE_SIZE,
-          offset: (page - 1) * PAGE_SIZE,
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
         }),
         status || truckTypeId ? Promise.resolve([]) : getRouteRides().catch(() => []),
       ]);
@@ -161,7 +162,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
     } finally {
       setLoading(false);
     }
-  }, [status, debouncedSearch, page, truckTypeId]);
+  }, [status, debouncedSearch, page, pageSize, truckTypeId]);
 
   // A new truck type filter starts again from page 1.
   const [lastTruckTypeId, setLastTruckTypeId] = useState(truckTypeId);
@@ -183,7 +184,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
       (s) => s.value !== "PENDING_MANUAL_APPROVAL" || counts[s.value],
     ).map((s) => ({ value: s.value, label: s.label })),
   ];
-  const totalPages = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(data.total / pageSize));
   const rows =
     !status && page === 1 ? [...manualRides, ...data.items] : data.items;
 
@@ -206,6 +207,25 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           onChange={setSearch}
           placeholder="Search trip, shipment, driver, store..."
         />
+        <label className="flex items-center gap-2 text-xs text-fg-muted">
+          Show
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-fg"
+            aria-label="Trips per page"
+          >
+            {PAGE_SIZES.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          per page
+        </label>
         {onPhoneViewChange && (
           <ViewModeSwitch value={phoneView} onChange={onPhoneViewChange} className="ml-auto md:hidden" />
         )}
@@ -391,7 +411,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
 
           <p className="mt-3 text-xs text-fg-subtle">
             {data.total > 0
-              ? `Showing ${(page - 1) * PAGE_SIZE + 1}–${Math.min(page * PAGE_SIZE, data.total)} of ${data.total} ${
+              ? `Showing ${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, data.total)} of ${data.total} ${
                   status === MANUAL_ROUTE_RIDES ? "route ride entries" : "trips"
                 }`
               : "No trips"}
@@ -403,7 +423,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
       )}
 
       {viewingTrip && (
-        <TripDetailsModal trip={viewingTrip} onClose={() => setViewingTrip(null)} />
+        <TripDetailsModal trip={viewingTrip} onClose={() => setViewingTrip(null)} onUpdated={load} />
       )}
     </div>
   );

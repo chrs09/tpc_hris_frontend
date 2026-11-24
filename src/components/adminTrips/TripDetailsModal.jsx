@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { markTripFixed, reviewTrip } from "../../api/adminTripManagement/trips";
+import { Pencil } from "lucide-react";
+import { editShipmentNumbers, markTripFixed, reviewTrip } from "../../api/adminTripManagement/trips";
 import AddDocButton from "./AddDocButton";
 
 // Trip Dashboard -> Trip Approval Status -> View: one trip's details at any
@@ -75,8 +76,84 @@ const PhotoRow = ({ label, photos, onOpen, add }) => (
   </div>
 );
 
-export default function TripDetailsModal({ trip, onClose, fixMode = false, onFixed }) {
+const isSuperAdmin = () => {
+  try {
+    return localStorage.getItem("role") === "superadmin";
+  } catch {
+    return false;
+  }
+};
+
+// Superadmin: edit the shipment number(s) in place. Only the numbers
+// change -- the trip itself (stops, photos, pay, approval) stays as it is.
+function ShipmentEditor({ tripId, numbers, onSaved, onCancel }) {
+  const [values, setValues] = useState(numbers);
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const changed = values.some((v, i) => v.trim() !== numbers[i]);
+  const bad = values.find((v) => !/^\d{8}$/.test(v.trim()));
+
+  const save = async () => {
+    if (bad !== undefined) {
+      toast.error("Shipment numbers must be exactly 8 digits.");
+      return;
+    }
+    try {
+      setSaving(true);
+      await editShipmentNumbers(tripId, values.map((v) => v.trim()), reason.trim());
+      toast.success("Shipment number updated.");
+      await onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Couldn't update the shipment number.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      {values.map((v, i) => (
+        <input
+          key={i}
+          value={v}
+          inputMode="numeric"
+          maxLength={8}
+          onChange={(e) => setValues((prev) => prev.map((x, j) => (j === i ? e.target.value.replace(/\D/g, "") : x)))}
+          aria-label={`Shipment number ${i + 1}`}
+          className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+        />
+      ))}
+      <input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Reason (required)"
+        className="w-full rounded-md border border-border bg-background px-2 py-1 text-xs text-fg focus:outline-none focus:ring-2 focus:ring-primary/30"
+      />
+      <div className="flex gap-1.5">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving || !changed || !reason.trim()}
+          className="rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {saving ? "Saving..." : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold text-fg-muted hover:bg-surface-hover"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function TripDetailsModal({ trip, onClose, fixMode = false, onFixed, onUpdated }) {
   const [details, setDetails] = useState(null);
+  const [editingShipment, setEditingShipment] = useState(false);
   const [failed, setFailed] = useState(false);
   // Fix mode: how many documents were added, the note, saving.
   const [replacedCount, setReplacedCount] = useState(0);
@@ -205,7 +282,38 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                 {trip.route_rider_names?.length > 0 && (
                   <Detail label="Route Rider">{trip.route_rider_names.join(", ")}</Detail>
                 )}
-                <Detail label="Shipment No.">{details.ticket_no}</Detail>
+                <Detail label="Shipment No.">
+                  {editingShipment ? (
+                    <ShipmentEditor
+                      tripId={trip.id}
+                      numbers={(details.ticket_no || "").split(", ")}
+                      onCancel={() => setEditingShipment(false)}
+                      onSaved={async () => {
+                        setEditingShipment(false);
+                        await reload();
+                        onUpdated?.();
+                      }}
+                    />
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5">
+                      {details.ticket_no || "-"}
+                      {isSuperAdmin() &&
+                        details.ticket_no &&
+                        !details.ticket_no.includes("(cancelled") &&
+                        !(trip.trip_code || details.trip_code || "").startsWith("ST-") && (
+                          <button
+                            type="button"
+                            onClick={() => setEditingShipment(true)}
+                            title="Edit shipment number (superadmin)"
+                            aria-label="Edit shipment number"
+                            className="rounded p-0.5 text-fg-subtle hover:bg-surface-hover hover:text-primary"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        )}
+                    </span>
+                  )}
+                </Detail>
                 <Detail label="Vehicle">
                   {details.vehicle
                     ? [details.vehicle.unit_code, details.vehicle.plate_number].filter(Boolean).join(" · ")
