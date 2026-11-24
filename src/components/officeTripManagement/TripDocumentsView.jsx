@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, Search } from "lucide-react";
+import { Download, Eye, Search } from "lucide-react";
+import toast from "react-hot-toast";
 import SearchSelect from "../SearchSelect";
 import { urlQuery } from "../../utils/search";
 import TripDetailsModal from "../adminTrips/TripDetailsModal";
 import StatusPill from "../ui/statusPill/StatusPill";
 import { TABLE_HEAD, TABLE_ROW, TABLE_WRAP } from "../ui/table/tableStyles";
 import { getTripDocuments } from "../../api/officeTripManagement/trip";
+import Pagination from "../ui/pagination/Pagination";
+import usePagination from "../../hooks/usePagination";
+import { downloadBlockedReason } from "../../utils/downloadLimit";
+import { exportTripDocumentsExcel } from "../../utils/trips/tripDocumentsExcel";
 
 // Trip Document -> All Trips: every trip in the period with its document
 // status (worked out on the backend: get_trip_documents in
@@ -50,6 +55,22 @@ const bucketLabel = (n) => (n === 4 ? "4th+" : ordinal(n));
 // driver has no employee record.
 const driverKey = (t) => (t.driver_employee_id ? `e${t.driver_employee_id}` : `u${t.driver_id}`);
 
+const PAGE_SIZES = [10, 50, 100];
+
+const shortDate = (iso, withYear) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(withYear ? { year: "numeric" } : {}),
+  });
+const periodLabel = (from, to) => {
+  if (!from && !to) return "All dates";
+  if (!from) return `Up to ${shortDate(to, true)}`;
+  if (!to) return `From ${shortDate(from, true)}`;
+  if (from === to) return shortDate(from, true);
+  return `${shortDate(from, from.slice(0, 4) !== to.slice(0, 4))} – ${shortDate(to, true)}`;
+};
+
 const inputStyles =
   "w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
 
@@ -65,6 +86,8 @@ export default function TripDocumentsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [viewing, setViewing] = useState(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [exporting, setExporting] = useState(false);
 
   // Shipment search: wait until typing pauses.
   useEffect(() => {
@@ -138,6 +161,37 @@ export default function TripDocumentsView() {
     return out;
   }, [byPerson]);
   const shown = status ? byPerson.filter((t) => t.status === status) : byPerson;
+  const { page, setPage, totalPages, paginatedItems } = usePagination(shown, pageSize);
+  const firstRow = shown.length ? (page - 1) * pageSize + 1 : 0;
+  const lastRow = Math.min(page * pageSize, shown.length);
+
+  // Excel: everything matching the filters, every page. Non-superadmins:
+  // current and previous month only (same limit as other downloads).
+  const exportBlocked = downloadBlockedReason(dateFrom || "0000-01-01");
+  const exportExcel = async () => {
+    if (exportBlocked) {
+      toast.error(exportBlocked);
+      return;
+    }
+    try {
+      setExporting(true);
+      const notes = [
+        person && `${person.name} (${person.role})`,
+        status && statuses.find((s) => s.key === status)?.label,
+        query && `Shipment "${query}"`,
+      ].filter(Boolean);
+      await exportTripDocumentsExcel({
+        trips: shown,
+        tripNoOf,
+        period: periodLabel(dateFrom, dateTo),
+        filtersNote: notes.join(" · "),
+      });
+    } catch (err) {
+      toast.error(err.message || "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Trip counter over what's listed (cancelled trips aren't counted).
   const tripCounts = {};
@@ -161,7 +215,10 @@ export default function TripDocumentsView() {
             type="date"
             value={dateFrom}
             max={dateTo || undefined}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
             className={inputStyles}
           />
         </div>
@@ -174,7 +231,10 @@ export default function TripDocumentsView() {
             type="date"
             value={dateTo}
             min={dateFrom || undefined}
-            onChange={(e) => setDateTo(e.target.value)}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
             className={inputStyles}
           />
         </div>
@@ -187,7 +247,10 @@ export default function TripDocumentsView() {
             <input
               id="docs-shipment"
               value={shipment}
-              onChange={(e) => setShipment(e.target.value)}
+              onChange={(e) => {
+                setShipment(e.target.value);
+                setPage(1);
+              }}
               placeholder="Shipment no. or trip code"
               className={`${inputStyles} pl-9`}
             />
@@ -198,7 +261,10 @@ export default function TripDocumentsView() {
           <SearchSelect
             value={person}
             options={people}
-            onChange={(p) => setPersonKey(p ? p.key : null)}
+            onChange={(p) => {
+              setPersonKey(p ? p.key : null);
+              setPage(1);
+            }}
             placeholder="All drivers and helpers"
             getOptionLabel={(p) => (p ? `${p.name} · ${p.role}` : "")}
             getOptionValue={(p) => p?.key}
@@ -210,7 +276,10 @@ export default function TripDocumentsView() {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          onClick={() => setStatus("")}
+          onClick={() => {
+            setStatus("");
+            setPage(1);
+          }}
           className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
             !status ? "border-primary bg-primary/10 text-primary" : "border-border text-fg-muted hover:bg-surface-hover"
           }`}
@@ -222,7 +291,10 @@ export default function TripDocumentsView() {
             key={s.key}
             type="button"
             title={`${s.meaning} · ${s.responsible}`}
-            onClick={() => setStatus(status === s.key ? "" : s.key)}
+            onClick={() => {
+              setStatus(status === s.key ? "" : s.key);
+              setPage(1);
+            }}
             className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
               status === s.key
                 ? "border-primary bg-primary/10 text-primary"
@@ -251,6 +323,19 @@ export default function TripDocumentsView() {
             Which trip of the day it was for {person ? person.name : "each driver"}
             {status ? ", in the chosen status" : ""}.
           </p>
+          <div className="ml-auto flex flex-col items-end justify-center gap-1">
+            <button
+              type="button"
+              onClick={exportExcel}
+              disabled={!shown.length || exporting || Boolean(exportBlocked)}
+              title={exportBlocked || "Download every trip matching these filters"}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-success px-4 py-2 text-sm font-semibold text-success-foreground disabled:opacity-50"
+            >
+              <Download size={15} />
+              {exporting ? "Exporting..." : "Export Excel"}
+            </button>
+            {exportBlocked && <p className="max-w-xs text-right text-xs text-warning">{exportBlocked}</p>}
+          </div>
         </div>
       )}
 
@@ -272,7 +357,7 @@ export default function TripDocumentsView() {
         </p>
       ) : (
         <div className={TABLE_WRAP}>
-          <table className="w-full min-w-[980px] text-sm">
+          <table className="w-full min-w-[1120px] text-sm">
             <thead className={TABLE_HEAD}>
               <tr className="text-left">
                 <th className="px-4 py-3">Trip date</th>
@@ -280,13 +365,14 @@ export default function TripDocumentsView() {
                 <th className="px-4 py-3">Trip</th>
                 <th className="px-4 py-3">Driver / helpers</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Outlets</th>
                 <th className="px-4 py-3">Responsible</th>
                 <th className="px-4 py-3">Since</th>
                 <th className="px-4 py-3 text-right">Details</th>
               </tr>
             </thead>
             <tbody>
-              {shown.map((t) => {
+              {paginatedItems.map((t) => {
                 const tripNo = tripNoOf(t);
                 return (
                   <tr key={t.trip_id} className={`${TABLE_ROW} align-top`}>
@@ -331,6 +417,20 @@ export default function TripDocumentsView() {
                       </StatusPill>
                       {t.note && <p className="mt-1 max-w-xs text-xs text-fg-subtle">{t.note}</p>}
                     </td>
+                    <td className="px-4 py-3">
+                      {(t.outlets || []).length ? (
+                        <ul className="max-w-[220px] space-y-0.5 text-xs text-fg-muted">
+                          {t.outlets.map((name, i) => (
+                            <li key={`${name}-${i}`}>
+                              {t.outlets.length > 1 && <span className="text-fg-subtle">{i + 1}. </span>}
+                              {name}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-fg-subtle">-</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-fg-muted">{t.responsible}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
                       {t.since || "-"}
@@ -358,7 +458,32 @@ export default function TripDocumentsView() {
               })}
             </tbody>
           </table>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-fg-muted">
+            <label className="flex items-center gap-2">
+              Rows per page
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                className="rounded-lg border border-border bg-background px-2 py-1 text-xs text-fg"
+              >
+                {PAGE_SIZES.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="tabular-nums">
+              {firstRow}–{lastRow} of {shown.length}
+            </span>
+          </div>
         </div>
+      )}
+      {!loading && !error && shown.length > 0 && (
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
       )}
 
       {viewing && (

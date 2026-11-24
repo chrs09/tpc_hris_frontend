@@ -9,6 +9,7 @@ import { exportDeliverySummaryExcel } from "../../utils/trips/deliverySummaryExc
 import { downloadBlockedReason } from "../../utils/downloadLimit";
 import DateRangeFilter from "../../components/ui/datePicker/DateRangeFilter";
 import { toISODate } from "../../utils/isoDate";
+import DailySummary from "../../components/deliverySummary/DailySummary";
 
 const getErrorMessage = (error) =>
   error.response?.data?.detail || error.message || "Something went wrong.";
@@ -207,7 +208,7 @@ export default function DeliverySummary() {
     }
   };
 
-  const records = data && tab !== "summary" ? data.records[tab] || [] : [];
+  const records = data && tab !== "summary" && tab !== "daily" ? data.records[tab] || [] : [];
   const visibleRecords = records.filter((r) =>
     matchesSearch(search, r.driver, r.origin, r.plate, r.categories, r.helpers, r.status, r.date),
   );
@@ -250,6 +251,7 @@ export default function DeliverySummary() {
         <div className="flex gap-1 overflow-x-auto border-b border-border">
           {[
             ["summary", "Total Trips Summary"],
+            ["daily", "Daily Summary"],
             ...data.truck_types.map((t) => [t, `${t} Records ${rangeLabel(range)}`]),
           ].map(([key, label]) => (
             <button
@@ -271,7 +273,7 @@ export default function DeliverySummary() {
         </div>
       )}
 
-      {data && !loading && (
+      {data && !loading && tab !== "daily" && (
         <div className="space-y-2">
           {data.no_truck_type?.length > 0 && (
             <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-fg">
@@ -310,7 +312,9 @@ export default function DeliverySummary() {
         </div>
       )}
 
-      {loading || !data ? (
+      {tab === "daily" && data ? (
+        <DailySummary />
+      ) : loading || !data ? (
         <p className="py-10 text-center text-sm text-fg-subtle">Loading...</p>
       ) : tab === "summary" ? (
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
