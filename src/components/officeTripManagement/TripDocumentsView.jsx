@@ -357,12 +357,13 @@ export default function TripDocumentsView() {
         </p>
       ) : (
         <div className={TABLE_WRAP}>
-          <table className="w-full min-w-[1120px] text-sm">
+          <table className="w-full min-w-[1240px] text-sm">
             <thead className={TABLE_HEAD}>
               <tr className="text-left">
                 <th className="px-4 py-3">Trip date</th>
                 <th className="px-4 py-3">Shipment</th>
                 <th className="px-4 py-3">Trip</th>
+                <th className="px-4 py-3">Trip category</th>
                 <th className="px-4 py-3">Driver / helpers</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Outlets</th>
@@ -401,6 +402,7 @@ export default function TripDocumentsView() {
                         <span className="text-fg-subtle">-</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-fg-muted">{t.trip_category || "-"}</td>
                     <td className="px-4 py-3">
                       <p className="text-fg">{t.driver_name || "-"}</p>
                       {t.plate_number && <p className="text-xs text-fg-subtle">{t.plate_number}</p>}

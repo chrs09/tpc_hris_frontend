@@ -176,10 +176,10 @@ export default function DailySummary() {
         <p className="rounded-2xl border border-danger bg-danger/10 p-6 text-sm text-danger">{error}</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
-          <table className="w-full min-w-[1080px] text-sm text-fg">
+          <table className="w-full min-w-[1200px] text-sm text-fg">
             <thead className="bg-success/15 text-fg">
               <tr>
-                {["#", "Dispatched", "Shipment", "Driver / helpers", "Plate", "Type of Truck", "Origin Hub", "Outlets", "Status"].map(
+                {["#", "Dispatched", "Shipment", "Trip Category", "Driver / helpers", "Plate", "Type of Truck", "Origin Hub", "Outlets", "Status"].map(
                   (h) => (
                     <th key={h} className="whitespace-nowrap px-3 py-2 text-left font-semibold">
                       {h}
@@ -200,6 +200,7 @@ export default function DailySummary() {
                     <p className="font-medium">{t.shipment || "-"}</p>
                     {t.trip_code && <p className="text-xs text-fg-subtle">{t.trip_code}</p>}
                   </td>
+                  <td className="whitespace-nowrap px-3 py-2">{t.trip_category || "-"}</td>
                   <td className="px-3 py-2">
                     <p>{t.driver || "-"}</p>
                     {t.helpers.length > 0 && (
@@ -236,7 +237,7 @@ export default function DailySummary() {
               ))}
               {shown.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-3 py-10 text-center text-fg-subtle">
+                  <td colSpan={10} className="px-3 py-10 text-center text-fg-subtle">
                     {trips.length ? "No trips match these filters." : "No trips dispatched this day."}
                   </td>
                 </tr>

@@ -78,6 +78,7 @@ export async function exportDeliverySummaryExcel({
   driverBlocks,
   recordColumns,
   longDate,
+  dailyTrips,
 }) {
   const wb = new ExcelJS.Workbook();
   wb.creator = "Tytan Prime HRIS";
@@ -119,6 +120,46 @@ export async function exportDeliverySummaryExcel({
     rows: data.by_day.map((r) => [longDate(r.date), r.location, r.trips]),
     total: data.total_trips,
   });
+
+  // ---------------- Daily Summary: every trip dispatched in the range, by day
+  if (dailyTrips) {
+    const DAILY_COLUMNS = [
+      ["Date", 20, (t) => longDate(t.date)],
+      ["Dispatched", 12, (t) => t.time || ""],
+      ["Returned", 12, (t) => t.end_time || ""],
+      ["Shipment", 18, (t) => t.shipment || ""],
+      ["Trip Category", 20, (t) => t.trip_category || ""],
+      ["Driver", 26, (t) => t.driver || ""],
+      ["Helper", 28, (t) => t.helpers.join(", ")],
+      ["Plate Number", 14, (t) => t.plate || ""],
+      ["Type of Truck", 16, (t) => t.truck_type || ""],
+      ["Origin Hub", 24, (t) => t.origin || ""],
+      ["Outlets", 40, (t) => t.outlets.join(", ")],
+      ["Status", 12, (t) => t.status || ""],
+    ];
+    const sheet = wb.addWorksheet("Daily Summary", { views: [{ state: "frozen", ySplit: 1 }] });
+    sheet.columns = DAILY_COLUMNS.map(([header, width]) => ({ header, width }));
+    sheet.getRow(1).eachCell((cell) => style(cell, { bg: GREEN, bold: true }));
+    sheet.getRow(1).height = 24;
+    let lastDate = null;
+    let dayCount = 0;
+    const dayTotal = () => {
+      const added = sheet.addRow([`${longDate(lastDate)} total`, "", "", "", "", "", "", "", "", "", "", dayCount]);
+      added.eachCell({ includeEmpty: true }, (cell) => style(cell, { bg: DARK_GREEN, bold: true, color: WHITE }));
+    };
+    dailyTrips.forEach((t) => {
+      if (lastDate && t.date !== lastDate) {
+        dayTotal();
+        dayCount = 0;
+      }
+      lastDate = t.date;
+      dayCount += 1;
+      const added = sheet.addRow(DAILY_COLUMNS.map(([, , get]) => get(t)));
+      added.eachCell({ includeEmpty: true }, (cell) => style(cell, { bg: LIGHT_GREEN }));
+    });
+    if (lastDate) dayTotal();
+    else sheet.addRow([`No trips dispatched in ${monthLabel}.`]);
+  }
 
   // ---------------- one records sheet per truck type
   data.truck_types.forEach((truck) => {

@@ -18,6 +18,7 @@ const COLUMNS = [
   ["Shipment", 18, (t) => t.ticket_no || ""],
   ["Trip code", 16, (t) => t.trip_code || ""],
   ["Trip", 8, (t, tripNo) => tripNo || ""],
+  ["Trip category", 20, (t) => t.trip_category || ""],
   ["Driver", 24, (t) => t.driver_name || ""],
   ["Plate", 12, (t) => t.plate_number || ""],
   ["Helpers", 30, (t) => (t.helpers || []).map((h) => h.name).join(", ")],

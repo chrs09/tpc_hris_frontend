@@ -192,7 +192,11 @@ export default function DeliverySummary() {
     }
     try {
       setExporting(true);
+      const daily = await api.get("/admin/delivery-summary/daily", {
+        params: { day: range.from, day_to: range.to },
+      });
       await exportDeliverySummaryExcel({
+        dailyTrips: daily.data.trips,
         data,
         monthLabel: rangeLabel(range),
         periodTitle: rangeTitle(range),
