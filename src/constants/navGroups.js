@@ -292,12 +292,6 @@ export function getNavGroups(role) {
           roles: ["superadmin", "coordinator_admin", "coordinator"],
           moduleKey: "trip_management.trip_corrections",
         },
-        {
-          label: "Correction History",
-          path: "/dashboard/admin/trip-corrections?view=history",
-          roles: ["superadmin", "coordinator_admin", "coordinator"],
-          moduleKey: "trip_management.trip_corrections",
-        },
       ],
     },
     {
@@ -425,12 +419,6 @@ export function getNavGroups(role) {
           // Advance, approved by admin or the CA Corrections tick.
           label: "CA Corrections",
           path: "/dashboard/finance/ca-corrections",
-          roles: ["superadmin", "admin"],
-          moduleKey: ["finance.cash_advance_corrections", "finance.cash_advance"],
-        },
-        {
-          label: "CA Correction History",
-          path: "/dashboard/finance/ca-corrections?view=history",
           roles: ["superadmin", "admin"],
           moduleKey: ["finance.cash_advance_corrections", "finance.cash_advance"],
         },
