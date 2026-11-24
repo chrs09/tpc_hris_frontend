@@ -151,6 +151,49 @@ function ShipmentEditor({ tripId, numbers, onSaved, onCancel }) {
   );
 }
 
+// Each current shipment number; one a superadmin corrected reads
+// "old -> new" (traced back to the number first entered), with who / when
+// / why on hover.
+function ShipmentNumbers({ ticketNo, edits = [] }) {
+  if (!ticketNo) return "-";
+  const previous = {};
+  const lastEdit = {};
+  edits.forEach((e) => {
+    previous[e.new] = e.old;
+    lastEdit[e.new] = e;
+  });
+  const original = (n) => {
+    let cur = n;
+    const seen = new Set();
+    while (previous[cur] && !seen.has(cur)) {
+      seen.add(cur);
+      cur = previous[cur];
+    }
+    return cur;
+  };
+  const numbers = ticketNo.split(", ");
+  return numbers.map((n, i) => {
+    const first = original(n);
+    const edit = lastEdit[n];
+    return (
+      <span key={n} className="whitespace-nowrap">
+        {first !== n ? (
+          <span
+            title={edit ? `Edited by ${edit.by || "superadmin"} · ${edit.at || ""}${edit.reason ? ` · ${edit.reason}` : ""}` : undefined}
+          >
+            <span className="text-fg-subtle line-through">{first}</span>
+            <span className="mx-1 text-fg-subtle">→</span>
+            <span className="text-primary">{n}</span>
+          </span>
+        ) : (
+          n
+        )}
+        {i < numbers.length - 1 ? ", " : ""}
+      </span>
+    );
+  });
+}
+
 export default function TripDetailsModal({ trip, onClose, fixMode = false, onFixed, onUpdated }) {
   const [details, setDetails] = useState(null);
   const [editingShipment, setEditingShipment] = useState(false);
@@ -295,8 +338,8 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                       }}
                     />
                   ) : (
-                    <span className="inline-flex items-center gap-1.5">
-                      {details.ticket_no || "-"}
+                    <span className="inline-flex flex-wrap items-center gap-1.5">
+                      <ShipmentNumbers ticketNo={details.ticket_no} edits={details.shipment_edits} />
                       {isSuperAdmin() &&
                         details.ticket_no &&
                         !details.ticket_no.includes("(cancelled") &&
