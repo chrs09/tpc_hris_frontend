@@ -827,6 +827,11 @@ const AttendanceDetail = ({
 
   const hasTimedOut = Boolean(record.check_out_time);
 
+  // Someone who timed in worked that day -- only a superadmin may change
+  // their status (backend refuses it too).
+  const timedInLocked =
+    Boolean(record.check_in_time) && localStorage.getItem("role") !== "superadmin";
+
   // Only a side with a selfie has anything to verify -- a time entered by
   // hand (table/grid view) has no photo, so no Approve/Reject for it.
   const canReviewSide = (side) =>
@@ -956,7 +961,15 @@ const AttendanceDetail = ({
         </p>
       )}
 
-      {isSuperAdmin && onSetStatus && (
+      {/* Timed in = they worked: the status is locked (superadmin excepted).
+          Heads only set a status for people with no time in, e.g. Absent. */}
+      {isSuperAdmin && onSetStatus && timedInLocked && (
+        <p className="rounded-lg border border-border bg-surface-hover px-3 py-2 text-sm text-fg-muted">
+          Timed in, so the status can&apos;t be changed. Wrong time? File a Time Correction.
+        </p>
+      )}
+
+      {isSuperAdmin && onSetStatus && !timedInLocked && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-3">
           <label className="text-sm font-semibold text-gray-700 shrink-0">
             Set Status

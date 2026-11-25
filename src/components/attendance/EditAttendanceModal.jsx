@@ -59,7 +59,22 @@ const EditAttendanceModal = ({
             </div>
           </div>
 
-          <div className="mb-4">
+          {existingRecord?.check_in_time &&
+            localStorage.getItem("role") !== "superadmin" && (
+              <p className="mb-3 rounded border border-gray-600 px-3 py-2 text-xs text-gray-300">
+                Timed in, so the status can&apos;t be changed. Wrong time? File a
+                Time Correction.
+              </p>
+            )}
+
+          <div
+            className={`mb-4 ${
+              existingRecord?.check_in_time &&
+              localStorage.getItem("role") !== "superadmin"
+                ? "pointer-events-none opacity-60"
+                : ""
+            }`}
+          >
             <SearchSelect
               value={editModal.status}
               options={Object.values(attendanceStatus)}
