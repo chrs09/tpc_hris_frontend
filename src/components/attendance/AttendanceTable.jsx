@@ -46,6 +46,8 @@ const AttendanceTable = ({
   getStatusSymbol,
   isEditableDate,
   isSuperAdmin,
+  // The viewer's own employee id: their own row stays view-only.
+  myEmployeeId = null,
   onCellClick,
   onPreviewAttendance,
   today,
@@ -136,7 +138,10 @@ const AttendanceTable = ({
                   emp.role?.toLowerCase().includes("helper");
 
                 const editable =
-                  isSuperAdmin && isEditableDate(day) && !isTripBasedEmployee;
+                  isSuperAdmin &&
+                  isEditableDate(day) &&
+                  !isTripBasedEmployee &&
+                  emp.id !== myEmployeeId;
 
                 const isSunday = getDay(day) === 0;
 

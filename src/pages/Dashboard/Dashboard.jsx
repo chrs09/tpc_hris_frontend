@@ -42,6 +42,7 @@ import IncentiveRunsPage from "../Payroll/IncentiveRunsPage";
 import ContributionTablesPage from "../Payroll/ContributionTablesPage";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
+import SystemLogsPage from "../Admin/SystemLogsPage";
 import CompaniesPage from "../Admin/CompaniesPage";
 import TicketsPage from "../Admin/TicketsPage";
 import FinanceTrips from "../Finance/FinanceTrips";
@@ -166,6 +167,7 @@ const Dashboard = () => {
           />
           <Route path="holidays" element={<HolidaysPage />} />
           <Route path="error-logs" element={<ErrorLogsPage />} />
+          <Route path="system-logs" element={<SystemLogsPage />} />
           <Route path="companies" element={<CompaniesPage />} />
           <Route path="tickets" element={<TicketsPage />} />
           <Route path="admin/trips" element={<AdminTrips />} />

@@ -418,6 +418,17 @@ function UnitCard({
           {APPROVAL_TYPES.filter((t) => unit.approves.includes(t.key))
             .map((t) => t.label)
             .join(", ")}
+          {unit.approves.includes("attendance") && unit.also_covers?.attendance && (
+            <>
+              {" "}· Also covers:{" "}
+              {unit.also_covers.attendance === "all"
+                ? "all office staff"
+                : (unit.also_covers.attendance || [])
+                    .map((id) => unitsById?.[id]?.name)
+                    .filter(Boolean)
+                    .join(", ")}
+            </>
+          )}
         </p>
       )}
 
@@ -565,6 +576,8 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
   const [employeeIds, setEmployeeIds] = useState(unit?.rules.employee_ids || []);
   const [alsoIds, setAlsoIds] = useState(unit?.also_reports_to || []);
   const [approves, setApproves] = useState(unit?.approves || []);
+  // Also covers (attendance): null = nothing else, "all", or unit ids.
+  const [covers, setCovers] = useState(unit?.also_covers?.attendance ?? null);
   const [users, setUsers] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -617,6 +630,13 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
         employee_ids: employeeIds,
         also_reports_to: alsoIds.filter((id) => id !== parentId),
         approves,
+        also_covers: {
+          attendance:
+            approves.includes("attendance") &&
+            (covers === "all" || (Array.isArray(covers) && covers.length))
+              ? covers
+              : null,
+        },
       });
       toast.success("Unit saved.");
       await onSaved();
@@ -813,6 +833,86 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
                 );
               })}
             </div>
+
+            {approves.includes("attendance") && (
+              <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
+                <div>
+                  <p className="text-sm font-semibold">Also covers (attendance)</p>
+                  <p className="text-xs text-fg-subtle">
+                    This unit&apos;s head also sees and reviews this attendance,
+                    besides their own team. Drivers and helpers are never
+                    included. They still can&apos;t edit their own record.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: "none", label: "Nothing else" },
+                    { key: "all", label: "All office staff" },
+                    { key: "pick", label: "Pick units" },
+                  ].map((option) => {
+                    const mode =
+                      covers === "all" ? "all" : Array.isArray(covers) ? "pick" : "none";
+                    const on = mode === option.key;
+                    return (
+                      <button
+                        key={option.key}
+                        type="button"
+                        onClick={() =>
+                          setCovers(
+                            option.key === "all"
+                              ? "all"
+                              : option.key === "pick"
+                                ? Array.isArray(covers)
+                                  ? covers
+                                  : []
+                                : null,
+                          )
+                        }
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                          on
+                            ? "border-primary bg-primary/15 text-primary"
+                            : "border-border text-fg-muted hover:border-primary/50"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {Array.isArray(covers) && (
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-fg-subtle">
+                      Each unit&apos;s people and head -- not the units under it.
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {chart.units
+                        .filter((u) => u.id !== unit.id)
+                        .map((u) => {
+                          const picked = covers.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() =>
+                                setCovers(
+                                  picked ? covers.filter((x) => x !== u.id) : [...covers, u.id],
+                                )
+                              }
+                              className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                                picked
+                                  ? "border-primary bg-primary/15 text-primary"
+                                  : "border-border text-fg-muted hover:border-primary/50"
+                              }`}
+                            >
+                              {u.name}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

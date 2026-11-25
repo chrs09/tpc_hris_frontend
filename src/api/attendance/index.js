@@ -250,3 +250,15 @@ export const getAttendanceForMyApproval = async () => {
   const res = await api.get("/attendance/for-my-approval");
   return res.data;
 };
+
+// Superadmin: someone other than a superadmin changed an attendance status
+// (e.g. marked Absent with remarks). Also emailed to every superadmin.
+export const getAttendanceChangeAlerts = async () => {
+  const res = await api.get("/attendance/status-change-alerts");
+  return res.data;
+};
+
+export const acknowledgeAttendanceChangeAlert = async (id) => {
+  const res = await api.post(`/attendance/status-change-alerts/${id}/acknowledge`);
+  return res.data;
+};

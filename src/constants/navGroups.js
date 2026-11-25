@@ -518,6 +518,12 @@ export function getNavGroups(role) {
           moduleKey: "administrator.error_logs",
         },
         {
+          // Superadmin only, no module key -- every change, who and what.
+          label: "System Logs",
+          path: "/dashboard/system-logs",
+          roles: ["superadmin"],
+        },
+        {
           label: "Settings",
           path: "/dashboard/settings",
           roles: ["superadmin"],

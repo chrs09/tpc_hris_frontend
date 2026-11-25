@@ -38,6 +38,7 @@ import GeofenceAlertsBell from "./attendance/GeofenceAlertsBell";
 import FuelRequestAlertsBell from "./adminTrips/FuelRequestAlertsBell";
 import LeaveAlertsBell from "./leave/LeaveAlertsBell";
 import TripCancelAlertsBell from "./adminTrips/TripCancelAlertsBell";
+import AttendanceChangeAlertsBell from "./attendance/AttendanceChangeAlertsBell";
 import toast from "react-hot-toast";
 
 // Icon components are kept here rather than in the shared navGroups data
@@ -247,6 +248,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
           <FuelRequestAlertsBell />
           <LeaveAlertsBell />
           <TripCancelAlertsBell />
+          <AttendanceChangeAlertsBell />
           <ThemeCustomizer />
         </div>
       </div>
@@ -381,6 +383,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <FuelRequestAlertsBell />
               <LeaveAlertsBell />
               <TripCancelAlertsBell />
+              <AttendanceChangeAlertsBell />
             </div>
           )}
           {isCollapsed && (
@@ -392,6 +395,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
               <FuelRequestAlertsBell />
               <LeaveAlertsBell />
               <TripCancelAlertsBell />
+              <AttendanceChangeAlertsBell />
             </div>
           )}
         </div>

@@ -273,6 +273,8 @@ const AttendanceGridReview = ({
   onAttendanceUpdated,
   onSetStatus,
   isSuperAdmin = false,
+  // The viewer's own employee id: their own card stays view-only.
+  myEmployeeId = null,
 }) => {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
 
@@ -700,7 +702,8 @@ const AttendanceGridReview = ({
               onRejectAttendance={handleReject}
               onUpdateAttendance={handleUpdateAttendance}
               onSetStatus={handleSetStatus}
-              isSuperAdmin={isSuperAdmin}
+              isSuperAdmin={isSuperAdmin && activeRecord.employee_id !== myEmployeeId}
+              isOwnRecord={Boolean(myEmployeeId) && activeRecord.employee_id === myEmployeeId}
             />
           )}
         </aside>
@@ -730,7 +733,8 @@ const AttendanceGridReview = ({
                 onRejectAttendance={handleReject}
                 onUpdateAttendance={handleUpdateAttendance}
                 onSetStatus={handleSetStatus}
-                isSuperAdmin={isSuperAdmin}
+                isSuperAdmin={isSuperAdmin && modalRecord.employee_id !== myEmployeeId}
+                isOwnRecord={Boolean(myEmployeeId) && modalRecord.employee_id === myEmployeeId}
               />
             </div>
           </div>
@@ -774,6 +778,7 @@ const AttendanceDetail = ({
   onUpdateAttendance,
   onSetStatus,
   isSuperAdmin = false,
+  isOwnRecord = false,
 }) => {
   const [selectedAttendancePhoto, setSelectedAttendancePhoto] = useState(null);
 
@@ -950,6 +955,12 @@ const AttendanceDetail = ({
       {/* Set Status -- lets a superadmin directly set an employee's
           day status (e.g. mark them Present, Absent, On Leave, etc.)
           from the review panel instead of switching to Table View. */}
+      {isOwnRecord && (
+        <p className="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
+          This is your own attendance. Ask your head or a superadmin to change it.
+        </p>
+      )}
+
       {isSuperAdmin && onSetStatus && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface px-3 py-3">
           <label className="text-sm font-semibold text-gray-700 shrink-0">

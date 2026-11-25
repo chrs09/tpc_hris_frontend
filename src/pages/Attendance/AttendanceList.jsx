@@ -101,6 +101,8 @@ const AttendanceList = () => {
   const [inactiveEmployees, setInactiveEmployees] = useState(null);
   // Org chart head: only their team (null = everyone).
   const [team, setTeam] = useState(null);
+  // Own record is view-only (superadmin excepted); null for superadmin.
+  const [myEmployeeId, setMyEmployeeId] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]);
   const [activeEmployeeCount, setActiveEmployeeCount] = useState(0);
 
@@ -166,6 +168,7 @@ const AttendanceList = () => {
 
       setAttendanceData(records);
       setActiveEmployeeCount(totalActiveEmployees);
+      setMyEmployeeId(data?.my_employee_id ?? null);
       setTeam(
         data?.team_employee_ids
           ? { ids: new Set(data.team_employee_ids), units: data.team_units || [] }
@@ -1132,6 +1135,7 @@ const AttendanceList = () => {
             isEditableDate={isEditableDate}
             // Inactive employees' records are view-only.
             isSuperAdmin={canEditList && employeeStatus !== "inactive"}
+            myEmployeeId={myEmployeeId}
             today={today}
             overtimeMap={overtimeMap}
             overtimeByEmployee={overtimeByEmployee}
@@ -1171,6 +1175,7 @@ const AttendanceList = () => {
           onUpdateAttendance={handleUpdateAttendance}
           onSetStatus={handleSetAttendanceStatus}
           isSuperAdmin={canEditGrid}
+          myEmployeeId={myEmployeeId}
         />
       )}
 
