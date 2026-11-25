@@ -18,3 +18,12 @@ export const getErrorLogs = async ({
   const res = await api.get(`/error-logs?${params.toString()}`);
   return res.data;
 };
+
+// Superadmin: the "Delete older logs" choices (keep this month / keep this
+// and last month) with how many each removes, and the delete itself.
+// Logs older than last month are also removed automatically once a day.
+export const getErrorLogCleanupInfo = async () =>
+  (await api.get("/error-logs/cleanup-info")).data;
+
+export const deleteOlderErrorLogs = async (before) =>
+  (await api.delete(`/error-logs/older?before=${encodeURIComponent(before)}`)).data;

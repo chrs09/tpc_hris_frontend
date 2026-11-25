@@ -4,6 +4,7 @@ import { getErrorLogs } from "../../api/errorLogs";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import SearchInput from "../../components/ui/searchInput/SearchInput";
+import DeleteOlderLogsModal from "../../components/errorLogs/DeleteOlderLogsModal";
 
 const PAGE_SIZE = 50;
 
@@ -67,6 +68,9 @@ export default function ErrorLogsPage() {
   const [statusCode, setStatusCode] = useState("");
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
+  // Superadmin: "Delete older logs".
+  const isSuperAdmin = localStorage.getItem("role") === "superadmin";
+  const [showDelete, setShowDelete] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -103,7 +107,8 @@ export default function ErrorLogsPage() {
           <h2 className="text-2xl font-bold text-fg">Error Logs</h2>
           <p className="text-sm text-fg-subtle">
             Same alerts posted to Slack's #production-errors -- unhandled
-            server errors and failed requests (400+).
+            server errors and failed requests (400+). This month and last
+            month are kept; older logs are deleted automatically each day.
           </p>
         </div>
 
@@ -136,8 +141,28 @@ export default function ErrorLogsPage() {
           >
             Refresh
           </button>
+
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowDelete(true)}
+              className="h-10 rounded-lg border border-danger/40 px-4 text-sm text-danger hover:bg-danger/10"
+            >
+              Delete older logs
+            </button>
+          )}
         </div>
       </div>
+
+      {showDelete && (
+        <DeleteOlderLogsModal
+          onClose={() => setShowDelete(false)}
+          onDeleted={async () => {
+            setPage(1);
+            await loadLogs();
+          }}
+        />
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
         <div className="overflow-x-auto">
