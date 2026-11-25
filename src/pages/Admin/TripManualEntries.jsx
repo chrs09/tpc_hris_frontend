@@ -122,6 +122,8 @@ export default function TripManualEntries() {
   const [helperIds, setHelperIds] = useState([]);
   // Relief driver (rare): the Driver list shows the helpers instead.
   const [helperAsDriver, setHelperAsDriver] = useState(false);
+  // Driver as Helper (rare): drivers also listed as helpers.
+  const [driverAsHelper, setDriverAsHelper] = useState(false);
   const [photos, setPhotos] = useState({});
 
   const setField = (field, value) =>
@@ -661,11 +663,32 @@ export default function TripManualEntries() {
             </Section>
 
             <Section title={`Helpers (${helperIds.length}/3, optional)`}>
+              <label className="mb-2 flex w-fit cursor-pointer items-center gap-2 text-xs font-medium text-fg-muted">
+                <input
+                  id="manual-driver-as-helper"
+                  type="checkbox"
+                  checked={driverAsHelper}
+                  onChange={(e) => {
+                    setDriverAsHelper(e.target.checked);
+                    if (!e.target.checked) {
+                      setHelperIds((prev) =>
+                        prev.filter(
+                          (id) => !options.helpers.find((h) => h.id === id)?.is_driver,
+                        ),
+                      );
+                    }
+                  }}
+                  className="h-4 w-4 accent-primary"
+                />
+                Driver as Helper
+                <span className="font-normal text-fg-subtle">(rare -- a driver rode as helper)</span>
+              </label>
               <SearchSelect
                 value={null}
                 options={options.helpers.filter(
                   (h) =>
                     !helperIds.includes(h.id) &&
+                    (driverAsHelper || !h.is_driver) &&
                     // Not the person picked as driver (relief driver).
                     h.id !==
                       options.drivers.find((d) => d.id === form.driverId)

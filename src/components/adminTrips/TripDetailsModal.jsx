@@ -377,6 +377,7 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                         className="rounded-full bg-surface-active px-2.5 py-0.5 text-xs font-medium"
                       >
                         {helper.first_name} {helper.last_name}
+                        {helper.is_driver_as_helper && " (Driver as Helper)"}
                       </span>
                     ))}
                   </div>

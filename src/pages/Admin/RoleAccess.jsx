@@ -12,6 +12,7 @@ import {
   setRoleDefaults,
 } from "../../api/employeeModuleAccess";
 import { builtInRoleKeys } from "../../utils/roleDefaults";
+import RolePeopleModal from "../../components/roleAccess/RolePeopleModal";
 
 // Administrator -> Role Access: the modules each role gets by default.
 // Everyone with the role who has no custom access (Org Chart -> What they
@@ -53,6 +54,8 @@ export default function RoleAccessPage() {
   const [keys, setKeys] = useState(new Set());
   const [readOnly, setReadOnly] = useState(new Set());
   const [saving, setSaving] = useState(false);
+  // Counts clicked: "following" / "custom" list, or null.
+  const [peopleTab, setPeopleTab] = useState(null);
 
   const load = async () => {
     try {
@@ -224,10 +227,25 @@ export default function RoleAccessPage() {
               )}
             </div>
             <p className="text-xs text-fg-subtle">
-              <span className="font-semibold text-fg">{counts.following}</span>{" "}
-              {counts.following === 1 ? "person follows" : "people follow"} these ·{" "}
-              <span className="font-semibold text-fg">{counts.custom}</span>{" "}
-              {counts.custom === 1 ? "has" : "have"} their own access
+              <button
+                type="button"
+                onClick={() => setPeopleTab("following")}
+                className="rounded hover:text-primary hover:underline"
+                title="See who"
+              >
+                <span className="font-semibold text-fg">{counts.following}</span>{" "}
+                {counts.following === 1 ? "person follows" : "people follow"} these
+              </button>{" "}
+              ·{" "}
+              <button
+                type="button"
+                onClick={() => setPeopleTab("custom")}
+                className="rounded hover:text-primary hover:underline"
+                title="See who and what differs"
+              >
+                <span className="font-semibold text-fg">{counts.custom}</span>{" "}
+                {counts.custom === 1 ? "has" : "have"} their own access
+              </button>
             </p>
           </div>
 
@@ -338,6 +356,17 @@ export default function RoleAccessPage() {
             </button>
           </div>
         </>
+      )}
+      {peopleTab && (
+        <RolePeopleModal
+          key={selectedRole}
+          role={selectedRole}
+          roleName={roleLabel(selectedRole)}
+          tab={peopleTab}
+          defaultKeys={initialKeys}
+          perPersonKeys={perPerson}
+          onClose={() => setPeopleTab(null)}
+        />
       )}
     </div>
   );

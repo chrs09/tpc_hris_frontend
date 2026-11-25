@@ -10,16 +10,20 @@ export const getEmployeesWithAccess = async (department) => {
 // No"). Leave it out to keep each key's current setting.
 // payrollGroups (optional): the payroll groups their Payroll access is
 // limited to ([] = all groups). Leave it out to keep what they had.
+// viewAllKeys (optional): keys where they see everyone's records instead
+// of only the ones they encoded (e.g. Finance -> Expense).
 export const setEmployeeModuleAccess = async (
   employeeId,
   moduleKeys,
   readOnlyKeys,
   payrollGroups,
+  viewAllKeys,
 ) => {
   const res = await api.put(`/employee-module-access/${employeeId}`, {
     module_keys: moduleKeys,
     ...(readOnlyKeys ? { read_only_keys: readOnlyKeys } : {}),
     ...(payrollGroups ? { payroll_groups: payrollGroups } : {}),
+    ...(viewAllKeys ? { view_all_keys: viewAllKeys } : {}),
   });
   return res.data;
 };
@@ -44,6 +48,11 @@ export const setRoleDefaults = async (role, moduleKeys, readOnlyKeys = []) =>
       read_only_keys: readOnlyKeys,
     })
   ).data;
+
+// Role Access counts, clicked: { following: [person], custom: [person +
+// module_keys, read_only_keys] } for the active people with that role.
+export const getRolePeople = async (role) =>
+  (await api.get(`/employee-module-access/role-defaults/${role}/people`)).data;
 
 // Back to the built-in defaults for that role.
 export const resetRoleDefaults = async (role) =>

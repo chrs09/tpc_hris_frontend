@@ -536,6 +536,7 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
                         className="rounded-full bg-surface-active px-4 py-2 text-sm font-medium text-fg-muted"
                       >
                         {helper.first_name} {helper.last_name}
+                        {helper.is_driver_as_helper && " (Driver as Helper)"}
                       </span>
                     ))}
                   </div>

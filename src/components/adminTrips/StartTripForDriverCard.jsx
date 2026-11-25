@@ -80,6 +80,8 @@ export default function StartTripForDriverCard({
   // Relief driver (rare): the Driver list shows the helpers instead of
   // the regular drivers -- any free helper can be picked to drive.
   const [isReliefDriver, setIsReliefDriver] = useState(false);
+  // Driver as Helper (rare): the helper list also shows drivers.
+  const [driverAsHelper, setDriverAsHelper] = useState(false);
   const [hosts, setHosts] = useState([]);
   const [loadingHosts, setLoadingHosts] = useState(false);
   const [hostTripId, setHostTripId] = useState(null);
@@ -194,10 +196,16 @@ export default function StartTripForDriverCard({
       return;
     }
 
-    getAvailableHelpers(driverId)
-      .then(setHelpers)
+    getAvailableHelpers(driverId, driverAsHelper)
+      .then((list) => {
+        setHelpers(list);
+        // Unticked: drop drivers picked as helpers.
+        setSelectedHelperIds((prev) =>
+          prev.filter((id) => list.some((h) => h.id === id && !h.busy_trip)),
+        );
+      })
       .catch(() => setHelpers([]));
-  }, [driverId]);
+  }, [driverId, driverAsHelper]);
 
   const toggleHelper = (helperId) => {
     setSelectedHelperIds((prev) => {
@@ -889,9 +897,21 @@ export default function StartTripForDriverCard({
 
               {anyDestinationRequiresHelper && (
               <div>
-                <label className="mb-1 block text-sm font-medium text-fg">
-                  Helpers ({selectedHelperIds.length}/3)
-                </label>
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <label className="block text-sm font-medium text-fg">
+                    Helpers ({selectedHelperIds.length}/3)
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-fg-muted">
+                    <input
+                      type="checkbox"
+                      checked={driverAsHelper}
+                      onChange={(e) => setDriverAsHelper(e.target.checked)}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    Driver as Helper
+                    <span className="font-normal text-fg-subtle">(rare -- a driver rides as helper)</span>
+                  </label>
+                </div>
                 {!driverId ? (
                   <p className="text-xs text-fg-subtle">
                     Select a driver first.
@@ -907,10 +927,16 @@ export default function StartTripForDriverCard({
                         helper.id,
                       );
                       const isDisabled =
-                        !isSelected && selectedHelperIds.length >= 3;
+                        (!isSelected && selectedHelperIds.length >= 3) ||
+                        (!isSelected && Boolean(helper.busy_trip));
                       return (
                         <label
                           key={helper.id}
+                          title={
+                            helper.busy_trip
+                              ? `Out on ${helper.busy_trip}`
+                              : undefined
+                          }
                           className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
                             isSelected
                               ? "border-primary bg-primary/10 text-fg"
@@ -924,7 +950,14 @@ export default function StartTripForDriverCard({
                             onChange={() => toggleHelper(helper.id)}
                             className="h-4 w-4 rounded border-border"
                           />
-                          {helper.first_name} {helper.last_name}
+                          <span className="min-w-0">
+                            {helper.first_name} {helper.last_name}
+                            {helper.is_driver && (
+                              <span className="ml-1 text-xs text-primary">
+                                · Driver{helper.busy_trip ? `, on ${helper.busy_trip}` : ""}
+                              </span>
+                            )}
+                          </span>
                         </label>
                       );
                     })}

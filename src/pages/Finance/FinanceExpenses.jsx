@@ -64,6 +64,9 @@ const mapExpenseFromApi = (expense) => ({
 
   invoiceDate: expense.invoice_date ?? expense.date ?? "",
 
+  // Who encoded it (Encoded By column).
+  encodedBy: expense.created_by_name ?? "",
+
   poNumber: expense.po_number ?? "",
 
   supplier: expense.supplier ?? "",
@@ -708,6 +711,8 @@ export default function FinanceExpenses() {
 
                   <th className="px-4 py-3">Status</th>
 
+                  <th className="px-4 py-3">Encoded By</th>
+
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -758,6 +763,10 @@ export default function FinanceExpenses() {
                         <StatusBadge status={row.status || "Pending"} />
                       </td>
 
+                      <td className="whitespace-nowrap px-4 py-3 text-sm text-fg-muted">
+                        {row.encodedBy || "—"}
+                      </td>
+
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">
                           <button
@@ -784,7 +793,7 @@ export default function FinanceExpenses() {
 
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-16 text-center">
+                    <td colSpan={12} className="px-4 py-16 text-center">
                       <p className="text-sm font-medium text-fg-muted">
                         {rows.length === 0
                           ? "No expenses yet"

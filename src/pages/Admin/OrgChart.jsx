@@ -938,6 +938,13 @@ function UnitEditor({ unit, chart, onClose, onSaved }) {
   );
 }
 
+// Modules that list records people encode: the grant also says whether
+// they see everyone's ("View all") or only their own (backend
+// app/services/record_scope.py). Add a module here to give it the choice.
+const OWN_RECORD_MODULES = {
+  "finance.finance_expenses": "Expenses",
+};
+
 // What an org unit's head can approve (app/services/approval_chain.py).
 const APPROVAL_TYPES = [
   { key: "cash_advance", label: "Cash Advance" },
@@ -1035,6 +1042,13 @@ function AccessPanel({ person, onClose, onSaved }) {
     [person],
   );
   const [payrollGroups, setPayrollGroups] = useState(initialPayrollGroups);
+  // Modules listing records people encode: see everyone's ("View all")
+  // or only their own. See OWN_RECORD_MODULES.
+  const initialViewAll = useMemo(() => new Set(person.view_all_keys || []), [person]);
+  const [viewAll, setViewAll] = useState(initialViewAll);
+  useEffect(() => {
+    setViewAll(new Set(initialViewAll));
+  }, [initialViewAll]);
   const [groupOptions, setGroupOptions] = useState([]);
   useEffect(() => {
     setPayrollGroups(new Set(initialPayrollGroups));
@@ -1066,7 +1080,11 @@ function AccessPanel({ person, onClose, onSaved }) {
   const changed =
     !sameSet(keys, initialKeys) ||
     !sameSet(effectiveReadOnly, initialReadOnly) ||
-    !sameSet(payrollGroups, initialPayrollGroups);
+    !sameSet(payrollGroups, initialPayrollGroups) ||
+    !sameSet(
+      new Set([...viewAll].filter((k) => keys.has(k))),
+      initialViewAll,
+    );
 
   const setCanEdit = (key, value) =>
     setReadOnly((prev) => {
@@ -1104,6 +1122,7 @@ function AccessPanel({ person, onClose, onSaved }) {
         [...keys],
         [...effectiveReadOnly],
         keys.has("payroll.payroll") ? [...payrollGroups] : [],
+        [...viewAll].filter((k) => keys.has(k)),
       );
       toast.success(`Access saved for ${person.name}.`);
       await onSaved();
@@ -1209,6 +1228,42 @@ function AccessPanel({ person, onClose, onSaved }) {
                         canEdit={!readOnly.has(moduleKey(group.key, sub.key))}
                         onCanEdit={(v) => setCanEdit(moduleKey(group.key, sub.key), v)}
                       />
+                      {OWN_RECORD_MODULES[moduleKey(group.key, sub.key)] &&
+                        keys.has(moduleKey(group.key, sub.key)) && (
+                          <div className="mb-2 ml-5 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface-hover p-2.5">
+                            <p className="text-xs font-semibold text-fg">
+                              {OWN_RECORD_MODULES[moduleKey(group.key, sub.key)]} they see
+                            </p>
+                            {[
+                              { all: false, label: "Only what they encoded" },
+                              { all: true, label: "View all" },
+                            ].map((option) => {
+                              const key = moduleKey(group.key, sub.key);
+                              const on = viewAll.has(key) === option.all;
+                              return (
+                                <button
+                                  key={option.label}
+                                  type="button"
+                                  onClick={() =>
+                                    setViewAll((prev) => {
+                                      const next = new Set(prev);
+                                      if (option.all) next.add(key);
+                                      else next.delete(key);
+                                      return next;
+                                    })
+                                  }
+                                  className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                                    on
+                                      ? "border-primary bg-primary/15 text-primary"
+                                      : "border-border text-fg-muted hover:border-primary/50"
+                                  }`}
+                                >
+                                  {option.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       {moduleKey(group.key, sub.key) === "payroll.payroll" &&
                         keys.has("payroll.payroll") && (
                           <div className="mb-2 ml-5 rounded-lg border border-border bg-surface-hover p-2.5">

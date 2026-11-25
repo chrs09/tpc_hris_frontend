@@ -46,9 +46,14 @@ export const getAvailableVehicleUnits = async () => {
 // Helpers eligible for the logged-in driver's department (mirrors the
 // mobile app's getAvailableHelpers)
 // ========================================
-export const getAvailableHelpers = async (driverId) => {
+// includeDrivers: dispatch's "Driver as Helper" switch (rare) -- drivers
+// are added to the list, tagged, with busy_trip set when out on a trip.
+export const getAvailableHelpers = async (driverId, includeDrivers = false) => {
   try {
-    const params = driverId ? `?driver_id=${driverId}` : "";
+    const query = new URLSearchParams();
+    if (driverId) query.append("driver_id", driverId);
+    if (includeDrivers) query.append("include_drivers", "true");
+    const params = query.toString() ? `?${query.toString()}` : "";
     const response = await api.get(`/driver/trips/available-helpers${params}`);
     return response.data;
   } catch (error) {

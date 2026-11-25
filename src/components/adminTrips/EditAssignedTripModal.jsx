@@ -46,6 +46,10 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
   const [destinationStores, setDestinationStores] = useState([]);
   const [vehicleUnits, setVehicleUnits] = useState([]);
   const [helpers, setHelpers] = useState([]);
+  // Driver as Helper (rare): on when this trip already has one.
+  const [driverAsHelper, setDriverAsHelper] = useState(() =>
+    (trip?.helpers || []).some((h) => h.is_driver),
+  );
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -143,7 +147,7 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
       return;
     }
     let cancelled = false;
-    getAvailableHelpers(driverId)
+    getAvailableHelpers(driverId, driverAsHelper)
       .then((list) => {
         if (cancelled) return;
         const merged = [...list];
@@ -154,20 +158,24 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
               merged.unshift({
                 id: h.id,
                 first_name: first,
-                last_name: rest.join(" "),
+                last_name: rest.join(" ").replace(" (Driver as Helper)", ""),
+                is_driver: Boolean(h.is_driver),
               });
             }
           });
         }
-        setHelpers(merged);
+        // This trip's own helpers stay; others busy elsewhere can't be picked.
+        const own = new Set((trip.helpers || []).map((h) => h.id));
+        const shown = merged.map((m) => (own.has(m.id) ? { ...m, busy_trip: null } : m));
+        setHelpers(shown);
         // Drop selected helpers not eligible for the (new) driver.
-        setHelperIds((prev) => prev.filter((id) => merged.some((m) => m.id === id)));
+        setHelperIds((prev) => prev.filter((id) => shown.some((m) => m.id === id)));
       })
       .catch(() => !cancelled && setHelpers([]));
     return () => {
       cancelled = true;
     };
-  }, [driverId, trip]);
+  }, [driverId, trip, driverAsHelper]);
 
   // A helper who can drive (relief driver) is labelled so it's clear.
   const driverLabel = (driver) =>
@@ -524,16 +532,30 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
 
               {showHelpers && (
                 <div>
-                  <label className="mb-1 block text-sm font-medium">
-                    Helpers ({helperIds.length}/3)
-                  </label>
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                    <label className="block text-sm font-medium">
+                      Helpers ({helperIds.length}/3)
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-fg-muted">
+                      <input
+                        type="checkbox"
+                        checked={driverAsHelper}
+                        onChange={(e) => setDriverAsHelper(e.target.checked)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      Driver as Helper
+                    </label>
+                  </div>
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {helpers.map((helper) => {
                       const isSelected = helperIds.includes(helper.id);
-                      const isDisabled = !isSelected && helperIds.length >= 3;
+                      const isDisabled =
+                        (!isSelected && helperIds.length >= 3) ||
+                        (!isSelected && Boolean(helper.busy_trip));
                       return (
                         <label
                           key={helper.id}
+                          title={helper.busy_trip ? `Out on ${helper.busy_trip}` : undefined}
                           className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition-colors ${
                             isSelected
                               ? "border-primary bg-primary/10 text-fg"
@@ -547,7 +569,14 @@ export default function EditAssignedTripModal({ trip, onClose, onSaved }) {
                             onChange={() => toggleHelper(helper.id)}
                             className="h-4 w-4 rounded border-border"
                           />
-                          {helper.first_name} {helper.last_name}
+                          <span className="min-w-0">
+                            {helper.first_name} {helper.last_name}
+                            {helper.is_driver && (
+                              <span className="ml-1 text-xs text-primary">
+                                · Driver{helper.busy_trip ? `, on ${helper.busy_trip}` : ""}
+                              </span>
+                            )}
+                          </span>
                         </label>
                       );
                     })}
