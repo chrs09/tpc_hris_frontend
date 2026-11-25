@@ -320,9 +320,9 @@ function GenerateEmploymentFormModal({
 
           {isSubmitted && (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              This applicant already submitted the onboarding form. You can
-              still generate a new link if they need to complete or correct
-              any missing fields.
+              This applicant already submitted the onboarding form. Getting a
+              new link reopens it: they see their saved answers, fix them and
+              submit again. Convert to Employee waits until they resubmit.
             </div>
           )}
 
@@ -668,12 +668,24 @@ function ApplicantDrawer({
                   {applicant.status === "hired" &&
                     !applicant.is_converted_to_employee && (
                       (canEditPage ? (
-                        <button
-                        onClick={() => onOpenConvert(applicant)}
-                        className="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
-                      >
-                        Convert to Employee
-                      </button>
+                        <>
+                          {/* Reopen the submitted form so the applicant can
+                              fix answers (e.g. school years) before convert. */}
+                          <button
+                            onClick={() => onOpenGenerateForm(applicant)}
+                            className="rounded-xl bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+                          >
+                            {applicant?.onboarding_is_submitted === true
+                              ? "Reopen Form"
+                              : "Get Form Link"}
+                          </button>
+                          <button
+                            onClick={() => onOpenConvert(applicant)}
+                            className="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                          >
+                            Convert to Employee
+                          </button>
+                        </>
                       ) : null)
                     )}
 

@@ -22,6 +22,8 @@ import {
   genderOptions,
   initialForm,
   salaryTypeOptions,
+  schoolYearFromOptions,
+  schoolYearOptions,
   stepConfig,
 } from "../../utils/onboarding/constants";
 
@@ -469,6 +471,8 @@ export default function OnBoardingForm() {
             }
             name={`education_year_from_${index}`}
             error={errors[`education_records.${index}.year_from`]}
+            options={schoolYearFromOptions}
+            placeholder="Select year"
             required
           />
           <Field
@@ -484,6 +488,12 @@ export default function OnBoardingForm() {
             }
             name={`education_year_to_${index}`}
             error={errors[`education_records.${index}.year_to`]}
+            options={schoolYearOptions.filter(
+              (year) =>
+                !/^\d{4}$/.test(form.education_records[index].year_from || "") ||
+                Number(year) >= Number(form.education_records[index].year_from),
+            )}
+            placeholder="Select year"
             required
           />
           <Field

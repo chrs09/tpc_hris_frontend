@@ -84,6 +84,25 @@ export function validateStepData(step, form, questions, questionResponses) {
       if (!`${record.year_to || ""}`.trim()) {
         errors[`education_records.${index}.year_to`] = "Year to is required.";
       }
+      // One year per box. Old answers like "2013 2014 2018" must be re-picked;
+      // add another row for each school.
+      const oneYear = (value) => /^\d{4}$/.test(`${value || ""}`.trim());
+      if (`${record.year_from || ""}`.trim() && !oneYear(record.year_from)) {
+        errors[`education_records.${index}.year_from`] =
+          "Pick one year. Add another row for each school.";
+      }
+      if (`${record.year_to || ""}`.trim() && !oneYear(record.year_to)) {
+        errors[`education_records.${index}.year_to`] =
+          "Pick one year. Add another row for each school.";
+      }
+      if (
+        oneYear(record.year_from) &&
+        oneYear(record.year_to) &&
+        Number(record.year_to) < Number(record.year_from)
+      ) {
+        errors[`education_records.${index}.year_to`] =
+          "Year to can't be before Year from.";
+      }
     });
   }
 

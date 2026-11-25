@@ -99,8 +99,18 @@ export function mapApiDataToForm(data) {
     pagibig: formatPagibig(onboarding.pagibig || ""),
     tin: formatTIN(onboarding.tin || ""),
 
+    // Old free-text years ("2013 2014 2018") are cleared so the applicant
+    // re-picks one year per box; otherwise every save would be refused.
     education_records: ensureMinimumItems(
-      data.education_records || [],
+      (data.education_records || []).map((item) => ({
+        ...item,
+        year_from: /^\d{4}$/.test(`${item.year_from || ""}`.trim())
+          ? `${item.year_from}`.trim()
+          : "",
+        year_to: /^\d{4}$/.test(`${item.year_to || ""}`.trim())
+          ? `${item.year_to}`.trim()
+          : "",
+      })),
       emptyEducation,
       1,
     ),

@@ -89,6 +89,17 @@ export const stepConfig = [
 ];
 
 export const genderOptions = ["Male", "Female", "Other", "Prefer not to say"];
+
+// School years: one year per box, newest first (typing "2013 2014 2018"
+// used to break converting the applicant to an employee).
+const THIS_YEAR = new Date().getFullYear();
+export const schoolYearOptions = Array.from(
+  { length: THIS_YEAR + 6 - 1950 + 1 },
+  (_, i) => String(THIS_YEAR + 6 - i),
+);
+export const schoolYearFromOptions = schoolYearOptions.filter(
+  (year) => Number(year) <= THIS_YEAR,
+);
 // Same choices as Employee 201 (src/constants/civilStatus.js).
 export const civilStatusOptions = [
   "Single",
