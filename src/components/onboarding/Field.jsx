@@ -20,9 +20,9 @@ export default function Field({
     : null;
 
   const baseClass =
-    "w-full rounded-2xl px-4 py-3 outline-none focus:ring-2 transition";
+    "w-full rounded-2xl px-4 py-3 text-gray-900 placeholder:text-gray-400 outline-none focus:ring-2 transition";
   const normalClass =
-    "border border-gray-300 focus:border-black focus:ring-black/10";
+    "border border-gray-300 bg-white focus:border-black focus:ring-black/10";
   const errorClass =
     "border border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-200";
 

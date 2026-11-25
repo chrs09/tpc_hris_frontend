@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import ThemeContext from "./theme-context";
 import { getMyTheme, saveMyTheme } from "../api/preferences";
 import { accentVars, isHexColor } from "../utils/theme/accent";
@@ -38,6 +39,10 @@ const prefersDark = () =>
   typeof window !== "undefined" &&
   window.matchMedia("(prefers-color-scheme: dark)").matches;
 
+// Public applicant forms are designed light only (white cards, gray
+// borders). Under dark mode their typed text came out near-white on white.
+const LIGHT_ONLY_PATHS = ["/tytan-application-form", "/tytan-onboarding-form"];
+
 const isLoggedIn = () => Boolean(readLocal("access_token"));
 
 export function ThemeProvider({ children }) {
@@ -49,6 +54,9 @@ export function ThemeProvider({ children }) {
   const [systemDark, setSystemDark] = useState(prefersDark);
 
   const theme = mode === "system" ? (systemDark ? "dark" : "light") : mode;
+  const { pathname } = useLocation();
+  const lightOnly = LIGHT_ONLY_PATHS.some((path) => pathname.startsWith(path));
+  const shown = lightOnly ? "light" : theme;
 
   // Follow the device when mode is "system".
   useEffect(() => {
@@ -61,9 +69,9 @@ export function ThemeProvider({ children }) {
   // Apply: dark class + the accent colours for the current mode.
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    root.classList.toggle("dark", shown === "dark");
     if (accent) {
-      Object.entries(accentVars(accent, theme === "dark")).forEach(([name, value]) =>
+      Object.entries(accentVars(accent, shown === "dark")).forEach(([name, value]) =>
         root.style.setProperty(name, value),
       );
     } else {
@@ -72,7 +80,7 @@ export function ThemeProvider({ children }) {
     writeLocal("theme_mode", mode);
     writeLocal("theme", theme);
     writeLocal("theme_accent", accent);
-  }, [theme, mode, accent]);
+  }, [theme, shown, mode, accent]);
 
   // Load the person's saved theme (on start, and after logging in).
   // Skipped while viewing as someone else.
