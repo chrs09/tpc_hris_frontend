@@ -7,6 +7,10 @@ import { getBanks } from "../../api/banks";
 import { civilStatusOptions } from "../../constants/civilStatus";
 import { employeeRoles } from "../../constants/employeeRole";
 import SearchSelect from "../SearchSelect";
+import {
+  schoolYearFromOptions,
+  schoolYearOptions,
+} from "../../utils/onboarding/constants";
 
 const getFileUrl = (filePath) => {
   if (!filePath) return "";
@@ -633,10 +637,13 @@ export default function EmployeeForm({
                     }
                   />
                 )}
+                {/* One year per box (picked from a list), same as the
+                    onboarding form. */}
                 <EditableArrayField
                   label="Year From"
                   value={record.year_from}
                   isEditing={isEditing}
+                  options={schoolYearFromOptions}
                   onChange={(value) =>
                     handleEducationChange(index, "year_from", value)
                   }
@@ -645,6 +652,11 @@ export default function EmployeeForm({
                   label="Year To"
                   value={record.year_to}
                   isEditing={isEditing}
+                  options={schoolYearOptions.filter(
+                    (year) =>
+                      !/^\d{4}$/.test(record.year_from || "") ||
+                      Number(year) >= Number(record.year_from),
+                  )}
                   onChange={(value) =>
                     handleEducationChange(index, "year_to", value)
                   }

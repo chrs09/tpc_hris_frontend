@@ -21,8 +21,9 @@ export const MODULE_GROUPS = [
         // the whole page (see AttendanceList.jsx's canSeeListView /
         // canSeeGridView). Not a nav item on its own, so no `path`.
         children: [
-          { key: "attendance_list_view", label: "Attendance List" },
-          { key: "attendance_grid_view", label: "Grid View" },
+          // Same names as the buttons on the Attendance page.
+          { key: "attendance_list_view", label: "Table View" },
+          { key: "attendance_grid_view", label: "Review View" },
         ],
       },
       { key: "employees", label: "Employees", path: "/dashboard/employees" },
