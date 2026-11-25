@@ -852,9 +852,8 @@ const AttendanceDetail = ({
   const isReasonEditable =
     canEditDetails && (getIsAbsent(record) || getIsLeave(record));
 
-  const hasTimeChanges =
-    editTimeIn !== toTimeInputValue(record.check_in_time) ||
-    editTimeOut !== toTimeInputValue(record.check_out_time);
+  // Times are read-only (Time Corrections handle them).
+  const hasTimeChanges = false;
 
   const hasReasonChanges = editReason !== (record.remarks || "");
 
@@ -873,10 +872,6 @@ const AttendanceDetail = ({
       setSavingAttendance(true);
 
       await onUpdateAttendance(record, {
-        check_in_time: editTimeIn || null,
-
-        check_out_time: editTimeOut || null,
-
         remarks: isReasonEditable ? editReason : record.remarks || "",
       });
     } catch (error) {
@@ -1091,7 +1086,8 @@ const AttendanceDetail = ({
               type="time"
               value={editTimeIn}
               onChange={(event) => setEditTimeIn(event.target.value)}
-              disabled={record.is_missing_attendance || !canEditDetails}
+              // Times change only through Time Corrections now.
+              disabled
               className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg disabled:bg-surface-hover disabled:text-fg-subtle"
             />
           </div>
@@ -1105,11 +1101,15 @@ const AttendanceDetail = ({
               type="time"
               value={editTimeOut}
               onChange={(event) => setEditTimeOut(event.target.value)}
-              disabled={record.is_missing_attendance || !canEditDetails}
+              disabled
               className="w-full rounded-lg border border-border px-3 py-2 bg-surface text-fg disabled:bg-surface-hover disabled:text-fg-subtle"
             />
           </div>
         </div>
+
+        <p className="mt-1 text-xs text-fg-subtle">
+          Times can&apos;t be edited here. Wrong time? File a Time Correction.
+        </p>
 
         <DetailRow label="Location" value={getLocation(record)} />
 

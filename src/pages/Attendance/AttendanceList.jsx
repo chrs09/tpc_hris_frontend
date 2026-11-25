@@ -26,7 +26,6 @@ import {
   timeInSelfie,
   approveAttendance,
   rejectAttendance,
-  adjustAttendanceTimeWithReason,
 } from "../../api/attendance";
 import { getHolidays } from "../../api/holidays";
 import { getFiledOvertime } from "../../api/overtimeRequests";
@@ -50,14 +49,8 @@ import { Button } from "../../components/ui/button/Button";
 import useModuleAccess from "../../hooks/useModuleAccess";
 
 const AttendanceList = () => {
-  // Time changes to an already-recorded time need a reason -- it's saved
-  // in the attendance change log (who, when, old -> new, why).
-  const adjustTime = (attendanceId, payload) =>
-    adjustAttendanceTimeWithReason(attendanceId, payload, () =>
-      promptDialog(
-        "Why are you changing the recorded time? This is saved in the attendance change log with the original time.",
-      ),
-    );
+  // Recorded times aren't edited on this page -- Time Corrections
+  // (filed by the employee, approved up the chain) change them.
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -614,14 +607,6 @@ const AttendanceList = () => {
       return;
     }
 
-    const checkInTime = editModal.timeIn
-      ? `${editModal.date} ${editModal.timeIn}:00`
-      : null;
-
-    const checkOutTime = editModal.timeOut
-      ? `${editModal.date} ${editModal.timeOut}:00`
-      : null;
-
     const existing = attendanceMap[`${editModal.employeeId}-${editModal.date}`];
 
     try {
@@ -640,12 +625,7 @@ const AttendanceList = () => {
           });
         }
 
-        if (checkInTime || checkOutTime) {
-          await adjustTime(existing.id, {
-            check_in_time: checkInTime,
-            check_out_time: checkOutTime,
-          });
-        }
+        // Times aren't edited here (Time Corrections handle them).
       } else {
         await markAttendance({
           employee_id: editModal.employeeId,
@@ -654,22 +634,7 @@ const AttendanceList = () => {
           remarks: editModal.remarks,
         });
 
-        // Reload data so we can find the
-        // newly created attendance record.
-        const refreshed = await loadAttendance();
-
-        const createdRecord = refreshed.records.find(
-          (item) =>
-            item.employee_id === editModal.employeeId &&
-            item.attendance_date === editModal.date,
-        );
-
-        if (createdRecord && (checkInTime || checkOutTime)) {
-          await adjustTime(createdRecord.id, {
-            check_in_time: checkInTime,
-            check_out_time: checkOutTime,
-          });
-        }
+        await loadAttendance();
 
         setAlert({
           type: "success",
@@ -764,38 +729,7 @@ const AttendanceList = () => {
       // YYYY-MM-DD HH:MM:SS
       // ---------------------------------------
 
-      const checkInDateTime = changes.check_in_time
-        ? `${record.attendance_date} ${changes.check_in_time}:00`
-        : null;
-
-      const checkOutDateTime = changes.check_out_time
-        ? `${record.attendance_date} ${changes.check_out_time}:00`
-        : null;
-
-      console.log("Updating attendance:", {
-        attendance_id: record.id,
-        employee_id: record.employee_id,
-        attendance_date: record.attendance_date,
-        check_in_time: checkInDateTime,
-        check_out_time: checkOutDateTime,
-        remarks: changes.remarks,
-      });
-
-      // ---------------------------------------
-      // UPDATE TIME IN / TIME OUT
-      // ---------------------------------------
-
-      const hasTimeChanges =
-        changes.check_in_time !== undefined ||
-        changes.check_out_time !== undefined;
-
-      if (hasTimeChanges) {
-        await adjustTime(record.id, {
-          check_in_time: checkInDateTime,
-
-          check_out_time: checkOutDateTime,
-        });
-      }
+      // Times aren't edited here any more -- Time Corrections handle them.
 
       // ---------------------------------------
       // UPDATE ABSENT / LEAVE REASON

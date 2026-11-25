@@ -92,13 +92,9 @@ const EditAttendanceModal = ({
                 <input
                   type="time"
                   value={editModal.timeIn || ""}
-                  onChange={(e) =>
-                    setEditModal((prev) => ({
-                      ...prev,
-                      timeIn: e.target.value,
-                    }))
-                  }
-                  className="w-full border rounded h-10 px-3 text-white bg-[#1e1e1e]"
+                  disabled
+                  readOnly
+                  className="w-full border rounded h-10 px-3 text-gray-400 bg-[#1e1e1e] opacity-70"
                 />
               </div>
 
@@ -110,15 +106,14 @@ const EditAttendanceModal = ({
                 <input
                   type="time"
                   value={editModal.timeOut || ""}
-                  onChange={(e) =>
-                    setEditModal((prev) => ({
-                      ...prev,
-                      timeOut: e.target.value,
-                    }))
-                  }
-                  className="w-full border rounded h-10 px-3 text-white bg-[#1e1e1e]"
+                  disabled
+                  readOnly
+                  className="w-full border rounded h-10 px-3 text-gray-400 bg-[#1e1e1e] opacity-70"
                 />
               </div>
+              <p className="text-xs text-gray-400">
+                Times can&apos;t be edited here. Wrong time? File a Time Correction.
+              </p>
             </div>
           )}
           {/* REMARKS */}
