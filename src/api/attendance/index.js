@@ -56,6 +56,9 @@ export const attendanceRecord = async ({
     // Org chart head: the employee ids (and unit names) they're limited to.
     records.team_employee_ids = res.data.team_employee_ids ?? null;
     records.team_units = res.data.team_units ?? null;
+    // The viewer's own employee id (null for superadmin): their own card
+    // and row are view-only.
+    records.my_employee_id = res.data.my_employee_id ?? null;
 
     return records;
   }
