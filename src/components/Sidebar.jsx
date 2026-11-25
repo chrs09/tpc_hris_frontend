@@ -18,6 +18,7 @@ import {
   LifeBuoy,
   ShoppingCart,
   Search,
+  UserCircle,
 } from "lucide-react";
 import GlobalSearch from "./GlobalSearch";
 import { logout } from "../utils/auth";
@@ -56,6 +57,7 @@ const GROUP_ICONS = {
   Finance: Landmark,
   POS: ShoppingCart,
   Tickets: LifeBuoy,
+  "My Profile": UserCircle,
   Administrator: Shield,
 };
 

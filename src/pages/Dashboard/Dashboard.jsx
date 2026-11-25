@@ -45,6 +45,7 @@ import ErrorLogsPage from "../Admin/ErrorLogsPage";
 import SystemLogsPage from "../Admin/SystemLogsPage";
 import CompaniesPage from "../Admin/CompaniesPage";
 import TicketsPage from "../Admin/TicketsPage";
+import MyProfilePage from "../Employee/MyProfilePage";
 import FinanceTrips from "../Finance/FinanceTrips";
 import OfficeTripReview from "../Office/OfficeTripReview";
 import FinanceExpenses from "../Finance/FinanceExpenses";
@@ -170,6 +171,7 @@ const Dashboard = () => {
           <Route path="system-logs" element={<SystemLogsPage />} />
           <Route path="companies" element={<CompaniesPage />} />
           <Route path="tickets" element={<TicketsPage />} />
+          <Route path="my-profile" element={<MyProfilePage />} />
           <Route path="admin/trips" element={<AdminTrips />} />
           <Route path="admin/trip-dashboard" element={<TripDashboard />} />
           <Route path="admin/delivery-summary" element={<DeliverySummary />} />

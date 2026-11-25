@@ -448,6 +448,27 @@ export function getNavGroups(role) {
       ],
     },
     {
+      // Everyone: their own employee record (read-only).
+      label: "My Profile",
+      children: [
+        {
+          label: "My Profile",
+          path: "/dashboard/my-profile",
+          roles: [
+            "superadmin",
+            "admin",
+            "driver",
+            "helper",
+            "employee",
+            "payroll_admin",
+            "coordinator_admin",
+            "coordinator",
+            "office_admin",
+          ],
+        },
+      ],
+    },
+    {
       // Helpdesk: everyone can file and follow tickets. Seeing every
       // ticket and managing categories is Administrator -> Tickets.
       label: "Tickets",

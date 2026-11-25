@@ -19,6 +19,12 @@ export const getEmployeeDetails = async (employeeId) => {
   return res.data;
 };
 
+// My Profile: the logged-in person's own employee record (read-only).
+export const getMyProfile = async () => {
+  const res = await api.get("/employees/me");
+  return res.data;
+};
+
 // Update employee details
 export const updateEmployeeDetails = async (employeeId, updatedData) => {
   const res = await api.patch(`/employees/${employeeId}`, updatedData);
