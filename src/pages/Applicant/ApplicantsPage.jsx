@@ -16,6 +16,7 @@ import DefaultThumbnail from "../../assets/logo/default/default-profile.jpg";
 import { alertDialog } from "../../components/ui/dialog/dialogService";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
+import FixAndSubmitModal from "../../components/applicants/FixAndSubmitModal";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import ViewToggle from "../../components/ui/viewToggle/ViewToggle";
 import useViewType from "../../hooks/useViewType";
@@ -527,6 +528,7 @@ function ApplicantDrawer({
   onPreviewCV,
   onOpenConvert,
   onOpenGenerateForm,
+  onOpenFixSubmit,
   onViewSubmittedForm,
   onOpenRemarkPreview,
 }) {
@@ -678,6 +680,14 @@ function ApplicantDrawer({
                             {applicant?.onboarding_is_submitted === true
                               ? "Reopen Form"
                               : "Get Form Link"}
+                          </button>
+                          {/* HR submits the form for the applicant; only the
+                              answers that block it can be changed. */}
+                          <button
+                            onClick={() => onOpenFixSubmit(applicant)}
+                            className="rounded-xl border border-purple-400 px-4 py-2 text-sm font-medium text-purple-600 hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-purple-500/10"
+                          >
+                            Fix &amp; Submit
                           </button>
                           <button
                             onClick={() => onOpenConvert(applicant)}
@@ -1798,6 +1808,7 @@ export default function ApplicantsPage() {
   // best-effort -- null before a link has been generated, then true/false
   // once we know; see generate_employment_form in app/api/admin/applicants.py).
   const [generatedFormEmailSent, setGeneratedFormEmailSent] = useState(null);
+  const [fixSubmitApplicant, setFixSubmitApplicant] = useState(null);
 
   const [onboardingViewOpen, setOnboardingViewOpen] = useState(false);
   const [onboardingViewLoading, setOnboardingViewLoading] = useState(false);
@@ -2105,6 +2116,12 @@ export default function ApplicantsPage() {
       toast.error(message, {
         duration: 5000,
       });
+      // Form not submitted, or a school year it can't hold: open Fix &
+      // Submit straight away so HR can correct just those answers.
+      if (typeof message === "string" && message.includes("Fix & Submit")) {
+        setConvertOpen(false);
+        setFixSubmitApplicant(selectedApplicant);
+      }
     } finally {
       setConvertingApplicant(false);
     }
@@ -2492,8 +2509,21 @@ export default function ApplicantsPage() {
         onPreviewCV={handlePreviewCV}
         onOpenConvert={handleOpenConvert}
         onOpenGenerateForm={handleOpenGenerateForm}
+        onOpenFixSubmit={setFixSubmitApplicant}
         onViewSubmittedForm={handleViewSubmittedForm}
         onOpenRemarkPreview={handleOpenRemarkPreview}
+      />
+
+      <FixAndSubmitModal
+        isOpen={Boolean(fixSubmitApplicant)}
+        applicant={fixSubmitApplicant}
+        onClose={() => setFixSubmitApplicant(null)}
+        onSubmitted={async () => {
+          await loadApplicants();
+          if (selectedApplicant?.id) {
+            await refreshSelectedApplicant(selectedApplicant.id);
+          }
+        }}
       />
 
       <ConvertApplicantModal

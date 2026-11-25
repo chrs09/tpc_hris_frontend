@@ -55,6 +55,23 @@ export const convertApplicantToEmployee = async (applicantId, payload) => {
   return response.data;
 };
 
+// Fix & Submit: the answers that block the onboarding form, and HR
+// submitting it for the applicant (only those answers can change).
+export const getApplicantFormProblems = async (applicantId) => {
+  const response = await api.get(
+    `/admin/applicants/${applicantId}/onboarding/problems`,
+  );
+  return response.data;
+};
+
+export const submitFormForApplicant = async (applicantId, values) => {
+  const response = await api.post(
+    `/admin/applicants/${applicantId}/onboarding/submit-for-applicant`,
+    { values },
+  );
+  return response.data;
+};
+
 export const generateEmploymentForm = async (applicantId) => {
   const response = await api.post(
     `/admin/applicants/${applicantId}/generate-employment-form`,
