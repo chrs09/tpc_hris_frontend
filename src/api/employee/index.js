@@ -25,6 +25,12 @@ export const getMyProfile = async () => {
   return res.data;
 };
 
+// My Profile -> Salary: own current pay and salary history.
+export const getMySalary = async () => {
+  const res = await api.get("/employees/me/salary");
+  return res.data;
+};
+
 // Update employee details
 export const updateEmployeeDetails = async (employeeId, updatedData) => {
   const res = await api.patch(`/employees/${employeeId}`, updatedData);

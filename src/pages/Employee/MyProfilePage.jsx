@@ -3,15 +3,17 @@ import { getMyProfile } from "../../api/employee";
 import { getScheduleTemplates } from "../../api/scheduleTemplates";
 import { mapEmployeeToForm } from "../../utils/mapEmployee";
 import EmployeeForm from "../../components/employees/EmployeeForm";
+import MySalaryTab from "../../components/employees/MySalaryTab";
 
 // My Profile: the logged-in person's own 201 record, read-only. Same
-// sections as HRIS -> Employees, without Work History. Salary and
-// allowance show for superadmin only (for now). Changes go through HR.
+// sections as HRIS -> Employees, without Work History, plus a Salary tab
+// with their own pay and salary history. Changes go through HR.
 const TABS = [
   { key: "basic", label: "Basic Information" },
   { key: "personal", label: "Personal Details" },
   { key: "government", label: "Government & Legal" },
   { key: "files", label: "Employment Files" },
+  { key: "salary", label: "Salary" },
 ];
 
 const noop = () => {};
@@ -28,7 +30,8 @@ export default function MyProfilePage() {
       .then(setEmployee)
       .catch((err) =>
         setError(
-          err?.response?.data?.detail || "Couldn't load your profile. Try again later.",
+          err?.response?.data?.detail ||
+            "Couldn't load your profile. Try again later.",
         ),
       );
     getScheduleTemplates()
@@ -46,7 +49,9 @@ export default function MyProfilePage() {
   }
 
   if (!employee) {
-    return <p className="p-6 text-sm text-fg-subtle">Loading your profile...</p>;
+    return (
+      <p className="p-6 text-sm text-fg-subtle">Loading your profile...</p>
+    );
   }
 
   return (
@@ -83,17 +88,21 @@ export default function MyProfilePage() {
           </div>
         </div>
 
-        <EmployeeForm
-          employee={employee}
-          formData={mapEmployeeToForm(employee)}
-          isEditing={false}
-          activeTab={activeTab}
-          handleChange={noop}
-          handleFileChange={noop}
-          previewImage={previewImage}
-          setPreviewImage={setPreviewImage}
-          scheduleTemplates={scheduleTemplates}
-        />
+        {activeTab === "salary" ? (
+          <MySalaryTab />
+        ) : (
+          <EmployeeForm
+            employee={employee}
+            formData={mapEmployeeToForm(employee)}
+            isEditing={false}
+            activeTab={activeTab}
+            handleChange={noop}
+            handleFileChange={noop}
+            previewImage={previewImage}
+            setPreviewImage={setPreviewImage}
+            scheduleTemplates={scheduleTemplates}
+          />
+        )}
       </div>
     </div>
   );
