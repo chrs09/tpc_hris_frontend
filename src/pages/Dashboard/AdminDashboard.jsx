@@ -5,7 +5,23 @@ import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
-import { Eye, Clock3 } from "lucide-react";
+import {
+  Activity,
+  AlertCircle,
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  CalendarDays,
+  CheckCircle2,
+  Hourglass,
+  Plane,
+  Truck,
+  UserCheck,
+  UserPlus,
+  Users,
+  UserX,
+} from "lucide-react";
+import { DashboardHero, KpiTile, MeterCard, SectionLabel } from "../../components/dashboard/DashboardKit";
 import { getDashboardSummary } from "../../api/dashboard";
 import { getApplicants } from "../../api/adminApplicants/index";
 import {
@@ -33,233 +49,154 @@ import NeedsReviewCard from "../../components/attendance/NeedsReviewCard";
 import useModuleAccess from "../../hooks/useModuleAccess";
 import { getNavGroups } from "../../constants/navGroups";
 
-const Card = ({ children, className = "" }) => (
-  <div
-    className={`bg-surface rounded-2xl p-5 border border-border shadow-sm ${className}`}
+const initialsOf = (name = "") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+
+const Initials = ({ name }) => (
+  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+    {initialsOf(name) || "?"}
+  </span>
+);
+
+const ViewAll = ({ to, label = "View all" }) => (
+  <Link
+    to={to}
+    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10"
   >
-    {children}
-  </div>
+    {label} <ArrowRight size={13} />
+  </Link>
 );
 
-const StatCard = ({
-  title,
-  value,
-  dotColor = "bg-blue-400",
-  subtitle = "",
-}) => {
-  return (
-    <Card className="hover:border-primary/60 transition-all duration-200">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-wide text-fg-muted truncate">
-            {title}
-          </p>
-          <h2 className="text-2xl font-bold text-fg leading-tight mt-1">
-            {value}
-          </h2>
-          {subtitle ? (
-            <p className="text-[10px] text-fg-subtle mt-1 truncate">
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
-        <div className={`w-2.5 h-2.5 rounded-full mt-1 ${dotColor}`} />
-      </div>
-    </Card>
-  );
-};
-
-const ProgressMiniCard = ({ title, value, colorClass, subtitle }) => (
-  <Card>
-    <div className="flex items-center justify-between mb-2">
-      <p className="text-[11px] uppercase tracking-wide text-fg-muted">
-        {title}
-      </p>
-      <span className="text-sm font-semibold text-fg">{value}%</span>
-    </div>
-
-    <div className="w-full h-2 rounded-full bg-surface-active overflow-hidden">
-      <div
-        className={`h-full rounded-full ${colorClass}`}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-
-    <p className="text-[10px] text-fg-subtle mt-2">{subtitle}</p>
-  </Card>
-);
-
-const SectionListCard = ({ title, items }) => (
-  <Card>
-    <h3 className="text-sm font-semibold text-fg mb-3">{title}</h3>
+// Four numbers in a 2 x 2 block (Workforce / Recruitment / Trips).
+const BreakdownCard = ({ title, icon, to, items }) => (
+  <DashboardCard title={title} icon={icon} action={to ? <ViewAll to={to} label="Open" /> : null}>
     <div className="grid grid-cols-2 gap-2">
-      {items.map((item, index) => (
-        <div key={index} className="bg-surface-hover rounded-lg px-3 py-2">
-          <p className="text-[11px] text-fg-muted truncate">{item.label}</p>
-          <p className="text-sm font-semibold text-fg mt-1">{item.value}</p>
+      {items.map((item) => (
+        <div key={item.label} className="rounded-xl bg-surface-hover/70 px-3 py-2.5">
+          <p className="text-[11px] font-medium text-fg-muted">{item.label}</p>
+          <p className={`mt-0.5 text-lg font-bold tabular-nums ${item.tone || "text-fg"}`}>{item.value}</p>
         </div>
       ))}
     </div>
-  </Card>
+  </DashboardCard>
 );
 
-const LatestApplicantsCard = ({ applicants = [] }) => {
-  return (
-    <Card className="xl:col-span-2">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold text-fg">
-            Latest Applicants
-          </h3>
-          <p className="text-[11px] text-fg-muted mt-1">
-            5 most recent applicant records
-          </p>
-        </div>
-
-        <Link
-          to="/dashboard/applicants"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-hover hover:bg-surface-active transition-colors"
-          title="Open Applicants page"
-        >
-          <Eye size={16} className="text-fg-muted" />
-        </Link>
-      </div>
-
-      {applicants.length === 0 ? (
-        <div className="text-xs text-fg-muted">No applicants found.</div>
-      ) : (
-        <div className="space-y-2">
-          {applicants.map((applicant) => (
-            <div
-              key={applicant.id}
-              className="flex items-center justify-between gap-3 rounded-xl bg-surface-hover px-3 py-3"
-            >
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-fg truncate">
-                  {applicant.first_name} {applicant.last_name}
-                </p>
-                <p className="text-[11px] text-fg-muted truncate">
-                  {applicant.position_applied || "No position applied"} •{" "}
-                  {applicant.status || "pending"}
-                </p>
-                {applicant.email ? (
-                  <p className="text-[11px] text-fg-subtle truncate mt-1">
-                    {applicant.email}
-                  </p>
-                ) : null}
-              </div>
-
-              <Link
-                to="/admin/applicants/"
-                className="shrink-0 text-[11px] text-primary hover:text-primary-hover"
-              >
-                View
-              </Link>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
+const STATUS_PILL = {
+  hired: "bg-success/10 text-success",
+  rejected: "bg-danger/10 text-danger",
+  interview: "bg-violet-500/10 text-violet-600 dark:text-violet-300",
+  reviewed: "bg-primary/10 text-primary",
 };
 
-const IncomingLeaveRequestsCard = ({
-  leaves = [],
-  onApprove,
-  onReject,
-  actioningId,
-}) => {
-  return (
-    <Card className="xl:col-span-2">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold text-fg">
-            Incoming Leave Requests
-          </h3>
-          <p className="text-[11px] text-fg-muted mt-1">
-            Pending company-wide leave filings
-          </p>
-        </div>
+const LatestApplicantsCard = ({ applicants = [] }) => (
+  <DashboardCard
+    title="Latest Applicants"
+    subtitle="5 most recent applications"
+    icon={UserPlus}
+    className="xl:col-span-2"
+    action={<ViewAll to="/dashboard/applicants" />}
+  >
+    {applicants.length === 0 ? (
+      <p className="rounded-xl border border-dashed border-border p-6 text-center text-xs text-fg-subtle">
+        No applicants yet.
+      </p>
+    ) : (
+      <ul className="divide-y divide-border">
+        {applicants.map((applicant) => {
+          const name = `${applicant.first_name || ""} ${applicant.last_name || ""}`.trim();
+          const status = (applicant.status || "pending").toLowerCase();
+          return (
+            <li key={applicant.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+              <Initials name={name} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-fg">{name || "Unnamed"}</p>
+                <p className="truncate text-xs text-fg-subtle">
+                  {applicant.position_applied || "No position applied"}
+                  {applicant.email ? ` · ${applicant.email}` : ""}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+                  STATUS_PILL[status] || "bg-warning/10 text-warning"
+                }`}
+              >
+                {status.replace("_", " ")}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    )}
+  </DashboardCard>
+);
 
-        <Link
-          to="/dashboard/approvals?tab=leave"
-          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-surface-hover hover:bg-surface-active transition-colors"
-          title="Open Leave Requests page"
-        >
-          <Eye size={16} className="text-fg-muted" />
-        </Link>
+const IncomingLeaveRequestsCard = ({ leaves = [], onApprove, onReject, actioningId }) => (
+  <DashboardCard
+    title="Incoming Leave Requests"
+    subtitle="Pending company-wide leave filings"
+    icon={Plane}
+    className="xl:col-span-2"
+    action={<ViewAll to="/dashboard/approvals?tab=leave" />}
+  >
+    {leaves.length === 0 ? (
+      <div className="flex items-center gap-2 rounded-xl border border-dashed border-border p-5 text-xs text-fg-subtle">
+        <CheckCircle2 size={16} className="text-success" />
+        No pending leave requests.
       </div>
-
-      {leaves.length === 0 ? (
-        <div className="text-xs text-fg-muted">
-          No pending leave requests.
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {leaves.map((leave) => (
-            <div
-              key={leave.id}
-              className="flex items-center justify-between gap-3 rounded-xl bg-surface-hover px-3 py-3"
-            >
+    ) : (
+      <ul className="space-y-2">
+        {leaves.map((leave) => (
+          <li
+            key={leave.id}
+            className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex min-w-0 items-start gap-3">
+              <Initials name={leave.employee_name || ""} />
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-fg truncate">
+                <p className="truncate text-sm font-semibold text-fg">
                   {leave.employee_name || `Employee #${leave.employee_id}`}
                 </p>
-                <p className="text-[11px] text-fg-muted truncate">
-                  {leave.leave_type} • {leave.start_date}
-                  {leave.start_date !== leave.end_date &&
-                    ` – ${leave.end_date}`}
+                <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-fg-muted">
+                  <span className="rounded-md bg-warning/10 px-1.5 py-0.5 text-[11px] font-semibold capitalize text-warning">
+                    {leave.leave_type}
+                  </span>
+                  <span>
+                    {leave.start_date}
+                    {leave.start_date !== leave.end_date && ` – ${leave.end_date}`}
+                  </span>
                 </p>
-                {leave.requested_at ? (
-                  <p className="text-[11px] text-fg-subtle">Requested {leave.requested_at}</p>
-                ) : null}
-                {leave.reason ? (
-                  <p className="text-[11px] text-fg-subtle truncate mt-1">
-                    {leave.reason}
-                  </p>
-                ) : null}
-              </div>
-
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => onApprove(leave.id)}
-                  disabled={actioningId === leave.id}
-                  className="rounded-lg bg-success px-3 py-1 text-xs font-semibold text-success-foreground disabled:opacity-50"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => onReject(leave.id)}
-                  disabled={actioningId === leave.id}
-                  className="rounded-lg bg-danger px-3 py-1 text-xs font-semibold text-danger-foreground disabled:opacity-50"
-                >
-                  Reject
-                </button>
+                {leave.reason && <p className="mt-1 line-clamp-2 text-xs text-fg-subtle">“{leave.reason}”</p>}
+                {leave.requested_at && <p className="mt-0.5 text-[11px] text-fg-subtle">Filed {leave.requested_at}</p>}
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-};
-
-const VerseCard = () => {
-  const verse = {
-    text: "Whatever you do, work at it with all your heart.",
-    reference: "Colossians 3:23",
-  };
-
-  return (
-    <Card>
-      <h3 className="text-sm font-semibold text-fg mb-3">Daily Verse</h3>
-      <p className="text-xs text-fg-muted italic leading-relaxed">
-        “{verse.text}”
-      </p>
-      <p className="text-[11px] text-fg-subtle mt-2">— {verse.reference}</p>
-    </Card>
-  );
-};
+            <div className="flex shrink-0 gap-2 self-end sm:self-center">
+              <button
+                onClick={() => onReject(leave.id)}
+                disabled={actioningId === leave.id}
+                className="rounded-lg border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger transition hover:bg-danger/10 disabled:opacity-50"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => onApprove(leave.id)}
+                disabled={actioningId === leave.id}
+                className="rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground shadow-sm transition hover:opacity-90 disabled:opacity-50"
+              >
+                Approve
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )}
+  </DashboardCard>
+);
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -285,7 +222,6 @@ const AdminDashboard = () => {
 
   const [latestApplicants, setLatestApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
 
   const { role, isSuperAdmin, isVisible, approvesAny, canEditModule } =
     useModuleAccess();
@@ -531,26 +467,7 @@ const AdminDashboard = () => {
 
     fetchDashboardData();
 
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
   }, []);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good Morning";
-    if (hour < 18) return "Good Afternoon";
-    return "Good Evening";
-  };
-
-  const today = new Date().toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
 
   const attendanceRate =
     stats.total_employees > 0
@@ -582,45 +499,27 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="p-6 text-sm text-fg-muted">Loading dashboard...</div>
+      <div className="space-y-4 p-4">
+        <div className="h-40 animate-pulse rounded-3xl border border-border bg-surface" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-2xl border border-border bg-surface" />
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="p-4 bg-background min-h-screen space-y-4">
-      {/* HERO */}
-      <Card className="rounded-3xl p-6 bg-linear-to-br from-primary/10 via-surface to-surface">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-          <div className="max-w-2xl">
-            <h1 className="text-3xl sm:text-4xl font-bold text-fg">
-              {getGreeting()} 👋
-            </h1>
-
-            <p className="text-fg-muted text-lg mt-2">{today}</p>
-
-            <p className="mt-4 text-fg-muted text-base">
-              Monitor workforce activity and attendance in real-time.
-            </p>
-
-            <div className="w-16 h-0.5 bg-border my-6" />
-
-            <p className="italic text-fg-muted text-base leading-relaxed">
-              “Whatever you do, work at it with all your heart.”
-            </p>
-            <p className="mt-2 text-sm text-primary">— Colossians 3:23</p>
-          </div>
-
-          <div className="text-left lg:text-right">
-            <p className="text-sm text-fg-muted">Current Time</p>
-            <div className="flex items-center gap-2 lg:justify-end mt-1">
-              <Clock3 size={18} className="text-primary" />
-              <p className="text-3xl font-semibold text-fg">
-                {currentTime.toLocaleTimeString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      </Card>
+    <div className="min-h-screen space-y-5 bg-background p-4">
+      <DashboardHero
+        verse
+        subtitle={
+          isSuperAdmin
+            ? "Here's what's happening across the company today."
+            : "Your work for today, all in one place."
+        }
+      />
 
       {/* Shortcut tiles to every page this person can open (GCash-style). */}
       <ModuleShortcuts />
@@ -630,12 +529,12 @@ const AdminDashboard = () => {
           their own) -- kept right under the hero so it's the first
           actionable thing on the page, above the overview cards below. */}
       {(canFileLeave || canCorrect || schedule.canRequest) && (
-        <DashboardCard title="Quick Actions">
+        <DashboardCard title="Quick Actions" subtitle="File a request for yourself" icon={CalendarDays}>
           <div className="flex flex-wrap items-center gap-2">
             {canFileLeave && showLeaveSection && (
               <button
                 onClick={() => setShowLeaveModal(true)}
-                className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary-hover transition-colors"
+                className="rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover"
               >
                 + File Leave
               </button>
@@ -644,7 +543,7 @@ const AdminDashboard = () => {
             {canCorrect && (
               <button
                 onClick={() => setCorrectionDate("")}
-                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg hover:bg-surface-hover transition-colors"
+                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg transition-colors hover:bg-surface-hover"
               >
                 Time Correction
               </button>
@@ -652,7 +551,7 @@ const AdminDashboard = () => {
             {schedule.canRequest && (
               <button
                 onClick={schedule.openForm}
-                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg hover:bg-surface-hover transition-colors"
+                className="rounded-xl border border-border px-4 py-2 text-xs font-semibold text-fg transition-colors hover:bg-surface-hover"
               >
                 Schedule Change
               </button>
@@ -663,85 +562,43 @@ const AdminDashboard = () => {
 
       {isSuperAdmin && (
         <>
-          {/* KPI */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-3">
-            <StatCard title="Employees" value={stats.total_employees} />
-            <StatCard
-              title="Present"
+          <SectionLabel>Today at a glance</SectionLabel>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+            <KpiTile icon={Users} label="Employees" value={stats.total_employees} tone="primary" to="/dashboard/employees" />
+            <KpiTile
+              icon={UserCheck}
+              label="Present"
               value={stats.present}
-              dotColor="bg-success"
+              hint={`${attendanceRate}% of employees`}
+              tone="success"
+              to="/dashboard/attendance"
             />
-            <StatCard
-              title="Absent"
-              value={stats.absent}
-              dotColor="bg-danger"
-            />
-            <StatCard
-              title="On Leave"
-              value={stats.on_leave}
-              dotColor="bg-warning"
-            />
-            <StatCard
-              title="Applicants"
-              value={stats.total_applicants}
-              dotColor="bg-purple-400"
-            />
-            <StatCard
-              title="Hired %"
-              value={`${applicantConversionRate}%`}
-              dotColor="bg-pink-400"
-            />
-            <StatCard
-              title="Active Trips"
-              value={stats.active_trips}
-              dotColor="bg-cyan-400"
-            />
-            <StatCard
-              title="Pending"
+            <KpiTile icon={UserX} label="Absent" value={stats.absent} tone="danger" to="/dashboard/attendance" />
+            <KpiTile icon={Plane} label="On Leave" value={stats.on_leave} tone="warning" to="/dashboard/approvals?tab=leave" />
+            <KpiTile icon={UserPlus} label="Applicants" value={stats.total_applicants} tone="violet" to="/dashboard/applicants" />
+            <KpiTile icon={BadgeCheck} label="Hired" value={`${applicantConversionRate}%`} hint="of applicants" tone="pink" />
+            <KpiTile icon={Truck} label="Active Trips" value={stats.active_trips} tone="cyan" to="/dashboard/admin/trip-dashboard" />
+            <KpiTile
+              icon={Hourglass}
+              label="Trips to approve"
               value={stats.pending_trip_approvals}
-              dotColor="bg-orange-400"
+              tone={stats.pending_trip_approvals ? "warning" : "slate"}
+              to="/dashboard/admin/trip-dashboard"
             />
           </div>
 
-          {/* PROGRESS */}
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-            <ProgressMiniCard
-              title="Attendance"
-              value={attendanceRate}
-              subtitle="Present vs employees"
-              colorClass={
-                attendanceRate >= 80
-                  ? "bg-success"
-                  : attendanceRate >= 60
-                    ? "bg-warning"
-                    : "bg-danger"
-              }
-            />
-            <ProgressMiniCard
-              title="Applicants"
-              value={applicantConversionRate}
-              subtitle="Hired vs applicants"
-              colorClass="bg-purple-400"
-            />
-            <ProgressMiniCard
-              title="Trips"
-              value={tripCompletionRate}
-              subtitle="Completed vs volume"
-              colorClass="bg-cyan-400"
-            />
-            <ProgressMiniCard
-              title="Availability"
-              value={workforceAvailabilityRate}
-              subtitle="Workforce ready"
-              colorClass="bg-primary"
-            />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <MeterCard title="Attendance" pct={attendanceRate} subtitle="Present vs employees" />
+            <MeterCard title="Hiring" pct={applicantConversionRate} subtitle="Hired vs applicants" tone="primary" />
+            <MeterCard title="Trips completed" pct={tripCompletionRate} subtitle="Completed vs today's volume" tone="primary" />
+            <MeterCard title="Availability" pct={workforceAvailabilityRate} subtitle="Workforce ready today" />
           </div>
         </>
       )}
 
       {/* ATTENDANCE REVIEW + INCOMING LEAVE REQUESTS */}
       {(showNeedsReview || isSuperAdmin) && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           {showNeedsReview && (
             <div className="xl:col-span-1">
               <NeedsReviewCard />
@@ -761,60 +618,82 @@ const AdminDashboard = () => {
 
       {isSuperAdmin && (
         <>
-          {/* MAIN */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-            <SectionListCard
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+            <BreakdownCard
               title="Workforce"
+              icon={Users}
+              to="/dashboard/attendance"
               items={[
-                { label: "Present", value: stats.present },
-                { label: "Absent", value: stats.absent },
-                { label: "Leave", value: stats.on_leave },
-                { label: "Drivers", value: stats.available_drivers },
+                { label: "Present", value: stats.present, tone: "text-success" },
+                { label: "Absent", value: stats.absent, tone: stats.absent ? "text-danger" : "text-fg" },
+                { label: "On leave", value: stats.on_leave, tone: stats.on_leave ? "text-warning" : "text-fg" },
+                { label: "Drivers free", value: stats.available_drivers },
               ]}
             />
-
-            <SectionListCard
+            <BreakdownCard
               title="Recruitment"
+              icon={BriefcaseBusiness}
+              to="/dashboard/applicants"
               items={[
-                { label: "New", value: stats.new_applicants_today },
+                { label: "New today", value: stats.new_applicants_today },
                 { label: "Interview", value: stats.for_interview },
-                { label: "Hired", value: stats.hired_applicants },
+                { label: "Hired", value: stats.hired_applicants, tone: "text-success" },
                 { label: "Rejected", value: stats.rejected_applicants },
               ]}
             />
-
-            <SectionListCard
+            <BreakdownCard
               title="Trips"
+              icon={Truck}
+              to="/dashboard/admin/trip-dashboard"
               items={[
                 { label: "Active", value: stats.active_trips },
-                { label: "Done", value: stats.completed_trips_today },
-                { label: "Pending", value: stats.pending_trip_approvals },
-                { label: "Unknown", value: stats.unknown_store_checkins },
+                { label: "Done today", value: stats.completed_trips_today, tone: "text-success" },
+                { label: "To approve", value: stats.pending_trip_approvals, tone: stats.pending_trip_approvals ? "text-warning" : "text-fg" },
+                { label: "Unknown stores", value: stats.unknown_store_checkins, tone: stats.unknown_store_checkins ? "text-danger" : "text-fg" },
               ]}
             />
           </div>
 
-          {/* BOTTOM */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
-            <Card>
-              <h3 className="text-sm font-semibold text-fg mb-3">Action</h3>
-              <div className="text-xs text-fg-muted space-y-1">
-                <div>• {stats.for_interview} applicants waiting</div>
-                <div>• {stats.pending_trip_approvals} trips pending</div>
-                <div>• {stats.unknown_store_checkins} unknown stores</div>
-              </div>
-            </Card>
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+            <DashboardCard title="Needs attention" subtitle="Open items waiting on someone" icon={AlertCircle} className="xl:col-span-2">
+              <ul className="grid gap-2 sm:grid-cols-3">
+                {[
+                  { label: "Applicants waiting", value: stats.for_interview, to: "/dashboard/applicants" },
+                  { label: "Trips to approve", value: stats.pending_trip_approvals, to: "/dashboard/admin/trip-dashboard" },
+                  { label: "Unknown store check-ins", value: stats.unknown_store_checkins, to: "/dashboard/admin/trip-dashboard" },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <Link
+                      to={item.to}
+                      className="group flex items-center justify-between gap-2 rounded-xl border border-border p-3 transition hover:border-primary/40 hover:bg-surface-hover"
+                    >
+                      <span className="min-w-0">
+                        <span className={`block text-xl font-bold tabular-nums ${item.value ? "text-warning" : "text-fg"}`}>{item.value}</span>
+                        <span className="block truncate text-xs text-fg-muted">{item.label}</span>
+                      </span>
+                      <ArrowRight size={15} className="shrink-0 text-fg-subtle transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </DashboardCard>
 
-            <Card>
-              <h3 className="text-sm font-semibold text-fg mb-3">System</h3>
-              <div className="text-xs text-fg-muted space-y-1">
-                <div>🟢 API Stable</div>
-                <div>🟢 Sync Real-time</div>
-                <div>🟢 Modules Active</div>
-              </div>
-            </Card>
-
-            <VerseCard />
+            <DashboardCard title="System" subtitle="Live status" icon={Activity}>
+              <ul className="space-y-2.5 text-sm">
+                {["API", "Real-time sync", "Modules"].map((label) => (
+                  <li key={label} className="flex items-center justify-between">
+                    <span className="text-fg-muted">{label}</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-60" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                      </span>
+                      Online
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </DashboardCard>
           </div>
         </>
       )}
@@ -822,40 +701,23 @@ const AdminDashboard = () => {
       {/* RECRUITMENT (superadmin, or anyone granted the HRIS Applicants
           module via Module Assignment) */}
       {canSeeRecruitment && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <LatestApplicantsCard applicants={latestApplicants} />
 
-          <Card>
-            <h3 className="text-sm font-semibold text-fg mb-3">
-              Recruitment Focus
-            </h3>
-            <div className="space-y-2">
-              <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
-                <span className="text-xs text-fg-muted">
-                  Applicants waiting
-                </span>
-                <span className="text-sm font-semibold text-fg">
-                  {stats.for_interview}
-                </span>
-              </div>
-              <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
-                <span className="text-xs text-fg-muted">
-                  Total applicants
-                </span>
-                <span className="text-sm font-semibold text-fg">
-                  {stats.total_applicants}
-                </span>
-              </div>
-              <div className="bg-surface-hover rounded-xl px-3 py-3 flex items-center justify-between">
-                <span className="text-xs text-fg-muted">
-                  Hired applicants
-                </span>
-                <span className="text-sm font-semibold text-fg">
-                  {stats.hired_applicants}
-                </span>
-              </div>
-            </div>
-          </Card>
+          <DashboardCard title="Recruitment Focus" icon={BriefcaseBusiness}>
+            <ul className="space-y-2">
+              {[
+                { label: "Applicants waiting", value: stats.for_interview },
+                { label: "Total applicants", value: stats.total_applicants },
+                { label: "Hired applicants", value: stats.hired_applicants },
+              ].map((row) => (
+                <li key={row.label} className="flex items-center justify-between rounded-xl bg-surface-hover/70 px-3 py-2.5">
+                  <span className="text-xs text-fg-muted">{row.label}</span>
+                  <span className="text-sm font-bold tabular-nums text-fg">{row.value}</span>
+                </li>
+              ))}
+            </ul>
+          </DashboardCard>
         </div>
       )}
 

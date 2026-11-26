@@ -1,7 +1,18 @@
 import React, { useEffect, useState, useCallback } from "react";
 import ModuleShortcuts from "../../components/dashboard/ModuleShortcuts";
 import { format, addMonths, subMonths, parse, endOfMonth } from "date-fns";
-import { CalendarPlus, ChevronLeft, ChevronRight, Clock, History } from "lucide-react";
+import {
+  CalendarCheck,
+  CalendarPlus,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  FileClock,
+  History,
+  Plane,
+  ReceiptText,
+  Repeat,
+} from "lucide-react";
 import { getMyAttendanceHistory } from "../../api/attendance";
 import { getMyLeaveRequests } from "../../api/leave";
 import { getMyOvertimeRequests } from "../../api/overtimeRequests";
@@ -17,18 +28,11 @@ import TimeCorrectionHistoryList from "../../components/timeCorrection/TimeCorre
 import useCanFileCorrection from "../../components/timeCorrection/useCanFileCorrection";
 import useMyScheduleChanges from "../../components/scheduleChange/useMyScheduleChanges";
 import DashboardCard from "../../components/dashboard/DashboardCard";
+import { DashboardHero } from "../../components/dashboard/DashboardKit";
 import MyPayslipsList from "../../components/payslips/MyPayslipsList";
 import useIsDesktop from "../../hooks/useIsDesktop";
 
-const getGreeting = () => {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good Morning";
-  if (hour < 18) return "Good Afternoon";
-  return "Good Evening";
-};
-
 const EmployeeDashboard = () => {
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [attendance, setAttendance] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(() =>
@@ -50,7 +54,6 @@ const EmployeeDashboard = () => {
   const schedule = useMyScheduleChanges();
   const isDesktop = useIsDesktop();
 
-  const employeeName = localStorage.getItem("username") || "there";
 
   const loadAttendance = useCallback(async (month) => {
     try {
@@ -90,11 +93,6 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     loadAttendance(selectedMonth);
   }, [selectedMonth, loadAttendance]);
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const selectedMonthDate = parse(selectedMonth, "yyyy-MM", new Date());
   const isCurrentMonth = selectedMonth === format(new Date(), "yyyy-MM");
@@ -193,49 +191,18 @@ const EmployeeDashboard = () => {
     <div
       className={
         isDesktop
-          ? "min-h-screen space-y-4 bg-background p-4"
+          ? "min-h-screen space-y-5 bg-background p-4"
           : "mx-auto min-h-screen max-w-md space-y-6 bg-background pb-10"
       }
     >
-      {/* HERO */}
-      <div className="rounded-3xl border border-border bg-linear-to-br from-primary/10 via-surface to-surface p-5 text-fg shadow-sm">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold">
-              {getGreeting()}, {employeeName}
-            </h1>
-            <p className="text-sm text-fg-muted">
-              {new Date().toLocaleDateString(undefined, {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-fg-muted">Time</p>
-            <p className="text-lg font-semibold">
-              {currentTime.toLocaleTimeString()}
-            </p>
-          </div>
-        </div>
-
-        {/* QUICK STATS */}
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-lg font-bold text-success">{presentCount}</p>
-            <p className="text-xs text-fg-muted">Present</p>
-          </div>
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-lg font-bold text-danger">{absentCount}</p>
-            <p className="text-xs text-fg-muted">Absent</p>
-          </div>
-          <div className="rounded-xl border border-border bg-background p-3">
-            <p className="text-lg font-bold text-warning">{leaveCount}</p>
-            <p className="text-xs text-fg-muted">On Leave</p>
-          </div>
-        </div>
-      </div>
+      <DashboardHero
+        subtitle={`Your attendance for ${format(parse(selectedMonth, "yyyy-MM", new Date()), "MMMM yyyy")}`}
+        stats={[
+          { label: "Present", value: presentCount, tone: "text-success" },
+          { label: "Absent", value: absentCount, tone: absentCount ? "text-danger" : "text-fg" },
+          { label: "On Leave", value: leaveCount, tone: leaveCount ? "text-warning" : "text-fg" },
+        ]}
+      />
 
       {/* Shortcut tiles to every page this person can open (GCash-style). */}
       <ModuleShortcuts
@@ -277,35 +244,32 @@ const EmployeeDashboard = () => {
 
       {isDesktop ? (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <DashboardCard title="Attendance History" action={attendanceMonthNav}>
+          <DashboardCard title="Attendance History" icon={CalendarCheck} action={attendanceMonthNav}>
             {attendanceContent}
           </DashboardCard>
 
-          <DashboardCard title="Leave Requests" action={fileLeaveButton}>
+          <DashboardCard title="Leave Requests" icon={Plane} action={fileLeaveButton}>
             {leaveContent}
           </DashboardCard>
 
-          <DashboardCard
-            title="Overtime Requests"
-            action={overtimeActionButton}
-          >
+          <DashboardCard title="Overtime Requests" icon={Clock} action={overtimeActionButton}>
             {overtimeContent}
           </DashboardCard>
 
           {canCorrect && (
-            <DashboardCard title="Time Corrections" action={fileCorrectionButton}>
+            <DashboardCard title="Time Corrections" icon={FileClock} action={fileCorrectionButton}>
               {correctionContent}
             </DashboardCard>
           )}
 
           {schedule.canRequest && (
-            <DashboardCard title="Schedule Changes" action={schedule.button}>
+            <DashboardCard title="Schedule Changes" icon={Repeat} action={schedule.button}>
               {schedule.content}
             </DashboardCard>
           )}
 
           <MyPayslipsList
-            wrap={(content) => <DashboardCard title="My Payslips">{content}</DashboardCard>}
+            wrap={(content) => <DashboardCard title="My Payslips" icon={ReceiptText}>{content}</DashboardCard>}
           />
         </div>
       ) : (

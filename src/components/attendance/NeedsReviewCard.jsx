@@ -118,20 +118,20 @@ const NeedsReviewCard = () => {
           {records.map((record) => (
             <div
               key={record.id}
-              className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-2.5 border border-amber-200"
+              className="flex items-center justify-between gap-3 rounded-xl border border-warning/30 bg-warning/5 px-3 py-2.5 transition hover:bg-warning/10"
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-amber-900 truncate">
+                <p className="text-sm font-semibold text-fg truncate">
                   {record.employee_name}
                 </p>
-                <p className="text-[11px] text-amber-700 truncate">
+                <p className="text-[11px] text-warning truncate">
                   {record.position || "—"} • {record.sides.join(", ")}
                 </p>
               </div>
 
               <Link
                 to="/dashboard/approvals?tab=attendance"
-                className="shrink-0 text-[11px] font-medium text-primary hover:text-primary-hover"
+                className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold text-primary hover:bg-primary/10"
               >
                 Review
               </Link>

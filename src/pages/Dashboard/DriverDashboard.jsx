@@ -16,7 +16,18 @@ import useMyTripExpenses from "../../components/tripExpenses/MyTripExpenses";
 import LeaveHistoryList from "../../components/leave/LeaveHistoryList";
 import LeaveRequestModal from "../../components/leave/LeaveRequestModal";
 import DashboardCard from "../../components/dashboard/DashboardCard";
-import SummaryCard from "../../components/driverTrips/SummaryCard";
+import {
+  Boxes,
+  CalendarPlus,
+  Car,
+  CheckCheck,
+  Clock,
+  Navigation,
+  Package,
+  Trophy,
+  Wallet,
+  Zap,
+} from "lucide-react";
 import ActiveTripCard from "../../components/driverTrips/ActiveTripCard";
 import TripTable from "../../components/driverTrips/TripTable";
 import useIsDesktop from "../../hooks/useIsDesktop";
@@ -59,7 +70,8 @@ const DriverDashboard = () => {
   const tripExpenses = useMyTripExpenses();
   const isDesktop = useIsDesktop();
 
-  const driverName = localStorage.getItem("username") || "Driver";
+  const driverName =
+    (localStorage.getItem("full_name") || localStorage.getItem("username") || "Driver").split(" ")[0];
 
   const loadLeaves = useCallback(async () => {
     try {
@@ -518,37 +530,52 @@ const DriverDashboard = () => {
   // each (except File Leave, which is always a direct action) switches
   // to its matching tab; on the desktop grid every section is already
   // visible below, so the cards are informational only.
+  // Same cards (and colours) as the phone app's driver home. On the
+  // mobile web layout the trip / wallet / history ones switch tabs.
   const quickCards = (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-      <QuickCard
-        label="Current Trip"
-        value={trip ? trip.current_step : "None"}
-        sub={trip ? "Active now" : "No active trip"}
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <DriverStat
+        title="Active Trips"
+        value={tripSummary?.active_trips ?? 0}
+        icon={Navigation}
+        tint="blue"
         onClick={!isDesktop ? () => setActiveTab("trip") : undefined}
       />
-      <QuickCard
-        label="Wallet"
-        value={`₱${(walletQuick?.earnings ?? 0).toLocaleString()}`}
-        sub={walletQuick?.cutoff_label || "This cutoff"}
-        onClick={!isDesktop ? () => setActiveTab("wallet") : undefined}
-      />
-      <QuickCard
-        label="CA Balance"
-        value={caBalance != null ? `₱${caBalance.toLocaleString()}` : "—"}
-        sub={caBalance ? "Cash advance still owed" : "Nothing owed"}
-      />
-      <QuickCard
-        label="Trip Summary"
-        value={tripSummary?.total_completed ?? 0}
-        sub={`${tripSummary?.pending_trips ?? 0} pending approval`}
+      <DriverStat
+        title="Pending Approval"
+        value={tripSummary?.pending_trips ?? 0}
+        icon={Clock}
+        tint="amber"
         onClick={!isDesktop ? () => setActiveTab("history") : undefined}
       />
-      <QuickCard
-        label="File Leave"
-        value={leaves.length}
-        sub="+ New request"
-        onClick={() => setShowLeaveModal(true)}
-        highlight
+      <DriverStat
+        title="Completed Today"
+        value={tripSummary?.completed_today ?? 0}
+        icon={CheckCheck}
+        tint="green"
+        onClick={!isDesktop ? () => setActiveTab("history") : undefined}
+      />
+      <DriverStat
+        title="Total Completed"
+        value={tripSummary?.total_completed ?? 0}
+        icon={Trophy}
+        tint="violet"
+        onClick={!isDesktop ? () => setActiveTab("history") : undefined}
+      />
+      <DriverStat
+        title="CA Balance"
+        value={caBalance != null ? `₱${caBalance.toLocaleString()}` : "—"}
+        sub={caBalance ? "Cash advance owed" : "Nothing owed"}
+        icon={Wallet}
+        tint="teal"
+      />
+      <DriverStat
+        title="Wallet"
+        value={`₱${(walletQuick?.earnings ?? 0).toLocaleString()}`}
+        sub={walletQuick?.cutoff_label || "This cutoff"}
+        icon={Wallet}
+        tint="blue"
+        onClick={!isDesktop ? () => setActiveTab("wallet") : undefined}
       />
     </div>
   );
@@ -558,12 +585,6 @@ const DriverDashboard = () => {
   // onto the dashboard so a driver sees it all in one place.
   const tripManagementContent = (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <SummaryCard title="Active Trips" value={tripSummary?.active_trips ?? 0} />
-        <SummaryCard title="Pending Approval" value={tripSummary?.pending_trips ?? 0} />
-        <SummaryCard title="Completed Today" value={tripSummary?.completed_today ?? 0} />
-        <SummaryCard title="Total Completed" value={tripSummary?.total_completed ?? 0} />
-      </div>
       <ActiveTripCard activeTrip={trip} />
       <TripTable title="Trips Waiting For Admin Approval" trips={pendingTrips} />
       <TripTable title="Completed Trips (Payroll Reference)" trips={completedTrips} />
@@ -578,20 +599,33 @@ const DriverDashboard = () => {
           : "mx-auto min-h-screen max-w-md space-y-5 bg-background px-4 pb-10 pt-4"
       }
     >
-      <div className="rounded-3xl border border-border bg-linear-to-br from-primary/10 via-surface to-surface p-5 text-fg shadow-sm sm:p-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Same look as the phone app's driver home. */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-5 text-white shadow-lg sm:p-6">
+        <div aria-hidden className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full bg-blue-600/30 blur-3xl" />
+        <div className="relative flex items-start justify-between gap-3">
+          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 shadow-md shadow-blue-600/30">
+            <Car size={22} />
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">
+            <span className="h-2 w-2 rounded-full bg-green-400" />
+            {trip ? "On Trip" : "On Duty"}
+          </span>
+        </div>
+        <div className="relative mt-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold sm:text-2xl">
+            <h1 className="text-2xl font-bold tracking-tight">
               {getGreeting()}, {driverName}
             </h1>
-            <p className="text-sm text-fg-muted">
-              {new Date().toLocaleDateString()}
+            <p className="mt-1 text-sm text-slate-300">
+              {trip ? "You have a trip in progress. Keep it up!" : "Ready to start your route today?"}
             </p>
           </div>
-          <div className="sm:text-right">
-            <p className="text-sm text-fg-muted">Current Time</p>
-            <p className="text-lg font-semibold sm:text-xl">
-              {currentTime.toLocaleTimeString()}
+          <div className="text-right">
+            <p className="text-lg font-semibold tabular-nums">
+              {currentTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+            </p>
+            <p className="text-xs text-slate-400">
+              {currentTime.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}
             </p>
           </div>
         </div>
@@ -601,7 +635,13 @@ const DriverDashboard = () => {
 
       {isDesktop ? (
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <DashboardCard title="Current Trip" className="xl:col-span-2">
+          <DashboardCard
+            title="Active Trip"
+            subtitle={trip ? `Shipment ${trip.ticket_no || "N/A"}` : "Trip actions show here once a trip is dispatched"}
+            icon={Package}
+            className="xl:col-span-2"
+            action={trip ? <StepBadge step={trip.current_step} /> : null}
+          >
             <div className="rounded-2xl border border-border bg-background p-4 text-fg sm:p-6">
               {tripWorkflowContent}
             </div>
@@ -609,11 +649,11 @@ const DriverDashboard = () => {
 
           <WalletCard />
 
-          <DashboardCard title="Leave Requests" action={fileLeaveButton}>
+          <DashboardCard title="Leave Requests" icon={CalendarPlus} action={fileLeaveButton}>
             {leaveContent}
           </DashboardCard>
 
-          <DashboardCard title="Trip Expenses" action={tripExpenses.button}>
+          <DashboardCard title="Trip Expenses" icon={Zap} action={tripExpenses.button}>
             {tripExpenses.content}
           </DashboardCard>
 
@@ -626,8 +666,8 @@ const DriverDashboard = () => {
           />
 
           <div className="xl:col-span-2">
-            <h2 className="mb-3 text-base font-bold text-fg">
-              Trip Management
+            <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-fg">
+              <Boxes size={17} className="text-fg-muted" /> My Trips
             </h2>
             {tripManagementContent}
           </div>
@@ -635,15 +675,15 @@ const DriverDashboard = () => {
       ) : (
         <>
           {/* TABS */}
-          <div className="grid grid-cols-4 gap-1 rounded-2xl bg-surface-active p-1">
+          <div className="grid grid-cols-4 gap-1 rounded-2xl border border-border bg-surface p-1 shadow-sm">
             {TABS.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`rounded-xl py-2 text-xs font-semibold transition-colors ${
                   activeTab === tab.key
-                    ? "bg-primary text-primary-foreground shadow"
-                    : "text-fg-muted"
+                    ? "bg-blue-600 text-white shadow"
+                    : "text-fg-muted hover:text-fg"
                 }`}
               >
                 {tab.label}
@@ -711,25 +751,54 @@ const DriverDashboard = () => {
   );
 };
 
-// One of the 4 at-a-glance dashboard cards (Current Trip / Wallet / Trip
-// Summary / File Leave). Renders as a button (clickable) when `onClick`
-// is passed, otherwise a plain info tile.
-const QuickCard = ({ label, value, sub, onClick, highlight }) => {
-  const Tag = onClick ? "button" : "div";
+// Stat card in the phone app's style: tinted icon circle, big number.
+const TINTS = {
+  blue: "bg-blue-600/10 text-blue-600 dark:text-blue-400",
+  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  green: "bg-green-600/10 text-green-600 dark:text-green-400",
+  violet: "bg-violet-600/10 text-violet-600 dark:text-violet-400",
+  teal: "bg-teal-600/10 text-teal-700 dark:text-teal-400",
+};
 
+const DriverStat = ({ title, value, sub, icon: Icon, tint, onClick }) => {
+  const Tag = onClick ? "button" : "div";
   return (
     <Tag
       onClick={onClick}
-      className={`rounded-2xl border border-border bg-surface p-4 text-left text-fg shadow-sm ${
-        onClick ? "cursor-pointer transition-colors hover:bg-surface-hover" : ""
-      } ${highlight ? "ring-2 ring-primary" : ""}`}
+      className={`flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 text-left text-fg shadow-sm ${
+        onClick ? "cursor-pointer transition hover:-translate-y-0.5 hover:shadow-md" : ""
+      }`}
     >
-      <p className="text-xs text-fg-muted">{label}</p>
-      <p className="mt-1 truncate text-xl font-bold">{value}</p>
-      {sub && <p className="mt-1 truncate text-xs text-fg-subtle">{sub}</p>}
+      <span className={`flex h-10 w-10 items-center justify-center rounded-full ${TINTS[tint]}`}>
+        {Icon && <Icon size={19} />}
+      </span>
+      <span>
+        <span className="block truncate text-xl font-bold tabular-nums">{value}</span>
+        <span className="block truncate text-xs text-fg-muted">{title}</span>
+        {sub && <span className="block truncate text-[11px] text-fg-subtle">{sub}</span>}
+      </span>
     </Tag>
   );
 };
+
+// Trip step badge, same colours as the phone app.
+const STEP_STYLE = {
+  ASSIGNED: "bg-blue-600/10 text-blue-600 dark:text-blue-400",
+  IN_TRANSIT: "bg-violet-600/10 text-violet-600 dark:text-violet-400",
+  ARRIVED: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  UNLOADING: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  DELIVERED: "bg-green-600/10 text-green-600 dark:text-green-400",
+};
+
+const StepBadge = ({ step }) => (
+  <span
+    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+      STEP_STYLE[step] || "bg-surface-hover text-fg-muted"
+    }`}
+  >
+    {(step || "").replace(/_/g, " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+  </span>
+);
 
 const PhotoInput = ({ id, label, helpText, onChange }) => (
   <div>

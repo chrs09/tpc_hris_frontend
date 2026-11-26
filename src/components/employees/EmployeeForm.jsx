@@ -58,6 +58,8 @@ export default function EmployeeForm({
   setPreviewImage,
   scheduleTemplates,
   errors = {},
+  // My Profile draws its own header (photo, name, position).
+  hideProfileHeader = false,
 }) {
   const noScheduleLabel = useNoScheduleLabel();
   const profileImageFromDB = employee?.files?.find(
@@ -185,7 +187,7 @@ export default function EmployeeForm({
       {/* ================= BASIC ================= */}
       {activeTab === "basic" && (
         <>
-          <div className="flex items-center gap-6 mb-6">
+          <div className={`flex items-center gap-6 mb-6 ${hideProfileHeader ? "hidden" : ""}`}>
             <img
               src={
                 formData.profile_image?.startsWith("blob:")
