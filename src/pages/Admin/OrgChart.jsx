@@ -183,7 +183,9 @@ export default function OrgChart() {
           </h1>
           <p className="mt-1 text-sm text-fg-subtle">
             Who belongs where is matched live from each unit&apos;s rules
-            (position, role, department or specific people).
+            (position, role, department or specific people). L1, L2... is each
+            unit's level (L1 = top). Someone heading units on two levels sends
+            their own requests above the higher one.
             {isSuperAdmin &&
               " Click anyone to set what they can access; use Edit Chart to change the structure."}
           </p>
@@ -336,6 +338,19 @@ function Children({ units, childrenOf, render }) {
   );
 }
 
+// Row on the chart: 1 = top level (e.g. Owner), 2 = the row under it...
+function unitLevel(unit, unitsById) {
+  let level = 1;
+  const seen = new Set([unit.id]);
+  let current = unit;
+  while (current?.parent_id && unitsById[current.parent_id] && !seen.has(current.parent_id)) {
+    seen.add(current.parent_id);
+    current = unitsById[current.parent_id];
+    level += 1;
+  }
+  return level;
+}
+
 function UnitCard({
   unit,
   unitsById,
@@ -355,6 +370,7 @@ function UnitCard({
   const members = unit.members.filter(
     (m) => !unit.head || m.employee_id !== unit.head.employee_id || !m.employee_id,
   );
+  const level = unitLevel(unit, unitsById);
 
   return (
     <div
@@ -368,7 +384,15 @@ function UnitCard({
       }`}
     >
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5">
-        <p className="truncate text-sm font-bold text-fg">{unit.name}</p>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span
+            className="shrink-0 rounded-md bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary"
+            title={`Level ${level} of the chart (1 = top)`}
+          >
+            L{level}
+          </span>
+          <p className="truncate text-sm font-bold text-fg">{unit.name}</p>
+        </div>
         {editMode ? (
           <div className="flex shrink-0 gap-1">
             <IconBtn label="Edit unit" onClick={onEdit}>
