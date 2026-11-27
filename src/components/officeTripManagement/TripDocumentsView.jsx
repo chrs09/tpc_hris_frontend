@@ -364,6 +364,7 @@ export default function TripDocumentsView() {
                 <th className="px-4 py-3">Shipment</th>
                 <th className="px-4 py-3">Trip</th>
                 <th className="px-4 py-3">Trip category</th>
+                <th className="px-4 py-3">Helpers</th>
                 <th className="px-4 py-3">Driver / helpers</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Outlets</th>
@@ -403,6 +404,16 @@ export default function TripDocumentsView() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-fg-muted">{t.trip_category || "-"}</td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      {t.helpers?.length ? (
+                        <>
+                          <span className="font-semibold text-fg">{t.helpers.length}</span>
+                          <span className="block text-xs">{t.helpers.map((h) => h.name).join(", ")}</span>
+                        </>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <p className="text-fg">{t.driver_name || "-"}</p>
                       {t.plate_number && <p className="text-xs text-fg-subtle">{t.plate_number}</p>}

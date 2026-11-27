@@ -6,6 +6,7 @@ import { promptDialog } from "../ui/dialog/dialogService";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
 import EditAssignedTripModal from "./EditAssignedTripModal";
+import { EditHelpersModal, HelpersCell } from "./TripHelpers";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
@@ -92,6 +93,7 @@ const AssignedTripViewModal = ({
   canEditPage,
   deleting,
   onEdit,
+  onEditHelpers,
   onDelete,
   onClose,
 }) => (
@@ -155,9 +157,7 @@ const AssignedTripViewModal = ({
         </Detail>
 
         <Detail label="Helpers">
-          {trip.helpers?.length
-            ? trip.helpers.map((helper) => helper.name).join(", ")
-            : "None"}
+          <HelpersCell trip={trip} canEdit={canEditPage} onEdit={onEditHelpers} />
         </Detail>
 
         {!trip.editable && (
@@ -207,6 +207,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
   const [cancellingId, setCancellingId] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
   const [viewingTrip, setViewingTrip] = useState(null);
+  const [helpersTrip, setHelpersTrip] = useState(null);
 
   // Undoes a dispatch made by mistake -- only offered here because a trip
   // still in this list hasn't been started by the driver yet.
@@ -274,6 +275,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
               <th className="px-4 py-3 text-left font-semibold">
                 Destination(s)
               </th>
+              <th className="px-4 py-3 text-left font-semibold">Helpers</th>
               <th className="px-4 py-3 text-left font-semibold">
                 Dispatched By
               </th>
@@ -287,7 +289,7 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="9" className="text-center py-6 text-fg-subtle">
+                <td colSpan="10" className="text-center py-6 text-fg-subtle">
                   No assigned trips
                 </td>
               </tr>
@@ -311,6 +313,9 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
                   <td className="px-4 py-4">{trip.truck_type || "-"}</td>
                   <td className="px-4 py-4">
                     <DestinationSteps destinations={trip.destinations} />
+                  </td>
+                  <td className="px-4 py-4">
+                    <HelpersCell trip={trip} canEdit={canEditPage} onEdit={setHelpersTrip} />
                   </td>
                   <td className="px-4 py-4">
                     {trip.dispatched_by_name || "-"}
@@ -451,6 +456,10 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
             setEditingTrip(viewingTrip);
             setViewingTrip(null);
           }}
+          onEditHelpers={(trip) => {
+            setHelpersTrip(trip);
+            setViewingTrip(null);
+          }}
           onDelete={() => handleCancel(viewingTrip)}
           onClose={() => setViewingTrip(null)}
         />
@@ -460,6 +469,14 @@ const AssignedTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPh
         <EditAssignedTripModal
           trip={editingTrip}
           onClose={() => setEditingTrip(null)}
+          onSaved={onChanged}
+        />
+      )}
+
+      {helpersTrip && (
+        <EditHelpersModal
+          trip={helpersTrip}
+          onClose={() => setHelpersTrip(null)}
           onSaved={onChanged}
         />
       )}

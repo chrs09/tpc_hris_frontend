@@ -30,6 +30,10 @@ import { matchesSearch } from "../../utils/search";
 import useApprovalScope from "../../hooks/useApprovalScope";
 import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle";
 
+// Trip category code (WS, KE, KA, DP...) from the trip's rate profile.
+const categoryCode = (trip) =>
+  trip.trip_category_code || (trip.trip_category || "").split(" - ")[0] || "-";
+
 export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTrips }) {
   const canEditPage = usePageCanEdit();
   const { scoped: trips, scopeProps } = useApprovalScope(allTrips);
@@ -264,7 +268,9 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Ticket No.</th>
                 <th className="px-4 py-3 text-left font-medium">Driver</th>
+                <th className="px-4 py-3 text-left font-medium">Category</th>
                 <th className="px-4 py-3 text-left font-medium">Stops</th>
+                <th className="px-4 py-3 text-left font-medium">Helpers</th>
                 <th className="px-4 py-3 text-left font-medium">
                   Sent By (Coordinator)
                 </th>
@@ -280,7 +286,7 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
             <tbody>
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="py-6 text-center text-fg-subtle">
+                  <td colSpan="9" className="py-6 text-center text-fg-subtle">
                     No trips waiting for office review.
                   </td>
                 </tr>
@@ -296,8 +302,19 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
                     <td className="px-4 py-3 text-fg-muted">
                       {trip.username || "-"}
                     </td>
+                    <td className="px-4 py-3">
+                      <span title={trip.trip_category || ""} className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                        {categoryCode(trip)}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-fg-muted">
                       {trip.stops_count ?? 0}
+                    </td>
+                    <td className="px-4 py-3 text-fg-muted">
+                      <span className="font-semibold text-fg">{trip.helpers?.length || 0}</span>
+                      {trip.helpers?.length > 0 && (
+                        <span className="block text-xs">{trip.helpers.map((h) => h.name).join(", ")}</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-fg-muted">
                       {trip.coordinator_name || "-"}
@@ -371,6 +388,27 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
             </div>
 
             <div className="grid grid-cols-2 gap-3 border-t border-border pt-3">
+              <div>
+                <p className="text-xs text-fg-subtle">Trip Category</p>
+                <p className="mt-0.5">
+                  <span title={trip.trip_category || ""} className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                    {categoryCode(trip)}
+                  </span>
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-fg-subtle">Helpers</p>
+                <p className="font-semibold text-fg-muted">{trip.helpers?.length || 0}</p>
+              </div>
+
+              {trip.helpers?.length > 0 && (
+                <div className="col-span-2">
+                  <p className="text-xs text-fg-subtle">Helper names</p>
+                  <p className="text-sm text-fg-muted">{trip.helpers.map((h) => h.name).join(", ")}</p>
+                </div>
+              )}
+
               <div>
                 <p className="text-xs text-fg-subtle">Stops</p>
 

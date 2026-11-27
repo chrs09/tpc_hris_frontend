@@ -14,6 +14,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { FileText, Eye } from "lucide-react";
 import { reviewTrip } from "../../api/adminTripManagement/trips";
+import { TripSourceBadge } from "./TripHelpers";
 
 /* Leaflet icon fix -- same as PendingTripsCard.jsx/FinanceReviewCard.jsx */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -215,7 +216,10 @@ export default function TripGpsLogsModal({ tripId, onClose }) {
       <div className="flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <h2 className="text-lg font-semibold text-fg">Trip Details</h2>
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold text-fg">
+              Trip Details
+              {data && <TripSourceBadge source={data.source} bypassedSteps={data.bypassed_steps} />}
+            </h2>
             {data && (
               <p className="text-sm text-fg-subtle">
                 Trip #{data.ticket_no} — {data.driver_first_name}{" "}

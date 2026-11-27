@@ -3,6 +3,7 @@ import TripUnitTags from "./TripUnitTags";
 import toast from "react-hot-toast";
 import TripGpsLogsModal from "./TripGpsLogsModal";
 import ChangeStoreModal from "./ChangeStoreModal";
+import { EditHelpersModal, HelpersCell } from "./TripHelpers";
 import { cancelActiveTrip } from "../../api/adminTripManagement/trips";
 import { confirmDialog, promptDialog } from "../ui/dialog/dialogService";
 import { usePageCanEdit } from "../../hooks/usePageCanEdit";
@@ -66,6 +67,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
 
   // Wrong store on the dispatch: swap a stop not delivered yet.
   const [changingTrip, setChangingTrip] = useState(null);
+  const [helpersTrip, setHelpersTrip] = useState(null);
 
   const renderCancel = (trip) =>
     canEditPage ? (
@@ -124,6 +126,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
               <th className="px-4 py-3 text-left font-semibold">Truck Type</th>
               <th className="px-4 py-3 text-left font-semibold">Started</th>
               <th className="px-4 py-3 text-left font-semibold">Status</th>
+              <th className="px-4 py-3 text-left font-semibold">Helpers</th>
               <th className="px-4 py-3 text-left font-semibold">Current Stop</th>
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
@@ -132,7 +135,7 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
           <tbody>
             {trips.length === 0 ? (
               <tr>
-                <td colSpan="9" className="text-center py-6 text-fg-subtle">
+                <td colSpan="10" className="text-center py-6 text-fg-subtle">
                   No active trips
                 </td>
               </tr>
@@ -173,6 +176,9 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
                         {trip.completed_stops ?? 0}/{trip.total_stops} stops
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-4">
+                    <HelpersCell trip={trip} canEdit={canEditPage} onEdit={setHelpersTrip} />
                   </td>
                   <td className="px-4 py-4">{trip.current_stop || "-"}</td>
                   <td className="px-4 py-4 text-right">
@@ -307,6 +313,11 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
                 {trip.dispatched_by_name || "-"}
               </div>
 
+              <div className="mt-2 text-sm">
+                <span className="text-fg-muted block">Helpers</span>
+                <HelpersCell trip={trip} canEdit={canEditPage} onEdit={setHelpersTrip} />
+              </div>
+
               <div className="mt-3 flex justify-end gap-2">
                 {renderCancel(trip)}
               </div>
@@ -316,6 +327,14 @@ const ActiveTripsMonitor = ({ trips = [], onChanged, phoneView = "cards", onPhon
       </div>
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+
+      {helpersTrip && (
+        <EditHelpersModal
+          trip={{ ...helpersTrip, driver_name: helpersTrip.username }}
+          onClose={() => setHelpersTrip(null)}
+          onSaved={onChanged}
+        />
+      )}
 
       {changingTrip && (
         <ChangeStoreModal

@@ -36,6 +36,10 @@ export const acknowledgeTripCancelAlert = async (id) =>
 export const updateAssignedTrip = (tripId, payload) =>
   api.put(`/admin/trips/${tripId}/assignment`, payload);
 
+// Fix a trip's helpers while it's assigned or active (Trip Dashboard).
+export const updateTripHelpers = (tripId, helperIds, reason) =>
+  api.put(`/admin/trips/${tripId}/helpers`, { helper_ids: helperIds, reason: reason || null });
+
 // CHANGED: now accepts remarks and sends it as the JSON body,
 // matching the backend's approve_trip(remarks: str = Body(..., embed=True)).
 export const approveTrip = (tripId, remarks) =>

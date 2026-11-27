@@ -9,6 +9,7 @@ import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
 import Pagination from "../ui/pagination/Pagination";
 import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
+import { HelpersCell } from "./TripHelpers";
 import Pill from "../ui/statusPill/StatusPill";
 
 const PAGE_SIZES = [10, 20, 50, 100];
@@ -78,7 +79,7 @@ const StatusBadge = ({ trip }) => {
   return <Pill colors={meta?.classes}>{trip.status_label || meta?.label || trip.status}</Pill>;
 };
 
-const SourceBadge = ({ manual, routeRide = false }) =>
+const SourceBadge = ({ manual, routeRide = false, source }) =>
   routeRide ? (
     <span className="inline-flex whitespace-nowrap rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
       Route Ride (Manual)
@@ -86,6 +87,13 @@ const SourceBadge = ({ manual, routeRide = false }) =>
   ) : manual ? (
     <span className="inline-flex whitespace-nowrap rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold text-warning">
       Manual Entry
+    </span>
+  ) : source === "bypass" ? (
+    <span
+      title="One or more steps were done by the office for the driver (Trip Bypass)"
+      className="inline-flex whitespace-nowrap rounded-full bg-danger/15 px-2 py-0.5 text-[10px] font-semibold text-danger"
+    >
+      Bypass
     </span>
   ) : (
     <span className="inline-flex whitespace-nowrap rounded-full bg-surface-active px-2 py-0.5 text-[10px] font-semibold text-fg-muted">
@@ -249,6 +257,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   <th className="px-4 py-3 text-left font-semibold">Shipment No.</th>
                   <th className="px-4 py-3 text-left font-semibold">Truck Type</th>
                   <th className="px-4 py-3 text-left font-semibold">Stores</th>
+                  <th className="px-4 py-3 text-left font-semibold">Helpers</th>
                   <th className="px-4 py-3 text-left font-semibold">Trip Date</th>
                   <th className="px-4 py-3 text-left font-semibold">Status</th>
                   <th className="px-4 py-3 text-right font-semibold">Actions</th>
@@ -260,7 +269,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                     <td className="px-4 py-3">
                       <div className="font-medium uppercase">{trip.trip_code || `#${trip.id}`}</div>
                       <div className="mt-1 flex flex-wrap gap-1">
-                        <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} />
+                        <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} source={trip.source} />
                         {trip.is_corrected && (
                           <span
                             title="Changed by an approved correction -- see Correction History"
@@ -296,6 +305,9 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                       ) : (
                         "-"
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <HelpersCell trip={trip} />
                     </td>
                     <td className="px-4 py-3 text-fg-muted">
                       <div>{trip.start_time || "-"}</div>
@@ -379,7 +391,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                   <StatusBadge trip={trip} />
                 </div>
                 <div className="mt-2 flex flex-wrap gap-1.5">
-                  <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} />
+                  <SourceBadge manual={trip.is_manual_entry} routeRide={trip.is_route_ride_manual} source={trip.source} />
                   <RouteRiderTag trip={trip} />
                   <TripUnitTags trip={trip} />
                   {trip.returned && (
@@ -395,6 +407,11 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                 <p className="mt-1 text-xs text-fg-muted">
                   {trip.stores?.length ? trip.stores.join(" → ") : "-"}
                 </p>
+                {trip.helpers?.length > 0 && (
+                  <p className="mt-1 text-xs text-fg-muted">
+                    Helpers: {trip.helpers.map((h) => h.name).join(", ")}
+                  </p>
+                )}
                 <p className="mt-1 text-xs text-fg-subtle">
                   {trip.start_time}
                   {trip.status_since && ` · status since ${trip.status_since}`}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Pencil } from "lucide-react";
 import { editShipmentNumbers, markTripFixed, reviewTrip } from "../../api/adminTripManagement/trips";
+import { TripSourceBadge } from "./TripHelpers";
 import AddDocButton from "./AddDocButton";
 
 // Trip Dashboard -> Trip Approval Status -> View: one trip's details at any
@@ -282,7 +283,10 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
       <div className="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-t-2xl border border-border bg-surface text-fg sm:rounded-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
-            <h2 className="text-lg font-bold uppercase">{trip.trip_code || `Trip #${trip.id}`}</h2>
+            <h2 className="flex flex-wrap items-center gap-2 text-lg font-bold uppercase">
+              {trip.trip_code || `Trip #${trip.id}`}
+              {details && <TripSourceBadge source={details.source} bypassedSteps={details.bypassed_steps} />}
+            </h2>
             <p className="text-xs text-fg-subtle">{trip.status_label}</p>
           </div>
           <button

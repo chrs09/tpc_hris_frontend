@@ -19,6 +19,8 @@ const COLUMNS = [
   ["Trip code", 16, (t) => t.trip_code || ""],
   ["Trip", 8, (t, tripNo) => tripNo || ""],
   ["Trip category", 20, (t) => t.trip_category || ""],
+  ["No. of helpers", 10, (t) => (t.helpers || []).length],
+  ["Helpers", 32, (t) => (t.helpers || []).map((h) => h.name).join(", ")],
   ["Driver", 24, (t) => t.driver_name || ""],
   ["Plate", 12, (t) => t.plate_number || ""],
   ["Helpers", 30, (t) => (t.helpers || []).map((h) => h.name).join(", ")],
