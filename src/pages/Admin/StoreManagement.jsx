@@ -20,6 +20,8 @@ import { usePageCanEdit } from "../../hooks/usePageCanEdit";
 import MapLinks from "../../components/ui/mapLinks/MapLinks";
 import StoreLocationHistoryModal from "../../components/adminTrips/StoreLocationHistoryModal";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
+import { StoreTripsCategoryModal } from "../../components/adminTrips/TripCategoryModals";
+import { canChangeTripCategory } from "../../api/adminTripManagement/tripCategory";
 
 const initialFormState = {
   name: "",
@@ -71,6 +73,13 @@ export default function StoreManagement() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingStore, setEditingStore] = useState(null);
+  // Store's category when Edit opened; a change offers to move its trips.
+  const [originalProfileId, setOriginalProfileId] = useState(null);
+  const [storeTripsPrompt, setStoreTripsPrompt] = useState(null);
+  const [canChangeCategory, setCanChangeCategory] = useState(false);
+  useEffect(() => {
+    canChangeTripCategory().then(setCanChangeCategory).catch(() => setCanChangeCategory(false));
+  }, []);
   // Store opened read-only via View (Edit is offered inside it).
   const [viewingStore, setViewingStore] = useState(null);
   // Location history (unloading GPS / coordinate changes) for this store.
@@ -181,6 +190,7 @@ export default function StoreManagement() {
       (p) => p.code === store.profile,
     );
     setEditingStore(store);
+    setOriginalProfileId(matchedProfile ? matchedProfile.id : null);
     setPhotoFile(null);
     setPhotoPreview(store.photo_url || null);
     setForm({
@@ -262,6 +272,12 @@ export default function StoreManagement() {
       if (editingStore) {
         await updateStore(editingStore.id, payload);
         toast.success("Store updated successfully.");
+        if (canChangeCategory && payload.trip_rate_profile_id !== originalProfileId) {
+          setStoreTripsPrompt({
+            store: { id: editingStore.id, name: payload.name },
+            profileId: payload.trip_rate_profile_id,
+          });
+        }
       } else {
         const created = await createStore(payload);
         storeId = created?.data?.id;
@@ -530,6 +546,13 @@ export default function StoreManagement() {
           canEdit={canEditPage}
           onClose={() => setLocationStore(null)}
           onChanged={loadStores}
+        />
+      )}
+      {storeTripsPrompt && (
+        <StoreTripsCategoryModal
+          store={storeTripsPrompt.store}
+          profileId={storeTripsPrompt.profileId}
+          onClose={() => setStoreTripsPrompt(null)}
         />
       )}
       <div>

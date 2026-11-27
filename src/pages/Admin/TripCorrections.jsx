@@ -5,6 +5,8 @@ import { Plus, Search, X } from "lucide-react";
 import SectionTabs from "../../components/ui/sectionTabs/SectionTabs";
 import SearchSelect from "../../components/SearchSelect";
 import { getStores } from "../../api/adminTripManagement/stores";
+import { FindTripCategoryModal } from "../../components/adminTrips/TripCategoryModals";
+import { canChangeTripCategory } from "../../api/adminTripManagement/tripCategory";
 import {
   approveTripCorrection,
   cancelTripCorrection,
@@ -51,6 +53,11 @@ export default function TripCorrections() {
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const [canChangeCategory, setCanChangeCategory] = useState(false);
+  const [changingCategory, setChangingCategory] = useState(false);
+  useEffect(() => {
+    canChangeTripCategory().then(setCanChangeCategory).catch(() => setCanChangeCategory(false));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setQuery(search.trim()), 350);
@@ -120,6 +127,16 @@ export default function TripCorrections() {
               className={`${inputStyles} pl-9`}
             />
           </div>
+          {canChangeCategory && (
+            <button
+              type="button"
+              onClick={() => setChangingCategory(true)}
+              title="Fix a trip's category, even after Finance cleared it"
+              className="rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10"
+            >
+              Change Category
+            </button>
+          )}
           {data?.can_request && (
             <button
               type="button"
@@ -151,6 +168,8 @@ export default function TripCorrections() {
           ))}
         </div>
       )}
+
+      {changingCategory && <FindTripCategoryModal onClose={() => setChangingCategory(false)} />}
 
       {creating && (
         <NewCorrectionModal
