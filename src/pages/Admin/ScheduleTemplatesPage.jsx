@@ -27,11 +27,15 @@ const DAYS = [
   { key: "sunday", label: "Sunday" },
 ];
 
+// Trip-based schedules keep work days as "mon,tue,..." (no clock times).
+const DAY_SHORT = { monday: "mon", tuesday: "tue", wednesday: "wed", thursday: "thu", friday: "fri", saturday: "sat", sunday: "sun" };
+const DEFAULT_TRIP_DAYS = ["mon", "tue", "wed", "thu", "fri", "sat"];
+
 // "08:00:00" (backend) -> "08:00" (<input type="time"> value).
 const toInputTime = (value) => (value ? value.slice(0, 5) : "");
 
 const emptyFormData = () => {
-  const data = { name: "", description: "" };
+  const data = { name: "", description: "", is_trip_based: false, work_days: DEFAULT_TRIP_DAYS };
   DAYS.forEach((day) => {
     data[`${day.key}_in`] = "";
     data[`${day.key}_out`] = "";
@@ -43,6 +47,8 @@ const templateToFormData = (template) => {
   const data = {
     name: template.name || "",
     description: template.description || "",
+    is_trip_based: Boolean(template.is_trip_based),
+    work_days: template.work_days ? template.work_days.split(",") : DEFAULT_TRIP_DAYS,
   };
   DAYS.forEach((day) => {
     data[`${day.key}_in`] = toInputTime(template[`${day.key}_in`]);
@@ -52,6 +58,12 @@ const templateToFormData = (template) => {
 };
 
 const summarizeDays = (template) => {
+  if (template.is_trip_based) {
+    const days = (template.work_days || "").split(",");
+    const work = DAYS.filter((d) => days.includes(DAY_SHORT[d.key])).map((d) => d.label.slice(0, 3));
+    const rest = DAYS.filter((d) => !days.includes(DAY_SHORT[d.key])).map((d) => d.label.slice(0, 3));
+    return `Trip-based · Work: ${work.join(", ") || "none"} · Rest day: ${rest.join(", ") || "none"}`;
+  }
   const activeDays = DAYS.filter(
     (day) => template[`${day.key}_in`] && template[`${day.key}_out`],
   );
@@ -123,14 +135,23 @@ export default function ScheduleTemplatesPage() {
       toast.error("Name is required.");
       return;
     }
+    if (formData.is_trip_based && formData.work_days.length === 0) {
+      toast.error("Pick at least one work day.");
+      return;
+    }
+    const payload = {
+      ...formData,
+      is_trip_based: formData.is_trip_based ? "true" : "false",
+      work_days: formData.is_trip_based ? formData.work_days.join(",") : "",
+    };
 
     try {
       setSaving(true);
       if (editingTemplate) {
-        await updateScheduleTemplate(editingTemplate.id, formData);
+        await updateScheduleTemplate(editingTemplate.id, payload);
         toast.success("Schedule updated.");
       } else {
-        await createScheduleTemplate(formData);
+        await createScheduleTemplate(payload);
         toast.success("Schedule created.");
       }
       closeModal();
@@ -168,7 +189,9 @@ export default function ScheduleTemplatesPage() {
           <h2 className="text-2xl font-bold text-fg">Work Schedules</h2>
           <p className="text-sm text-fg-subtle">
             Manage the shift templates employees are assigned to (used for
-            attendance, tardiness, and overtime calculations).
+            attendance, tardiness, and overtime calculations). Drivers and
+            helpers use a Trip-based schedule: work days only, and a trip on a
+            rest day gets the rest-day premium.
           </p>
         </div>
 
@@ -334,6 +357,73 @@ const ScheduleTemplateModal = ({
         </div>
 
         <div>
+          <p className="mb-2 text-xs font-medium text-fg-subtle">Schedule type</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {[
+              { value: false, title: "Fixed hours", hint: "Office staff: Time In / Time Out per day" },
+              { value: true, title: "Trip-based", hint: "Drivers and helpers: work days only, paid per trip" },
+            ].map((opt) => (
+              <button
+                key={opt.title}
+                type="button"
+                onClick={() => setField("is_trip_based", opt.value)}
+                className={`rounded-xl border p-3 text-left transition ${
+                  formData.is_trip_based === opt.value
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:bg-surface-hover"
+                }`}
+              >
+                <span className="block text-sm font-semibold text-fg">{opt.title}</span>
+                <span className="block text-xs text-fg-subtle">{opt.hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {formData.is_trip_based ? (
+        <div>
+          <p className="mb-2 text-xs font-medium text-fg-subtle">
+            Tick the work days. Unticked days are rest days: a trip on a rest day
+            is paid its rate plus 30% of the basic (allowance not included).
+            Holidays get the holiday premium.
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {DAYS.map((day) => {
+              const short = DAY_SHORT[day.key];
+              const on = formData.work_days.includes(short);
+              return (
+                <label
+                  key={day.key}
+                  className={`flex cursor-pointer items-center justify-between gap-2 rounded-xl border p-3 text-sm transition ${
+                    on ? "border-primary bg-primary/10" : "border-border bg-surface-hover"
+                  }`}
+                >
+                  <span className="flex items-center gap-2 font-medium text-fg">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        setField(
+                          "work_days",
+                          on
+                            ? formData.work_days.filter((d) => d !== short)
+                            : [...formData.work_days, short],
+                        )
+                      }
+                      className="h-4 w-4 accent-primary"
+                    />
+                    {day.label.slice(0, 3)}
+                  </span>
+                  <span className={`text-[11px] font-semibold ${on ? "text-primary" : "text-warning"}`}>
+                    {on ? "Work" : "Rest"}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+        ) : (
+        <div>
           <p className="mb-2 text-xs font-medium text-fg-subtle">
             Time In / Time Out per day -- leave both blank for a day off.
           </p>
@@ -366,6 +456,7 @@ const ScheduleTemplateModal = ({
             ))}
           </div>
         </div>
+        )}
       </div>
 
       <div className="mt-6 flex justify-end gap-2">

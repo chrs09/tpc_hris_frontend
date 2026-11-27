@@ -66,6 +66,7 @@ import { getApprovedScheduleChanges } from "../../api/scheduleChanges";
 import { withScheduleOverrides } from "../../utils/payroll/attendance/scheduleOverrides";
 import { fromISODate, toISODate } from "../../utils/isoDate";
 import { unpaidTripsWarning } from "../../utils/payroll/tripCheck";
+import { noTripWorkDays, tripPremiumFor } from "../../utils/payroll/tripPremium";
 import { TABLE_HEAD_STICKY } from "../../components/ui/table/tableStyles";
 
 /*
@@ -820,6 +821,8 @@ const PayrollList = () => {
         const reimbursementLines = reimbursement?.lines || [];
 
         let tripPay = 0;
+        // Rest-day / holiday premium (part of tripPay).
+        let tripPremiumPay = 0;
         let totalTrips = 0;
         let tripBreakdown = [];
 
@@ -981,6 +984,9 @@ const PayrollList = () => {
             });
 
           const dailyTripCounter = {};
+          const holidayTypeByDate = Object.fromEntries(
+            holidays.map((h) => [h.holiday_date, h.holiday_type]),
+          );
 
           Object.entries(tripsByDate)
             .sort(([a], [b]) => a.localeCompare(b))
@@ -998,6 +1004,9 @@ const PayrollList = () => {
               const isFirstTrip = dailyTripCounter[date] === 1;
 
               let rate = 0;
+              // The rate's basic -- the rest-day / holiday premium is a
+              // share of this only (not the allowance or other).
+              let basicKey = null;
 
               // Route ride (rode along, or Route Ride Manual): paid like a
               // driver trip of that category (Driver 1st / Next with their
@@ -1015,11 +1024,28 @@ const PayrollList = () => {
                 rate = isFirstTrip
                   ? Number(trip.driver_first_trip_rate || 0)
                   : Number(trip.driver_next_trip_rate || 0);
+                basicKey = isFirstTrip ? "driver_basic_rate" : "driver_next_basic_rate";
               } else {
                 rate = isFirstTrip
                   ? Number(trip.helper_first_trip_rate || 0)
                   : Number(trip.helper_next_trip_rate || 0);
+                basicKey = isFirstTrip ? "helper_first_basic_rate" : "helper_next_basic_rate";
               }
+
+              // Rest day (e.g. Sunday) or holiday: + a share of the basic.
+              const baseRate = rate;
+              const premiumRule = tripPremiumFor(
+                employee.schedule_template,
+                date,
+                holidayTypeByDate[date],
+              );
+              const premiumBasic =
+                basicKey && trip[basicKey] != null ? Number(trip[basicKey]) : baseRate;
+              const premium = premiumRule
+                ? Math.round(premiumBasic * premiumRule.pct * 100) / 100
+                : 0;
+              rate = baseRate + premium;
+              tripPremiumPay += premium;
 
               tripPay += rate;
               totalTrips++;
@@ -1048,6 +1074,12 @@ const PayrollList = () => {
                 })(),
 
                 rate,
+                baseRate,
+                premium,
+                premiumBasic,
+                premiumLabel: premiumRule
+                  ? `${premiumRule.label} +${Math.round(premiumRule.pct * 100)}%`
+                  : null,
 
                 // The rate's parts when it has more than a basic: a
                 // driver's first trip is basic + allowance + other; the
@@ -1563,6 +1595,14 @@ const PayrollList = () => {
                 (trip.date >= employee._segment.from && trip.date <= employee._segment.to)),
           );
           const tripWarnings = [];
+          // Work days (from the Trip-based schedule, else Mon-Sat) with no trip.
+          const tripDays = noTripWorkDays({
+            schedule: employee.schedule_template,
+            from: employee._segment?.from || activePeriod.cutoffStart,
+            to: employee._segment?.to || activePeriod.cutoffEnd,
+            tripDates: Object.keys(tripsByDate),
+            holidayDates: holidays.map((h) => h.holiday_date),
+          });
           const unpaidWarning = unpaidTripsWarning(unpaidTrips);
           if (unpaidWarning) tripWarnings.push(unpaidWarning);
           const zeroRate = tripBreakdown.filter((trip) => !Number(trip.rate));
@@ -1582,6 +1622,9 @@ const PayrollList = () => {
             totalTrips,
 
             tripPay,
+            tripPremiumPay,
+            workDays: tripDays.workDays,
+            noTripDates: tripDays.noTripDates,
 
             incentivesPay,
             incentiveLines,

@@ -14,6 +14,27 @@ const RateParts = ({ parts }) =>
         .join(" + ")}
     </p>
   ) : null;
+
+// Rest day (e.g. Sunday) / holiday premium on a trip: a share of its basic.
+// Holiday additionals are yellow; rest-day ones use the primary color.
+const isHolidayPremium = (trip) => /holiday/i.test(trip.premiumLabel || "");
+
+const TripPremium = ({ trip }) =>
+  trip.premium > 0 ? (
+    <p
+      className={`whitespace-nowrap text-[11px] font-semibold ${
+        isHolidayPremium(trip) ? "text-yellow-500" : "text-primary"
+      }`}
+    >
+      {trip.premiumLabel}: +{Number(trip.premium).toFixed(2)}{" "}
+      <span className="font-normal text-fg-subtle">
+        (of {Number(trip.premiumBasic).toFixed(2)} basic)
+      </span>
+    </p>
+  ) : null;
+
+const shortDate = (d) =>
+  new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 import {
   approveOT,
   getEmployeeOTHistory,
@@ -417,7 +438,11 @@ const PayrollDetailModal = ({
             <div>
               <h3 className="font-semibold mb-3">Trip Payroll Summary</h3>
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+              <div
+                className={`grid gap-2 sm:gap-4 ${
+                  payroll.tripPremiumPay > 0 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3"
+                }`}
+              >
                 <div className="border border-border rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-fg-subtle">Total Trips</p>
                   <p className="font-bold text-base sm:text-xl">
@@ -432,6 +457,16 @@ const PayrollDetailModal = ({
                   </p>
                 </div>
 
+                {payroll.tripPremiumPay > 0 && (
+                  <div className="border border-primary/30 bg-primary/5 rounded-lg p-2 sm:p-3">
+                    <p className="text-xs text-fg-subtle">Rest Day / Holiday Premium</p>
+                    <p className="font-bold text-base sm:text-xl text-primary">
+                      ₱{Number(payroll.tripPremiumPay).toFixed(2)}
+                    </p>
+                    <p className="text-[10px] text-fg-subtle">Included in Trip Pay</p>
+                  </div>
+                )}
+
                 <div className="border border-border rounded-lg p-2 sm:p-3">
                   <p className="text-xs text-fg-subtle">Gross Payroll</p>
                   <p className="font-bold text-base sm:text-xl text-green-700">
@@ -439,6 +474,29 @@ const PayrollDetailModal = ({
                   </p>
                 </div>
               </div>
+
+              {payroll.workDays > 0 && (
+                <div
+                  className={`mt-3 rounded-lg border p-3 text-sm ${
+                    payroll.noTripDates?.length
+                      ? "border-warning/30 bg-warning/10"
+                      : "border-success/30 bg-success/10"
+                  }`}
+                >
+                  <p className="font-semibold">
+                    Work days with a trip: {payroll.workDays - (payroll.noTripDates?.length || 0)} of{" "}
+                    {payroll.workDays}
+                  </p>
+                  {payroll.noTripDates?.length > 0 ? (
+                    <p className="mt-0.5 text-xs text-fg-muted">
+                      No trip on: {payroll.noTripDates.map(shortDate).join(", ")}. Rest days
+                      and holidays aren&apos;t counted.
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-xs text-fg-muted">A trip on every work day.</p>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <div>
@@ -637,6 +695,17 @@ const PayrollDetailModal = ({
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-xs text-fg-subtle">{trip.date}</p>
+                        {trip.premium > 0 && (
+                          <span
+                            className={`block w-fit rounded px-1.5 text-[10px] font-semibold ${
+                              isHolidayPremium(trip)
+                                ? "bg-yellow-400/20 text-yellow-500"
+                                : "bg-primary/15 text-primary"
+                            }`}
+                          >
+                            {weekdayOf(trip.date).slice(0, 3)} · {trip.premiumLabel}
+                          </span>
+                        )}
                         <p className="font-semibold">
                           #{trip.tripSequence} · {trip.ticket_no}
                         </p>
@@ -678,6 +747,7 @@ const PayrollDetailModal = ({
                     <div className="mt-2 border-t border-border pt-2 text-right font-semibold">
                       ₱{Number(trip.rate || 0).toFixed(2)}
                       <RateParts parts={trip.rateParts} />
+                      <TripPremium trip={trip} />
                     </div>
                   </div>
                 ))}
@@ -712,7 +782,20 @@ const PayrollDetailModal = ({
                         key={index}
                         className={trip.isFirstTrip ? "" : "bg-warning/10"}
                       >
-                        <td className="border border-border px-3 py-2">{trip.date}</td>
+                        <td className="border border-border px-3 py-2">
+                          {trip.date}
+                          {trip.premium > 0 && (
+                            <span
+                              className={`mt-0.5 block w-fit rounded px-1.5 text-[10px] font-semibold ${
+                                isHolidayPremium(trip)
+                                  ? "bg-yellow-400/20 text-yellow-500"
+                                  : "bg-primary/15 text-primary"
+                              }`}
+                            >
+                              {weekdayOf(trip.date).slice(0, 3)} · {trip.premiumLabel}
+                            </span>
+                          )}
+                        </td>
 
                         <td className="border border-border px-3 py-2 text-center font-semibold">
                           #{trip.tripSequence}
@@ -750,6 +833,7 @@ const PayrollDetailModal = ({
                         <td className="border border-border px-3 py-2 font-semibold">
                           ₱{Number(trip.rate || 0).toFixed(2)}
                           <RateParts parts={trip.rateParts} />
+                          <TripPremium trip={trip} />
                         </td>
                       </tr>
                     ))}

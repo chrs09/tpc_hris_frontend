@@ -498,6 +498,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               bold
             />
 
+            {payroll.tripPremiumPay > 0 && (
+              <PayslipValue
+                label="incl. Rest Day / Holiday"
+                value={payroll.tripPremiumPay}
+                isMoney
+              />
+            )}
+
             <PayslipValue
               label="Total Earnings"
               value={grossPay}
