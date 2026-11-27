@@ -36,7 +36,7 @@ const categoryCode = (trip) =>
 
 // "2026-11-25 09:14:00 AM" (trip start, PH time) -> "Nov 25, 2026 9:14 AM".
 const fmtStart = (value) => {
-  const m = /^(d{4})-(d{2})-(d{2}) (d{1,2}):(d{2}):d{2} (AM|PM)$/.exec(value || "");
+  const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{1,2}):(\d{2}):\d{2} (AM|PM)$/.exec(value || "");
   if (!m) return value || "-";
   const [, y, mo, d, h, mi, ap] = m;
   const month = new Date(Number(y), Number(mo) - 1, 1).toLocaleString("en-US", { month: "short" });
