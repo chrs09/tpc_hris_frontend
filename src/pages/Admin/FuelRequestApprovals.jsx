@@ -141,6 +141,11 @@ export default function FuelRequestApprovals() {
                           : "—"}
                       </span>
                     </div>
+                    {req.driver_note && (
+                      <p className="mt-1 max-w-[14rem] truncate text-xs text-primary" title={req.driver_note}>
+                        Note: {req.driver_note}
+                      </p>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-fg-muted">{req.created_at}</td>
                   <td className="px-4 py-3">

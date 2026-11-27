@@ -253,6 +253,11 @@ export default function FuelRequests({ embedded = false }) {
                     {req.odometer_reading != null
                       ? `${Number(req.odometer_reading).toLocaleString()} km`
                       : "-"}
+                    {req.driver_note && (
+                      <p className="mt-1 max-w-[14rem] truncate text-xs text-primary" title={req.driver_note}>
+                        Note: {req.driver_note}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-fg-muted">{req.city}</td>
                   <td className="px-4 py-3 text-fg-muted">{req.created_at}</td>
@@ -465,6 +470,12 @@ export function FuelRequestModal({ requestId, onClose, onChanged }) {
                 <Info label="City" value={req.city} />
                 <Info label="Driver" value={req.driver_name} />
                 <Info label="Requested" value={req.created_at} />
+                {req.driver_note && (
+                  <div className="col-span-2 rounded-lg bg-primary/10 px-3 py-2">
+                    <dt className="text-xs font-semibold text-primary">Note from {req.driver_name || "the requester"}</dt>
+                    <dd className="mt-0.5 whitespace-pre-line text-sm">{req.driver_note}</dd>
+                  </div>
+                )}
                 {req.unit_reason && (
                   <div className="col-span-2 rounded-lg bg-warning/10 px-3 py-2">
                     <dt className="text-xs font-semibold text-warning">Not the driver's assigned unit</dt>

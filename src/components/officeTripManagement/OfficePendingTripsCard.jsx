@@ -308,6 +308,9 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
                   >
                     <td className="px-4 py-3 font-semibold">
                       {trip.ticket_no}
+                      <div className="mt-1 flex flex-wrap gap-1 font-normal">
+                        <TripUnitTags trip={trip} />
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-fg-muted">
                       {trip.username || "-"}
@@ -385,6 +388,10 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
                 <h3 className="mt-1 text-lg font-bold text-fg">
                   {trip.ticket_no}
                 </h3>
+                {/* "2nd trip of the day", Urgent, Other unit */}
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <TripUnitTags trip={trip} />
+                </div>
               </div>
 
               <span className="rounded-full bg-warning/15 px-3 py-1 text-xs font-semibold text-warning">

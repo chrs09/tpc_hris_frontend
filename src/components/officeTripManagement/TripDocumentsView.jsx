@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Search } from "lucide-react";
 import toast from "react-hot-toast";
+import TripUnitTags from "../adminTrips/TripUnitTags";
 import SearchSelect from "../SearchSelect";
 import { urlQuery } from "../../utils/search";
 import TripDetailsModal from "../adminTrips/TripDetailsModal";
@@ -389,6 +390,9 @@ export default function TripDocumentsView() {
                         {t.ticket_no || t.trip_code || `Trip #${t.trip_id}`}
                       </button>
                       {t.trip_code && t.ticket_no && <p className="text-xs text-fg-subtle">{t.trip_code}</p>}
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <TripUnitTags trip={t} />
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {tripNo ? (
