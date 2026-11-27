@@ -34,6 +34,15 @@ import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle"
 const categoryCode = (trip) =>
   trip.trip_category_code || (trip.trip_category || "").split(" - ")[0] || "-";
 
+// "2026-11-25 09:14:00 AM" (trip start, PH time) -> "Nov 25, 2026 9:14 AM".
+const fmtStart = (value) => {
+  const m = /^(d{4})-(d{2})-(d{2}) (d{1,2}):(d{2}):d{2} (AM|PM)$/.exec(value || "");
+  if (!m) return value || "-";
+  const [, y, mo, d, h, mi, ap] = m;
+  const month = new Date(Number(y), Number(mo) - 1, 1).toLocaleString("en-US", { month: "short" });
+  return `${month} ${Number(d)}, ${y} ${Number(h)}:${mi} ${ap}`;
+};
+
 export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTrips }) {
   const canEditPage = usePageCanEdit();
   const { scoped: trips, scopeProps } = useApprovalScope(allTrips);
@@ -271,6 +280,7 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
                 <th className="px-4 py-3 text-left font-medium">Category</th>
                 <th className="px-4 py-3 text-left font-medium">Stops</th>
                 <th className="px-4 py-3 text-left font-medium">Helpers</th>
+                <th className="px-4 py-3 text-left font-medium">Trip Started</th>
                 <th className="px-4 py-3 text-left font-medium">
                   Sent By (Coordinator)
                 </th>
@@ -286,7 +296,7 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
             <tbody>
               {paginatedItems.length === 0 ? (
                 <tr>
-                  <td colSpan="9" className="py-6 text-center text-fg-subtle">
+                  <td colSpan="10" className="py-6 text-center text-fg-subtle">
                     No trips waiting for office review.
                   </td>
                 </tr>
@@ -315,6 +325,9 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
                       {trip.helpers?.length > 0 && (
                         <span className="block text-xs">{trip.helpers.map((h) => h.name).join(", ")}</span>
                       )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-fg-muted">
+                      {fmtStart(trip.start_time)}
                     </td>
                     <td className="px-4 py-3 text-fg-muted">
                       {trip.coordinator_name || "-"}
@@ -427,7 +440,13 @@ export default function OfficePendingTripsCard({ trips: allTrips = [], refreshTr
             </div>
 
             <div className="mt-4 rounded-lg bg-surface-hover p-3">
-              <p className="text-xs text-fg-subtle">Sent By (Coordinator)</p>
+              <p className="text-xs text-fg-subtle">Trip Started</p>
+
+              <p className="mt-1 text-sm font-medium text-fg-muted">
+                {fmtStart(trip.start_time)}
+              </p>
+
+              <p className="mt-2 text-xs text-fg-subtle">Sent By (Coordinator)</p>
 
               <p className="mt-1 text-sm font-medium text-fg-muted">
                 {trip.coordinator_name || "-"}
