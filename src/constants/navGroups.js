@@ -130,6 +130,18 @@ export function getNavGroups(role) {
           roles: ["superadmin", "payroll_admin", "admin"],
           moduleKey: "payroll.incentive_runs",
         },
+        {
+          // Made at 4 AM on each program's release date; rows approved,
+          // confirmed by the trip coordinator, released by Finance.
+          label: "Incentive Reports",
+          path: "/dashboard/incentive-reports",
+          roles: ["superadmin"],
+          moduleKey: [
+            "payroll.incentive_reports",
+            "payroll.incentive_reports_confirm",
+            "payroll.incentive_reports_release",
+          ],
+        },
       ],
     },
     {

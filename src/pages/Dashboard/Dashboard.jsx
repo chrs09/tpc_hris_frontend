@@ -39,6 +39,7 @@ import PayrollCutoffsPage from "../Payroll/PayrollCutoffsPage";
 import LockedPayrollsPage from "../Payroll/LockedPayrollsPage";
 import IncentivePoliciesPage from "../Payroll/IncentivePoliciesPage";
 import IncentiveRunsPage from "../Payroll/IncentiveRunsPage";
+import IncentiveReportsPage from "../Payroll/IncentiveReportsPage";
 import ContributionTablesPage from "../Payroll/ContributionTablesPage";
 import HolidaysPage from "../Holiday/HolidaysPage";
 import ErrorLogsPage from "../Admin/ErrorLogsPage";
@@ -140,6 +141,7 @@ const Dashboard = () => {
           <Route path="payroll-locked" element={<LockedPayrollsPage />} />
           <Route path="incentive-policies" element={<IncentivePoliciesPage />} />
           <Route path="incentive-runs" element={<IncentiveRunsPage />} />
+          <Route path="incentive-reports" element={<IncentiveReportsPage />} />
           <Route path="contribution-tables" element={<ContributionTablesPage />} />
           <Route path="users" element={<UsersPage />} />
           {/* Retired -- the Org Chart replaced them. */}

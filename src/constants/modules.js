@@ -95,6 +95,18 @@ export const MODULE_GROUPS = [
         label: "Incentive Runs",
         path: "/dashboard/incentive-runs",
       },
+      {
+        // Made at 4 AM on a program's release date. The module (Can edit)
+        // approves / rejects / edits rows; Final confirm = trip
+        // coordinator; Release = Finance.
+        key: "incentive_reports",
+        label: "Incentive Reports",
+        path: "/dashboard/incentive-reports",
+        children: [
+          { key: "incentive_reports_confirm", label: "Final confirm (pass to Finance)" },
+          { key: "incentive_reports_release", label: "Release (Finance)" },
+        ],
+      },
     ],
   },
   {
