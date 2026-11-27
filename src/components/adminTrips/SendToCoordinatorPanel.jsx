@@ -7,9 +7,10 @@ import {
 } from "../../api/adminTripManagement/trips";
 import { confirmDialog } from "../ui/dialog/dialogService";
 
-// Trip Approvals -> a trip Office returned: hand it to a coordinator to
-// fix (upload the corrected document), see who has it, or take it back.
-// Once they mark it fixed it shows here as Fixed, ready to approve.
+// Trip Approvals -> a trip Office returned: fix it yourself (replace or add
+// the documents below, then approve), hand it to a coordinator to fix,
+// see who has it, or take it back to fix it yourself. Once a coordinator
+// marks it fixed it shows here as Fixed, ready to approve.
 export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
   const [coordinators, setCoordinators] = useState([]);
   const [open, setOpen] = useState(false);
@@ -52,14 +53,14 @@ export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
 
   const takeBack = async () => {
     const ok = await confirmDialog(
-      `Take this trip back from ${trip.resolver_name || "the coordinator"}? It leaves their To fix list.`,
-      { confirmText: "Take back", danger: false },
+      `Fix this trip yourself? It leaves ${trip.resolver_name || "the coordinator"}'s To fix list, and you can replace or add the documents below, then approve.`,
+      { confirmText: "Fix it myself", danger: false },
     );
     if (!ok) return;
     try {
       setBusy(true);
       await takeTripBack(trip.trip_id);
-      toast.success("Taken back.");
+      toast.success("It's yours. Replace or add the documents below, then approve.");
       await onChanged?.();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to take it back.");
@@ -76,16 +77,16 @@ export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
         </p>
         {trip.resolver_note && <p className="whitespace-pre-wrap text-fg">{trip.resolver_note}</p>}
         <p className="text-xs text-fg-muted">
-          You can approve it once they mark it fixed.
+          You can approve it once they mark it fixed, or fix it yourself if it&apos;s urgent.
         </p>
         {canEdit && (
           <button
             type="button"
             onClick={takeBack}
             disabled={busy}
-            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-fg-muted hover:bg-surface-hover disabled:opacity-50"
+            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
           >
-            Take it back
+            Fix it myself
           </button>
         )}
       </div>
@@ -103,6 +104,12 @@ export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
           {trip.resolved_note && <p className="mt-1 whitespace-pre-wrap text-fg">{trip.resolved_note}</p>}
           <p className="mt-1 text-xs text-fg-muted">Check the documents below, then approve to send it to Office.</p>
         </div>
+      )}
+      {canEdit && trip.fix_status !== "fixed" && !open && (
+        <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-fg">
+          <b>Fix it yourself:</b> replace or add the Invoice, LM, stamped or POD photos below, then click{" "}
+          <b>Approve &amp; Send to Office Review</b>. Or send it to a coordinator to fix.
+        </p>
       )}
       {canEdit &&
         (open ? (
