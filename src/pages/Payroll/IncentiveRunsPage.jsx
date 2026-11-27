@@ -70,7 +70,9 @@ const detailSummary = (line) => {
     case "long_distance":
       return `${d.trips ?? 0} long-distance trip(s)`;
     case "complete_attendance":
-      return `${d.days_present ?? 0}/${d.workdays ?? 0} days${d.leave_days ? ` · ${d.leave_days} leave` : ""}`;
+      return `${(d.days_present ?? 0) - (d.rest_days_worked || 0)}/${d.workdays ?? 0} days${
+        d.rest_days_worked ? ` · +${d.rest_days_worked} rest day${d.rest_days_worked === 1 ? "" : "s"}` : ""
+      }${d.leave_days ? ` · ${d.leave_days} leave` : ""}`;
     default:
       return "";
   }

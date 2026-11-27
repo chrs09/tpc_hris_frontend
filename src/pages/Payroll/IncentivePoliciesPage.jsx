@@ -457,14 +457,25 @@ function AttendanceEditor({ s, set }) {
         <div className="mt-1">
           <Weekdays value={s.workdays} onChange={(workdays) => set({ workdays })} />
         </div>
+        <p className="mt-1 text-[11px] text-fg-subtle">
+          Ticked days must be worked. Unticked days (e.g. Sun) are rest days: not working them
+          never breaks complete attendance, and working one adds the rest-day premium.
+        </p>
       </Field>
       {s.base === "daily_rate" && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <Field label="Weekday holiday worked × ">
             <NumberInput value={s.holiday_multiplier} onChange={(v) => set({ holiday_multiplier: v })} min={1} step="0.1" />
           </Field>
           <Field label="Saturday premium %">
             <NumberInput value={s.saturday_premium_percent} onChange={(v) => set({ saturday_premium_percent: v })} min={0} />
+          </Field>
+          <Field label="Rest day worked premium %">
+            <NumberInput
+              value={s.rest_day_premium_percent ?? 30}
+              onChange={(v) => set({ rest_day_premium_percent: v })}
+              min={0}
+            />
           </Field>
         </div>
       )}
@@ -783,7 +794,9 @@ const resultBasis = (ruleType, r) => {
       return `${r.trips} long-distance trip(s)`;
     case "complete_attendance":
       return r.complete
-        ? `Complete · ${r.days_present}/${r.workdays} days`
+        ? `Complete · ${r.days_present - (r.rest_days_worked || 0)}/${r.workdays} days${
+            r.rest_days_worked ? ` · +${r.rest_days_worked} rest day${r.rest_days_worked === 1 ? "" : "s"} worked` : ""
+          }`
         : `${r.absences.length} absence(s)${r.missing_rate ? " · no rate" : ""}`;
     default:
       return "";
