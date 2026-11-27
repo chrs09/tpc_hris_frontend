@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
 import ApprovedBy from "../approvals/ApprovedBy";
+import BankAccountLine from "./BankAccountLine";
 
 const peso = (n) => `₱${Number(n || 0).toLocaleString()}`;
 
@@ -104,6 +105,13 @@ export default function CashAdvanceReleaseModal({
             <X size={20} />
           </button>
         </div>
+
+        {request.can_see_account && (
+          <div>
+            <p className="mb-1 text-xs font-medium text-fg-muted">Send to</p>
+            <BankAccountLine request={request} />
+          </div>
+        )}
 
         {mode === "approve" && (
           <div>

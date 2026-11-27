@@ -44,6 +44,7 @@ import ApprovalScopeToggle from "../../components/approvals/ApprovalScopeToggle"
 import CashAdvanceTeamView from "../../components/cashAdvance/CashAdvanceTeamView";
 import { TABLE_HEAD, TABLE_ROW } from "../../components/ui/table/tableStyles";
 import Pill from "../../components/ui/statusPill/StatusPill";
+import BankAccountLine from "../../components/cashAdvance/BankAccountLine";
 
 const formatDateNeeded = (value) =>
   value
@@ -986,6 +987,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                               {req.reference_no && <span className="font-mono font-semibold text-primary">{req.reference_no} · </span>}
                               Filed {new Date(req.created_at).toLocaleDateString()}
                             </p>
+                            <BankAccountLine request={req} compact className="mt-1 max-w-xs" />
                           </td>
                           <td className="px-4 py-3 font-semibold text-fg">
                             ₱{req.amount.toLocaleString()}
@@ -1157,6 +1159,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                     </p>
                   )}
 
+                  <BankAccountLine request={req} className="mt-2 max-w-md" />
                   <CashAdvanceExceptionSummary request={req} />
                   <ApprovalProgress steps={req.approval_steps} className="mt-2" />
                   {req.can_act === false && (
@@ -1761,6 +1764,7 @@ export default function CashAdvanceApprovals({ embedded = false }) {
                         {request.reason}
                       </p>
                     )}
+                    <BankAccountLine request={request} compact className="mt-2 max-w-sm" />
                     {request.date_needed && (
                       <p className="mt-1 text-xs text-fg-muted">
                         <span className="font-semibold text-fg">Date Needed:</span>{" "}

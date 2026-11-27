@@ -1,3 +1,4 @@
+import BankAccountLine from "./BankAccountLine";
 import { useMemo, useState } from "react";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
@@ -186,6 +187,7 @@ export default function CashAdvanceTeamView({ requests, loading, search = "" }) 
                 <td className={TD}>
                   <p className="font-bold text-fg">{r.employee_name}</p>
                   <p className="text-xs text-fg-subtle">Filed {new Date(r.created_at).toLocaleDateString()}</p>
+                  <BankAccountLine request={r} compact className="mt-1 max-w-xs" />
                 </td>
                 <td className={TD}>
                   <Money value={r.approved_amount ?? r.amount} />
