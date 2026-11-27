@@ -3030,14 +3030,14 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                     </td>
 
                     {/* Others */}
-                    <td className="px-4 py-3">
+                    <td className="min-w-[10rem] px-4 py-3 align-top">
                       {payrollEditable ? (
-                        <div className="w-32 space-y-1">
+                        <div className="flex w-36 flex-col gap-1">
                           <input
                             type="number"
                             min="0"
                             aria-label={`Others for ${row.employee.first_name || "employee"}`}
-                            className="w-full border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
+                            className="block w-full border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
                             value={row.others || ""}
                             placeholder="0"
                             onChange={(e) =>
@@ -3054,7 +3054,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                             type="text"
                             maxLength={200}
                             aria-label="What the Others amount is for"
-                            className="w-full border border-border rounded px-2 py-1 text-[11px] bg-surface text-fg"
+                            className="block w-full border border-border rounded px-2 py-1 text-[11px] bg-surface text-fg"
                             value={row.othersNote || ""}
                             placeholder="What for? e.g. Bonus"
                             onChange={(e) =>
