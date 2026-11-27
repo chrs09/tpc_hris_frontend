@@ -506,6 +506,14 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
               />
             )}
 
+            {otherEarnings > 0 && (
+              <PayslipValue
+                label={payroll.othersNote ? `Others (${payroll.othersNote})` : "Others"}
+                value={otherEarnings}
+                isMoney
+              />
+            )}
+
             <PayslipValue
               label="Total Earnings"
               value={grossPay}
@@ -875,7 +883,11 @@ const PayrollSlip = ({ payroll, activePeriod, index }) => {
 
           <PayslipValue label="Leave Pay" value={leavePay} isMoney />
 
-          <PayslipValue label="Other Earnings" value={otherEarnings} isMoney />
+          <PayslipValue
+            label={payroll.othersNote ? `Other Earnings (${payroll.othersNote})` : "Other Earnings"}
+            value={otherEarnings}
+            isMoney
+          />
 
           {/* =================================================
               TOTAL EARNINGS

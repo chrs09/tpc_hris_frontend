@@ -26,6 +26,10 @@ export const savePayrollDeductionsBulk = async (payloadArray) => {
   return res.data;
 };
 
+// Payroll list -> Others (earning): saved as soon as it's typed.
+export const saveOtherEarning = async (payload) =>
+  (await api.put("/payroll-deductions/other-earning", payload)).data;
+
 export const getPayrollDeductions = async ({
   cutoff_period,
   department,

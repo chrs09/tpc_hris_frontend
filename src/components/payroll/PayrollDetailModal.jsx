@@ -597,7 +597,8 @@ const PayrollDetailModal = ({
                     <p className="mt-1 text-[11px] text-fg-subtle">
                       Range {formatSSSRange(payroll.sssBracket)}
                       <br />
-                      (gross ₱{Number(payroll.grossPay || 0).toFixed(2)} → table ₱
+                      ({payroll.sssBasisKind === "basic" ? "base pay" : "gross"} ₱
+                      {Number(payroll.sssBase ?? payroll.grossPay ?? 0).toFixed(2)} → table ₱
                       {payroll.sssBracket.employeeDeduction.toFixed(2)})
                     </p>
                   )}
@@ -676,6 +677,12 @@ const PayrollDetailModal = ({
             <p className="text-3xl font-bold text-green-700">
               ₱{payroll.grossPay.toFixed(2)}
             </p>
+            {Number(payroll.others) > 0 && (
+              <p className="mt-1 text-xs text-fg-muted">
+                Includes Others ₱{Number(payroll.others).toFixed(2)}
+                {payroll.othersNote ? ` · ${payroll.othersNote}` : ""}
+              </p>
+            )}
           </div>
 
           {/* Validation */}

@@ -43,11 +43,13 @@ import {
   savePayrollDeduction,
   savePayrollDeductionsBulk,
   getPayrollDeductions,
+  saveOtherEarning,
   getCashAdvanceForCutoff,
   getLoansForCutoff,
   getTripChargesForCutoff,
 } from "../../api/payroll/payroll_deductions";
 import PayrollStatusBar from "../../components/payroll/PayrollStatusBar";
+import { getSssBasis } from "../../api/govContributions";
 import { payrollStatusLabel } from "../../utils/payroll/payrollStatus";
 import {
   getPayrollRun,
@@ -191,6 +193,11 @@ const PayrollList = () => {
   // still edit it before approving. Cleared once approved.
   const [otApprovalDrafts, setOtApprovalDrafts] = useState({});
   const [holidays, setHolidays] = useState([]);
+  // SSS basis per payroll type (HRIS -> Government Contributions).
+  const [sssBasis, setSssBasis] = useState({ Monthly: "basic", Daily: "basic", Weekly: "basic" });
+  useEffect(() => {
+    getSssBasis().then(setSssBasis).catch(() => {});
+  }, []);
 
   // Manual per-employee, per-cutoff entries that aren't computed from
   // attendance (Others, government deductions, personal deductions, etc.)
@@ -221,9 +228,28 @@ const PayrollList = () => {
       ...prev,
       [key]: {
         ...prev[key],
-        [field]: value === "" ? 0 : Number(value),
+        [field]: field === "othersNote" ? value : value === "" ? 0 : Number(value),
       },
     }));
+  };
+
+  // Others (earning): saved when the box loses focus.
+  const persistOthers = async (row) => {
+    if (!payrollEditableRef.current) return;
+    const key = getAdjustmentKey(row.employee.adjId ?? row.employee.id, activePeriod);
+    const adj = adjustments[key] || {};
+    try {
+      await saveOtherEarning({
+        employee_id: row.employee.id,
+        cutoff_period: `${activePeriod.cutoffStart}_${activePeriod.cutoffEnd}`,
+        department,
+        segment: row.employee._segment?.key || "",
+        amount: Number(adj.others || 0),
+        note: adj.othersNote || "",
+      });
+    } catch (error) {
+      alertDialog(error?.response?.data?.detail || "Couldn't save Others.");
+    }
   };
 
   useEffect(() => {
@@ -720,6 +746,9 @@ const PayrollList = () => {
               ...(record.other_deduction != null
                 ? { personalDeduction: record.other_deduction }
                 : {}),
+              // Others (earning) and what it's for.
+              ...(record.other_earning != null ? { others: Number(record.other_earning) } : {}),
+              ...(record.other_earning_note ? { othersNote: record.other_earning_note } : {}),
               // ...but let any value already edited locally this session
               // (e.g. the user just typed something) win.
               ...prev[key],
@@ -1395,6 +1424,7 @@ const PayrollList = () => {
         const adj = adjustments[adjKey] || {};
 
         const others = Number(adj.others || 0);
+        const othersNote = adj.othersNote || "";
 
         // ===== Gross pay =====
         // Computed before statutory deductions since SSS and PHIC are now
@@ -1444,10 +1474,14 @@ const PayrollList = () => {
         const computedPagibig = getPagibigEmployeeShare(
           monthlyBasicForContributions,
         );
-        const computedSSS = getSSSEmployeeDeduction(grossPay);
-        // Where the SSS amount comes from: the bracket this cutoff's gross
-        // pay falls into (shown next to the deduction).
-        const sssBracket = getSSSBracket(grossPay);
+        // SSS basis per payroll type (HRIS -> Government Contributions):
+        // Base Pay (basic only) or Gross Pay.
+        const sssBasisKind = sssBasis[payrollType] === "gross" ? "gross" : "basic";
+        const sssBase = sssBasisKind === "gross" ? grossPay : basicPay;
+        const computedSSS = getSSSEmployeeDeduction(sssBase);
+        // Where the SSS amount comes from: the bracket that basis falls
+        // into (shown next to the deduction).
+        const sssBracket = getSSSBracket(sssBase);
 
         // Which contributions this employee has (HRIS -> Government
         // Contributions). Unticked = never deducted, even if a value was
@@ -1631,7 +1665,8 @@ const PayrollList = () => {
             reimbursementsPay,
             reimbursementLines,
 
-            grossPay: tripPay,
+            // Trip pay + Others (typed extra earning).
+            grossPay: tripPay + others,
 
             tripBreakdown,
 
@@ -1675,7 +1710,8 @@ const PayrollList = () => {
             restDaysWorked: 0,
             restDayPay: 0,
             leavePay: 0,
-            others: 0,
+            others,
+            othersNote,
             sssDeduction: 0,
             philhealthDeduction: 0,
             pagibigDeduction: 0,
@@ -1687,7 +1723,7 @@ const PayrollList = () => {
             ...charge,
             personalDeduction: 0,
             totalDeductions: sssLoan + pagibigLoan + cashAdvance + tripCharge,
-            netPay: tripPay - sssLoan - pagibigLoan - cashAdvance - tripCharge,
+            netPay: tripPay + others - sssLoan - pagibigLoan - cashAdvance - tripCharge,
 
             attendanceCount: records.length,
 
@@ -1770,8 +1806,11 @@ const PayrollList = () => {
           paidLeaveDays,
           leavePay,
           others,
+          othersNote,
           sssDeduction,
           sssBracket,
+          sssBase,
+          sssBasisKind,
           sssComputed: has("sss") ? computedSSS : 0,
           philhealthDeduction,
           pagibigDeduction,
@@ -1814,6 +1853,7 @@ const PayrollList = () => {
     reimbursementsByEmployee,
     tripPaid,
     driverPaid,
+    sssBasis,
   ]);
 
   // Holidays inside the selected cutoff, oldest first.
@@ -1982,6 +2022,8 @@ const PayrollList = () => {
     sss_loan: row.sssLoan || 0,
     pagibig_loan: row.pagibigLoan || 0,
     other_deduction: row.personalDeduction || 0,
+    other_earning: row.others || 0,
+    other_earning_note: row.othersNote || "",
     tardiness_deduction: row.isTripBasedEmployee ? 0 : row.tardinessDeduction,
     undertime_deduction: row.isTripBasedEmployee ? 0 : row.undertimeDeduction,
     absent_deduction: row.isTripBasedEmployee ? 0 : row.absentDeduction || 0,
@@ -2989,24 +3031,60 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
 
                     {/* Others */}
                     <td className="px-4 py-3">
-                      {row.isTripBasedEmployee ? (
-                        "--"
+                      {payrollEditable ? (
+                        <div className="w-32 space-y-1">
+                          <input
+                            type="number"
+                            min="0"
+                            aria-label={`Others for ${row.employee.first_name || "employee"}`}
+                            className="w-full border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
+                            value={row.others || ""}
+                            placeholder="0"
+                            onChange={(e) =>
+                              updateAdjustment(
+                                row.employee.adjId ?? row.employee.id,
+                                activePeriod,
+                                "others",
+                                e.target.value,
+                              )
+                            }
+                            onBlur={() => persistOthers(row)}
+                          />
+                          <input
+                            type="text"
+                            maxLength={200}
+                            aria-label="What the Others amount is for"
+                            className="w-full border border-border rounded px-2 py-1 text-[11px] bg-surface text-fg"
+                            value={row.othersNote || ""}
+                            placeholder="What for? e.g. Bonus"
+                            onChange={(e) =>
+                              updateAdjustment(
+                                row.employee.adjId ?? row.employee.id,
+                                activePeriod,
+                                "othersNote",
+                                e.target.value,
+                              )
+                            }
+                            onBlur={() => persistOthers(row)}
+                          />
+                        </div>
+                      ) : row.others ? (
+                        <div className="w-32">
+                          <span className="font-medium">₱{Number(row.others).toFixed(2)}</span>
+                          {row.othersNote && (
+                            <span className="block text-[11px] text-fg-subtle">{row.othersNote}</span>
+                          )}
+                        </div>
                       ) : (
-                        <input
-                          disabled={!payrollEditable}
-                          type="number"
-                          className="w-24 border border-border rounded px-2 py-1 text-sm bg-surface text-fg"
-                          value={row.others || ""}
-                          placeholder="0"
-                          onChange={(e) =>
-                            updateAdjustment(
-                              row.employee.adjId ?? row.employee.id,
-                              activePeriod,
-                              "others",
-                              e.target.value,
-                            )
+                        <span
+                          title={
+                            runEditable
+                              ? "Click Edit & regenerate to add Others"
+                              : "Payroll can't be changed at this step"
                           }
-                        />
+                        >
+                          --
+                        </span>
                       )}
                     </td>
 
@@ -3038,7 +3116,7 @@ The pay run now shows this snapshot. Next: Submit for Review. Until it's submitt
                           {row.sssBracket && (
                             <p
                               className="mt-1 whitespace-nowrap text-[10px] text-fg-subtle"
-                              title={`Gross pay ₱${row.grossPay.toFixed(2)} falls in the SSS range ${formatSSSRange(row.sssBracket)}, which is ₱${row.sssBracket.employeeDeduction.toFixed(2)}.`}
+                              title={`${row.sssBasisKind === "gross" ? "Gross pay" : "Base pay"} ₱${Number(row.sssBase ?? row.grossPay).toFixed(2)} falls in the SSS range ${formatSSSRange(row.sssBracket)}, which is ₱${row.sssBracket.employeeDeduction.toFixed(2)}.`}
                             >
                               {formatSSSRange(row.sssBracket)}
                               {row.sssComputed > 0 &&

@@ -8,8 +8,76 @@ import { matchesSearch } from "../../utils/search";
 import {
   bulkUpdateGovContributions,
   getGovContributions,
+  getSssBasis,
+  saveSssBasis,
   updateGovContribution,
 } from "../../api/govContributions";
+
+const SSS_BASIS_OPTIONS = [
+  { value: "basic", label: "Base Pay" },
+  { value: "gross", label: "Gross Pay" },
+];
+
+// What payroll looks up the SSS bracket from, per payroll type.
+function SssBasisCard({ canEdit }) {
+  const [basis, setBasis] = useState(null);
+  const [saving, setSaving] = useState(null);
+
+  useEffect(() => {
+    getSssBasis()
+      .then(setBasis)
+      .catch(() => setBasis({ Monthly: "basic", Daily: "basic", Weekly: "basic" }));
+  }, []);
+
+  const pick = async (type, value) => {
+    if (!canEdit || basis?.[type] === value) return;
+    try {
+      setSaving(type);
+      setBasis(await saveSssBasis({ [type]: value }));
+      toast.success(`${type}: SSS now based on ${value === "gross" ? "Gross Pay" : "Base Pay"}.`);
+    } catch (err) {
+      toast.error(errorText(err, "Couldn't save."));
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-border bg-surface p-4">
+      <p className="text-sm font-semibold text-fg">SSS deduction basis</p>
+      <p className="text-xs text-fg-subtle">
+        What payroll matches against the SSS table. Base Pay = basic for the cutoff only (no
+        allowance, OT, holiday or Others). Gross Pay = everything earned. Applies the next time a
+        payroll is generated.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {["Monthly", "Daily", "Weekly"].map((type) => (
+          <div key={type} className="rounded-xl border border-border p-3">
+            <p className="mb-2 text-xs font-medium text-fg-muted">{type}</p>
+            <div className="flex gap-1 rounded-lg bg-surface-hover p-1">
+              {SSS_BASIS_OPTIONS.map((opt) => {
+                const on = basis?.[type] === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={!canEdit || !basis || saving === type}
+                    onClick={() => pick(type, opt.value)}
+                    className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                      on ? "bg-primary text-primary-foreground" : "text-fg-muted hover:text-fg"
+                    } disabled:cursor-not-allowed`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // HRIS -> Government Contributions: every employee, their SSS /
 // PhilHealth / Pag-IBIG / TIN numbers (same as Employee Details ->
@@ -130,6 +198,8 @@ export default function GovContributionsPage() {
           Legal.
         </p>
       </div>
+
+      <SssBasisCard canEdit={canEdit} />
 
       <div className="flex flex-wrap gap-2">
         {[["All", (rows || []).length], ...departments].map(([name, count]) => (

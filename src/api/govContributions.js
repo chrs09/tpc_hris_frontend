@@ -12,6 +12,12 @@ export const getGovContributions = async (includeInactive = false) => {
   return res.data;
 };
 
+// SSS basis per payroll type: { Monthly, Daily, Weekly } -> "basic" | "gross".
+export const getSssBasis = async () => (await api.get("/government-contributions/settings/sss-basis")).data;
+
+export const saveSssBasis = async (payload) =>
+  (await api.put("/government-contributions/settings/sss-basis", payload)).data;
+
 // Partial: any of the numbers and has_* ticks.
 export const updateGovContribution = async (employeeId, payload) => {
   const res = await api.put(`/government-contributions/${employeeId}`, payload);
