@@ -5,7 +5,9 @@ import TripDetailsModal from "./TripDetailsModal";
 // Trip Dashboard -> "Trips to fix": returned trips the coordinator admin
 // handed to me (Trip Approvals -> Send to coordinator). Open one, replace
 // the wrong document photo, and mark it fixed -- it goes back to Trip
-// Approvals. Hidden when there's nothing to fix.
+// Approvals. Whoever approves trips (coordinator admin) also sees the ones
+// handed to coordinators, to fix them on their behalf when they're out.
+// Hidden when there's nothing to fix.
 export default function TripsToFixCard() {
   const [trips, setTrips] = useState([]);
   const [opened, setOpened] = useState(null);
@@ -30,6 +32,7 @@ export default function TripsToFixCard() {
   }, []);
 
   if (!trips.length) return null;
+  const othersCount = trips.filter((t) => t.on_behalf).length;
 
   return (
     <section className="rounded-2xl border border-warning/40 bg-warning/5 p-4">
@@ -37,7 +40,9 @@ export default function TripsToFixCard() {
         Trips to fix <span className="ml-1 rounded-full bg-warning/20 px-2 py-0.5 text-xs text-warning">{trips.length}</span>
       </h2>
       <p className="mb-3 text-xs text-fg-muted">
-        Returned by Office and handed to you. Upload the corrected document, then mark it fixed.
+        {othersCount
+          ? "Returned by Office. For a trip handed to a coordinator who's out, you can upload the corrected document and mark it fixed for them. It's recorded as done by you."
+          : "Returned by Office and handed to you. Upload the corrected document, then mark it fixed."}
       </p>
       <ul className="space-y-2">
         {trips.map((t) => (
@@ -52,6 +57,11 @@ export default function TripsToFixCard() {
                   {t.trip_code} · {t.driver_name || "-"}
                 </span>
               </p>
+              {t.on_behalf && (
+                <span className="mt-1 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                  Handed to {t.resolver_name || "a coordinator"}
+                </span>
+              )}
               <p className="mt-1 text-sm text-fg">{t.resolver_note}</p>
               <p className="mt-0.5 text-xs text-fg-subtle">
                 From {t.resolver_assigned_by || "coordinator admin"}
@@ -63,7 +73,7 @@ export default function TripsToFixCard() {
               onClick={() => setOpened(t)}
               className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-hover"
             >
-              Open &amp; fix
+              {t.on_behalf ? "Fix for them" : <>Open &amp; fix</>}
             </button>
           </li>
         ))}
