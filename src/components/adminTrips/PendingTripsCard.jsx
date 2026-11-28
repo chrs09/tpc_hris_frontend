@@ -187,6 +187,14 @@ const PendingTripsCard = ({
   // place -- a single hidden file input reused for every photo slot,
   // triggered per-photo via triggerReplace(fileId).
   const replaceInputRef = useRef(null);
+  // Returned trip -> "Edit instead": jump to the documents, shown as
+  // being edited (the coordinator admin corrects them directly).
+  const docsRef = useRef(null);
+  const [editingDocs, setEditingDocs] = useState(false);
+  const startEditingDocs = () => {
+    setEditingDocs(true);
+    setTimeout(() => docsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
   const [pendingReplaceFileId, setPendingReplaceFileId] = useState(null);
   const [replacingFileId, setReplacingFileId] = useState(null);
 
@@ -321,6 +329,7 @@ const PendingTripsCard = ({
     setSelectedTrip(res.data);
     setRemarks("");
     setRemarksError("");
+    setEditingDocs(false);
     setShowModal(true);
   };
 
@@ -836,7 +845,22 @@ const PendingTripsCard = ({
                   </div>
 
                   {/* ======================= CHECKOUT PHOTOS ======================= */}
-                  <div className="bg-surface-hover p-3 rounded-xl">
+                  {editingDocs && canReplacePhotos && (
+                    <div className="md:col-span-2 rounded-xl border border-primary/40 bg-primary/10 p-3 text-sm">
+                      <p className="font-semibold text-primary">Editing documents</p>
+                      <p className="mt-0.5 text-xs text-fg-muted">
+                        ✏️ replaces a photo · <b>+ Page</b> / <b>Upload</b> adds one · <b>×</b> removes a page.
+                        Office said: {selectedTrip.return_reason || "-"}. When done, add Coordinator Remarks and
+                        approve at the bottom.
+                      </p>
+                    </div>
+                  )}
+                  <div
+                    ref={docsRef}
+                    className={`bg-surface-hover p-3 rounded-xl scroll-mt-4 ${
+                      editingDocs && canReplacePhotos ? "ring-2 ring-primary/50" : ""
+                    }`}
+                  >
                     <p className="text-sm font-semibold text-fg">
                       Checkout Photos
                     </p>
@@ -1374,6 +1398,7 @@ const PendingTripsCard = ({
                       <SendToCoordinatorPanel
                         trip={selectedTrip}
                         canEdit={canEditPage}
+                        onEditInstead={startEditingDocs}
                         onChanged={async () => {
                           const res = await reviewTrip(selectedTrip.trip_id);
                           setSelectedTrip(res.data);

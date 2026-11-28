@@ -11,7 +11,7 @@ import { confirmDialog } from "../ui/dialog/dialogService";
 // the documents below, then approve), hand it to a coordinator to fix,
 // see who has it, or take it back to fix it yourself. Once a coordinator
 // marks it fixed it shows here as Fixed, ready to approve.
-export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
+export default function SendToCoordinatorPanel({ trip, canEdit, onChanged, onEditInstead }) {
   const [coordinators, setCoordinators] = useState([]);
   const [open, setOpen] = useState(false);
   const [coordinatorId, setCoordinatorId] = useState("");
@@ -60,8 +60,9 @@ export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
     try {
       setBusy(true);
       await takeTripBack(trip.trip_id);
-      toast.success("It's yours. Replace or add the documents below, then approve.");
+      toast.success("It's yours. Correct the documents, then approve.");
       await onChanged?.();
+      onEditInstead?.();
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to take it back.");
     } finally {
@@ -104,12 +105,6 @@ export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
           {trip.resolved_note && <p className="mt-1 whitespace-pre-wrap text-fg">{trip.resolved_note}</p>}
           <p className="mt-1 text-xs text-fg-muted">Check the documents below, then approve to send it to Office.</p>
         </div>
-      )}
-      {canEdit && trip.fix_status !== "fixed" && !open && (
-        <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-xs text-fg">
-          <b>Fix it yourself:</b> replace or add the Invoice, LM, stamped or POD photos below, then click{" "}
-          <b>Approve &amp; Send to Office Review</b>. Or send it to a coordinator to fix.
-        </p>
       )}
       {canEdit &&
         (open ? (
@@ -163,13 +158,29 @@ export default function SendToCoordinatorPanel({ trip, canEdit, onChanged }) {
             </div>
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="rounded-lg border border-warning/60 px-3 py-1.5 text-xs font-semibold text-warning hover:bg-warning/10"
-          >
-            {trip.fix_status === "fixed" ? "Send to a coordinator again" : "Send to coordinator to fix"}
-          </button>
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-fg-muted">How do you want to correct it?</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="rounded-lg border border-warning/60 bg-surface px-3 py-2 text-left text-xs hover:bg-warning/10"
+              >
+                <span className="block text-sm font-semibold text-warning">
+                  {trip.fix_status === "fixed" ? "Return to coordinator again" : "Return to coordinator"}
+                </span>
+                <span className="text-fg-muted">They get the corrected document and mark it fixed.</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onEditInstead?.()}
+                className="rounded-lg border border-primary/60 bg-surface px-3 py-2 text-left text-xs hover:bg-primary/10"
+              >
+                <span className="block text-sm font-semibold text-primary">Edit instead</span>
+                <span className="text-fg-muted">Correct the documents yourself, then approve. No need to return it.</span>
+              </button>
+            </div>
+          </div>
         ))}
     </div>
   );
