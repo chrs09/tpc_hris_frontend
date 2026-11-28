@@ -24,6 +24,11 @@ export const returnIncentiveReport = async (id, note) =>
 export const releaseIncentiveReport = async (id, method, reference) =>
   (await api.post(`/incentive-reports/${id}/release`, { method, reference })).data;
 
+// Before generating: the rows the report would have and every trip in the
+// period (counted or not, with the reason).
+export const previewIncentiveProgram = async (programId) =>
+  (await api.get(`/incentive-reports/programs/${programId}/preview`)).data;
+
 export const generateReportNow = async (programId) =>
   (await api.post(`/incentive-reports/programs/${programId}/generate`)).data;
 

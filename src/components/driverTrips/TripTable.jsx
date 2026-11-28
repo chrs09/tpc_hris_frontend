@@ -1,119 +1,132 @@
-import React from "react";
 import usePagination from "../../hooks/usePagination";
 import Pagination from "../ui/pagination/Pagination";
+import StatusPill from "../ui/statusPill/StatusPill";
+import { TABLE_HEAD, TABLE_ROW, TABLE_WRAP } from "../ui/table/tableStyles";
+import { dateOnly, statusOf } from "./tripDisplay";
 
-const calculateDuration = (start, end) => {
-  if (!start || !end) return "-";
-
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-
-  const diffMs = endDate - startDate;
-
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  return `${hours}h ${minutes}m`;
-};
-
-const TripTable = ({ trips = [], title }) => {
-  const { page, setPage, totalPages, paginatedItems: paginatedTrips } =
-    usePagination(trips, 2);
+// Driver Trip Management: one list of the driver's trips. Dates only (the
+// time is still saved); no duration.
+const TripTable = ({ trips = [], title, subtitle, emptyText = "No trips here." }) => {
+  const { page, setPage, totalPages, paginatedItems } = usePagination(trips, 10);
 
   return (
-    <div className="mb-10">
-      <h2 className="text-lg font-semibold mb-4 text-fg">{title}</h2>
-
-      {/* ================= DESKTOP TABLE ================= */}
-      <div className="hidden md:block overflow-hidden rounded-xl border border-border">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-hover text-fg-muted">
-            <tr>
-              <th className="p-3 text-left font-medium">Trip Code</th>
-              <th className="p-3 text-left font-medium">Ticket</th>
-              <th className="p-3 text-left font-medium">Start</th>
-              <th className="p-3 text-left font-medium">End</th>
-              <th className="p-3 text-left font-medium">Duration</th>
-              <th className="p-3 text-left font-medium">Status</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginatedTrips.map((trip) => (
-              <tr key={trip.id} className="border-t border-border bg-surface">
-                <td className="p-3 text-fg">{trip.trip_code || "-"}</td>
-                <td className="p-3 text-fg">{trip.ticket_no}</td>
-                <td className="p-3 text-fg">{trip.start_time}</td>
-                <td className="p-3 text-fg">{trip.end_time || "-"}</td>
-                <td className="p-3 text-fg">
-                  {calculateDuration(trip.start_time, trip.end_time)}
-                </td>
-                <td className="p-3">
-                  <span
-                    className={`px-3 py-1 text-xs rounded-full font-semibold
-                        ${
-                          trip.status === "COMPLETED"
-                            ? "bg-success/15 text-success"
-                            : "bg-warning/15 text-warning"
-                        }`}
-                  >
-                    {trip.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold text-fg">
+            {title}
+            <span className="ml-2 rounded-full bg-surface-active px-2 py-0.5 text-xs font-semibold text-fg-muted">
+              {trips.length}
+            </span>
+          </h2>
+          {subtitle && <p className="text-xs text-fg-subtle">{subtitle}</p>}
+        </div>
       </div>
 
-      {/* ================= MOBILE CARDS ================= */}
-      <div className="md:hidden flex flex-col gap-3">
-        {paginatedTrips.map((trip) => (
-          <div
-            key={trip.id}
-            className="bg-surface border border-border text-fg rounded-xl p-4 shadow-sm"
-          >
-            <div className="text-sm mb-2">
-              <span className="text-fg-muted">Trip Code</span>
-              <div className="font-semibold">{trip.trip_code || "-"}</div>
-            </div>
-
-            <div className="text-sm mb-2">
-              <span className="text-fg-muted">Ticket</span>
-              <div className="font-semibold">{trip.ticket_no}</div>
-            </div>
-
-            <div className="flex justify-between text-sm mb-2">
-              <div>
-                <span className="text-fg-muted block">Start</span>
-                {trip.start_time}
-              </div>
-
-              <div>
-                <span className="text-fg-muted block">End</span>
-                {trip.end_time || "-"}
-              </div>
-            </div>
-
-            <div className="text-right">
-              <span
-                className={`px-3 py-1 text-xs rounded-full font-semibold
-                    ${
-                      trip.status === "COMPLETED"
-                        ? "bg-success/15 text-success"
-                        : "bg-warning/15 text-warning"
-                    }`}
-              >
-                {trip.status}
-              </span>
-            </div>
+      {trips.length === 0 ? (
+        <p className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-fg-subtle">
+          {emptyText}
+        </p>
+      ) : (
+        <>
+          {/* Desktop */}
+          <div className={`hidden md:block ${TABLE_WRAP}`}>
+            <table className="w-full text-sm">
+              <thead className={TABLE_HEAD}>
+                <tr>
+                  <th className="px-4 py-3 text-left">Trip</th>
+                  <th className="px-4 py-3 text-left">Deliver to</th>
+                  <th className="px-4 py-3 text-left">Vehicle</th>
+                  <th className="px-4 py-3 text-left">Helpers</th>
+                  <th className="px-4 py-3 text-left">Started</th>
+                  <th className="px-4 py-3 text-left">Finished</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedItems.map((trip) => {
+                  const st = statusOf(trip.status);
+                  return (
+                    <tr key={trip.id} className={`${TABLE_ROW} align-top`}>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-fg">{trip.ticket_no || "-"}</p>
+                        <p className="text-xs text-fg-subtle">
+                          {trip.trip_code || "-"}
+                          {trip.trip_profile ? ` · ${trip.trip_profile}` : ""}
+                        </p>
+                        {trip.my_role && trip.my_role !== "driver" && (
+                          <span className="mt-1 inline-block rounded bg-primary/10 px-1.5 text-[10px] font-semibold capitalize text-primary">
+                            {String(trip.my_role).replace("_", " ")}
+                          </span>
+                        )}
+                      </td>
+                      <td className="max-w-[16rem] px-4 py-3 text-fg-muted">
+                        {(trip.stores || []).length ? trip.stores.join(", ") : "-"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-fg-muted">{trip.vehicle || "-"}</td>
+                      <td className="px-4 py-3 text-xs text-fg-muted">
+                        {(trip.helpers || []).length
+                          ? trip.helpers.map((h) => h.name).join(", ")
+                          : "No helper"}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-fg">{dateOnly(trip.start_time) || "-"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-fg">{dateOnly(trip.end_time) || "-"}</td>
+                      <td className="px-4 py-3">
+                        <StatusPill tone={st.tone}>{st.label}</StatusPill>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
 
-      {/* ================= PAGINATION ================= */}
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-    </div>
+          {/* Phone */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {paginatedItems.map((trip) => {
+              const st = statusOf(trip.status);
+              return (
+                <div key={trip.id} className="rounded-2xl border border-border bg-surface p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-fg">{trip.ticket_no || "-"}</p>
+                      <p className="text-xs text-fg-subtle">
+                        {trip.trip_code || "-"}
+                        {trip.trip_profile ? ` · ${trip.trip_profile}` : ""}
+                      </p>
+                    </div>
+                    <StatusPill tone={st.tone}>{st.label}</StatusPill>
+                  </div>
+                  {(trip.stores || []).length > 0 && (
+                    <p className="mt-2 text-sm text-fg-muted">{trip.stores.join(", ")}</p>
+                  )}
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 text-sm">
+                    <div>
+                      <span className="block text-xs text-fg-subtle">Started</span>
+                      {dateOnly(trip.start_time) || "-"}
+                    </div>
+                    <div>
+                      <span className="block text-xs text-fg-subtle">Finished</span>
+                      {dateOnly(trip.end_time) || "-"}
+                    </div>
+                    <div>
+                      <span className="block text-xs text-fg-subtle">Vehicle</span>
+                      {trip.vehicle || "-"}
+                    </div>
+                    <div>
+                      <span className="block text-xs text-fg-subtle">Helpers</span>
+                      {(trip.helpers || []).length ? trip.helpers.map((h) => h.name).join(", ") : "No helper"}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+        </>
+      )}
+    </section>
   );
 };
 

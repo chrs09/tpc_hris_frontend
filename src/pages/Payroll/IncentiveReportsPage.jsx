@@ -17,6 +17,7 @@ import {
   releaseIncentiveReport,
   returnIncentiveReport,
 } from "../../api/payroll/incentiveReports";
+import IncentivePreviewModal from "../../components/incentives/IncentivePreviewModal";
 
 // Payroll -> Incentive Reports. Each program with a release date gets a
 // report at 4 AM on that date (retried every 30 min). Rows are approved,
@@ -79,6 +80,8 @@ export default function IncentiveReportsPage() {
 function ReportList({ onOpen }) {
   const [data, setData] = useState(null);
   const [making, setMaking] = useState(null);
+  // { programId, name, reportId? } -- preview before generate / regenerate.
+  const [previewing, setPreviewing] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -106,6 +109,16 @@ function ReportList({ onOpen }) {
     }
   };
 
+  const remake = async (reportId) => {
+    try {
+      const res = await regenerateIncentiveReport(reportId);
+      toast.success(res.message);
+      onOpen(res.id);
+    } catch (error) {
+      toast.error(errorText(error, "Couldn't make the report again."));
+    }
+  };
+
   return (
     <>
       <div>
@@ -130,8 +143,13 @@ function ReportList({ onOpen }) {
                   </p>
                 </div>
                 {data.can?.approve && (
-                  <button type="button" className={btnOutline} disabled={making === p.id} onClick={() => makeNow(p)}>
-                    <RefreshCw size={14} /> {making === p.id ? "Making..." : "Make report now"}
+                  <button
+                    type="button"
+                    className={btnOutline}
+                    disabled={making === p.id}
+                    onClick={() => setPreviewing({ programId: p.id, name: p.name })}
+                  >
+                    <RefreshCw size={14} /> {making === p.id ? "Making..." : "Generate report"}
                   </button>
                 )}
               </div>
@@ -157,6 +175,7 @@ function ReportList({ onOpen }) {
                 <th className="px-4 py-3 text-left">Rows</th>
                 <th className="px-4 py-3 text-right">Total</th>
                 <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -184,11 +203,46 @@ function ReportList({ onOpen }) {
                   <td className="px-4 py-3">
                     <StatusPill tone={STATUS[r.status]?.tone}>{STATUS[r.status]?.label || r.status}</StatusPill>
                   </td>
+                  <td className="px-4 py-3 text-right">
+                    {r.status === "FOR_REVIEW" && data.can?.approve && (
+                      <button
+                        type="button"
+                        disabled={r.counts.approved + r.counts.rejected > 0}
+                        title={
+                          r.counts.approved + r.counts.rejected > 0
+                            ? "Some rows are already decided. Undo them first."
+                            : "See the trips, then make the report again"
+                        }
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewing({ programId: r.program_id, name: r.program_name, reportId: r.id });
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-fg hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <RefreshCw size={12} /> Regenerate
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {previewing && (
+        <IncentivePreviewModal
+          programId={previewing.programId}
+          title={previewing.reportId ? "Regenerate report" : "Generate report"}
+          confirmLabel={previewing.reportId ? "Regenerate report" : "Generate report"}
+          onClose={() => setPreviewing(null)}
+          onConfirm={async () => {
+            const target = previewing;
+            setPreviewing(null);
+            if (target.reportId) await remake(target.reportId);
+            else await makeNow({ id: target.programId });
+          }}
+        />
       )}
 
       {data?.upcoming?.length > 0 && (
@@ -215,6 +269,7 @@ function ReportDetail({ id, onBack, onOpen }) {
   const [report, setReport] = useState(null);
   const [busy, setBusy] = useState(false);
   const [releaseForm, setReleaseForm] = useState(null); // { method, reference }
+  const [previewOpen, setPreviewOpen] = useState(false); // true = regenerate, "view" = look only
   const [editing, setEditing] = useState(null); // { lineId, mode: "reject"|"edit", amount, reason }
 
   const load = useCallback(async () => {
@@ -275,7 +330,7 @@ function ReportDetail({ id, onBack, onOpen }) {
   const inReview = report.status === "FOR_REVIEW";
   const canDecide = inReview && can.approve;
   const pending = report.counts.pending;
-  const allPending = report.lines.length > 0 && pending === report.lines.length;
+  const decided = report.counts.approved + report.counts.rejected;
   const multiDay = days.length > 1;
 
   const doConfirm = async () => {
@@ -294,7 +349,6 @@ function ReportDetail({ id, onBack, onOpen }) {
     if (res) setReleaseForm(null);
   };
   const doRegenerate = async () => {
-    if (!(await confirmDialog("Make this report again from the trips as they are now?"))) return;
     const res = await run(() => regenerateIncentiveReport(report.id));
     if (res?.id && res.id !== report.id) onOpen(res.id);
   };
@@ -488,9 +542,20 @@ function ReportDetail({ id, onBack, onOpen }) {
             <Check size={14} /> Approve all pending ({pending})
           </button>
         )}
-        {canDecide && allPending && (
-          <button type="button" className={btnOutline} disabled={busy} onClick={doRegenerate}>
-            <RefreshCw size={14} /> Make again
+        {canDecide && (
+          <button
+            type="button"
+            className={btnOutline}
+            disabled={busy || decided > 0}
+            title={decided > 0 ? "Some rows are already decided. Undo them first." : undefined}
+            onClick={() => setPreviewOpen(true)}
+          >
+            <RefreshCw size={14} /> Regenerate
+          </button>
+        )}
+        {!canDecide && (
+          <button type="button" className={btnOutline} onClick={() => setPreviewOpen("view")}>
+            See trips
           </button>
         )}
         {inReview && can.confirm && (
@@ -520,6 +585,20 @@ function ReportDetail({ id, onBack, onOpen }) {
           </button>
         )}
       </div>
+
+      {previewOpen && (
+        <IncentivePreviewModal
+          programId={report.program_id}
+          title={previewOpen === "view" ? "Trips in this program now" : "Regenerate report"}
+          confirmLabel={previewOpen === "view" ? "Close" : "Regenerate report"}
+          onClose={() => setPreviewOpen(false)}
+          onConfirm={async () => {
+            const mode = previewOpen;
+            setPreviewOpen(false);
+            if (mode !== "view") await doRegenerate();
+          }}
+        />
+      )}
 
       {releaseForm && (
         <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4">
