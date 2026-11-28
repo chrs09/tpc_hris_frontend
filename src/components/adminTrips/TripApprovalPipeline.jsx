@@ -9,7 +9,7 @@ import SearchInput from "../ui/searchInput/SearchInput";
 import ViewModeSwitch from "../ui/viewModeSwitch/ViewModeSwitch";
 import Pagination from "../ui/pagination/Pagination";
 import { TABLE_HEAD, TABLE_ROW } from "../ui/table/tableStyles";
-import { HelpersCell } from "./TripHelpers";
+import { EditHelpersModal, HelpersCell } from "./TripHelpers";
 import Pill from "../ui/statusPill/StatusPill";
 
 const PAGE_SIZES = [10, 20, 50, 100];
@@ -118,6 +118,9 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
   // page 1 (they have no approval chain, so they aren't server-paged).
   const [manualRides, setManualRides] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Trip approvers: add a forgotten helper on a finished trip.
+  const [canEditHelpers, setCanEditHelpers] = useState(false);
+  const [editingHelpers, setEditingHelpers] = useState(null);
 
   // Search a moment after typing stops, starting again from page 1.
   useEffect(() => {
@@ -156,6 +159,7 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
         status || truckTypeId ? Promise.resolve([]) : getRouteRides().catch(() => []),
       ]);
       setData(res.data);
+      setCanEditHelpers(Boolean(res.data?.can_edit_helpers));
       setManualRides(
         rides
           .filter(
@@ -307,7 +311,11 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <HelpersCell trip={trip} />
+                      <HelpersCell
+                        trip={trip}
+                        canEdit={canEditHelpers && !trip.is_route_ride_manual && trip.status !== "CANCELLED"}
+                        onEdit={setEditingHelpers}
+                      />
                     </td>
                     <td className="px-4 py-3 text-fg-muted">
                       <div>{trip.start_time || "-"}</div>
@@ -418,7 +426,16 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
                 </p>
                 <CancelNote trip={trip} />
                 {!trip.is_route_ride_manual && (
-                  <div className="mt-3 flex justify-end">
+                  <div className="mt-3 flex justify-end gap-2">
+                    {canEditHelpers && trip.status !== "CANCELLED" && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingHelpers(trip)}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-fg hover:bg-surface-hover"
+                      >
+                        {trip.helpers?.length ? "Edit helpers" : "Add helper"}
+                      </button>
+                    )}
                     <ViewButton trip={trip} onView={setViewingTrip} />
                   </div>
                 )}
@@ -437,6 +454,15 @@ const TripApprovalPipeline = ({ refreshKey = 0, phoneView = "cards", onPhoneView
           </p>
           <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         </>
+      )}
+
+      {editingHelpers && (
+        <EditHelpersModal
+          trip={editingHelpers}
+          finished
+          onClose={() => setEditingHelpers(null)}
+          onSaved={load}
+        />
       )}
 
       {viewingTrip && (

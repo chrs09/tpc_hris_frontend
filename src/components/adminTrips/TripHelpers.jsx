@@ -44,7 +44,9 @@ export function HelpersCell({ trip, canEdit = false, onEdit }) {
   );
 }
 
-export function EditHelpersModal({ trip, onClose, onSaved }) {
+// finished: a trip that's already done (Trip Approval Status) -- helpers
+// out on other trips now are still pickable, it's about the past.
+export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
   const current = trip.helpers || [];
   const [driverAsHelper, setDriverAsHelper] = useState(current.some((h) => h.is_driver));
   const [options, setOptions] = useState([]);
@@ -61,7 +63,7 @@ export function EditHelpersModal({ trip, onClose, onSaved }) {
         if (!alive) return;
         // This trip's own helpers stay pickable (they're busy on it).
         const merged = [...(list || [])].map((o) =>
-          current.some((c) => c.id === o.id) ? { ...o, busy_trip: null } : o,
+          finished || current.some((c) => c.id === o.id) ? { ...o, busy_trip: null } : o,
         );
         current.forEach((c) => {
           if (!merged.some((m) => m.id === c.id)) {
@@ -189,6 +191,14 @@ export function EditHelpersModal({ trip, onClose, onSaved }) {
                 );
               })}
             </div>
+          )}
+
+          {finished && (
+            <p className="rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs text-fg-muted">
+              This trip is finished. Added helpers get paid for it on the trip&apos;s date (if they have
+              attendance that day). A pay run already generated needs <b>Edit &amp; regenerate</b>. Locked
+              payrolls can&apos;t be changed.
+            </p>
           )}
 
           <div>
