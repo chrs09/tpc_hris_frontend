@@ -48,22 +48,27 @@ export function HelpersCell({ trip, canEdit = false, onEdit }) {
 // out on other trips now are still pickable, it's about the past.
 export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
   const current = trip.helpers || [];
-  const [driverAsHelper, setDriverAsHelper] = useState(current.some((h) => h.is_driver));
+  const [driverAsHelper, setDriverAsHelper] = useState(
+    current.some((h) => h.is_driver),
+  );
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(current.map((h) => h.id));
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
+  const [find, setFind] = useState("");
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    getAvailableHelpers(trip.driver_id, driverAsHelper)
+    getAvailableHelpers(trip.driver_id, driverAsHelper, finished)
       .then((list) => {
         if (!alive) return;
         // This trip's own helpers stay pickable (they're busy on it).
         const merged = [...(list || [])].map((o) =>
-          finished || current.some((c) => c.id === o.id) ? { ...o, busy_trip: null } : o,
+          finished || current.some((c) => c.id === o.id)
+            ? { ...o, busy_trip: null }
+            : o,
         );
         current.forEach((c) => {
           if (!merged.some((m) => m.id === c.id)) {
@@ -77,7 +82,17 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
         });
         setOptions(merged);
       })
-      .catch(() => alive && setOptions(current.map((c) => ({ id: c.id, first_name: c.name, last_name: "" }))))
+      .catch(
+        () =>
+          alive &&
+          setOptions(
+            current.map((c) => ({
+              id: c.id,
+              first_name: c.name,
+              last_name: "",
+            })),
+          ),
+      )
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -87,7 +102,11 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
 
   const toggle = (id) =>
     setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 3 ? prev : [...prev, id],
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length >= 3
+          ? prev
+          : [...prev, id],
     );
 
   const save = async () => {
@@ -98,14 +117,17 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
       await onSaved?.();
       onClose();
     } catch (error) {
-      toast.error(error?.response?.data?.detail || "Couldn't update the helpers.");
+      toast.error(
+        error?.response?.data?.detail || "Couldn't update the helpers.",
+      );
     } finally {
       setSaving(false);
     }
   };
 
   const unchanged =
-    selected.length === current.length && selected.every((id) => current.some((c) => c.id === id));
+    selected.length === current.length &&
+    selected.every((id) => current.some((c) => c.id === id));
 
   return (
     <div
@@ -121,7 +143,8 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
             <div>
               <h3 className="text-base font-semibold">Edit Helpers</h3>
               <p className="text-xs text-fg-subtle">
-                {trip.trip_code || "Trip"} · {trip.driver_name || trip.username || "driver"} · up to 3
+                {trip.trip_code || "Trip"} ·{" "}
+                {trip.driver_name || trip.username || "driver"} · up to 3
               </p>
             </div>
           </div>
@@ -151,6 +174,16 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
             </label>
           </div>
 
+          {options.length > 8 && (
+            <input
+              id="edit-helpers-find"
+              value={find}
+              onChange={(e) => setFind(e.target.value)}
+              placeholder="Search a helper..."
+              className="h-9 w-full rounded-xl border border-border bg-surface px-3 text-sm text-fg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          )}
+
           {loading ? (
             <p className="text-sm text-fg-subtle">Loading helpers...</p>
           ) : options.length === 0 ? (
@@ -159,50 +192,64 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {options.map((o) => {
-                const on = selected.includes(o.id);
-                const disabled = !on && (selected.length >= 3 || Boolean(o.busy_trip));
-                return (
-                  <label
-                    key={o.id}
-                    title={o.busy_trip ? `Out on ${o.busy_trip}` : undefined}
-                    className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition ${
-                      on ? "border-primary bg-primary/10" : "border-border"
-                    } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      disabled={disabled}
-                      onChange={() => toggle(o.id)}
-                      className="h-4 w-4 accent-primary"
-                    />
-                    <span className="min-w-0">
-                      <span className="block truncate">
-                        {o.first_name} {o.last_name}
-                      </span>
-                      {o.is_driver && (
-                        <span className="block text-[11px] text-primary">
-                          Driver{o.busy_trip ? `, on ${o.busy_trip}` : ""}
+              {options
+                .filter(
+                  (o) =>
+                    !find.trim() ||
+                    selected.includes(o.id) ||
+                    `${o.first_name} ${o.last_name}`
+                      .toLowerCase()
+                      .includes(find.trim().toLowerCase()),
+                )
+                .map((o) => {
+                  const on = selected.includes(o.id);
+                  const disabled =
+                    !on && (selected.length >= 3 || Boolean(o.busy_trip));
+                  return (
+                    <label
+                      key={o.id}
+                      title={o.busy_trip ? `Out on ${o.busy_trip}` : undefined}
+                      className={`flex items-center gap-2 rounded-xl border p-3 text-sm transition ${
+                        on ? "border-primary bg-primary/10" : "border-border"
+                      } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-surface-hover"}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        disabled={disabled}
+                        onChange={() => toggle(o.id)}
+                        className="h-4 w-4 accent-primary"
+                      />
+                      <span className="min-w-0">
+                        <span className="block truncate">
+                          {o.first_name} {o.last_name}
                         </span>
-                      )}
-                    </span>
-                  </label>
-                );
-              })}
+                        {o.is_driver && (
+                          <span className="block text-[11px] text-primary">
+                            Driver{o.busy_trip ? `, on ${o.busy_trip}` : ""}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  );
+                })}
             </div>
           )}
 
           {finished && (
             <p className="rounded-xl border border-warning/30 bg-warning/10 p-3 text-xs text-fg-muted">
-              This trip is finished. Added helpers get paid for it on the trip&apos;s date (if they have
-              attendance that day). A pay run already generated needs <b>Edit &amp; regenerate</b>. Locked
+              This trip is finished. Added helpers get paid for it on the
+              trip&apos;s date (if they have attendance that day). A pay run
+              already generated needs <b>Edit &amp; regenerate</b>. Locked
               payrolls can&apos;t be changed.
             </p>
           )}
 
           <div>
-            <label htmlFor="edit-helpers-reason" className="mb-1 block text-sm font-medium">
+            <label
+              htmlFor="edit-helpers-reason"
+              className="mb-1 block text-sm font-medium"
+            >
               Reason (optional)
             </label>
             <input
@@ -212,7 +259,9 @@ export function EditHelpersModal({ trip, onClose, onSaved, finished = false }) {
               placeholder="e.g. Wrong helper picked at dispatch"
               className="h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-fg focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
-            <p className="mt-1 text-[11px] text-fg-subtle">Saved in the trip's change log with who changed it.</p>
+            <p className="mt-1 text-[11px] text-fg-subtle">
+              Saved in the trip's change log with who changed it.
+            </p>
           </div>
         </div>
 
@@ -261,7 +310,9 @@ export function TripSourceBadge({ source, bypassedSteps = [] }) {
     >
       {meta.label}
       {source === "bypass" && bypassedSteps.length > 0 && (
-        <span className="font-normal opacity-80">· {bypassedSteps.join(", ")}</span>
+        <span className="font-normal opacity-80">
+          · {bypassedSteps.join(", ")}
+        </span>
       )}
     </span>
   );

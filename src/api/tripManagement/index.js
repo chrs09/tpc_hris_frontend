@@ -48,11 +48,13 @@ export const getAvailableVehicleUnits = async () => {
 // ========================================
 // includeDrivers: dispatch's "Driver as Helper" switch (rare) -- drivers
 // are added to the list, tagged, with busy_trip set when out on a trip.
-export const getAvailableHelpers = async (driverId, includeDrivers = false) => {
+// includeBusy: everyone, even helpers out on a trip now (finished trips).
+export const getAvailableHelpers = async (driverId, includeDrivers = false, includeBusy = false) => {
   try {
     const query = new URLSearchParams();
     if (driverId) query.append("driver_id", driverId);
     if (includeDrivers) query.append("include_drivers", "true");
+    if (includeBusy) query.append("include_busy", "true");
     const params = query.toString() ? `?${query.toString()}` : "";
     const response = await api.get(`/driver/trips/available-helpers${params}`);
     return response.data;
