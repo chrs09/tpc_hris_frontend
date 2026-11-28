@@ -7,6 +7,8 @@ import SearchSelect from "../../components/SearchSelect";
 import { getStores } from "../../api/adminTripManagement/stores";
 import { FindTripCategoryModal } from "../../components/adminTrips/TripCategoryModals";
 import { canChangeTripCategory } from "../../api/adminTripManagement/tripCategory";
+import { FindTripDateModal } from "../../components/adminTrips/TripDateModals";
+import { canChangeTripDate } from "../../api/adminTripManagement/tripDate";
 import {
   approveTripCorrection,
   cancelTripCorrection,
@@ -55,8 +57,11 @@ export default function TripCorrections() {
   const [creating, setCreating] = useState(false);
   const [canChangeCategory, setCanChangeCategory] = useState(false);
   const [changingCategory, setChangingCategory] = useState(false);
+  const [canChangeDate, setCanChangeDate] = useState(false);
+  const [changingDate, setChangingDate] = useState(false);
   useEffect(() => {
     canChangeTripCategory().then(setCanChangeCategory).catch(() => setCanChangeCategory(false));
+    canChangeTripDate().then(setCanChangeDate).catch(() => setCanChangeDate(false));
   }, []);
 
   useEffect(() => {
@@ -137,6 +142,16 @@ export default function TripCorrections() {
               Change Category
             </button>
           )}
+          {canChangeDate && (
+            <button
+              type="button"
+              onClick={() => setChangingDate(true)}
+              title="Superadmin: move a trip encoded on the wrong day or in the wrong order"
+              className="rounded-xl border border-primary px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/10"
+            >
+              Change Date
+            </button>
+          )}
           {data?.can_request && (
             <button
               type="button"
@@ -170,6 +185,7 @@ export default function TripCorrections() {
       )}
 
       {changingCategory && <FindTripCategoryModal onClose={() => setChangingCategory(false)} />}
+      {changingDate && <FindTripDateModal onClose={() => setChangingDate(false)} />}
 
       {creating && (
         <NewCorrectionModal

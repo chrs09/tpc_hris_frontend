@@ -6,6 +6,8 @@ import { TripSourceBadge } from "./TripHelpers";
 import AddDocButton from "./AddDocButton";
 import { ChangeTripCategoryModal } from "./TripCategoryModals";
 import { canChangeTripCategory } from "../../api/adminTripManagement/tripCategory";
+import { ChangeTripDateModal } from "./TripDateModals";
+import { canChangeTripDate } from "../../api/adminTripManagement/tripDate";
 
 // Trip Dashboard -> Trip Approval Status -> View: one trip's details at any
 // status, read-only -- helpers, Invoice / LM pages, stops and their photos,
@@ -203,9 +205,13 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
   // Superadmin / Finance: change the trip's category (payroll not locked).
   const [canChangeCategory, setCanChangeCategory] = useState(false);
   const [changingCategory, setChangingCategory] = useState(false);
+  // Superadmin: move a trip encoded on the wrong day / order.
+  const [canChangeDate, setCanChangeDate] = useState(false);
+  const [changingDate, setChangingDate] = useState(false);
   useEffect(() => {
     if (fixMode) return;
     canChangeTripCategory().then(setCanChangeCategory).catch(() => setCanChangeCategory(false));
+    canChangeTripDate().then(setCanChangeDate).catch(() => setCanChangeDate(false));
   }, [fixMode]);
   const [failed, setFailed] = useState(false);
   // Fix mode: how many documents were added, the note, saving.
@@ -408,7 +414,32 @@ export default function TripDetailsModal({ trip, onClose, fixMode = false, onFix
                   )}
                 </Detail>
                 <Detail label="Origin">{details.origin_store}</Detail>
-                <Detail label="Started">{details.start_time}</Detail>
+                <Detail label="Started">
+                  <span className="inline-flex items-center gap-1.5">
+                    {details.start_time || "-"}
+                    {canChangeDate && (
+                      <button
+                        type="button"
+                        onClick={() => setChangingDate(true)}
+                        title="Change trip date"
+                        aria-label="Change trip date"
+                        className="rounded p-0.5 text-fg-subtle hover:bg-surface-hover hover:text-primary"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                  </span>
+                  {changingDate && (
+                    <ChangeTripDateModal
+                      trip={{ id: trip.id, trip_code: details.trip_code || trip.trip_code, ticket_no: details.ticket_no }}
+                      onClose={() => setChangingDate(false)}
+                      onSaved={async () => {
+                        await reload();
+                        onUpdated?.();
+                      }}
+                    />
+                  )}
+                </Detail>
                 <Detail label="Finished">{details.end_time}</Detail>
               </div>
 
