@@ -1,6 +1,17 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { fileTimeCorrection, uploadTimeCorrectionPhotos } from "../../api/attendance/requests";
+import {
+  fileTimeCorrection,
+  getMyRecordedDay,
+  uploadTimeCorrectionPhotos,
+} from "../../api/attendance/requests";
+
+// "14:05" -> "2:05 PM".
+const to12h = (hhmm) => {
+  if (!hhmm) return null;
+  const [h, m] = hhmm.split(":").map(Number);
+  return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
+};
 
 const inputClass =
   "w-full rounded-xl border border-border bg-background p-3 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -62,6 +73,31 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
   const [timeInPhoto, setTimeInPhoto] = useState(null);
   const [timeOutPhoto, setTimeOutPhoto] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  // What the attendance shows for the picked day (filled in below).
+  const [recorded, setRecorded] = useState(null);
+  const [loadingDay, setLoadingDay] = useState(false);
+
+  useEffect(() => {
+    if (!day) return undefined;
+    let alive = true;
+    setLoadingDay(true);
+    getMyRecordedDay(day)
+      .then((rec) => {
+        if (!alive) return;
+        setRecorded(rec || { has_record: false });
+        setTimeIn(rec?.time_in_hhmm || "");
+        setTimeOut(rec?.time_out_hhmm || "");
+      })
+      .catch(() => alive && setRecorded(null))
+      .finally(() => alive && setLoadingDay(false));
+    return () => {
+      alive = false;
+    };
+  }, [day]);
+
+  // Only what's different from the record is sent.
+  const inChanged = Boolean(timeIn) && timeIn !== (recorded?.time_in_hhmm || "");
+  const outChanged = Boolean(timeOut) && timeOut !== (recorded?.time_out_hhmm || "");
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -69,19 +105,19 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
       toast.error("Pick the day and give the reason.");
       return;
     }
-    if (!timeIn && !timeOut) {
-      toast.error("Enter the time in, the time out, or both.");
+    if (!inChanged && !outChanged) {
+      toast.error("Change the time in, the time out, or both.");
       return;
     }
     // Same day: a time later than now hasn't happened yet (the server
     // rejects it too -- this just says so before sending).
     if (day === todayPH()) {
       const now = nowPH();
-      if (timeIn && timeIn > now) {
+      if (inChanged && timeIn > now) {
         toast.error("That time in hasn't happened yet.");
         return;
       }
-      if (timeOut && timeOut > now && (!timeIn || timeOut > timeIn)) {
+      if (outChanged && timeOut > now && (!timeIn || timeOut > timeIn)) {
         toast.error(
           "That time out hasn't happened yet. Leave Time out blank -- time out as usual, or file it after.",
         );
@@ -92,8 +128,8 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
       setSubmitting(true);
       const filed = await fileTimeCorrection({
         attendance_date: day,
-        time_in: timeIn || undefined,
-        time_out: timeOut || undefined,
+        time_in: inChanged ? timeIn : undefined,
+        time_out: outChanged ? timeOut : undefined,
         reason: reason.trim(),
       });
       if (filed?.id && (timeInPhoto || timeOutPhoto)) {
@@ -153,6 +189,21 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
               required
             />
           </div>
+          {day && (
+            <div className="rounded-xl border border-border bg-surface-hover px-3 py-2 text-xs">
+              {loadingDay ? (
+                <span className="text-fg-subtle">Checking your attendance...</span>
+              ) : recorded?.has_record ? (
+                <span className="text-fg-muted">
+                  Recorded: <b className="text-fg">In {recorded.time_in || "none"}</b> ·{" "}
+                  <b className="text-fg">Out {recorded.time_out || "none"}</b>
+                  {recorded.status ? ` · ${recorded.status}` : ""}. Change only what&apos;s wrong.
+                </span>
+              ) : (
+                <span className="text-fg-muted">No attendance recorded on this day.</span>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-fg-muted">Time in</label>
@@ -160,8 +211,13 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
                 type="time"
                 value={timeIn}
                 onChange={(e) => setTimeIn(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} ${inChanged ? "border-primary ring-1 ring-primary/30" : ""}`}
               />
+              {inChanged && (
+                <p className="mt-1 text-[11px] font-semibold text-primary">
+                  {recorded?.time_in || "none"} → {to12h(timeIn)}
+                </p>
+              )}
               <PhotoPicker label="Time in photo" file={timeInPhoto} onChange={setTimeInPhoto} />
             </div>
             <div>
@@ -170,14 +226,19 @@ export default function TimeCorrectionModal({ date = "", onClose, onFiled }) {
                 type="time"
                 value={timeOut}
                 onChange={(e) => setTimeOut(e.target.value)}
-                className={inputClass}
+                className={`${inputClass} ${outChanged ? "border-primary ring-1 ring-primary/30" : ""}`}
               />
+              {outChanged && (
+                <p className="mt-1 text-[11px] font-semibold text-primary">
+                  {recorded?.time_out || "none"} → {to12h(timeOut)}
+                </p>
+              )}
               <PhotoPicker label="Time out photo" file={timeOutPhoto} onChange={setTimeOutPhoto} />
             </div>
           </div>
           <p className="-mt-2 text-[11px] text-fg-subtle">
-            Leave one blank to keep what&apos;s recorded. A time out earlier than the time in
-            counts as the next morning.
+            The recorded times are filled in. Change only the one that&apos;s wrong. A time out
+            earlier than the time in counts as the next morning.
           </p>
           {day === todayPH() && (
             <p className="-mt-2 rounded-lg bg-warning/10 px-3 py-2 text-[11px] text-warning">

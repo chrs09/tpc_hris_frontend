@@ -66,8 +66,10 @@ export default function TimeCorrectionHistoryList({ requests, missedDays = [], o
                 <p className="text-sm font-semibold text-fg">{request.date_label}</p>
                 <p className="mt-1 text-xs text-fg-muted">
                   {[
-                    request.time_in && `In ${request.time_in}`,
-                    request.time_out && `Out ${request.time_out}`,
+                    request.time_in &&
+                      `In ${request.from_time_in ? `${request.from_time_in} → ` : ""}${request.time_in}`,
+                    request.time_out &&
+                      `Out ${request.from_time_out ? `${request.from_time_out} → ` : ""}${request.time_out}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}

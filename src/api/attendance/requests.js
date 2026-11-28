@@ -23,6 +23,10 @@ export const getMyTimeCorrections = async () =>
   (await api.get("/attendance-requests/time-corrections/mine")).data;
 
 // { attendance_date: "YYYY-MM-DD", time_in?: "HH:MM", time_out?: "HH:MM", reason }
+// What my attendance shows for a day (File Time Correction fills it in).
+export const getMyRecordedDay = async (attendanceDate) =>
+  (await api.get("/attendance-requests/time-corrections/day", { params: { attendance_date: attendanceDate } })).data;
+
 export const fileTimeCorrection = async (payload) =>
   (await api.post("/attendance-requests/time-corrections", payload)).data;
 
